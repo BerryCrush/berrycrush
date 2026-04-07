@@ -1,0 +1,12 @@
+# Valid scenario outline with examples
+outline: Test multiple pet retrieval
+  when I get a pet by ID
+    call getPetById
+      petId: {{petId}}
+  then I see the expected name
+    assert $.name equals {{expectedName}}
+  examples:
+    | petId | expectedName |
+    | 1     | "Fluffy"     |
+    | 2     | "Buddy"      |
+    | 3     | "Charlie"    |

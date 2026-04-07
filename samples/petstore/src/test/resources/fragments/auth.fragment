@@ -1,0 +1,20 @@
+# Authentication Fragment
+# Reusable authentication steps for protected endpoints
+
+fragment: authenticate
+  given I have valid credentials
+    call loginUser
+      query_username: "test"
+      query_password: "abc123"
+    extract $.message => sessionToken
+
+fragment: setAuthHeader
+  given I have the session token
+    # This fragment demonstrates setting a header from a saved variable
+    # In actual usage, the executor would add this header to subsequent calls
+
+fragment: logout
+  when I log out
+    call logoutUser
+  then the session is terminated
+    assert status 200

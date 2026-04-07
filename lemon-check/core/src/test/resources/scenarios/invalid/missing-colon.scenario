@@ -1,0 +1,4 @@
+# Invalid scenario - missing colon after keyword
+scenario Test without colon
+  when something
+    call listPets

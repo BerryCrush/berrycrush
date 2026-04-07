@@ -16,9 +16,9 @@
 ## Path Conventions
 
 Multi-module Gradle project:
-- `lemon-check/core/src/main/kotlin/io/lemoncheck/` - Core library
-- `lemon-check/core/src/test/kotlin/io/lemoncheck/` - Core tests
-- `lemon-check/junit/src/main/kotlin/io/lemoncheck/junit/` - JUnit integration
+- `lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/` - Core library
+- `lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/` - Core tests
+- `lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/` - JUnit integration
 - `samples/petstore/src/test/kotlin/` - Example scenarios
 
 ---
@@ -27,16 +27,16 @@ Multi-module Gradle project:
 
 **Purpose**: Initialize Gradle multi-module project structure with all dependencies
 
-- [ ] T001 Create root build.gradle.kts with Kotlin 2.3.20 and Java 21 configuration
-- [ ] T002 Create settings.gradle.kts with multi-module structure (lemon-check/core, lemon-check/junit, samples/petstore)
-- [ ] T003 [P] Create gradle/libs.versions.toml with version catalog (swagger-parser 2.1.22, json-path 2.9.0, json-schema-validator 1.4.0, junit 5.10.x)
-- [ ] T004 [P] Create lemon-check/core/build.gradle.kts with dependencies
-- [ ] T005 [P] Create lemon-check/junit/build.gradle.kts with JUnit 5 dependencies
-- [ ] T006 [P] Create samples/petstore/build.gradle.kts with test configuration
-- [ ] T007 [P] Configure ktlint for code formatting in root build.gradle.kts
-- [ ] T008 Create lemon-check/core/src/test/resources/petstore.yaml OpenAPI test fixture
+- [x] T001 Create root build.gradle.kts with Kotlin 2.3.20 and Java 21 configuration
+- [x] T002 Create settings.gradle.kts with multi-module structure (lemon-check/core, lemon-check/junit, samples/petstore)
+- [x] T003 [P] Create gradle/libs.versions.toml with version catalog (swagger-parser 2.1.22, json-path 2.9.0, json-schema-validator 1.4.0, junit 5.10.x)
+- [x] T004 [P] Create lemon-check/core/build.gradle.kts with dependencies
+- [x] T005 [P] Create lemon-check/junit/build.gradle.kts with JUnit 5 dependencies
+- [x] T006 [P] Create samples/petstore/build.gradle.kts with test configuration
+- [x] T007 [P] Configure ktlint for code formatting in root build.gradle.kts
+- [x] T008 Create lemon-check/core/src/test/resources/petstore.yaml OpenAPI test fixture
 
-**Checkpoint**: `./gradlew build` compiles successfully with empty modules
+**Checkpoint**: `./gradlew build` compiles successfully with empty modules ✅
 
 ---
 
@@ -48,43 +48,43 @@ Multi-module Gradle project:
 
 ### Core Models
 
-- [ ] T009 [P] Create StepType enum in lemon-check/core/src/main/kotlin/io/lemoncheck/model/StepType.kt
-- [ ] T010 [P] Create ResultStatus enum in lemon-check/core/src/main/kotlin/io/lemoncheck/model/ResultStatus.kt
-- [ ] T011 [P] Create Scenario data class in lemon-check/core/src/main/kotlin/io/lemoncheck/model/Scenario.kt
-- [ ] T012 [P] Create Step data class in lemon-check/core/src/main/kotlin/io/lemoncheck/model/Step.kt
-- [ ] T013 [P] Create Extraction data class in lemon-check/core/src/main/kotlin/io/lemoncheck/model/Extraction.kt
-- [ ] T014 [P] Create Assertion data class in lemon-check/core/src/main/kotlin/io/lemoncheck/model/Assertion.kt
-- [ ] T015 [P] Create StepResult data class in lemon-check/core/src/main/kotlin/io/lemoncheck/model/StepResult.kt
-- [ ] T016 [P] Create ScenarioResult data class in lemon-check/core/src/main/kotlin/io/lemoncheck/model/ScenarioResult.kt
-- [ ] T017 [P] Create Configuration data class in lemon-check/core/src/main/kotlin/io/lemoncheck/config/Configuration.kt
+- [x] T009 [P] Create StepType enum in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/StepType.kt
+- [x] T010 [P] Create ResultStatus enum in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/ResultStatus.kt
+- [x] T011 [P] Create Scenario data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/Scenario.kt
+- [x] T012 [P] Create Step data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/Step.kt
+- [x] T013 [P] Create Extraction data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/Extraction.kt
+- [x] T014 [P] Create Assertion data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/Assertion.kt
+- [x] T015 [P] Create StepResult data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/StepResult.kt
+- [x] T016 [P] Create ScenarioResult data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/ScenarioResult.kt
+- [x] T017 [P] Create Configuration data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/config/Configuration.kt
 
 ### OpenAPI Integration
 
-- [ ] T018 Create OpenApiLoader class in lemon-check/core/src/main/kotlin/io/lemoncheck/openapi/OpenApiLoader.kt (wraps Swagger Parser)
-- [ ] T019 Create OperationResolver class in lemon-check/core/src/main/kotlin/io/lemoncheck/openapi/OperationResolver.kt (resolves operationId to path+method)
-- [ ] T020 Create SpecRegistry class in lemon-check/core/src/main/kotlin/io/lemoncheck/openapi/SpecRegistry.kt (multi-spec support)
-- [ ] T021 [P] Create unit tests for OpenApiLoader in lemon-check/core/src/test/kotlin/io/lemoncheck/openapi/OpenApiLoaderTest.kt
-- [ ] T022 [P] Create unit tests for OperationResolver in lemon-check/core/src/test/kotlin/io/lemoncheck/openapi/OperationResolverTest.kt
+- [x] T018 Create OpenApiLoader class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/openapi/OpenApiLoader.kt (wraps Swagger Parser)
+- [x] T019 Create OperationResolver class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/openapi/OperationResolver.kt (resolves operationId to path+method)
+- [x] T020 Create SpecRegistry class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/openapi/SpecRegistry.kt (multi-spec support)
+- [x] T021 [P] Create unit tests for OpenApiLoader in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/openapi/OpenApiLoaderTest.kt
+- [x] T022 [P] Create unit tests for OperationResolver in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/openapi/OperationResolverTest.kt
 
 ### HTTP Execution Foundation
 
-- [ ] T023 Create HttpRequestBuilder class in lemon-check/core/src/main/kotlin/io/lemoncheck/executor/HttpRequestBuilder.kt (uses java.net.http.HttpClient)
-- [ ] T024 Create ResponseHandler class in lemon-check/core/src/main/kotlin/io/lemoncheck/executor/ResponseHandler.kt
-- [ ] T025 [P] Create unit tests for HttpRequestBuilder in lemon-check/core/src/test/kotlin/io/lemoncheck/executor/HttpRequestBuilderTest.kt
+- [x] T023 Create HttpRequestBuilder class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/executor/HttpRequestBuilder.kt (uses java.net.http.HttpClient)
+- [x] T024 Create ResponseHandler class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/executor/ResponseHandler.kt
+- [x] T025 [P] Create unit tests for HttpRequestBuilder in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/executor/HttpRequestBuilderTest.kt
 
 ### Execution Context
 
-- [ ] T026 Create ExecutionContext class in lemon-check/core/src/main/kotlin/io/lemoncheck/context/ExecutionContext.kt
-- [ ] T027 [P] Create unit tests for ExecutionContext in lemon-check/core/src/test/kotlin/io/lemoncheck/context/ExecutionContextTest.kt
+- [x] T026 Create ExecutionContext class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/context/ExecutionContext.kt
+- [x] T027 [P] Create unit tests for ExecutionContext in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/context/ExecutionContextTest.kt
 
 ### Error Handling
 
-- [ ] T028 [P] Create LemonCheckException base class in lemon-check/core/src/main/kotlin/io/lemoncheck/exception/Exceptions.kt
-- [ ] T029 [P] Create OperationNotFoundException in lemon-check/core/src/main/kotlin/io/lemoncheck/exception/Exceptions.kt
-- [ ] T030 [P] Create ExtractionException in lemon-check/core/src/main/kotlin/io/lemoncheck/exception/Exceptions.kt
-- [ ] T031 [P] Create AssertionFailedException in lemon-check/core/src/main/kotlin/io/lemoncheck/exception/Exceptions.kt
+- [x] T028 [P] Create LemonCheckException base class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/exception/Exceptions.kt
+- [x] T029 [P] Create OperationNotFoundException in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/exception/Exceptions.kt
+- [x] T030 [P] Create ExtractionException in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/exception/Exceptions.kt
+- [x] T031 [P] Create AssertionFailedException in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/exception/Exceptions.kt
 
-**Checkpoint**: Foundation ready - all core models compiled, OpenAPI loading works, HTTP client configured
+**Checkpoint**: Foundation ready - all core models compiled, OpenAPI loading works, HTTP client configured ✅
 
 ---
 
@@ -96,38 +96,38 @@ Multi-module Gradle project:
 
 ### DSL Implementation for US1
 
-- [ ] T032 [US1] Create @DslMarker annotation LemonCheckDsl in lemon-check/core/src/main/kotlin/io/lemoncheck/dsl/DslMarker.kt
-- [ ] T033 [US1] Create LemonCheckSuite class in lemon-check/core/src/main/kotlin/io/lemoncheck/dsl/LemonCheckSuite.kt
-- [ ] T034 [US1] Create lemonCheck() entry point function in lemon-check/core/src/main/kotlin/io/lemoncheck/dsl/LemonCheckDsl.kt
-- [ ] T035 [US1] Create ScenarioScope class with given/when/then functions in lemon-check/core/src/main/kotlin/io/lemoncheck/dsl/ScenarioScope.kt
-- [ ] T036 [US1] Create StepScope class with call() function in lemon-check/core/src/main/kotlin/io/lemoncheck/dsl/StepScope.kt
-- [ ] T037 [US1] Create CallScope class with pathParam/queryParam/header/body in lemon-check/core/src/main/kotlin/io/lemoncheck/dsl/CallScope.kt
+- [x] T032 [US1] Create @DslMarker annotation LemonCheckDsl in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/DslMarker.kt
+- [x] T033 [US1] Create LemonCheckSuite class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/LemonCheckSuite.kt
+- [x] T034 [US1] Create lemonCheck() entry point function in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/LemonCheckDsl.kt
+- [x] T035 [US1] Create ScenarioScope class with given/when/then functions in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/ScenarioScope.kt
+- [x] T036 [US1] Create StepScope class with call() function in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/StepScope.kt
+- [x] T037 [US1] Create CallScope class with pathParam/queryParam/header/body in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/CallScope.kt
 
 ### Basic Assertions for US1
 
-- [ ] T038 [US1] Implement statusCode() assertion in StepScope in lemon-check/core/src/main/kotlin/io/lemoncheck/dsl/StepScope.kt
-- [ ] T039 [US1] Implement bodyContains() assertion in StepScope
-- [ ] T040 [US1] Implement bodyEquals() assertion using JSONPath in StepScope
-- [ ] T041 [US1] Implement headerExists() and headerEquals() assertions in StepScope
+- [x] T038 [US1] Implement statusCode() assertion in StepScope in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/StepScope.kt
+- [x] T039 [US1] Implement bodyContains() assertion in StepScope
+- [x] T040 [US1] Implement bodyEquals() assertion using JSONPath in StepScope
+- [x] T041 [US1] Implement headerExists() and headerEquals() assertions in StepScope
 
 ### Scenario Execution for US1
 
-- [ ] T042 [US1] Create ScenarioExecutor class in lemon-check/core/src/main/kotlin/io/lemoncheck/executor/ScenarioExecutor.kt
-- [ ] T043 [US1] Implement step-by-step execution with result tracking in ScenarioExecutor
-- [ ] T044 [US1] Implement Scenario.run() extension function in lemon-check/core/src/main/kotlin/io/lemoncheck/dsl/ScenarioExtensions.kt
+- [x] T042 [US1] Create ScenarioExecutor class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/executor/ScenarioExecutor.kt
+- [x] T043 [US1] Implement step-by-step execution with result tracking in ScenarioExecutor
+- [x] T044 [US1] Implement Scenario.run() extension function in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/ScenarioExtensions.kt
 
 ### Reporting for US1
 
-- [ ] T045 [US1] Create TestReporter interface in lemon-check/core/src/main/kotlin/io/lemoncheck/report/TestReporter.kt
-- [ ] T046 [US1] Create ConsoleReporter implementation in lemon-check/core/src/main/kotlin/io/lemoncheck/report/ConsoleReporter.kt
+- [x] T045 [US1] Create TestReporter interface in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/report/TestReporter.kt
+- [x] T046 [US1] Create ConsoleReporter implementation in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/report/ConsoleReporter.kt
 
 ### Tests for US1
 
-- [ ] T047 [P] [US1] Create DSL contract test in lemon-check/core/src/test/kotlin/io/lemoncheck/dsl/LemonCheckDslTest.kt
-- [ ] T048 [P] [US1] Create ScenarioExecutor unit test in lemon-check/core/src/test/kotlin/io/lemoncheck/executor/ScenarioExecutorTest.kt
-- [ ] T049 [US1] Create integration test with petstore.yaml in lemon-check/core/src/test/kotlin/io/lemoncheck/integration/SimpleScenarioIntegrationTest.kt
+- [x] T047 [P] [US1] Create DSL contract test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/dsl/LemonCheckDslTest.kt
+- [x] T048 [P] [US1] Create ScenarioExecutor unit test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/executor/ScenarioExecutorTest.kt
+- [x] T049 [US1] Create integration test with petstore.yaml in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/integration/SimpleScenarioIntegrationTest.kt
 
-**Checkpoint**: User Story 1 complete - can execute `scenario("name") { given { call("op") } then { statusCode(200) } }.run()`
+**Checkpoint**: User Story 1 complete - can execute `scenario("name") { given { call("op") } then { statusCode(200) } }.run()` ✅
 
 ---
 
@@ -139,23 +139,23 @@ Multi-module Gradle project:
 
 ### Value Extraction for US2
 
-- [ ] T050 [US2] Create ValueExtractor class using JSONPath in lemon-check/core/src/main/kotlin/io/lemoncheck/context/ValueExtractor.kt
-- [ ] T051 [US2] Implement extractTo() function in StepScope for variable extraction
-- [ ] T052 [US2] Implement context property in StepScope for variable access
-- [ ] T053 [US2] Add variable interpolation support in CallScope (body, pathParam, etc.)
+- [x] T050 [US2] Create ValueExtractor class using JSONPath in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/context/ValueExtractor.kt
+- [x] T051 [US2] Implement extractTo() function in StepScope for variable extraction
+- [x] T052 [US2] Implement context property in StepScope for variable access
+- [x] T053 [US2] Add variable interpolation support in CallScope (body, pathParam, etc.)
 
 ### Context Flow for US2
 
-- [ ] T054 [US2] Implement context passing between steps in ScenarioExecutor
-- [ ] T055 [US2] Add lastResponse property to ExecutionContext for implicit access
-- [ ] T056 [US2] Implement variable resolution in HTTP request building
+- [x] T054 [US2] Implement context passing between steps in ScenarioExecutor
+- [x] T055 [US2] Add lastResponse property to ExecutionContext for implicit access
+- [x] T056 [US2] Implement variable resolution in HTTP request building
 
 ### Tests for US2
 
-- [ ] T057 [P] [US2] Create ValueExtractor unit test in lemon-check/core/src/test/kotlin/io/lemoncheck/context/ValueExtractorTest.kt
-- [ ] T058 [US2] Create data flow integration test in lemon-check/core/src/test/kotlin/io/lemoncheck/integration/DataFlowIntegrationTest.kt
+- [x] T057 [P] [US2] Create ValueExtractor unit test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/context/ValueExtractorTest.kt
+- [x] T058 [US2] Create data flow integration test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/integration/DataFlowIntegrationTest.kt
 
-**Checkpoint**: User Story 2 complete - `extractTo("id", "$.id")` then `pathParam("petId", context["id"])` works
+**Checkpoint**: User Story 2 complete - `extractTo("id", "$.id")` then `pathParam("petId", context["id"])` works ✅
 
 ---
 
@@ -167,23 +167,23 @@ Multi-module Gradle project:
 
 ### Fragment DSL for US3
 
-- [ ] T059 [US3] Create Fragment data class in lemon-check/core/src/main/kotlin/io/lemoncheck/model/Fragment.kt
-- [ ] T060 [US3] Create FragmentScope class in lemon-check/core/src/main/kotlin/io/lemoncheck/dsl/FragmentScope.kt
-- [ ] T061 [US3] Create fragment() builder function in lemon-check/core/src/main/kotlin/io/lemoncheck/dsl/FragmentDsl.kt
-- [ ] T062 [US3] Implement include() function in ScenarioScope
-- [ ] T063 [US3] Implement Background support in LemonCheckSuite for shared setup
+- [x] T059 [US3] Create Fragment data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/Fragment.kt
+- [x] T060 [US3] Create FragmentScope class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/FragmentScope.kt
+- [x] T061 [US3] Create fragment() builder function in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/FragmentDsl.kt
+- [x] T062 [US3] Implement include() function in ScenarioScope
+- [x] T063 [US3] Implement Background support in LemonCheckSuite for shared setup
 
 ### Fragment Execution for US3
 
-- [ ] T064 [US3] Add fragment resolution in ScenarioExecutor
-- [ ] T065 [US3] Implement context sharing between included fragments and scenarios
+- [x] T064 [US3] Add fragment resolution in ScenarioExecutor
+- [x] T065 [US3] Implement context sharing between included fragments and scenarios
 
 ### Tests for US3
 
-- [ ] T066 [P] [US3] Create Fragment DSL test in lemon-check/core/src/test/kotlin/io/lemoncheck/dsl/FragmentDslTest.kt
-- [ ] T067 [US3] Create fragment reuse integration test in lemon-check/core/src/test/kotlin/io/lemoncheck/integration/FragmentIntegrationTest.kt
+- [x] T066 [P] [US3] Create Fragment DSL test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/dsl/FragmentDslTest.kt
+- [x] T067 [US3] Create fragment reuse integration test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/integration/FragmentIntegrationTest.kt
 
-**Checkpoint**: User Story 3 complete - `val authFragment = fragment("auth") { ... }; scenario { include(authFragment) }` works
+**Checkpoint**: User Story 3 complete - `val authFragment = fragment("auth") { ... }; scenario { include(authFragment) }` works ✅
 
 ---
 
@@ -195,24 +195,24 @@ Multi-module Gradle project:
 
 ### Parameterization DSL for US4
 
-- [ ] T068 [US4] Create ExampleRow data class in lemon-check/core/src/main/kotlin/io/lemoncheck/model/ExampleRow.kt
-- [ ] T069 [US4] Create ScenarioOutlineScope class in lemon-check/core/src/main/kotlin/io/lemoncheck/dsl/ScenarioOutlineScope.kt
-- [ ] T070 [US4] Create scenarioOutline() builder function in LemonCheckSuite
-- [ ] T071 [US4] Implement examples() and row() functions in ScenarioOutlineScope
-- [ ] T072 [US4] Add parameter placeholder substitution (<name> syntax) in step execution
+- [x] T068 [US4] Create ExampleRow data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/ExampleRow.kt
+- [x] T069 [US4] Create ScenarioOutlineScope class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/ScenarioOutlineScope.kt
+- [x] T070 [US4] Create scenarioOutline() builder function in LemonCheckSuite
+- [x] T071 [US4] Implement examples() and row() functions in ScenarioOutlineScope
+- [x] T072 [US4] Add parameter placeholder substitution (<name> syntax) in step execution
 
 ### Parameterized Execution for US4
 
-- [ ] T073 [US4] Implement scenario expansion from outline + examples in ScenarioExecutor
-- [ ] T074 [US4] Add per-row result tracking with parameter values in ScenarioResult
-- [ ] T075 [US4] Update ConsoleReporter to show parameter values in output
+- [x] T073 [US4] Implement scenario expansion from outline + examples in ScenarioExecutor
+- [x] T074 [US4] Add per-row result tracking with parameter values in ScenarioResult
+- [x] T075 [US4] Update ConsoleReporter to show parameter values in output
 
 ### Tests for US4
 
-- [ ] T076 [P] [US4] Create ScenarioOutline DSL test in lemon-check/core/src/test/kotlin/io/lemoncheck/dsl/ScenarioOutlineDslTest.kt
-- [ ] T077 [US4] Create parameterized scenario integration test in lemon-check/core/src/test/kotlin/io/lemoncheck/integration/ParameterizedScenarioIntegrationTest.kt
+- [x] T076 [P] [US4] Create ScenarioOutline DSL test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/dsl/ScenarioOutlineDslTest.kt
+- [x] T077 [US4] Create parameterized scenario integration test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/integration/ParameterizedScenarioIntegrationTest.kt
 
-**Checkpoint**: User Story 4 complete - `scenarioOutline { examples(row(...), row(...)) }` generates multiple test runs
+**Checkpoint**: User Story 4 complete - `scenarioOutline { examples(row(...), row(...)) }` generates multiple test runs ✅
 
 ---
 
@@ -224,25 +224,25 @@ Multi-module Gradle project:
 
 ### Schema Validation for US5
 
-- [ ] T078 [US5] Create SchemaValidator class in lemon-check/core/src/main/kotlin/io/lemoncheck/assertion/SchemaValidator.kt (uses networknt json-schema-validator)
-- [ ] T079 [US5] Create ValidationError data class in lemon-check/core/src/main/kotlin/io/lemoncheck/model/ValidationError.kt
-- [ ] T080 [US5] Implement matchesSchema() assertion in StepScope
-- [ ] T081 [US5] Add strict vs lenient validation modes to Configuration
+- [x] T078 [US5] Create SchemaValidator class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/assertion/SchemaValidator.kt (uses networknt json-schema-validator)
+- [x] T079 [US5] Create ValidationError data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/ValidationError.kt
+- [x] T080 [US5] Implement matchesSchema() assertion in StepScope
+- [x] T081 [US5] Add strict vs lenient validation modes to Configuration
 
 ### Auto-Assertions for US5
 
-- [ ] T082 [US5] Create AssertionGenerator class in lemon-check/core/src/main/kotlin/io/lemoncheck/assertion/AssertionGenerator.kt
-- [ ] T083 [US5] Implement auto-assertion extraction from OpenAPI responses (status code, schema, content-type)
-- [ ] T084 [US5] Add autoAssert(Boolean) control in CallScope
-- [ ] T085 [US5] Add autoAssertions configuration block in Configuration
+- [x] T082 [US5] Create AssertionGenerator class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/assertion/AssertionGenerator.kt
+- [x] T083 [US5] Implement auto-assertion extraction from OpenAPI responses (status code, schema, content-type)
+- [x] T084 [US5] Add autoAssert(Boolean) control in CallScope
+- [x] T085 [US5] Add autoAssertions configuration block in Configuration
 
 ### Tests for US5
 
-- [ ] T086 [P] [US5] Create SchemaValidator unit test in lemon-check/core/src/test/kotlin/io/lemoncheck/assertion/SchemaValidatorTest.kt
-- [ ] T087 [P] [US5] Create AssertionGenerator unit test in lemon-check/core/src/test/kotlin/io/lemoncheck/assertion/AssertionGeneratorTest.kt
-- [ ] T088 [US5] Create schema validation integration test in lemon-check/core/src/test/kotlin/io/lemoncheck/integration/SchemaValidationIntegrationTest.kt
+- [x] T086 [P] [US5] Create SchemaValidator unit test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/assertion/SchemaValidatorTest.kt
+- [x] T087 [P] [US5] Create AssertionGenerator unit test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/assertion/AssertionGeneratorTest.kt
+- [x] T088 [US5] Create schema validation integration test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/integration/SchemaValidationIntegrationTest.kt
 
-**Checkpoint**: User Story 5 complete - `matchesSchema()` validates responses, auto-assertions derive from spec
+**Checkpoint**: User Story 5 complete - `matchesSchema()` validates responses, auto-assertions derive from spec ✅
 
 ---
 
@@ -254,35 +254,35 @@ Multi-module Gradle project:
 
 ### Lexer & Parser
 
-- [ ] T089 [P] Create Token types in lemon-check/core/src/main/kotlin/io/lemoncheck/scenario/Token.kt
-- [ ] T090 [P] Create SourceLocation data class in lemon-check/core/src/main/kotlin/io/lemoncheck/scenario/SourceLocation.kt
-- [ ] T091 [P] Create ParseError data class in lemon-check/core/src/main/kotlin/io/lemoncheck/scenario/ParseError.kt
-- [ ] T092 Create Lexer class in lemon-check/core/src/main/kotlin/io/lemoncheck/scenario/Lexer.kt
-- [ ] T093 Create AST data classes (FeatureFile, Feature, Background, ParsedScenario, ParsedStep) in lemon-check/core/src/main/kotlin/io/lemoncheck/scenario/Ast.kt
-- [ ] T094 Create Parser class (recursive descent) in lemon-check/core/src/main/kotlin/io/lemoncheck/scenario/Parser.kt
-- [ ] T095 Create DirectiveType enum in lemon-check/core/src/main/kotlin/io/lemoncheck/scenario/DirectiveType.kt
-- [ ] T096 Create StepDirective data class in lemon-check/core/src/main/kotlin/io/lemoncheck/scenario/StepDirective.kt
+- [x] T089 [P] Create Token types in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/Token.kt
+- [x] T090 [P] Create SourceLocation data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/SourceLocation.kt
+- [x] T091 [P] Create ParseError data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/ParseError.kt
+- [x] T092 Create Lexer class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/Lexer.kt
+- [x] T093 Create AST data classes (FeatureFile, Feature, Background, ParsedScenario, ParsedStep) in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/AstNodes.kt
+- [x] T094 Create Parser class (recursive descent) in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/Parser.kt
+- [x] T095 Create DirectiveType enum in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/Token.kt (TokenType enum)
+- [x] T096 Create StepDirective data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/AstNodes.kt (ActionNode classes)
 
 ### Semantic Analysis
 
-- [ ] T097 Create SemanticAnalyzer class in lemon-check/core/src/main/kotlin/io/lemoncheck/scenario/SemanticAnalyzer.kt (validates operationIds exist)
-- [ ] T098 Create AssertionParser class in lemon-check/core/src/main/kotlin/io/lemoncheck/assertion/AssertionParser.kt (parses assertion expressions)
+- [x] T097 Create SemanticAnalyzer class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/ScenarioLoader.kt (integrated with loader)
+- [x] T098 Create AssertionParser class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/Parser.kt (parseAssertAction method)
 
 ### Scenario Loading
 
-- [ ] T099 Create ScenarioLoader class in lemon-check/core/src/main/kotlin/io/lemoncheck/scenario/ScenarioLoader.kt
-- [ ] T100 Implement loadScenariosFrom() function in LemonCheckSuite
-- [ ] T101 Implement loadFragmentsFrom() function in LemonCheckSuite
-- [ ] T102 Create AST to executable Scenario transformer
+- [x] T099 Create ScenarioLoader class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/ScenarioLoader.kt
+- [x] T100 Implement loadScenariosFrom() function in LemonCheckSuite
+- [x] T101 Implement loadFragmentsFrom() function in LemonCheckSuite
+- [x] T102 Create AST to executable Scenario transformer
 
 ### Parser Tests
 
-- [ ] T103 [P] Create Lexer unit tests in lemon-check/core/src/test/kotlin/io/lemoncheck/scenario/LexerTest.kt
-- [ ] T104 [P] Create Parser unit tests in lemon-check/core/src/test/kotlin/io/lemoncheck/scenario/ParserTest.kt
-- [ ] T105 [P] Create test fixtures in lemon-check/core/src/test/resources/scenarios/valid/ and invalid/
-- [ ] T106 Create ScenarioLoader integration test in lemon-check/core/src/test/kotlin/io/lemoncheck/scenario/ScenarioLoaderTest.kt
+- [x] T103 [P] Create Lexer unit tests in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/scenario/LexerTest.kt
+- [x] T104 [P] Create Parser unit tests in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/scenario/ParserTest.kt
+- [x] T105 [P] Create test fixtures in lemon-check/core/src/test/resources/scenarios/valid/ and invalid/
+- [x] T106 Create ScenarioLoader integration test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/scenario/ScenarioLoaderTest.kt
 
-**Checkpoint**: `.scenario` files can be parsed and executed alongside Kotlin DSL scenarios
+**Checkpoint**: `.scenario` files can be parsed and executed alongside Kotlin DSL scenarios ✅
 
 ---
 
@@ -292,16 +292,16 @@ Multi-module Gradle project:
 
 ### JUnit Extension
 
-- [ ] T107 [P] Create LemonCheckExtension class in lemon-check/junit/src/main/kotlin/io/lemoncheck/junit/LemonCheckExtension.kt
-- [ ] T108 [P] Create @LemonCheckSpec annotation in lemon-check/junit/src/main/kotlin/io/lemoncheck/junit/Annotations.kt
-- [ ] T109 Create ScenarioTest base class in lemon-check/junit/src/main/kotlin/io/lemoncheck/junit/ScenarioTest.kt
-- [ ] T110 Implement dynamic test generation from scenarios for @TestFactory
+- [x] T107 [P] Create LemonCheckExtension class in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/LemonCheckExtension.kt
+- [x] T108 [P] Create @LemonCheckSpec annotation in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/Annotations.kt
+- [x] T109 Create ScenarioTest base class in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/ScenarioTest.kt
+- [x] T110 Implement dynamic test generation from scenarios for @TestFactory
 
 ### JUnit Tests
 
-- [ ] T111 [P] Create LemonCheckExtension tests in lemon-check/junit/src/test/kotlin/io/lemoncheck/junit/LemonCheckExtensionTest.kt
+- [x] T111 [P] Create LemonCheckExtension tests in lemon-check/junit/src/test/kotlin/io/github/ktakashi/lemoncheck/junit/LemonCheckExtensionTest.kt
 
-**Checkpoint**: Scenarios can run as JUnit 5 tests with IDE integration
+**Checkpoint**: Scenarios can run as JUnit 5 tests with IDE integration ✅
 
 ---
 
@@ -311,39 +311,39 @@ Multi-module Gradle project:
 
 ### Sample Petstore Scenarios (Kotlin DSL)
 
-- [ ] T112 [P] Create PetstoreKotlinScenarios.kt in samples/petstore/src/test/kotlin/ demonstrating US1-US5
-- [ ] T113 [P] Create petstore.yaml OpenAPI spec in samples/petstore/src/test/resources/
+- [x] T112 [P] Create PetstoreKotlinScenarios.kt in samples/petstore/src/test/kotlin/ demonstrating US1-US5
+- [x] T113 [P] Create petstore.yaml OpenAPI spec in samples/petstore/src/test/resources/ (using existing spec)
 
 ### Sample Petstore Scenarios (Text Files)
 
-- [ ] T114 [P] Create petstore-crud.scenario in samples/petstore/src/test/resources/scenarios/
-- [ ] T115 [P] Create auth.fragment in samples/petstore/src/test/resources/fragments/
+- [x] T114 [P] Create petstore-crud.scenario in samples/petstore/src/test/resources/scenarios/
+- [x] T115 [P] Create auth.fragment in samples/petstore/src/test/resources/fragments/
 
 ### Additional Assertions & Features
 
-- [ ] T116 [P] Implement bodyArraySize() assertion in StepScope
-- [ ] T117 [P] Implement bodyArrayNotEmpty() assertion in StepScope
-- [ ] T118 [P] Implement bodyMatches() regex assertion in StepScope
-- [ ] T119 [P] Implement responseTime() assertion in StepScope
-- [ ] T120 [P] Add bearerToken(), basicAuth(), apiKey() authentication shortcuts in CallScope
+- [x] T116 [P] Implement bodyArraySize() assertion in StepScope
+- [x] T117 [P] Implement bodyArrayNotEmpty() assertion in StepScope
+- [x] T118 [P] Implement bodyMatches() regex assertion in StepScope
+- [x] T119 [P] Implement responseTime() assertion in StepScope
+- [x] T120 [P] Add bearerToken(), basicAuth(), apiKey() authentication shortcuts in CallScope
 
 ### JSON Reporter
 
-- [ ] T121 Create JsonReporter implementation in lemon-check/core/src/main/kotlin/io/lemoncheck/report/JsonReporter.kt
-- [ ] T122 Create TestReport aggregation class in lemon-check/core/src/main/kotlin/io/lemoncheck/model/TestReport.kt
+- [x] T121 Create JsonReporter implementation in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/report/JsonReporter.kt
+- [x] T122 Create TestReport aggregation class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/TestReport.kt
 
 ### Multi-Spec Support Enhancement
 
-- [ ] T123 Implement using() function in StepScope for spec switching
-- [ ] T124 Add spec-specific Configuration support
-- [ ] T125 Implement auto-resolution when operationId is unique across specs
+- [x] T123 Implement using() function in StepScope for spec switching
+- [x] T124 Add spec-specific Configuration support
+- [x] T125 Implement auto-resolution when operationId is unique across specs
 
 ### Final Validation
 
-- [ ] T126 Run full integration test suite with samples
-- [ ] T127 Verify all quickstart.md examples work correctly
+- [x] T126 Run full integration test suite with samples
+- [x] T127 Verify all quickstart.md examples work correctly
 
-**Checkpoint**: Library complete with samples, all user stories functional
+**Checkpoint**: Library complete with samples, all user stories functional ✅
 
 ---
 

@@ -67,7 +67,7 @@ lemon-check/
 │   └── src/
 │       ├── main/
 │       │   ├── kotlin/
-│       │   │   └── io/lemoncheck/
+│       │   │   └── io/github/ktakashi/lemoncheck/
 │       │   │       ├── dsl/          # Kotlin DSL for scenarios
 │       │   │       │   ├── ScenarioDsl.kt
 │       │   │       │   ├── StepDsl.kt
@@ -98,7 +98,7 @@ lemon-check/
 │       │   └── resources/
 │       └── test/
 │           ├── kotlin/
-│           │   └── io/lemoncheck/
+│           │   └── io/github/ktakashi/lemoncheck/
 │           │       ├── dsl/
 │           │       ├── scenario/     # Parser tests
 │           │       ├── openapi/
@@ -114,7 +114,7 @@ lemon-check/
 │   ├── build.gradle.kts
 │   └── src/
 │       └── main/kotlin/
-│           └── io/lemoncheck/junit/
+│           └── io/github/ktakashi/lemoncheck/junit/
 │               ├── LemonCheckExtension.kt
 │               └── ScenarioTest.kt
 │
