@@ -15,8 +15,8 @@ Get started with LemonCheck in 5 minutes.
 **build.gradle.kts**:
 ```kotlin
 dependencies {
-    testImplementation("io.lemoncheck:lemon-check-core:1.0.0")
-    testImplementation("io.lemoncheck:lemon-check-junit:1.0.0")  // Optional: JUnit 5 integration
+    testImplementation("io.github.ktakashi.lemoncheck:lemon-check-core:1.0.0")
+    testImplementation("io.github.ktakashi.lemoncheck:lemon-check-junit:1.0.0")  // Optional: JUnit 5 integration
 }
 ```
 
@@ -86,7 +86,7 @@ components:
 
 **src/test/kotlin/PetstoreScenarios.kt**:
 ```kotlin
-import io.lemoncheck.dsl.*
+import io.github.ktakashi.lemoncheck.dsl.*
 import org.junit.jupiter.api.Test
 import kotlin.time.Duration.Companion.seconds
 
@@ -279,7 +279,7 @@ Feature: Pet Store Customer Journey
 ### Run Scenario Files from Kotlin
 
 ```kotlin
-import io.lemoncheck.dsl.*
+import io.github.ktakashi.lemoncheck.dsl.*
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.DynamicTest
 

@@ -11,7 +11,7 @@ This document defines the public Kotlin DSL API that users interact with to writ
 ## Package Structure
 
 ```
-io.lemoncheck
+io.github.ktakashi.lemoncheck
 ├── dsl           # User-facing DSL functions
 ├── config        # Configuration classes
 ├── result        # Result types (read-only)
