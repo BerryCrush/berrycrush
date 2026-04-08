@@ -20,12 +20,19 @@ annotation class LemonCheckSpec(
 /**
  * Annotation to mark a test method or class as providing LemonCheck scenarios.
  *
- * When applied, the LemonCheckExtension will generate test cases for each scenario.
+ * When applied, the LemonCheckTestEngine will discover and execute scenario files
+ * from the specified locations.
+ *
+ * @property locations Classpath locations to search for scenario files.
+ *                     Supports glob patterns (e.g., scenarios/`*`.scenario, `**`/`*`.scenario).
+ *                     Paths are relative to the classpath root.
  */
 @Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 @MustBeDocumented
-annotation class LemonCheckScenarios
+annotation class LemonCheckScenarios(
+    vararg val locations: String = ["scenarios/*.scenario"],
+)
 
 /**
  * Annotation to filter scenarios by tags.

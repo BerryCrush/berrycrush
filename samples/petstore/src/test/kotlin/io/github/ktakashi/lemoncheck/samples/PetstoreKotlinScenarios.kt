@@ -1,6 +1,5 @@
 package io.github.ktakashi.lemoncheck.samples
 
-import io.github.ktakashi.lemoncheck.dsl.lemonCheck
 import io.github.ktakashi.lemoncheck.junit.LemonCheckSpec
 import io.github.ktakashi.lemoncheck.junit.ScenarioTest
 
@@ -132,8 +131,10 @@ class PetstoreKotlinScenarios : ScenarioTest() {
             }
         }
 
-        // US3: Fragments - Using authentication fragment
-        fragment("authenticate") {
+        // US3: Fragments - Authentication scenario
+        // Note: Since fragment reuse isn't directly supported in ScenarioScope,
+        // we demonstrate authentication as a standalone scenario
+        scenario("US3 - Access protected resource with authentication") {
             given("I have valid credentials") {
                 call("loginUser") {
                     queryParam("username", "test")
@@ -141,10 +142,6 @@ class PetstoreKotlinScenarios : ScenarioTest() {
                 }
                 extractTo("sessionToken", "$.message")
             }
-        }
-
-        scenario("US3 - Access protected resource with authentication") {
-            useFragment("authenticate")
 
             `when`("I access a protected endpoint") {
                 call("getInventory") {
@@ -158,10 +155,11 @@ class PetstoreKotlinScenarios : ScenarioTest() {
         }
 
         // US4: Parameterized Scenarios - Multiple pet statuses
+        // Note: For parameterized scenarios, use the placeholder syntax in strings
         scenarioOutline("US4 - Filter pets by status: <status>") {
             `when`("I filter pets by <status> status") {
                 call("findPetsByStatus") {
-                    queryParam("status", example("status"))
+                    queryParam("status", "<status>")
                 }
             }
 

@@ -8,8 +8,12 @@ dependencies {
 
     // JUnit 5
     implementation(libs.bundles.junit)
+    
+    // JUnit Platform Engine API
+    api(libs.bundles.junit.platform)
+    api(libs.junit.platform.suite.api)
 
     // Testing
     testImplementation(libs.kotlin.test.junit5)
-    testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.junit.platform.launcher)
 }
