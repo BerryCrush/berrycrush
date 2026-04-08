@@ -6,7 +6,6 @@ import java.nio.file.FileSystems
 import java.nio.file.Path
 import java.nio.file.PathMatcher
 import java.util.jar.JarFile
-import kotlin.io.path.pathString
 
 /**
  * Discovers .scenario files from classpath locations.

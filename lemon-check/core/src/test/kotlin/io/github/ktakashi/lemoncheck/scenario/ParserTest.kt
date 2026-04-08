@@ -49,7 +49,7 @@ scenario: Get a pet by ID
 scenario: Create and retrieve pet
   when I create a pet
     call createPet
-    extract ${'$'}.id => petId
+    extract $.id => petId
   then I can retrieve it
     call getPetById
       petId: {{petId}}
@@ -70,7 +70,7 @@ scenario: Verify pet response
       petId: 1
   then the response is correct
     assert status 200
-    assert ${'$'}.name equals "Fluffy"
+    assert $.name equals "Fluffy"
     assert header Content-Type = "application/json"
 """.trimIndent()
 
@@ -88,7 +88,7 @@ fragment: authenticate
     call login
       username: "admin"
       password: "secret"
-    extract ${'$'}.token => authToken
+    extract $.token => authToken
 """.trimIndent()
 
         val result = Parser.parse(source)
@@ -123,7 +123,7 @@ outline: Test multiple pets
     call getPetById
       petId: {{petId}}
   then I see the correct name
-    assert ${'$'}.name equals {{expectedName}}
+    assert $.name equals {{expectedName}}
   examples:
     | petId | expectedName |
     | 1     | "Fluffy"     |
@@ -136,7 +136,7 @@ outline: Test multiple pets
         val scenario = result.ast!!.scenarios[0]
         assertTrue(scenario.isOutline)
         assertNotNull(scenario.examples)
-        assertEquals(2, scenario.examples!!.size)
+        assertEquals(2, scenario.examples.size)
     }
 
     @Test
@@ -163,9 +163,9 @@ scenario: Multiple assertions
   when I get pets
     call listPets
   then the response is an array
-    assert ${'$'} notEmpty
+    assert $ notEmpty
   and it contains at least one pet
-    assert ${'$'}[0].id equals 1
+    assert $[0].id equals 1
 """.trimIndent()
 
         val result = Parser.parse(source)

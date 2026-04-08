@@ -68,11 +68,11 @@ class LexerTest {
 
     @Test
     fun `should tokenize JSON paths`() {
-        val lexer = Lexer("${'$'}.data.items[0].name")
+        val lexer = Lexer("$.data.items[0].name")
         val tokens = lexer.tokenize()
 
         assertEquals(TokenType.JSON_PATH, tokens[0].type)
-        assertEquals("${'$'}.data.items[0].name", tokens[0].value)
+        assertEquals("$.data.items[0].name", tokens[0].value)
     }
 
     @Test

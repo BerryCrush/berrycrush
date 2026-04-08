@@ -24,7 +24,7 @@ class ValueExtractor {
     ): Any? {
         return try {
             JsonPath.read(body, jsonPath)
-        } catch (e: PathNotFoundException) {
+        } catch (_: PathNotFoundException) {
             null
         } catch (e: Exception) {
             throw ExtractionException(
@@ -55,8 +55,9 @@ class ValueExtractor {
                 ExtractionSource.HEADER -> throw UnsupportedOperationException("Header extraction requires response object")
                 ExtractionSource.STATUS -> throw UnsupportedOperationException("Status extraction requires response object")
             }
-
-        context[extraction.variableName] = value
+        if (value != null) {
+            context[extraction.variableName] = value
+        }
         return value
     }
 
@@ -94,11 +95,10 @@ class ValueExtractor {
         for (extraction in extractions) {
             try {
                 val value = extract(body, extraction.jsonPath)
-                context[extraction.variableName] = value
+                if (value != null) context[extraction.variableName] = value
                 results[extraction.variableName] = value
-            } catch (e: ExtractionException) {
+            } catch (_: ExtractionException) {
                 // Store null and continue
-                context[extraction.variableName] = null
                 results[extraction.variableName] = null
             }
         }
@@ -132,8 +132,7 @@ class ValueExtractor {
         body: String,
         jsonPath: String,
     ): List<Any?> {
-        val result = extract(body, jsonPath)
-        return when (result) {
+        return when (val result = extract(body, jsonPath)) {
             is List<*> -> result.toList()
             null -> emptyList()
             else -> listOf(result)
@@ -154,7 +153,7 @@ class ValueExtractor {
         return try {
             val result = extract(body, jsonPath)
             result != null
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }

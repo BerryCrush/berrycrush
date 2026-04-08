@@ -1,15 +1,15 @@
 package io.github.ktakashi.lemoncheck.junit.engine
 
-import io.github.ktakashi.lemoncheck.config.Configuration
 import io.github.ktakashi.lemoncheck.dsl.LemonCheckSuite
 import io.github.ktakashi.lemoncheck.executor.ScenarioExecutor
 import io.github.ktakashi.lemoncheck.junit.DefaultBindings
 import io.github.ktakashi.lemoncheck.junit.LemonCheckBindings
 import io.github.ktakashi.lemoncheck.junit.LemonCheckScenarios
-import io.github.ktakashi.lemoncheck.junit.LemonCheckSpec
 import io.github.ktakashi.lemoncheck.junit.discovery.ScenarioDiscovery
 import io.github.ktakashi.lemoncheck.model.ResultStatus
 import io.github.ktakashi.lemoncheck.scenario.ScenarioLoader
+import java.io.InputStreamReader
+import java.net.URL
 import org.junit.jupiter.api.Disabled
 import org.junit.platform.engine.EngineDiscoveryRequest
 import org.junit.platform.engine.ExecutionRequest
@@ -21,8 +21,6 @@ import org.junit.platform.engine.discovery.ClassSelector
 import org.junit.platform.engine.discovery.ClasspathRootSelector
 import org.junit.platform.engine.discovery.PackageSelector
 import org.junit.platform.engine.support.descriptor.EngineDescriptor
-import java.io.InputStreamReader
-import java.net.URL
 
 /**
  * JUnit 5 TestEngine implementation for LemonCheck scenarios.

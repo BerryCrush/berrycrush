@@ -183,9 +183,8 @@ class ScenarioExecutor(
                 val value = JsonPath.read<Any>(body, extraction.jsonPath)
                 context[extraction.variableName] = value
                 extracted[extraction.variableName] = value
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Extraction failed - store null
-                context[extraction.variableName] = null
                 extracted[extraction.variableName] = null
             }
         }

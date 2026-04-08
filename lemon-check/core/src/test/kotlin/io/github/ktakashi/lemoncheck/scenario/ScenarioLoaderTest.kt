@@ -120,7 +120,7 @@ scenario: Step types test
 scenario: Extraction test
   when I create something
     call createPet
-    extract ${'$'}.id => petId
+    extract $.id => petId
 """.trimIndent()
 
         val scenarios = loader.loadScenariosFromString(source)
@@ -128,7 +128,7 @@ scenario: Extraction test
 
         assertTrue(step.extractions.isNotEmpty())
         assertEquals("petId", step.extractions[0].variableName)
-        assertEquals("${'$'}.id", step.extractions[0].jsonPath)
+        assertEquals("$.id", step.extractions[0].jsonPath)
     }
 
     @Test
@@ -138,7 +138,7 @@ scenario: Extraction test
 scenario: Assertions test
   then the response is correct
     assert status 200
-    assert ${'$'}.name equals "Fluffy"
+    assert $.name equals "Fluffy"
 """.trimIndent()
 
         val scenarios = loader.loadScenariosFromString(source)

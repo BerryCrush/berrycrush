@@ -167,11 +167,7 @@ class Parser(
         val nameParts = mutableListOf<String>()
 
         while (!isAtEnd() && current().type != TokenType.NEWLINE && current().type != TokenType.EOF) {
-            if (current().type == TokenType.STRING) {
-                nameParts.add(current().value)
-            } else {
-                nameParts.add(current().value)
-            }
+            nameParts.add(current().value)
             advance()
         }
 
@@ -203,10 +199,6 @@ class Parser(
                     TokenType.THEN -> StepKeyword.THEN
                     TokenType.AND -> StepKeyword.AND
                     TokenType.DEDENT, TokenType.SCENARIO, TokenType.OUTLINE, TokenType.FRAGMENT, TokenType.EXAMPLES, TokenType.EOF -> break
-                    TokenType.NEWLINE -> {
-                        advance()
-                        continue
-                    }
                     else -> {
                         advance()
                         continue
@@ -227,7 +219,7 @@ class Parser(
         return steps
     }
 
-    private fun parseStep(keyword: StepKeyword): StepNode? {
+    private fun parseStep(keyword: StepKeyword): StepNode {
         val loc = currentLocation()
         advance() // consume keyword
         skipWhitespace()
@@ -420,7 +412,7 @@ class Parser(
         )
     }
 
-    private fun parseAssertAction(): AssertNode? {
+    private fun parseAssertAction(): AssertNode {
         val loc = currentLocation()
         advance() // consume 'assert'
         skipWhitespace()
@@ -628,6 +620,7 @@ class Parser(
         val loc = currentLocation()
 
         return when (current().type) {
+            TokenType.IDENTIFIER, TokenType.OPERATION_ID,
             TokenType.STRING -> {
                 val value = current().value
                 advance()
@@ -654,11 +647,6 @@ class Parser(
             }
             TokenType.OPEN_BRACKET -> {
                 parseJsonArray(loc)
-            }
-            TokenType.IDENTIFIER, TokenType.OPERATION_ID -> {
-                val value = current().value
-                advance()
-                StringValueNode(value, loc)
             }
             else -> null
         }

@@ -1,6 +1,5 @@
 package io.github.ktakashi.lemoncheck.report
 
-import io.github.ktakashi.lemoncheck.model.ResultStatus
 import io.github.ktakashi.lemoncheck.model.ScenarioResult
 import io.github.ktakashi.lemoncheck.model.StepResult
 import io.github.ktakashi.lemoncheck.model.TestReport

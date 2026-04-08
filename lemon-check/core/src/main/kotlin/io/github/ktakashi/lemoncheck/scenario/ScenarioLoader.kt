@@ -9,7 +9,6 @@ import io.github.ktakashi.lemoncheck.model.Fragment
 import io.github.ktakashi.lemoncheck.model.Scenario
 import io.github.ktakashi.lemoncheck.model.Step
 import io.github.ktakashi.lemoncheck.model.StepType
-import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -279,7 +278,7 @@ class ScenarioLoader {
         return when (node) {
             is StringValueNode -> node.value
             is NumberValueNode -> node.value
-            is VariableValueNode -> "\${${node.name}}"
+            is VariableValueNode -> $$"${$${node.name}}"
             is JsonValueNode -> node.json
         }
     }
@@ -288,7 +287,7 @@ class ScenarioLoader {
         return when (node) {
             is StringValueNode -> node.value
             is NumberValueNode -> node.value.toString()
-            is VariableValueNode -> "\${${node.name}}"
+            is VariableValueNode -> $$"${$${node.name}}"
             is JsonValueNode -> node.json
         }
     }

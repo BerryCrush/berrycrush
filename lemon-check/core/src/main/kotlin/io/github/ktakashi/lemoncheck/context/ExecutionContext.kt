@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap
  * Thread-safe for use in parallel execution scenarios.
  */
 class ExecutionContext {
-    private val variables = ConcurrentHashMap<String, Any?>()
+    private val variables = ConcurrentHashMap<String, Any>()
 
     /**
      * The last HTTP response received.
@@ -35,7 +35,7 @@ class ExecutionContext {
      */
     operator fun set(
         name: String,
-        value: Any?,
+        value: Any,
     ) {
         variables[name] = value
     }
