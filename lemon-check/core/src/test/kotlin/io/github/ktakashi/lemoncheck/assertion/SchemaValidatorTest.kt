@@ -1,7 +1,6 @@
 package io.github.ktakashi.lemoncheck.assertion
 
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class SchemaValidatorTest {

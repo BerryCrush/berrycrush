@@ -21,10 +21,10 @@ class ValueExtractor {
     fun extract(
         body: String,
         jsonPath: String,
-    ): Any? {
-        return try {
+    ): Any? =
+        try {
             JsonPath.read(body, jsonPath)
-        } catch (e: PathNotFoundException) {
+        } catch (_: PathNotFoundException) {
             null
         } catch (e: Exception) {
             throw ExtractionException(
@@ -34,7 +34,6 @@ class ValueExtractor {
                 cause = e,
             )
         }
-    }
 
     /**
      * Extract a value and store in context.
@@ -55,8 +54,9 @@ class ValueExtractor {
                 ExtractionSource.HEADER -> throw UnsupportedOperationException("Header extraction requires response object")
                 ExtractionSource.STATUS -> throw UnsupportedOperationException("Status extraction requires response object")
             }
-
-        context[extraction.variableName] = value
+        if (value != null) {
+            context[extraction.variableName] = value
+        }
         return value
     }
 
@@ -72,9 +72,7 @@ class ValueExtractor {
         body: String,
         jsonPath: String,
         defaultValue: Any,
-    ): Any {
-        return extract(body, jsonPath) ?: defaultValue
-    }
+    ): Any = extract(body, jsonPath) ?: defaultValue
 
     /**
      * Extract multiple values from a response.
@@ -94,11 +92,10 @@ class ValueExtractor {
         for (extraction in extractions) {
             try {
                 val value = extract(body, extraction.jsonPath)
-                context[extraction.variableName] = value
+                if (value != null) context[extraction.variableName] = value
                 results[extraction.variableName] = value
-            } catch (e: ExtractionException) {
+            } catch (_: ExtractionException) {
                 // Store null and continue
-                context[extraction.variableName] = null
                 results[extraction.variableName] = null
             }
         }
@@ -117,9 +114,7 @@ class ValueExtractor {
     fun <T> extractTyped(
         body: String,
         jsonPath: String,
-    ): T? {
-        return extract(body, jsonPath) as? T
-    }
+    ): T? = extract(body, jsonPath) as? T
 
     /**
      * Extract a list of values.
@@ -131,14 +126,12 @@ class ValueExtractor {
     fun extractList(
         body: String,
         jsonPath: String,
-    ): List<Any?> {
-        val result = extract(body, jsonPath)
-        return when (result) {
+    ): List<Any?> =
+        when (val result = extract(body, jsonPath)) {
             is List<*> -> result.toList()
             null -> emptyList()
             else -> listOf(result)
         }
-    }
 
     /**
      * Check if a path exists in the response.
@@ -150,12 +143,11 @@ class ValueExtractor {
     fun pathExists(
         body: String,
         jsonPath: String,
-    ): Boolean {
-        return try {
+    ): Boolean =
+        try {
             val result = extract(body, jsonPath)
             result != null
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
-    }
 }

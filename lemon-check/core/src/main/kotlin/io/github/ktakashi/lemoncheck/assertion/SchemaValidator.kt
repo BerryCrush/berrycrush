@@ -103,7 +103,7 @@ class SchemaValidator(
     ): Map<String, Any?> {
         val result = mutableMapOf<String, Any?>()
 
-        result["\$schema"] = "http://json-schema.org/draft-07/schema#"
+        result[$$"$schema"] = "http://json-schema.org/draft-07/schema#"
 
         schema.type?.let { result["type"] = it }
         schema.format?.let { result["format"] = it }

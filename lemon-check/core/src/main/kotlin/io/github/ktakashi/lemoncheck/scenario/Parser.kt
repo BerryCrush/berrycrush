@@ -67,7 +67,7 @@ class Parser(
                     if (fragment != null) fragments.add(fragment)
                 }
                 TokenType.EOF -> break
-                TokenType.NEWLINE -> {
+                TokenType.NEWLINE, TokenType.INDENT, TokenType.DEDENT -> {
                     advance()
                 }
                 else -> {
@@ -167,11 +167,7 @@ class Parser(
         val nameParts = mutableListOf<String>()
 
         while (!isAtEnd() && current().type != TokenType.NEWLINE && current().type != TokenType.EOF) {
-            if (current().type == TokenType.STRING) {
-                nameParts.add(current().value)
-            } else {
-                nameParts.add(current().value)
-            }
+            nameParts.add(current().value)
             advance()
         }
 
@@ -183,9 +179,7 @@ class Parser(
         return nameParts.joinToString(" ").trim()
     }
 
-    private fun parseFragmentName(): String? {
-        return parseScenarioName()
-    }
+    private fun parseFragmentName(): String? = parseScenarioName()
 
     private fun parseSteps(): List<StepNode> {
         val steps = mutableListOf<StepNode>()
@@ -203,20 +197,13 @@ class Parser(
                     TokenType.THEN -> StepKeyword.THEN
                     TokenType.AND -> StepKeyword.AND
                     TokenType.DEDENT, TokenType.SCENARIO, TokenType.OUTLINE, TokenType.FRAGMENT, TokenType.EXAMPLES, TokenType.EOF -> break
-                    TokenType.NEWLINE -> {
-                        advance()
-                        continue
-                    }
                     else -> {
                         advance()
                         continue
                     }
                 }
 
-            val step = parseStep(stepKeyword)
-            if (step != null) {
-                steps.add(step)
-            }
+            steps.add(parseStep(stepKeyword))
         }
 
         // Consume dedent if present
@@ -227,7 +214,7 @@ class Parser(
         return steps
     }
 
-    private fun parseStep(keyword: StepKeyword): StepNode? {
+    private fun parseStep(keyword: StepKeyword): StepNode {
         val loc = currentLocation()
         advance() // consume keyword
         skipWhitespace()
@@ -265,29 +252,13 @@ class Parser(
 
             while (!isAtEnd()) {
                 when (current().type) {
-                    TokenType.CALL -> {
-                        val call = parseCallAction()
-                        if (call != null) actions.add(call)
-                    }
-                    TokenType.EXTRACT -> {
-                        val extract = parseExtractAction()
-                        if (extract != null) actions.add(extract)
-                    }
-                    TokenType.ASSERT -> {
-                        val assert = parseAssertAction()
-                        if (assert != null) actions.add(assert)
-                    }
-                    TokenType.INCLUDE -> {
-                        val include = parseIncludeAction()
-                        if (include != null) actions.add(include)
-                    }
-                    TokenType.NEWLINE -> {
-                        advance()
-                    }
+                    TokenType.CALL -> parseCallAction()?.let { actions.add(it) }
+                    TokenType.EXTRACT -> parseExtractAction()?.let { actions.add(it) }
+                    TokenType.ASSERT -> actions.add(parseAssertAction())
+                    TokenType.INCLUDE -> parseIncludeAction()?.let { actions.add(it) }
+                    TokenType.NEWLINE -> advance()
                     TokenType.DEDENT, TokenType.GIVEN, TokenType.WHEN, TokenType.THEN, TokenType.AND, TokenType.EOF -> break
-                    else -> {
-                        advance()
-                    }
+                    else -> advance()
                 }
             }
 
@@ -402,10 +373,10 @@ class Parser(
         skipWhitespace()
 
         // Parse variable name
+        val current = current()
         val variableName =
-            when (current().type) {
-                TokenType.VARIABLE -> current().value
-                TokenType.IDENTIFIER -> current().value
+            when (current.type) {
+                TokenType.VARIABLE, TokenType.IDENTIFIER -> current.value
                 else -> {
                     errors.add(ParseError("Expected variable name", currentLocation()))
                     return null
@@ -420,7 +391,7 @@ class Parser(
         )
     }
 
-    private fun parseAssertAction(): AssertNode? {
+    private fun parseAssertAction(): AssertNode {
         val loc = currentLocation()
         advance() // consume 'assert'
         skipWhitespace()
@@ -538,7 +509,6 @@ class Parser(
 
     private fun parseExamples(): List<ExampleRowNode>? {
         skipNewlines()
-
         if (current().type != TokenType.EXAMPLES) {
             return null
         }
@@ -562,19 +532,31 @@ class Parser(
         if (current().type == TokenType.PIPE) {
             advance()
             while (!isAtEnd() && current().type != TokenType.NEWLINE) {
-                if (current().type == TokenType.IDENTIFIER || current().type == TokenType.STRING) {
-                    headers.add(current().value)
-                    advance()
-                }
-                if (current().type == TokenType.PIPE) {
-                    advance()
+                when (current().type) {
+                    TokenType.IDENTIFIER, TokenType.OPERATION_ID, TokenType.STRING -> {
+                        headers.add(current().value)
+                        advance()
+                    }
+                    TokenType.PIPE -> {
+                        advance()
+                    }
+                    else -> {
+                        // Skip unknown tokens to avoid infinite loop
+                        advance()
+                    }
                 }
             }
             skipNewlines()
         }
 
         // Parse data rows
-        while (!isAtEnd() && current().type != TokenType.DEDENT && current().type != TokenType.SCENARIO && current().type != TokenType.OUTLINE && current().type != TokenType.FRAGMENT) {
+        while (
+            !isAtEnd() &&
+            current().type != TokenType.DEDENT &&
+            current().type != TokenType.SCENARIO &&
+            current().type != TokenType.OUTLINE &&
+            current().type != TokenType.FRAGMENT
+        ) {
             if (current().type == TokenType.PIPE) {
                 val row = parseExampleRow(headers)
                 if (row != null) {
@@ -603,15 +585,20 @@ class Parser(
 
         var columnIndex = 0
         while (!isAtEnd() && current().type != TokenType.NEWLINE) {
-            if (current().type == TokenType.PIPE) {
-                advance()
-                continue
-            }
-
-            val value = parseValue()
-            if (value != null && columnIndex < headers.size) {
-                values[headers[columnIndex]] = value
-                columnIndex++
+            when (current().type) {
+                TokenType.PIPE -> {
+                    advance()
+                }
+                else -> {
+                    val value = parseValue()
+                    if (value != null && columnIndex < headers.size) {
+                        values[headers[columnIndex]] = value
+                        columnIndex++
+                    } else {
+                        // Skip unknown tokens to avoid infinite loop
+                        advance()
+                    }
+                }
             }
         }
 
@@ -628,7 +615,10 @@ class Parser(
         val loc = currentLocation()
 
         return when (current().type) {
-            TokenType.STRING -> {
+            TokenType.IDENTIFIER,
+            TokenType.OPERATION_ID,
+            TokenType.STRING,
+            -> {
                 val value = current().value
                 advance()
                 StringValueNode(value, loc)
@@ -654,11 +644,6 @@ class Parser(
             }
             TokenType.OPEN_BRACKET -> {
                 parseJsonArray(loc)
-            }
-            TokenType.IDENTIFIER, TokenType.OPERATION_ID -> {
-                val value = current().value
-                advance()
-                StringValueNode(value, loc)
             }
             else -> null
         }

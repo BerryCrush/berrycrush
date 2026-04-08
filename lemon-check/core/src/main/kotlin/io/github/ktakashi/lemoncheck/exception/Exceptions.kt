@@ -81,7 +81,7 @@ class AssertionFailedException(
  */
 class HttpExecutionException(
     val url: String,
-    val method: String,
+    method: String,
     cause: Throwable,
 ) : LemonCheckException(
         "HTTP request failed: $method $url - ${cause.message}",
@@ -92,7 +92,7 @@ class HttpExecutionException(
  * Thrown when schema validation fails.
  */
 class SchemaValidationException(
-    val errors: List<String>,
+    errors: List<String>,
 ) : LemonCheckException(
         "Schema validation failed:\n${errors.joinToString("\n") { "  - $it" }}",
     )

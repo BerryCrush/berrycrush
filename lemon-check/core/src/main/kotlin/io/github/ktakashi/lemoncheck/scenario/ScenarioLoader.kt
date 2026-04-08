@@ -9,7 +9,6 @@ import io.github.ktakashi.lemoncheck.model.Fragment
 import io.github.ktakashi.lemoncheck.model.Scenario
 import io.github.ktakashi.lemoncheck.model.Step
 import io.github.ktakashi.lemoncheck.model.StepType
-import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -26,7 +25,8 @@ class ScenarioLoader {
     fun loadScenariosFromDirectory(directory: Path): List<Scenario> {
         val scenarios = mutableListOf<Scenario>()
 
-        Files.walk(directory)
+        Files
+            .walk(directory)
             .filter { it.toString().endsWith(".scenario") }
             .forEach { path ->
                 val loadedScenarios = loadScenariosFromFile(path)
@@ -78,7 +78,8 @@ class ScenarioLoader {
     fun loadFragmentsFromDirectory(directory: Path): Map<String, Fragment> {
         val fragments = mutableMapOf<String, Fragment>()
 
-        Files.walk(directory)
+        Files
+            .walk(directory)
             .filter { it.toString().endsWith(".fragment") }
             .forEach { path ->
                 val loadedFragments = loadFragmentsFromFile(path)
@@ -161,44 +162,51 @@ class ScenarioLoader {
         }
 
         // For call actions, create steps with the call details
+        // Extractions and assertions that follow a call are attached to that call
         val steps = mutableListOf<Step>()
+        var pendingCall: CallNode? = null
         var currentExtractions = mutableListOf<Extraction>()
         var currentAssertions = mutableListOf<Assertion>()
+
+        fun finalizeCall(call: CallNode) {
+            val pathParams =
+                call.parameters
+                    .filterKeys { !it.startsWith("query_") }
+                    .mapValues { extractValue(it.value) }
+
+            val queryParams =
+                call.parameters
+                    .filterKeys { it.startsWith("query_") }
+                    .mapKeys { it.key.removePrefix("query_") }
+                    .mapValues { extractValue(it.value) }
+
+            val headers = call.headers.mapValues { extractValue(it.value).toString() }
+            val body = call.body?.let { extractStringValue(it) }
+
+            steps.add(
+                Step(
+                    type = stepType,
+                    description = node.description,
+                    operationId = call.operationId,
+                    specName = call.specName,
+                    pathParams = pathParams,
+                    queryParams = queryParams,
+                    headers = headers,
+                    body = body,
+                    extractions = currentExtractions.toList(),
+                    assertions = currentAssertions.toList(),
+                ),
+            )
+            currentExtractions = mutableListOf()
+            currentAssertions = mutableListOf()
+        }
 
         for (action in node.actions) {
             when (action) {
                 is CallNode -> {
-                    // Create step for call with accumulated extractions and assertions
-                    val pathParams =
-                        action.parameters
-                            .filterKeys { !it.startsWith("query_") }
-                            .mapValues { extractValue(it.value) }
-
-                    val queryParams =
-                        action.parameters
-                            .filterKeys { it.startsWith("query_") }
-                            .mapKeys { it.key.removePrefix("query_") }
-                            .mapValues { extractValue(it.value) }
-
-                    val headers = action.headers.mapValues { extractValue(it.value).toString() }
-                    val body = action.body?.let { extractStringValue(it) }
-
-                    steps.add(
-                        Step(
-                            type = stepType,
-                            description = node.description,
-                            operationId = action.operationId,
-                            specName = action.specName,
-                            pathParams = pathParams,
-                            queryParams = queryParams,
-                            headers = headers,
-                            body = body,
-                            extractions = currentExtractions.toList(),
-                            assertions = currentAssertions.toList(),
-                        ),
-                    )
-                    currentExtractions = mutableListOf()
-                    currentAssertions = mutableListOf()
+                    // Finalize any pending call with accumulated extractions/assertions
+                    pendingCall?.let { finalizeCall(it) }
+                    pendingCall = action
                 }
                 is ExtractNode -> {
                     currentExtractions.add(
@@ -212,6 +220,10 @@ class ScenarioLoader {
                     currentAssertions.add(transformAssertion(action))
                 }
                 is IncludeNode -> {
+                    // Finalize any pending call first
+                    pendingCall?.let { finalizeCall(it) }
+                    pendingCall = null
+
                     // Include actions are handled at runtime by the executor
                     steps.add(
                         Step(
@@ -224,8 +236,11 @@ class ScenarioLoader {
             }
         }
 
-        // Add any remaining extractions/assertions as a final step
-        if (currentExtractions.isNotEmpty() || currentAssertions.isNotEmpty()) {
+        // Finalize any remaining pending call with extractions/assertions
+        pendingCall?.let { finalizeCall(it) }
+
+        // If there are orphan extractions/assertions without a call, add them as a separate step
+        if (pendingCall == null && (currentExtractions.isNotEmpty() || currentAssertions.isNotEmpty())) {
             steps.add(
                 Step(
                     type = stepType,
@@ -275,23 +290,21 @@ class ScenarioLoader {
         return ExampleRow(values)
     }
 
-    private fun extractValue(node: ValueNode): Any {
-        return when (node) {
+    private fun extractValue(node: ValueNode): Any =
+        when (node) {
             is StringValueNode -> node.value
             is NumberValueNode -> node.value
-            is VariableValueNode -> "\${${node.name}}"
+            is VariableValueNode -> $$"${$${node.name}}"
             is JsonValueNode -> node.json
         }
-    }
 
-    private fun extractStringValue(node: ValueNode): String {
-        return when (node) {
+    private fun extractStringValue(node: ValueNode): String =
+        when (node) {
             is StringValueNode -> node.value
             is NumberValueNode -> node.value.toString()
-            is VariableValueNode -> "\${${node.name}}"
+            is VariableValueNode -> $$"${$${node.name}}"
             is JsonValueNode -> node.json
         }
-    }
 }
 
 /**

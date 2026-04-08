@@ -3,7 +3,6 @@ package io.github.ktakashi.lemoncheck.junit
 import io.github.ktakashi.lemoncheck.config.Configuration
 import io.github.ktakashi.lemoncheck.dsl.LemonCheckSuite
 import io.github.ktakashi.lemoncheck.executor.ScenarioExecutor
-import io.github.ktakashi.lemoncheck.model.ResultStatus
 import io.github.ktakashi.lemoncheck.model.Scenario
 import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
@@ -91,37 +90,30 @@ class LemonCheckExtension :
     override fun resolveParameter(
         parameterContext: ParameterContext,
         extensionContext: ExtensionContext,
-    ): Any {
-        val paramType = parameterContext.parameter.type
-        return when {
-            paramType == LemonCheckSuite::class.java -> getSuite(extensionContext)
-            paramType == ScenarioExecutor::class.java -> getExecutor(extensionContext)
-            paramType == Configuration::class.java -> getSuite(extensionContext).configuration
+    ): Any =
+        when (val paramType = parameterContext.parameter.type) {
+            LemonCheckSuite::class.java -> getSuite(extensionContext)
+            ScenarioExecutor::class.java -> getExecutor(extensionContext)
+            Configuration::class.java -> getSuite(extensionContext).configuration
             else -> throw IllegalArgumentException("Unsupported parameter type: $paramType")
         }
-    }
 
-    override fun supportsTestTemplate(context: ExtensionContext): Boolean {
-        return context.requiredTestMethod.isAnnotationPresent(LemonCheckScenarios::class.java) ||
+    override fun supportsTestTemplate(context: ExtensionContext): Boolean =
+        context.requiredTestMethod.isAnnotationPresent(LemonCheckScenarios::class.java) ||
             context.requiredTestClass.isAnnotationPresent(LemonCheckScenarios::class.java)
-    }
 
-    override fun provideTestTemplateInvocationContexts(context: ExtensionContext): Stream<TestTemplateInvocationContext> {
-        val suite = getSuite(context)
-        return suite.allScenarios().stream().map { scenario ->
+    override fun provideTestTemplateInvocationContexts(context: ExtensionContext): Stream<TestTemplateInvocationContext> =
+        getSuite(context).allScenarios().stream().map { scenario ->
             ScenarioInvocationContext(scenario, getExecutor(context))
         }
-    }
 
-    private fun getSuite(context: ExtensionContext): LemonCheckSuite {
-        return context.getStore(NAMESPACE).get(SUITE_KEY, LemonCheckSuite::class.java)
+    private fun getSuite(context: ExtensionContext): LemonCheckSuite =
+        context.getStore(NAMESPACE).get(SUITE_KEY, LemonCheckSuite::class.java)
             ?: throw IllegalStateException("LemonCheckSuite not initialized. Is @ExtendWith(LemonCheckExtension::class) present?")
-    }
 
-    private fun getExecutor(context: ExtensionContext): ScenarioExecutor {
-        return context.getStore(NAMESPACE).get(EXECUTOR_KEY, ScenarioExecutor::class.java)
+    private fun getExecutor(context: ExtensionContext): ScenarioExecutor =
+        context.getStore(NAMESPACE).get(EXECUTOR_KEY, ScenarioExecutor::class.java)
             ?: throw IllegalStateException("ScenarioExecutor not initialized.")
-    }
 
     /**
      * Context for a single scenario invocation.
@@ -130,15 +122,12 @@ class LemonCheckExtension :
         private val scenario: Scenario,
         private val executor: ScenarioExecutor,
     ) : TestTemplateInvocationContext {
-        override fun getDisplayName(invocationIndex: Int): String {
-            return scenario.name
-        }
+        override fun getDisplayName(invocationIndex: Int): String = scenario.name
 
-        override fun getAdditionalExtensions(): List<org.junit.jupiter.api.extension.Extension> {
-            return listOf(
+        override fun getAdditionalExtensions(): List<org.junit.jupiter.api.extension.Extension> =
+            listOf(
                 ScenarioParameterResolver(scenario, executor),
             )
-        }
     }
 
     /**
@@ -151,16 +140,11 @@ class LemonCheckExtension :
         override fun supportsParameter(
             parameterContext: ParameterContext,
             extensionContext: ExtensionContext,
-        ): Boolean {
-            val paramType = parameterContext.parameter.type
-            return paramType == Scenario::class.java
-        }
+        ): Boolean = parameterContext.parameter.type == Scenario::class.java
 
         override fun resolveParameter(
             parameterContext: ParameterContext,
             extensionContext: ExtensionContext,
-        ): Any {
-            return scenario
-        }
+        ): Any = scenario
     }
 }

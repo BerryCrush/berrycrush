@@ -62,7 +62,7 @@ class ExecutionContextTest {
         context["name"] = "Rex"
         context["age"] = 5
 
-        val result = context.interpolate("Pet \$name is \$age years old")
+        val result = context.interpolate($$"Pet $name is $age years old")
 
         assertEquals("Pet Rex is 5 years old", result)
     }
@@ -73,7 +73,7 @@ class ExecutionContextTest {
 
         context["petName"] = "Rex"
 
-        val result = context.interpolate("Pet \${petName} is cute")
+        val result = context.interpolate($$"Pet ${petName} is cute")
 
         assertEquals("Pet Rex is cute", result)
     }
@@ -84,9 +84,9 @@ class ExecutionContextTest {
 
         context["known"] = "value"
 
-        val result = context.interpolate("\$known and \$unknown")
+        val result = context.interpolate($$"$known and $unknown")
 
-        assertEquals("value and \$unknown", result)
+        assertEquals($$"value and $unknown", result)
     }
 
     @Test

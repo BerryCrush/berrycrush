@@ -3,9 +3,7 @@ package io.github.ktakashi.lemoncheck.integration
 import io.github.ktakashi.lemoncheck.assertion.SchemaValidator
 import io.github.ktakashi.lemoncheck.config.AutoAssertionConfig
 import io.github.ktakashi.lemoncheck.config.Configuration
-import io.github.ktakashi.lemoncheck.model.AssertionType
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
