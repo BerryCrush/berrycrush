@@ -1,0 +1,4 @@
+scenario: Simple passing scenario
+  given a test condition
+  then the scenario passes
+    assert status 200

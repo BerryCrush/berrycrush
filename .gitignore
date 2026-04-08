@@ -1,0 +1,33 @@
+# Gradle
+.gradle/
+build/
+out/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Kotlin
+*.class
+*.jar
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+*.env
+
+# Test outputs
+test-results/
+reports/
+
+# Temporary
+*.tmp
+*.swp
+*~
