@@ -50,6 +50,25 @@ interface LemonCheckBindings {
     fun getOpenApiSpec(): String? = null
 
     /**
+     * Optional: Register additional named OpenAPI specs.
+     *
+     * Returns a map of spec names to their classpath paths.
+     * These specs will be registered in addition to the default spec.
+     * Operations can reference these specs using the `specName:operationId` syntax.
+     *
+     * Example:
+     * ```java
+     * @Override
+     * public Map<String, String> getAdditionalSpecs() {
+     *     return Map.of("auth", "auth.yaml", "admin", "admin.yaml");
+     * }
+     * ```
+     *
+     * @return Map of spec names to their paths, or empty map if none
+     */
+    fun getAdditionalSpecs(): Map<String, String> = emptyMap()
+
+    /**
      * Optional: Configure the execution context.
      *
      * Called before scenario execution begins. Use this to perform

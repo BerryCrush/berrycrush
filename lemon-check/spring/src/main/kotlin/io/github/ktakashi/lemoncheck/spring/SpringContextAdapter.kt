@@ -63,10 +63,15 @@ class SpringContextAdapter(
      * @return The bean instance
      * @throws IllegalStateException if context not initialized or bean not found
      */
-    fun <T> getBean(beanClass: Class<T>): T {
+    fun <T : Any> getBean(beanClass: Class<T>): T {
         val context = getApplicationContext()
         return try {
-            context.getBean(beanClass)
+            // Try getBeansOfType first, then get the first bean
+            val beans = context.getBeansOfType(beanClass)
+            if (beans.isEmpty()) {
+                throw IllegalStateException("No bean of type ${beanClass.name} found")
+            }
+            beans.values.first()
         } catch (e: Exception) {
             throw IllegalStateException(
                 "Bindings class '${beanClass.name}' is not registered as a Spring bean. " +

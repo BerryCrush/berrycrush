@@ -1,13 +1,14 @@
 package io.github.ktakashi.lemoncheck.assertion
 
-import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.networknt.schema.JsonSchema
-import com.networknt.schema.JsonSchemaFactory
-import com.networknt.schema.SpecVersion
+import com.networknt.schema.Error
+import com.networknt.schema.InputFormat
+import com.networknt.schema.Schema
+import com.networknt.schema.SchemaRegistry
+import com.networknt.schema.SpecificationVersion
 import io.github.ktakashi.lemoncheck.exception.SchemaValidationException
 import io.github.ktakashi.lemoncheck.model.ValidationError
-import io.swagger.v3.oas.models.media.Schema
+import io.swagger.v3.oas.models.media.Schema as OpenApiSchema
 
 /**
  * Validates JSON responses against OpenAPI schemas.
@@ -15,7 +16,9 @@ import io.swagger.v3.oas.models.media.Schema
 class SchemaValidator(
     private val objectMapper: ObjectMapper = ObjectMapper(),
 ) {
-    private val schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7)
+    // Use SchemaRegistry supporting all standard dialects, default to Draft 2020-12
+    private val schemaRegistry =
+        SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12)
 
     /**
      * Validate a JSON response against an OpenAPI schema.
@@ -27,13 +30,11 @@ class SchemaValidator(
      */
     fun validate(
         responseBody: String,
-        schema: Schema<*>,
+        schema: OpenApiSchema<*>,
         strict: Boolean = false,
     ): List<ValidationError> {
         val jsonSchema = convertToJsonSchema(schema, strict)
-        val jsonNode = objectMapper.readTree(responseBody)
-
-        return validateAgainstSchema(jsonNode, jsonSchema)
+        return validateAgainstSchema(responseBody, jsonSchema)
     }
 
     /**
@@ -46,7 +47,7 @@ class SchemaValidator(
      */
     fun validateOrThrow(
         responseBody: String,
-        schema: Schema<*>,
+        schema: OpenApiSchema<*>,
         strict: Boolean = false,
     ) {
         val errors = validate(responseBody, schema, strict)
@@ -66,44 +67,42 @@ class SchemaValidator(
         responseBody: String,
         jsonSchemaString: String,
     ): List<ValidationError> {
-        val jsonSchema = schemaFactory.getSchema(jsonSchemaString)
-        val jsonNode = objectMapper.readTree(responseBody)
-
-        return validateAgainstSchema(jsonNode, jsonSchema)
+        val schema = schemaRegistry.getSchema(jsonSchemaString, InputFormat.JSON)
+        return validateAgainstSchema(responseBody, schema)
     }
 
     private fun validateAgainstSchema(
-        jsonNode: JsonNode,
-        schema: JsonSchema,
+        responseBody: String,
+        schema: Schema,
     ): List<ValidationError> {
-        val validationMessages = schema.validate(jsonNode)
+        val errors: List<Error> = schema.validate(responseBody, InputFormat.JSON)
 
-        return validationMessages.map { msg ->
+        return errors.map { error ->
             ValidationError(
-                path = msg.instanceLocation.toString(),
-                message = msg.message,
-                keyword = msg.type,
-                schemaPath = msg.schemaLocation.toString(),
+                path = error.instanceLocation.toString(),
+                message = error.message,
+                keyword = error.keyword ?: "unknown",
+                schemaPath = error.schemaLocation.toString(),
             )
         }
     }
 
     private fun convertToJsonSchema(
-        schema: Schema<*>,
+        schema: OpenApiSchema<*>,
         strict: Boolean,
-    ): JsonSchema {
+    ): Schema {
         val jsonSchemaMap = buildJsonSchemaMap(schema, strict)
         val jsonSchemaString = objectMapper.writeValueAsString(jsonSchemaMap)
-        return schemaFactory.getSchema(jsonSchemaString)
+        return schemaRegistry.getSchema(jsonSchemaString, InputFormat.JSON)
     }
 
     private fun buildJsonSchemaMap(
-        schema: Schema<*>,
+        schema: OpenApiSchema<*>,
         strict: Boolean,
     ): Map<String, Any?> {
         val result = mutableMapOf<String, Any?>()
 
-        result[$$"$schema"] = "http://json-schema.org/draft-07/schema#"
+        result[$$"$schema"] = "https://json-schema.org/draft/2020-12/schema"
 
         schema.type?.let { result["type"] = it }
         schema.format?.let { result["format"] = it }

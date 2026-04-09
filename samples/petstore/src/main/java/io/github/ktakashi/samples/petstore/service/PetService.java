@@ -5,7 +5,6 @@ import io.github.ktakashi.samples.petstore.dto.PetResponse;
 import io.github.ktakashi.samples.petstore.entity.Pet;
 import io.github.ktakashi.samples.petstore.entity.PetStatus;
 import io.github.ktakashi.samples.petstore.repository.PetRepository;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

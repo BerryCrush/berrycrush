@@ -5,7 +5,7 @@ import io.github.ktakashi.lemoncheck.junit.LemonCheckBindings
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.boot.autoconfigure.SpringBootApplication
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.context.annotation.Lazy
@@ -82,7 +82,7 @@ class SpringBindingsProviderTest {
     // Test fixtures
 
     @SpringBootApplication(exclude = [DataSourceAutoConfiguration::class])
-    open class TestApplication
+    class TestApplication
 
     @SpringBootTest(
         classes = [TestApplication::class, TestBindingsComponent::class],

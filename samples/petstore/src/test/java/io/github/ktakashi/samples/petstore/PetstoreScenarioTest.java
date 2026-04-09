@@ -32,16 +32,26 @@ import org.springframework.boot.test.context.SpringBootTest;
  *   <li>Enables dependency injection ({@code @Autowired}, {@code @LocalServerPort})</li>
  *   <li>Cleans up context after all scenarios complete</li>
  * </ul>
+ * 
+ * <h2>Plugin Integration</h2>
+ * <p>This test demonstrates plugin registration using name-based discovery.
+ * The {@link SampleLoggingPlugin} is registered via ServiceLoader and resolved
+ * by its plugin ID ("sample:logging"). It logs scenario and step lifecycle events.
  *
  * @see LemonCheckContextConfiguration
  * @see PetstoreBindings
+ * @see SampleLoggingPlugin
  */
 @Suite
 @IncludeEngines("lemoncheck")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @LemonCheckContextConfiguration
-@LemonCheckScenarios(locations = {"scenarios/*.scenario"})
-@LemonCheckConfiguration(bindings = PetstoreBindings.class, openApiSpec = "petstore.yaml")
+@LemonCheckScenarios(locations = {"scenarios/*.scenario"}, fragments = {"fragments/*.fragment"})
+@LemonCheckConfiguration(
+    bindings = PetstoreBindings.class, 
+    openApiSpec = "petstore.yaml",
+    plugins = {"report:text", "sample:logging"}
+)
 @LemonCheckSpec(paths = {"petstore.yaml"})
 public class PetstoreScenarioTest {
 }
