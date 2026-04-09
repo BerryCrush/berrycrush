@@ -78,7 +78,7 @@ class PetstoreKotlinScenarios : ScenarioTest() {
 
             and("I can retrieve the created pet") {
                 call("getPetById") {
-                    pathParam("petId", "\${petId}")
+                    pathParam("petId", $$"${petId}")
                 }
             }
 
@@ -107,7 +107,7 @@ class PetstoreKotlinScenarios : ScenarioTest() {
                 call("updatePet") {
                     body(
                         mapOf(
-                            "id" to "\${petId}",
+                            "id" to $$"${petId}",
                             "name" to "NewName",
                             "photoUrls" to listOf("https://example.com/photo.jpg"),
                             "status" to "pending",
@@ -122,7 +122,7 @@ class PetstoreKotlinScenarios : ScenarioTest() {
 
             and("I delete the pet") {
                 call("deletePet") {
-                    pathParam("petId", "\${petId}")
+                    pathParam("petId", $$"${petId}")
                 }
             }
 
@@ -145,7 +145,7 @@ class PetstoreKotlinScenarios : ScenarioTest() {
 
             `when`("I access a protected endpoint") {
                 call("getInventory") {
-                    header("Authorization", "Bearer \${sessionToken}")
+                    header("Authorization", $$"Bearer ${sessionToken}")
                 }
             }
 

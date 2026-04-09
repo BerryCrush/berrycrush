@@ -5,7 +5,7 @@ import io.github.ktakashi.lemoncheck.junit.LemonCheckBindings
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.boot.autoconfigure.SpringBootApplication
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
 import org.springframework.boot.test.context.SpringBootTest
 import kotlin.test.assertTrue
 
@@ -86,7 +86,7 @@ class SpringBindingsProviderErrorTest {
     // Test fixtures
 
     @SpringBootApplication(exclude = [DataSourceAutoConfiguration::class])
-    open class TestApplication
+    class TestApplication
 
     @LemonCheckContextConfiguration
     class MissingSpringBootTestClass

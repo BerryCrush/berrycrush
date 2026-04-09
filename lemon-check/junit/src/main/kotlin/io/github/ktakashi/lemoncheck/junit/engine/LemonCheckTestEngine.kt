@@ -1,14 +1,22 @@
 package io.github.ktakashi.lemoncheck.junit.engine
 
 import io.github.ktakashi.lemoncheck.dsl.LemonCheckSuite
-import io.github.ktakashi.lemoncheck.executor.ScenarioExecutor
 import io.github.ktakashi.lemoncheck.junit.DefaultBindings
 import io.github.ktakashi.lemoncheck.junit.LemonCheckBindings
+import io.github.ktakashi.lemoncheck.junit.LemonCheckConfiguration
 import io.github.ktakashi.lemoncheck.junit.LemonCheckScenarios
+import io.github.ktakashi.lemoncheck.junit.discovery.FragmentDiscovery
 import io.github.ktakashi.lemoncheck.junit.discovery.ScenarioDiscovery
+import io.github.ktakashi.lemoncheck.junit.plugin.ConsoleOutputPlugin
 import io.github.ktakashi.lemoncheck.junit.spi.BindingsProvider
-import io.github.ktakashi.lemoncheck.model.ResultStatus
+import io.github.ktakashi.lemoncheck.model.FragmentRegistry
+import io.github.ktakashi.lemoncheck.plugin.PluginRegistry
+import io.github.ktakashi.lemoncheck.runner.ScenarioRunner
 import io.github.ktakashi.lemoncheck.scenario.ScenarioLoader
+import io.github.ktakashi.lemoncheck.step.AnnotationStepScanner
+import io.github.ktakashi.lemoncheck.step.DefaultStepRegistry
+import io.github.ktakashi.lemoncheck.step.PackageStepScanner
+import io.github.ktakashi.lemoncheck.step.StepRegistry
 import org.junit.jupiter.api.Disabled
 import org.junit.platform.engine.EngineDiscoveryRequest
 import org.junit.platform.engine.ExecutionRequest
@@ -17,7 +25,6 @@ import org.junit.platform.engine.TestEngine
 import org.junit.platform.engine.TestExecutionResult
 import org.junit.platform.engine.UniqueId
 import org.junit.platform.engine.discovery.ClassSelector
-import org.junit.platform.engine.discovery.ClasspathRootSelector
 import org.junit.platform.engine.discovery.PackageSelector
 import org.junit.platform.engine.support.descriptor.EngineDescriptor
 import java.io.InputStreamReader
@@ -63,7 +70,6 @@ class LemonCheckTestEngine : TestEngine {
         // Find classes with @LemonCheckScenarios annotation
         val classSelectors = discoveryRequest.getSelectorsByType(ClassSelector::class.java)
         val packageSelectors = discoveryRequest.getSelectorsByType(PackageSelector::class.java)
-        val classpathSelectors = discoveryRequest.getSelectorsByType(ClasspathRootSelector::class.java)
 
         // Process class selectors
         for (selector in classSelectors) {
@@ -226,8 +232,23 @@ class LemonCheckTestEngine : TestEngine {
             suite.spec(specPath)
         }
 
-        val executor = ScenarioExecutor(suite.specRegistry, suite.configuration)
+        // Register additional named specs
+        bindings.getAdditionalSpecs().forEach { (name, path) ->
+            suite.spec(name, path)
+        }
+
+        // Create plugin registry with user plugins
+        val pluginRegistry = createPluginRegistry(classDescriptor)
         val scenarioLoader = ScenarioLoader()
+
+        // Load fragments from 'fragments/' directory (if exists)
+        val fragmentRegistry = loadFragmentsForClass(classDescriptor, scenarioLoader)
+
+        // Create runner for executing scenarios
+        val runner = ScenarioRunner(suite.specRegistry, suite.configuration, pluginRegistry, fragmentRegistry)
+
+        // Begin test execution lifecycle (invokes onTestExecutionStart on plugins)
+        runner.beginExecution()
 
         for (scenarioDescriptor in classDescriptor.children) {
             if (scenarioDescriptor !is ScenarioTestDescriptor) continue
@@ -247,72 +268,27 @@ class LemonCheckTestEngine : TestEngine {
                     continue
                 }
 
-                var allPassed = true
-                var failureReason: Throwable? = null
+                // Create new console plugin per scenarioDescriptor with JUnit listener
+                val consolePlugin =
+                    ConsoleOutputPlugin(
+                        listener = listener,
+                        scenarioDescriptor = scenarioDescriptor,
+                    )
+                pluginRegistry.replace(consolePlugin)
 
                 for (scenario in scenarios) {
-                    val result = executor.execute(scenario)
+                    // Execute scenario using the runner
+                    // (ConsoleOutputPlugin handles printing and result tracking via plugin hooks)
+                    runner.executeScenario(scenario)
 
-                    // Report step results for visibility
-                    println("\n=== Scenario: ${scenario.name} ===")
-                    for (stepResult in result.stepResults) {
-                        val statusIcon =
-                            when (stepResult.status) {
-                                ResultStatus.PASSED -> "✓"
-                                ResultStatus.FAILED -> "✗"
-                                ResultStatus.ERROR -> "!"
-                                ResultStatus.SKIPPED -> "-"
-                                ResultStatus.PENDING -> "?"
-                            }
-                        println("  $statusIcon ${stepResult.step.description}: ${stepResult.status}")
-
-                        // Show HTTP status if available
-                        stepResult.statusCode?.let { status ->
-                            println("    HTTP Status: $status")
-                        }
-
-                        // Show assertion results
-                        for (assertion in stepResult.assertionResults) {
-                            val assertIcon = if (assertion.passed) "✓" else "✗"
-                            println("    $assertIcon ${assertion.message}")
-                        }
-
-                        // Show error if present
-                        stepResult.error?.let { error ->
-                            println("    Error: ${error.message}")
-                        }
-                    }
-                    println("  Result: ${result.status} (${result.duration.toMillis()}ms)")
-                    println()
-
-                    if (result.status != ResultStatus.PASSED) {
-                        allPassed = false
-                        val failedSteps =
-                            result.stepResults
-                                .filter { it.status != ResultStatus.PASSED }
-                                .joinToString("\n") { step ->
-                                    "  - ${step.step.description}: ${step.status}" +
-                                        (step.error?.let { " - ${it.message}" } ?: "") +
-                                        step.assertionResults
-                                            .filter { !it.passed }
-                                            .joinToString("") { "\n      ✗ ${it.message}" }
-                                }
-                        failureReason =
-                            AssertionError(
-                                "Scenario '${scenario.name}' failed:\n$failedSteps",
-                            )
+                    // Stop on first failure (behavior preserved from original)
+                    if (!consolePlugin.isAllPassed()) {
                         break
                     }
                 }
 
-                if (allPassed) {
-                    listener.executionFinished(scenarioDescriptor, TestExecutionResult.successful())
-                } else {
-                    listener.executionFinished(
-                        scenarioDescriptor,
-                        TestExecutionResult.failed(failureReason!!),
-                    )
-                }
+                // Report result via plugin (fires JUnit executionFinished)
+                consolePlugin.reportResult()
             } catch (e: Exception) {
                 listener.executionFinished(
                     scenarioDescriptor,
@@ -320,6 +296,135 @@ class LemonCheckTestEngine : TestEngine {
                 )
             }
         }
+
+        // End test execution lifecycle (invokes onTestExecutionEnd on plugins)
+        runner.endExecution()
+    }
+
+    /**
+     * Creates a PluginRegistry with plugins configured via @LemonCheckConfiguration.
+     *
+     * @param classDescriptor The test class descriptor
+     * @return The configured PluginRegistry
+     */
+    private fun createPluginRegistry(classDescriptor: ClassTestDescriptor): PluginRegistry {
+        val registry = PluginRegistry()
+
+        // Note: ConsoleOutputPlugin is created and replaced per scenarioDescriptor
+        // in executeClassTests to integrate with JUnit listener
+
+        val testClass = classDescriptor.testClass
+        val config = testClass.getAnnotation(LemonCheckConfiguration::class.java)
+
+        if (config != null) {
+            // Register class-based plugins
+            for (pluginClass in config.pluginClasses) {
+                try {
+                    registry.register(pluginClass)
+                } catch (e: Exception) {
+                    System.err.println("Warning: Failed to register plugin class ${pluginClass.qualifiedName}: ${e.message}")
+                }
+            }
+
+            // Register name-based plugins
+            for (pluginName in config.plugins) {
+                try {
+                    registry.registerByName(pluginName)
+                } catch (e: NotImplementedError) {
+                    // Name-based plugins not fully implemented for all types yet
+                    System.err.println("Warning: Plugin '$pluginName' registration not yet supported: ${e.message}")
+                } catch (e: Exception) {
+                    System.err.println("Warning: Failed to register plugin '$pluginName': ${e.message}")
+                }
+            }
+        }
+
+        return registry
+    }
+
+    /**
+     * Load fragments for a test class based on @LemonCheckScenarios annotation.
+     *
+     * Uses FragmentDiscovery to discover .fragment files matching the patterns
+     * specified in the `fragments` property of the annotation.
+     *
+     * @param classDescriptor The test class descriptor
+     * @param scenarioLoader ScenarioLoader for parsing fragment files
+     * @return FragmentRegistry populated with loaded fragments
+     */
+    private fun loadFragmentsForClass(
+        classDescriptor: ClassTestDescriptor,
+        scenarioLoader: ScenarioLoader,
+    ): FragmentRegistry {
+        val registry = FragmentRegistry()
+        val testClass = classDescriptor.testClass
+        val classLoader = testClass.classLoader
+
+        // Get fragment locations from annotation
+        val fragmentLocations = classDescriptor.fragmentLocations
+        if (fragmentLocations.isEmpty()) {
+            return registry
+        }
+
+        // Discover fragments using FragmentDiscovery
+        val discoveredFragments = FragmentDiscovery.discoverFragments(classLoader, fragmentLocations)
+
+        for (fragment in discoveredFragments) {
+            try {
+                fragment.url.openStream().use { input ->
+                    val content = input.bufferedReader().readText()
+                    val fragments = scenarioLoader.loadFragmentsFromString(content, fragment.name)
+                    registry.registerAll(fragments)
+                }
+            } catch (e: Exception) {
+                System.err.println("Warning: Failed to load fragment from ${fragment.path}: ${e.message}")
+            }
+        }
+
+        return registry
+    }
+
+    /**
+     * Creates a StepRegistry with step definitions configured via @LemonCheckConfiguration.
+     *
+     * @param classDescriptor The test class descriptor
+     * @return The configured StepRegistry
+     */
+    private fun createStepRegistry(classDescriptor: ClassTestDescriptor): StepRegistry {
+        val registry = DefaultStepRegistry()
+        val testClass = classDescriptor.testClass
+        val config = testClass.getAnnotation(LemonCheckConfiguration::class.java)
+
+        if (config != null) {
+            val annotationScanner = AnnotationStepScanner()
+            val packageScanner = PackageStepScanner()
+
+            // Register step definitions from step classes
+            for (stepClass in config.stepClasses) {
+                try {
+                    val definitions = annotationScanner.scan(stepClass.java)
+                    registry.registerAll(definitions)
+                } catch (e: Exception) {
+                    System.err.println(
+                        "Warning: Failed to scan step class ${stepClass.qualifiedName}: ${e.message}",
+                    )
+                }
+            }
+
+            // Register step definitions from packages
+            for (packageName in config.stepPackages) {
+                try {
+                    val definitions = packageScanner.scan(packageName, testClass.classLoader)
+                    registry.registerAll(definitions)
+                } catch (e: Exception) {
+                    System.err.println(
+                        "Warning: Failed to scan package '$packageName' for steps: ${e.message}",
+                    )
+                }
+            }
+        }
+
+        return registry
     }
 
     /**

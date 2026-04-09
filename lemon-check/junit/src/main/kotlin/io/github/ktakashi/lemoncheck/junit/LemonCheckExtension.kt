@@ -73,7 +73,6 @@ class LemonCheckExtension :
 
     override fun beforeEach(context: ExtensionContext) {
         // Reset execution context for each test
-        val suite = getSuite(context)
         // Clear any scenario-specific state if needed
     }
 

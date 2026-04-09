@@ -6,22 +6,35 @@ import io.github.ktakashi.lemoncheck.context.ExecutionContext
 import io.github.ktakashi.lemoncheck.model.Assertion
 import io.github.ktakashi.lemoncheck.model.AssertionResult
 import io.github.ktakashi.lemoncheck.model.AssertionType
+import io.github.ktakashi.lemoncheck.model.FragmentRegistry
 import io.github.ktakashi.lemoncheck.model.ResultStatus
 import io.github.ktakashi.lemoncheck.model.Scenario
 import io.github.ktakashi.lemoncheck.model.ScenarioResult
 import io.github.ktakashi.lemoncheck.model.Step
 import io.github.ktakashi.lemoncheck.model.StepResult
 import io.github.ktakashi.lemoncheck.openapi.SpecRegistry
+import io.github.ktakashi.lemoncheck.plugin.PluginRegistry
+import io.github.ktakashi.lemoncheck.plugin.adapter.ScenarioContextAdapter
+import io.github.ktakashi.lemoncheck.plugin.adapter.ScenarioResultAdapter
+import io.github.ktakashi.lemoncheck.plugin.adapter.StepContextAdapter
+import io.github.ktakashi.lemoncheck.plugin.adapter.StepResultAdapter
 import java.net.http.HttpResponse
 import java.time.Duration
 import java.time.Instant
 
 /**
  * Executes BDD scenarios against API endpoints.
+ *
+ * @property specRegistry Registry for OpenAPI specifications
+ * @property configuration Execution configuration
+ * @property pluginRegistry Optional plugin registry for lifecycle hooks
+ * @property fragmentRegistry Optional registry for reusable fragments
  */
 class ScenarioExecutor(
     private val specRegistry: SpecRegistry,
     private val configuration: Configuration,
+    private val pluginRegistry: PluginRegistry? = null,
+    private val fragmentRegistry: FragmentRegistry? = null,
 ) {
     private val httpBuilder = HttpRequestBuilder()
     private val responseHandler = ResponseHandler()
@@ -36,14 +49,28 @@ class ScenarioExecutor(
         var overallStatus = ResultStatus.PASSED
         var continueExecution = true
 
+        // Create plugin context
+        val scenarioContext = ScenarioContextAdapter(scenario, context, startTime)
+
+        // Dispatch plugin: onScenarioStart
+        pluginRegistry?.dispatchScenarioStart(scenarioContext)
+
+        var stepIndex = 0
+
         // Execute background steps first
         for (step in scenario.background) {
             if (!continueExecution) break
-            val result = executeStep(step, context)
-            stepResults.add(result)
-            if (result.status != ResultStatus.PASSED) {
-                overallStatus = result.status
-                continueExecution = false
+
+            // Expand fragments if needed
+            val stepsToExecute = expandStep(step)
+            for (expandedStep in stepsToExecute) {
+                if (!continueExecution) break
+                val result = executeStepWithPlugins(expandedStep, context, scenarioContext, stepIndex++)
+                stepResults.add(result)
+                if (result.status != ResultStatus.PASSED) {
+                    overallStatus = result.status
+                    continueExecution = false
+                }
             }
         }
 
@@ -59,24 +86,88 @@ class ScenarioExecutor(
                 continue
             }
 
-            val result = executeStep(step, context)
-            stepResults.add(result)
+            // Expand fragments if needed
+            val stepsToExecute = expandStep(step)
+            for (expandedStep in stepsToExecute) {
+                if (!continueExecution) {
+                    stepResults.add(
+                        StepResult(
+                            step = expandedStep,
+                            status = ResultStatus.SKIPPED,
+                        ),
+                    )
+                    continue
+                }
 
-            if (result.status != ResultStatus.PASSED) {
-                overallStatus = result.status
-                continueExecution = false
+                val result = executeStepWithPlugins(expandedStep, context, scenarioContext, stepIndex++)
+                stepResults.add(result)
+
+                if (result.status != ResultStatus.PASSED) {
+                    overallStatus = result.status
+                    continueExecution = false
+                }
             }
         }
 
         val duration = Duration.between(startTime, Instant.now())
 
-        return ScenarioResult(
-            scenario = scenario,
-            status = overallStatus,
-            stepResults = stepResults,
-            startTime = startTime,
-            duration = duration,
-        )
+        val scenarioResult =
+            ScenarioResult(
+                scenario = scenario,
+                status = overallStatus,
+                stepResults = stepResults,
+                startTime = startTime,
+                duration = duration,
+            )
+
+        // Dispatch plugin: onScenarioEnd
+        pluginRegistry?.dispatchScenarioEnd(scenarioContext, ScenarioResultAdapter(scenarioResult))
+
+        return scenarioResult
+    }
+
+    private fun executeStepWithPlugins(
+        step: Step,
+        context: ExecutionContext,
+        scenarioContext: ScenarioContextAdapter,
+        stepIndex: Int,
+    ): StepResult {
+        // Create step context
+        val stepContext = StepContextAdapter(step, stepIndex, scenarioContext)
+
+        // Dispatch plugin: onStepStart
+        pluginRegistry?.dispatchStepStart(stepContext)
+
+        // Execute the actual step
+        val result = executeStep(step, context)
+
+        // Dispatch plugin: onStepEnd
+        pluginRegistry?.dispatchStepEnd(stepContext, StepResultAdapter(result))
+
+        return result
+    }
+
+    /**
+     * Expand a step by resolving any fragment references.
+     *
+     * If the step references a fragment (via fragmentName), returns the steps
+     * from that fragment. Otherwise, returns a list containing just the original step.
+     *
+     * @param step The step to expand
+     * @return List of steps to execute (fragment steps or original step)
+     */
+    private fun expandStep(step: Step): List<Step> {
+        val fragmentName = step.fragmentName ?: return listOf(step)
+
+        // Look up the fragment in the registry
+        val fragment =
+            fragmentRegistry?.get(fragmentName)
+                ?: throw IllegalStateException(
+                    "Fragment '$fragmentName' not found. " +
+                        "Register it with fragmentRegistry.register() or load from a .fragment file.",
+                )
+
+        return fragment.steps
     }
 
     private fun executeStep(
@@ -89,15 +180,14 @@ class ScenarioExecutor(
         if (step.operationId == null) {
             // If there are assertions, run them against the last response
             if (step.assertions.isNotEmpty()) {
-                val lastResponse = context.lastResponse
-                if (lastResponse == null) {
-                    return StepResult(
-                        step = step,
-                        status = ResultStatus.ERROR,
-                        duration = Duration.between(stepStartTime, Instant.now()),
-                        error = IllegalStateException("No previous response to run assertions against"),
-                    )
-                }
+                val lastResponse =
+                    context.lastResponse
+                        ?: return StepResult(
+                            step = step,
+                            status = ResultStatus.ERROR,
+                            duration = Duration.between(stepStartTime, Instant.now()),
+                            error = IllegalStateException("No previous response to run assertions against"),
+                        )
 
                 val assertionResults = runAssertions(lastResponse, step.assertions)
                 val allPassed = assertionResults.all { it.passed }

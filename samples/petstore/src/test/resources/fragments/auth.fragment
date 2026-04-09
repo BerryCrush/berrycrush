@@ -1,20 +1,22 @@
 # Authentication Fragment
 # Reusable authentication steps for protected endpoints
+# Uses the 'auth' spec registered via PetstoreBindings.getAdditionalSpecs()
 
 fragment: authenticate
   given I have valid credentials
-    call ^loginUser
-      query_username: "test"
-      query_password: "abc123"
-    extract $.message => sessionToken
+    call using auth ^login
+      body: {"username": "test", "password": "test"}
+    extract $.token => authToken
+  then authentication is successful
+    assert status 200
 
 fragment: setAuthHeader
-  given I have the session token
+  given I have the auth token
     # This fragment demonstrates setting a header from a saved variable
     # In actual usage, the executor would add this header to subsequent calls
 
 fragment: logout
   when I log out
-    call ^logoutUser
+    call using auth ^logout
   then the session is terminated
     assert status 200

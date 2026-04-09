@@ -24,14 +24,20 @@ annotation class LemonCheckSpec(
  * from the specified locations.
  *
  * @property locations Classpath locations to search for scenario files.
- *                     Supports glob patterns (e.g., scenarios/`*`.scenario, `**`/`*`.scenario).
+ *                     Supports glob patterns (e.g., lemoncheck/scenarios/`*`.scenario, `**`/`*`.scenario).
  *                     Paths are relative to the classpath root.
+ *                     Default is ["lemoncheck/scenarios/\*.scenario"].
+ * @property fragments Classpath locations to search for fragment files.
+ *                     Supports glob patterns (e.g., lemoncheck/fragments/`*`.fragment).
+ *                     Paths are relative to the classpath root.
+ *                     Default is ["lemoncheck/fragments/\*.fragment"].
  */
 @Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 @MustBeDocumented
 annotation class LemonCheckScenarios(
-    vararg val locations: String = ["scenarios/*.scenario"],
+    vararg val locations: String = ["lemoncheck/scenarios/*.scenario"],
+    val fragments: Array<String> = ["lemoncheck/fragments/*.fragment"],
 )
 
 /**

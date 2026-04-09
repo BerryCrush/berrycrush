@@ -46,7 +46,7 @@ class ScenarioLoaderTest {
         val scenario = scenarios[0]
         assertEquals("Test multiple pet retrieval", scenario.name)
         assertNotNull(scenario.examples)
-        assertEquals(3, scenario.examples!!.size)
+        assertEquals(3, scenario.examples.size)
     }
 
     @Test

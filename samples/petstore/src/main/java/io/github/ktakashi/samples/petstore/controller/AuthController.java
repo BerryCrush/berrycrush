@@ -10,7 +10,7 @@ import java.util.UUID;
 
 /**
  * REST controller for authentication operations.
- * 
+ * <p> <p />
  * Note: This is a simplified mock implementation for demonstration purposes.
  * In a real application, you would use Spring Security with proper authentication.
  */
@@ -46,5 +46,17 @@ public class AuthController {
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
             .body(ErrorResponse.of(401, "Invalid credentials"));
+    }
+
+    /**
+     * Logout endpoint.
+     * POST /auth/logout
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout() {
+        // Mock logout - in a real app this would invalidate the token/session
+        return ResponseEntity.ok(Map.of(
+            "message", "Logout successful"
+        ));
     }
 }

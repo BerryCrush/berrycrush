@@ -1,0 +1,108 @@
+openapi: "3.0.3"
+info:
+  title: Authentication API
+  description: Authentication endpoints for the Petstore API
+  version: "1.0.0"
+  contact:
+    name: LemonCheck Team
+
+servers:
+  - url: https://petstore.example.com/api/v1
+    description: Production server
+  - url: http://localhost:8080/api/v1
+    description: Local development
+
+paths:
+  /auth/login:
+    post:
+      operationId: login
+      summary: Authenticate user
+      description: Returns an authentication token
+      tags:
+        - auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                  format: password
+      responses:
+        "200":
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: Logout user
+      description: Invalidates the current session
+      tags:
+        - auth
+      responses:
+        "200":
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogoutResponse"
+
+components:
+  schemas:
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT authentication token
+        expiresIn:
+          type: integer
+          description: Token expiration time in seconds
+
+    LogoutResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Logout confirmation message
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          description: Error code
+        message:
+          type: string
+          description: Error message
+        details:
+          type: array
+          items:
+            type: string
+          description: Additional error details

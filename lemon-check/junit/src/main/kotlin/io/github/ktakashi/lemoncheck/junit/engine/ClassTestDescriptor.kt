@@ -28,6 +28,14 @@ class ClassTestDescriptor(
         get() = testClass.getAnnotation(LemonCheckScenarios::class.java)?.locations ?: emptyArray()
 
     /**
+     * Fragment file location patterns from @LemonCheckScenarios annotation.
+     */
+    val fragmentLocations: Array<out String>
+        get() =
+            testClass.getAnnotation(LemonCheckScenarios::class.java)?.fragments
+                ?: emptyArray()
+
+    /**
      * Optional custom bindings class from @LemonCheckConfiguration annotation.
      */
     val bindingsClass: Class<out LemonCheckBindings>?

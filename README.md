@@ -12,6 +12,10 @@ Lemon-Check enables you to write human-readable scenario files that test your RE
 - **Spring Boot Integration**: Inject `@LocalServerPort`, `@Autowired` in bindings
 - **JSONPath Assertions**: Validate response data with JSONPath expressions
 - **Variable Extraction**: Extract values from responses for use in subsequent calls
+- **Multi-Spec Support**: Work with multiple OpenAPI specifications in a single test suite
+- **Fragments**: Create reusable scenario steps that can be included across tests
+- **Plugin System**: Extend functionality with plugins for reporting, logging, and custom actions
+- **Custom Steps**: Define domain-specific steps via annotations, DSL, or registration API
 
 ## Quick Start
 
@@ -202,6 +206,62 @@ call ^getPetById
   petId: {{petId}}
 ```
 
+### Multi-Spec Support
+
+Register multiple OpenAPI specs in your bindings:
+
+```java
+@Override
+public Map<String, String> getAdditionalSpecs() {
+    return Map.of("auth", "auth.yaml");
+}
+```
+
+Use the `using` keyword to call operations from named specs:
+
+```
+call using auth ^login
+  body: {"username": "test", "password": "test"}
+```
+
+### Fragments
+
+Create reusable steps in `.fragment` files. By default, fragments are discovered from
+`lemoncheck/fragments/*.fragment`:
+
+**lemoncheck/fragments/auth.fragment:**
+```
+fragment: authenticate
+  given I have valid credentials
+    call using auth ^login
+      body: {"username": "test", "password": "test"}
+    extract $.token => authToken
+  then authentication is successful
+    assert status 200
+```
+
+Include fragments in scenarios:
+
+```
+scenario: Authenticated API access
+  given I am logged in
+    include authenticate
+  when I request protected data
+    call ^getSecretData
+      header_Authorization: Bearer {{authToken}}
+```
+
+Configure custom fragment locations (overriding defaults):
+
+```java
+@LemonCheckScenarios(
+    locations = {"scenarios/*.scenario"},
+    fragments = {"auth/*.fragment", "common/*.fragment"}
+)
+public class MyApiTest {
+}
+```
+
 ## Module Overview
 
 | Module | Description |
@@ -209,13 +269,14 @@ call ^getPetById
 | `lemon-check/core` | Scenario parser, executor, assertions |
 | `lemon-check/junit` | JUnit 5 TestEngine integration |
 | `lemon-check/spring` | Spring TestContext integration |
+| `lemon-check/doc` | Sphinx documentation |
 | `samples/petstore` | Complete working example |
 
 ## Annotations Reference
 
 | Annotation | Module | Purpose |
 |------------|--------|---------|
-| `@LemonCheckScenarios` | junit | Specify scenario file locations |
+| `@LemonCheckScenarios` | junit | Specify scenario and fragment file locations (defaults: `lemoncheck/scenarios/*.scenario`, `lemoncheck/fragments/*.fragment`) |
 | `@LemonCheckConfiguration` | junit | Configure bindings class and OpenAPI spec |
 | `@LemonCheckSpec` | junit | Specify additional OpenAPI specs |
 | `@LemonCheckContextConfiguration` | spring | Enable Spring context integration |
@@ -276,4 +337,4 @@ cd lemon-check
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+Apache License 2.0 - see [LICENSE](LICENSE) for details.
