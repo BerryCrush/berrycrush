@@ -25,7 +25,22 @@ abstract class ReportPlugin(
     protected var startTime: Instant? = null
     protected var endTime: Instant? = null
 
+    /**
+     * The test environment name (e.g., "staging", "production").
+     * Set via [configureEnvironment] to include in reports.
+     */
+    protected var environmentName: String? = null
+
     override val priority: Int = 100 // Run after other plugins
+
+    /**
+     * Configure the environment name for this report.
+     *
+     * @param name The environment name (e.g., "staging", "production")
+     */
+    fun configureEnvironment(name: String?) {
+        environmentName = name
+    }
 
     override fun onScenarioStart(context: ScenarioContext) {
         if (startTime == null) {
@@ -131,11 +146,12 @@ abstract class ReportPlugin(
      * Collect environment information for the report.
      */
     protected fun collectEnvironment(): Map<String, String> =
-        mapOf(
-            "java.version" to System.getProperty("java.version", "unknown"),
-            "os.name" to System.getProperty("os.name", "unknown"),
-            "os.version" to System.getProperty("os.version", "unknown"),
-        )
+        buildMap {
+            put("java.version", System.getProperty("java.version", "unknown"))
+            put("os.name", System.getProperty("os.name", "unknown"))
+            put("os.version", System.getProperty("os.version", "unknown"))
+            environmentName?.let { put("environment", it) }
+        }
 
     protected fun mapStatus(status: ResultStatus): ResultStatus =
         when (status) {

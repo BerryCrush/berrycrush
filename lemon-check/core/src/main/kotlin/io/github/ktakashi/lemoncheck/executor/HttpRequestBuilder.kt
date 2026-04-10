@@ -1,5 +1,6 @@
 package io.github.ktakashi.lemoncheck.executor
 
+import io.github.ktakashi.lemoncheck.config.Configuration
 import io.github.ktakashi.lemoncheck.exception.HttpExecutionException
 import io.github.ktakashi.lemoncheck.openapi.HttpMethod
 import java.net.URI
@@ -10,11 +11,24 @@ import java.time.Duration
 
 /**
  * Builds and executes HTTP requests using java.net.http.HttpClient.
+ *
+ * @property client The HTTP client to use for requests
+ * @property timeout Request timeout (overrides default)
  */
 class HttpRequestBuilder(
     private val client: HttpClient = createDefaultClient(),
     private val timeout: Duration = Duration.ofSeconds(30),
 ) {
+    /**
+     * Create an HttpRequestBuilder with configuration settings.
+     *
+     * @param configuration The test configuration
+     */
+    constructor(configuration: Configuration) : this(
+        client = createClient(configuration.followRedirects),
+        timeout = configuration.timeout,
+    )
+
     /**
      * Execute an HTTP request.
      *
@@ -103,12 +117,20 @@ class HttpRequestBuilder(
     private fun encode(value: String): String = java.net.URLEncoder.encode(value, Charsets.UTF_8)
 
     companion object {
-        fun createDefaultClient(): HttpClient =
+        fun createDefaultClient(): HttpClient = createClient(followRedirects = true)
+
+        /**
+         * Create an HTTP client with specified redirect policy.
+         *
+         * @param followRedirects Whether to follow HTTP redirects
+         */
+        fun createClient(followRedirects: Boolean): HttpClient =
             HttpClient
                 .newBuilder()
                 .version(HttpClient.Version.HTTP_2)
-                .followRedirects(HttpClient.Redirect.NORMAL)
-                .connectTimeout(Duration.ofSeconds(10))
+                .followRedirects(
+                    if (followRedirects) HttpClient.Redirect.NORMAL else HttpClient.Redirect.NEVER,
+                ).connectTimeout(Duration.ofSeconds(10))
                 .build()
     }
 }

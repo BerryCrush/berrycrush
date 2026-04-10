@@ -36,7 +36,7 @@ class ScenarioExecutor(
     private val pluginRegistry: PluginRegistry? = null,
     private val fragmentRegistry: FragmentRegistry? = null,
 ) {
-    private val httpBuilder = HttpRequestBuilder()
+    private val httpBuilder = HttpRequestBuilder(configuration)
     private val responseHandler = ResponseHandler()
 
     /**

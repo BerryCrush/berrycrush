@@ -9,6 +9,7 @@ import io.github.ktakashi.lemoncheck.model.Scenario
 import io.github.ktakashi.lemoncheck.model.ScenarioResult
 import io.github.ktakashi.lemoncheck.openapi.SpecRegistry
 import io.github.ktakashi.lemoncheck.plugin.PluginRegistry
+import io.github.ktakashi.lemoncheck.report.ReportPlugin
 import java.time.Duration
 import java.time.Instant
 
@@ -112,13 +113,23 @@ class ScenarioRunner(
      * Begin test execution lifecycle.
      *
      * Call this before executing any scenarios. This invokes `onTestExecutionStart()`
-     * on all plugins.
+     * on all plugins and sets the environment name on report plugins.
      */
     fun beginExecution() {
         // Initialize shared context if cross-scenario variable sharing is enabled
         if (configuration.shareVariablesAcrossScenarios) {
             sharedContext = ExecutionContext()
         }
+
+        // Set environment name on report plugins
+        configuration.environment?.let { env ->
+            pluginRegistry?.getPlugins()?.forEach { plugin ->
+                if (plugin is ReportPlugin) {
+                    plugin.configureEnvironment(env)
+                }
+            }
+        }
+
         try {
             pluginRegistry?.dispatchTestExecutionStart()
         } catch (e: Exception) {
