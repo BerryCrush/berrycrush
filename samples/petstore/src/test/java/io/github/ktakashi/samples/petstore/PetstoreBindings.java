@@ -26,8 +26,8 @@ import java.util.Map;
  * - auth (auth.yaml): Auth API at /auth/api/v1
  * <p> <p />
  * In a real microservices environment, these would be separate hosts:
- * - default: http://petstore-service:8080
- * - auth: http://auth-service:8081
+ * - default: <a href="http://petstore-service:8080">...</a>
+ * - auth: <a href="http://auth-service:8081">...</a>
  */
 @Component
 @Lazy
@@ -55,7 +55,7 @@ public class PetstoreBindings implements LemonCheckBindings {
 
     /**
      * Provide per-spec base URLs for multi-host API testing.
-     * 
+     * <p>
      * The petstore API is at /api/v1 while the auth API is at /auth/api/v1.
      * This demonstrates different base URLs for different specs within
      * the same test suite - simulating a microservices architecture.

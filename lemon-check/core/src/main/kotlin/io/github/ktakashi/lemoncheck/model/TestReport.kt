@@ -1,5 +1,6 @@
 package io.github.ktakashi.lemoncheck.model
 
+import io.github.ktakashi.lemoncheck.report.TestSummaryBuilder
 import java.time.Instant
 
 /**
@@ -47,17 +48,15 @@ data class TestReport(
             results: List<ScenarioResult>,
             environment: Map<String, String> = emptyMap(),
         ): TestReport {
-            val passed = results.count { it.status == ResultStatus.PASSED }
-            val failed = results.count { it.status == ResultStatus.FAILED }
-            val skipped = results.count { it.status == ResultStatus.SKIPPED }
+            val summary = TestSummaryBuilder.fromModelStatus(results) { it.status }
             val totalDurationMs = results.sumOf { it.duration.toMillis() }
 
             return TestReport(
                 title = title,
                 totalScenarios = results.size,
-                passed = passed,
-                failed = failed,
-                skipped = skipped,
+                passed = summary.passed,
+                failed = summary.failed,
+                skipped = summary.skipped,
                 totalDurationMs = totalDurationMs,
                 scenarioResults = results,
                 environment = environment,

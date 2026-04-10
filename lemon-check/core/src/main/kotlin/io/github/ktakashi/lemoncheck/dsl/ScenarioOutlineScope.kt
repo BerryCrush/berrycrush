@@ -30,7 +30,6 @@ class ScenarioOutlineScope internal constructor(
     /**
      * Define a WHEN step template.
      */
-    @Suppress("FunctionName")
     fun `when`(
         description: String,
         block: StepScope.() -> Unit = {},

@@ -17,8 +17,8 @@ import java.util.UUID;
  * <p> <p />
  * The petstore API uses /api/v1 while auth API uses /auth/api/v1, allowing us to
  * test with different base URLs:
- * - default (petstore): http://localhost:PORT/api/v1
- * - auth: http://localhost:PORT/auth/api/v1
+ * - default (petstore): <a href="http://localhost:PORT/api/v1">...</a>
+ * - auth: <a href="http://localhost:PORT/auth/api/v1">...</a>
  * <p> <p />
  * Note: This is a simplified mock implementation for demonstration purposes.
  * In a real application, you would use Spring Security with proper authentication.

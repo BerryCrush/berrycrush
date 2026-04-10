@@ -30,7 +30,6 @@ class ScenarioScope internal constructor(
      * Define a WHEN step (action).
      * Note: Uses backticks because 'when' is a Kotlin keyword.
      */
-    @Suppress("FunctionName")
     fun `when`(
         description: String,
         block: StepScope.() -> Unit = {},

@@ -101,10 +101,7 @@ abstract class ReportPlugin(
      * Build the TestReport from collected scenario data.
      */
     protected fun buildReport(): TestReport {
-        val passed = scenarioReports.count { it.status == ResultStatus.PASSED }
-        val failed = scenarioReports.count { it.status == ResultStatus.FAILED }
-        val skipped = scenarioReports.count { it.status == ResultStatus.SKIPPED }
-        val errors = scenarioReports.count { it.status == ResultStatus.ERROR }
+        val summary = TestSummaryBuilder.fromPluginStatus(scenarioReports) { it.status }
 
         val totalDuration =
             scenarioReports.fold(Duration.ZERO) { acc, entry ->
@@ -114,14 +111,7 @@ abstract class ReportPlugin(
         return TestReport(
             timestamp = startTime ?: Instant.now(),
             duration = totalDuration,
-            summary =
-                TestSummary(
-                    total = scenarioReports.size,
-                    passed = passed,
-                    failed = failed,
-                    skipped = skipped,
-                    errors = errors,
-                ),
+            summary = summary,
             scenarios = scenarioReports.toList(),
             environment = collectEnvironment(),
         )

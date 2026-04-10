@@ -78,24 +78,20 @@ class ConsoleReporter(
         out.println("Test Suite Summary")
         out.println("═══════════════════════════════════════")
 
-        val passed = results.count { it.status == ResultStatus.PASSED }
-        val failed = results.count { it.status == ResultStatus.FAILED }
-        val skipped = results.count { it.status == ResultStatus.SKIPPED }
-        val error = results.count { it.status == ResultStatus.ERROR }
-        val total = results.size
+        val summary = TestSummaryBuilder.fromModelStatus(results) { it.status }
 
-        out.println("  Total:   $total scenarios")
-        out.println("  ${green}Passed:$reset  $passed")
-        if (failed > 0) out.println("  ${red}Failed:$reset  $failed")
-        if (skipped > 0) out.println("  ${yellow}Skipped:$reset $skipped")
-        if (error > 0) out.println("  ${red}Errors:$reset  $error")
+        out.println("  Total:   ${summary.total} scenarios")
+        out.println("  ${green}Passed:$reset  ${summary.passed}")
+        if (summary.failed > 0) out.println("  ${red}Failed:$reset  ${summary.failed}")
+        if (summary.skipped > 0) out.println("  ${yellow}Skipped:$reset ${summary.skipped}")
+        if (summary.errors > 0) out.println("  ${red}Errors:$reset  ${summary.errors}")
 
         val totalDuration = results.sumOf { it.duration.toMillis() }
         out.println("  Duration: ${totalDuration}ms")
 
         out.println("═══════════════════════════════════════")
 
-        if (failed > 0 || error > 0) {
+        if (summary.failed > 0 || summary.errors > 0) {
             out.println()
             out.println("Failed scenarios:")
             results

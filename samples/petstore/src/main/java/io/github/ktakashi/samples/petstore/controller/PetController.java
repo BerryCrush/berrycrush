@@ -14,7 +14,7 @@ import java.util.Map;
 
 /**
  * REST controller for pet operations.
- * 
+ * <p>
  * This controller is mounted at /api/v1/pets to demonstrate multi-host API testing.
  * The petstore API uses /api/v1 while auth API uses /auth/api/v1, allowing us to
  * test with different base URLs.

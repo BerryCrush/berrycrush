@@ -25,7 +25,6 @@ class FragmentScope internal constructor(
     /**
      * Define a WHEN step.
      */
-    @Suppress("FunctionName")
     fun `when`(
         description: String,
         block: FragmentStepScope.() -> Unit = {},
