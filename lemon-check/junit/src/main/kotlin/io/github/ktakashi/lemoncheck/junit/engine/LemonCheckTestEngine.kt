@@ -8,7 +8,6 @@ import io.github.ktakashi.lemoncheck.junit.LemonCheckConfiguration
 import io.github.ktakashi.lemoncheck.junit.LemonCheckScenarios
 import io.github.ktakashi.lemoncheck.junit.discovery.FragmentDiscovery
 import io.github.ktakashi.lemoncheck.junit.discovery.ScenarioDiscovery
-import io.github.ktakashi.lemoncheck.junit.plugin.ConsoleOutputPlugin
 import io.github.ktakashi.lemoncheck.junit.spi.BindingsProvider
 import io.github.ktakashi.lemoncheck.model.FragmentRegistry
 import io.github.ktakashi.lemoncheck.plugin.PluginRegistry
@@ -134,26 +133,48 @@ class LemonCheckTestEngine : TestEngine {
             return
         }
 
-        val scenarios = ScenarioDiscovery.discoverScenarios(classLoader, locations)
+        val discoveredFiles = ScenarioDiscovery.discoverScenarios(classLoader, locations)
 
-        if (scenarios.isEmpty()) {
+        if (discoveredFiles.isEmpty()) {
             // No scenarios found - we'll report this during execution
             // but still add the class descriptor for visibility
         }
 
-        for (scenario in scenarios) {
-            val scenarioId = classUniqueId.append("scenario", scenario.name.removeSuffix(".scenario"))
-            val scenarioDescriptor =
-                ScenarioTestDescriptor(
-                    uniqueId = scenarioId,
-                    displayName = scenario.name,
-                    scenarioPath = scenario.path,
-                    scenarioSource = scenario.url,
+        val scenarioLoader = ScenarioLoader()
+
+        for (file in discoveredFiles) {
+            val fileId = classUniqueId.append("file", file.name.removeSuffix(".scenario"))
+            val fileDescriptor =
+                ScenarioFileDescriptor(
+                    uniqueId = fileId,
+                    displayName = file.name,
+                    scenarioPath = file.path,
+                    scenarioSource = file.url,
                 )
-            classDescriptor.addChild(scenarioDescriptor)
+
+            // Load scenarios from file to create individual test descriptors
+            try {
+                val fileContent = loadScenarioFromUrl(scenarioLoader, file.url)
+                for (scenario in fileContent.scenarios) {
+                    val scenarioId = fileId.append("scenario", scenario.name)
+                    val scenarioDescriptor =
+                        IndividualScenarioDescriptor(
+                            uniqueId = scenarioId,
+                            displayName = scenario.name,
+                            scenario = scenario,
+                        )
+                    fileDescriptor.addChild(scenarioDescriptor)
+                }
+            } catch (e: Exception) {
+                // If we can't parse the file during discovery, we'll create an empty
+                // file descriptor and report the error during execution
+                System.err.println("Warning: Failed to parse ${file.path} during discovery: ${e.message}")
+            }
+
+            classDescriptor.addChild(fileDescriptor)
         }
 
-        if (classDescriptor.children.isNotEmpty() || scenarios.isEmpty()) {
+        if (classDescriptor.children.isNotEmpty() || discoveredFiles.isEmpty()) {
             engineDescriptor.addChild(classDescriptor)
         }
     }
@@ -265,81 +286,120 @@ class LemonCheckTestEngine : TestEngine {
         // Begin test execution lifecycle (invokes onTestExecutionStart on plugins)
         runner.beginExecution()
 
-        for (scenarioDescriptor in classDescriptor.children) {
-            if (scenarioDescriptor !is ScenarioTestDescriptor) continue
+        // Iterate through scenario files (CONTAINER level)
+        for (fileDescriptor in classDescriptor.children) {
+            if (fileDescriptor !is ScenarioFileDescriptor) continue
 
-            listener.executionStarted(scenarioDescriptor)
+            listener.executionStarted(fileDescriptor)
 
             try {
-                val fileContent = loadScenarioFromUrl(scenarioLoader, scenarioDescriptor.scenarioSource)
-                val scenarios = fileContent.scenarios
+                // Load file content for parameters
+                val fileContent = loadScenarioFromUrl(scenarioLoader, fileDescriptor.scenarioSource)
                 val fileParameters = fileContent.parameters
 
-                if (scenarios.isEmpty()) {
+                if (fileDescriptor.children.isEmpty()) {
                     listener.executionFinished(
-                        scenarioDescriptor,
+                        fileDescriptor,
                         TestExecutionResult.failed(
-                            IllegalStateException("No scenarios found in ${scenarioDescriptor.scenarioPath}"),
+                            IllegalStateException("No scenarios found in ${fileDescriptor.scenarioPath}"),
                         ),
                     )
                     continue
                 }
 
-                // Create new console plugin per scenarioDescriptor with JUnit listener
-                val consolePlugin =
-                    ConsoleOutputPlugin(
-                        listener = listener,
-                        scenarioDescriptor = scenarioDescriptor,
-                    )
-                pluginRegistry.replace(consolePlugin)
-
-                // Apply file-level parameters if present
-                if (fileParameters.isNotEmpty()) {
-                    // Create a modified executor and shared context for this file
-                    val fileConfig = suite.configuration.withParameters(fileParameters)
-
-                    // Apply per-spec base URL overrides from parameters
-                    fileParameters.forEach { (key, value) ->
-                        if (key.startsWith("baseUrl.")) {
-                            val specName = key.removePrefix("baseUrl.")
-                            if (suite.specRegistry.specNames().contains(specName)) {
-                                suite.specRegistry.updateBaseUrl(specName, value.toString())
-                            }
-                        }
+                // Prepare executor and shared context for this file
+                val fileConfig =
+                    if (fileParameters.isNotEmpty()) {
+                        suite.configuration.withParameters(fileParameters)
+                    } else {
+                        suite.configuration
                     }
 
-                    val fileExecutor = ScenarioExecutor(suite.specRegistry, fileConfig, pluginRegistry, fragmentRegistry)
-
-                    // Initialize shared context if shareVariablesAcrossScenarios is enabled
-                    val sharedContext =
-                        if (fileConfig.shareVariablesAcrossScenarios) {
-                            io.github.ktakashi.lemoncheck.context
-                                .ExecutionContext()
-                        } else {
-                            null
-                        }
-
-                    for (scenario in scenarios) {
-                        fileExecutor.execute(scenario, sharedContext)
-                        if (!consolePlugin.isAllPassed()) {
-                            break
-                        }
-                    }
-                } else {
-                    // No file-level parameters - use the default runner
-                    for (scenario in scenarios) {
-                        runner.executeScenario(scenario)
-                        if (!consolePlugin.isAllPassed()) {
-                            break
+                // Apply per-spec base URL overrides from parameters
+                fileParameters.forEach { (key, value) ->
+                    if (key.startsWith("baseUrl.")) {
+                        val specName = key.removePrefix("baseUrl.")
+                        if (suite.specRegistry.specNames().contains(specName)) {
+                            suite.specRegistry.updateBaseUrl(specName, value.toString())
                         }
                     }
                 }
 
-                // Report result via plugin (fires JUnit executionFinished)
-                consolePlugin.reportResult()
+                val fileExecutor = ScenarioExecutor(suite.specRegistry, fileConfig, pluginRegistry, fragmentRegistry)
+
+                // Initialize shared context if shareVariablesAcrossScenarios is enabled
+                val sharedContext =
+                    if (fileConfig.shareVariablesAcrossScenarios) {
+                        io.github.ktakashi.lemoncheck.context
+                            .ExecutionContext()
+                    } else {
+                        null
+                    }
+
+                var fileHasFailure = false
+
+                // Iterate through individual scenarios (TEST level)
+                for (scenarioDescriptor in fileDescriptor.children) {
+                    if (scenarioDescriptor !is IndividualScenarioDescriptor) continue
+
+                    listener.executionStarted(scenarioDescriptor)
+
+                    try {
+                        val result = fileExecutor.execute(scenarioDescriptor.scenario, sharedContext)
+
+                        when (result.status) {
+                            io.github.ktakashi.lemoncheck.model.ResultStatus.PASSED -> {
+                                listener.executionFinished(
+                                    scenarioDescriptor,
+                                    TestExecutionResult.successful(),
+                                )
+                            }
+                            io.github.ktakashi.lemoncheck.model.ResultStatus.SKIPPED -> {
+                                listener.executionFinished(
+                                    scenarioDescriptor,
+                                    TestExecutionResult.aborted(null),
+                                )
+                            }
+                            else -> {
+                                fileHasFailure = true
+                                val failedSteps =
+                                    result.stepResults
+                                        .filter { it.status != io.github.ktakashi.lemoncheck.model.ResultStatus.PASSED }
+                                        .joinToString("\n") { step ->
+                                            "  - ${step.step.description}: ${step.error?.message ?: "Failed"}"
+                                        }
+                                listener.executionFinished(
+                                    scenarioDescriptor,
+                                    TestExecutionResult.failed(
+                                        AssertionError("Scenario '${scenarioDescriptor.scenario.name}' failed:\n$failedSteps"),
+                                    ),
+                                )
+                            }
+                        }
+                    } catch (e: Exception) {
+                        fileHasFailure = true
+                        listener.executionFinished(
+                            scenarioDescriptor,
+                            TestExecutionResult.failed(e),
+                        )
+                    }
+                }
+
+                // File completes successfully if no failures
+                if (fileHasFailure) {
+                    listener.executionFinished(
+                        fileDescriptor,
+                        TestExecutionResult.failed(AssertionError("One or more scenarios failed")),
+                    )
+                } else {
+                    listener.executionFinished(
+                        fileDescriptor,
+                        TestExecutionResult.successful(),
+                    )
+                }
             } catch (e: Exception) {
                 listener.executionFinished(
-                    scenarioDescriptor,
+                    fileDescriptor,
                     TestExecutionResult.failed(e),
                 )
             }
