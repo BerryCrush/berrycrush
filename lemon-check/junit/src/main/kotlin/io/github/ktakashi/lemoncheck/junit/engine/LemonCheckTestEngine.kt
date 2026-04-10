@@ -342,6 +342,13 @@ class LemonCheckTestEngine : TestEngine {
                 for (scenarioDescriptor in fileDescriptor.children) {
                     if (scenarioDescriptor !is IndividualScenarioDescriptor) continue
 
+                    // Check if scenario should be skipped based on tags
+                    if (!classDescriptor.shouldExecuteScenario(scenarioDescriptor.scenario.tags)) {
+                        listener.executionStarted(scenarioDescriptor)
+                        listener.executionFinished(scenarioDescriptor, TestExecutionResult.aborted(null))
+                        continue
+                    }
+
                     listener.executionStarted(scenarioDescriptor)
 
                     try {
@@ -364,16 +371,13 @@ class LemonCheckTestEngine : TestEngine {
                             }
                             else -> {
                                 fileHasFailure = true
-                                val failedSteps =
-                                    result.stepResults
-                                        .filter { it.status != io.github.ktakashi.lemoncheck.model.ResultStatus.PASSED }
-                                        .joinToString("\n") { step ->
-                                            "  - ${step.step.description}: ${step.error?.message ?: "Failed"}"
-                                        }
+                                val failedSteps = buildFailedStepsMessage(result)
                                 listener.executionFinished(
                                     scenarioDescriptor,
                                     TestExecutionResult.failed(
-                                        AssertionError("Scenario '${scenarioDescriptor.scenario.name}' failed:\n$failedSteps"),
+                                        AssertionError(
+                                            "Scenario '${scenarioDescriptor.scenario.name}' failed:\n$failedSteps",
+                                        ),
                                     ),
                                 )
                             }
@@ -595,4 +599,37 @@ class LemonCheckTestEngine : TestEngine {
                 e,
             )
         }
+
+    /**
+     * Builds a formatted error message for failed steps in a scenario.
+     *
+     * @param result The scenario result containing step results
+     * @return Formatted string with step number, keyword, description, and failure details
+     */
+    private fun buildFailedStepsMessage(result: io.github.ktakashi.lemoncheck.model.ScenarioResult): String {
+        val passedStatus = io.github.ktakashi.lemoncheck.model.ResultStatus.PASSED
+        val sb = StringBuilder()
+        var first = true
+        val failedSteps = result.stepResults.filter { it.status != passedStatus }
+        failedSteps.forEachIndexed { index, step ->
+            if (!first) sb.append("\n")
+            first = false
+            val keyword =
+                step.step.type.name
+                    .lowercase()
+            val failedAssertions =
+                step.assertionResults
+                    .filter { !it.passed }
+            sb.append("  Step ${index + 1} ($keyword): ${step.step.description}")
+            if (failedAssertions.isNotEmpty()) {
+                for (assertion in failedAssertions) {
+                    sb.append("\n      - ${assertion.message}")
+                }
+            } else {
+                val errorMsg = step.error?.message ?: "Assertion failed"
+                sb.append("\n      - $errorMsg")
+            }
+        }
+        return sb.toString()
+    }
 }

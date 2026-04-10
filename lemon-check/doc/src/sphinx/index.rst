@@ -17,6 +17,7 @@ LemonCheck is an OpenAPI-driven BDD-style API testing library for Kotlin and Jav
    :maxdepth: 2
    :caption: Features
 
+   features/scenario-syntax
    features/kotlin-dsl
    features/standalone-runner
    features/parameters
@@ -25,6 +26,8 @@ LemonCheck is an OpenAPI-driven BDD-style API testing library for Kotlin and Jav
    features/reporting
    features/multi-spec
    features/fragments
+   features/spring-boot
+   features/logging
 
 .. toctree::
    :maxdepth: 2

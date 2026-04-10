@@ -13,6 +13,7 @@ sealed class AstNode {
 data class ScenarioFileNode(
     val scenarios: List<ScenarioNode>,
     val fragments: List<FragmentNode>,
+    val features: List<FeatureNode> = emptyList(),
     val parameters: ParametersNode? = null,
     override val location: SourceLocation,
 ) : AstNode()
@@ -34,13 +35,55 @@ data class ParametersNode(
 ) : AstNode()
 
 /**
+ * Represents a feature block that groups related scenarios.
+ *
+ * Features provide a logical grouping mechanism for scenarios
+ * and can share common setup via background steps.
+ *
+ * Example:
+ * ```
+ * feature: Pet Store Operations
+ *   background:
+ *     given: existing pet
+ *       call ^createPet
+ *         body: {"name": "Fluffy"}
+ *
+ *   scenario: list pets
+ *     when: ...
+ * ```
+ */
+data class FeatureNode(
+    val name: String,
+    val description: String? = null,
+    val background: BackgroundNode? = null,
+    val scenarios: List<ScenarioNode>,
+    val tags: Set<String> = emptySet(),
+    override val location: SourceLocation,
+) : AstNode()
+
+/**
+ * Represents background steps shared across scenarios in a feature.
+ *
+ * Background steps are prepended to every scenario in the feature,
+ * acting as a "given" precondition for all scenarios.
+ */
+data class BackgroundNode(
+    val steps: List<StepNode>,
+    override val location: SourceLocation,
+) : AstNode()
+
+/**
  * Represents a scenario definition.
+ *
+ * Scenarios can be tagged for filtering and categorization.
+ * Example: @slow @wip for a slow work-in-progress scenario.
  */
 data class ScenarioNode(
     val name: String,
     val steps: List<StepNode>,
     val isOutline: Boolean = false,
     val examples: List<ExampleRowNode>? = null,
+    val tags: Set<String> = emptySet(),
     override val location: SourceLocation,
 ) : AstNode()
 
@@ -71,6 +114,7 @@ enum class StepKeyword {
     WHEN,
     THEN,
     AND,
+    BUT,
 }
 
 /**

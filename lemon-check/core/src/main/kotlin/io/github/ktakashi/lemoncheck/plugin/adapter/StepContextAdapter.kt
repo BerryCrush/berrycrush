@@ -6,6 +6,7 @@ import io.github.ktakashi.lemoncheck.plugin.HttpResponse
 import io.github.ktakashi.lemoncheck.plugin.ScenarioContext
 import io.github.ktakashi.lemoncheck.plugin.StepContext
 import io.github.ktakashi.lemoncheck.plugin.StepType
+import io.github.ktakashi.lemoncheck.model.StepType as ModelStepType
 
 /**
  * Adapter that bridges [Step] model with [StepContext] plugin interface.
@@ -48,12 +49,12 @@ class StepContextAdapter(
         this.httpResponse = response
     }
 
-    private fun mapStepType(modelType: io.github.ktakashi.lemoncheck.model.StepType): StepType =
+    private fun mapStepType(modelType: ModelStepType): StepType =
         when (modelType) {
-            io.github.ktakashi.lemoncheck.model.StepType.GIVEN -> StepType.CUSTOM
-            io.github.ktakashi.lemoncheck.model.StepType.WHEN -> StepType.CALL
-            io.github.ktakashi.lemoncheck.model.StepType.THEN -> StepType.ASSERT
-            io.github.ktakashi.lemoncheck.model.StepType.AND -> StepType.CUSTOM
-            io.github.ktakashi.lemoncheck.model.StepType.BUT -> StepType.CUSTOM
+            ModelStepType.GIVEN -> StepType.CUSTOM
+            ModelStepType.WHEN -> StepType.CALL
+            ModelStepType.THEN -> StepType.ASSERT
+            ModelStepType.AND -> StepType.CUSTOM
+            ModelStepType.BUT -> StepType.CUSTOM
         }
 }

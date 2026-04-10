@@ -2,8 +2,8 @@ Plugins
 =======
 
 LemonCheck provides a plugin system to extend its functionality. Plugins can hook into
-scenario and step lifecycle events to perform custom actions like logging, reporting,
-or modifying behavior.
+test execution, scenario, and step lifecycle events to perform custom actions like logging, 
+reporting, or modifying behavior.
 
 Plugin Architecture
 -------------------
@@ -13,11 +13,20 @@ All plugins implement the ``LemonCheckPlugin`` interface:
 .. code-block:: kotlin
 
     interface LemonCheckPlugin {
-        val name: String
+        // Identity
+        val id: String get() = this::class.qualifiedName ?: "unknown"
+        val name: String get() = this::class.simpleName ?: "Unknown Plugin"
         val priority: Int get() = 0
 
+        // Test execution lifecycle (called once per test run)
+        fun onTestExecutionStart() {}
+        fun onTestExecutionEnd() {}
+
+        // Scenario lifecycle
         fun onScenarioStart(context: ScenarioContext) {}
         fun onScenarioEnd(context: ScenarioContext, result: ScenarioResult) {}
+
+        // Step lifecycle
         fun onStepStart(context: StepContext) {}
         fun onStepEnd(context: StepContext, result: StepResult) {}
     }
@@ -27,16 +36,87 @@ Lifecycle Events
 
 Plugins receive callbacks at specific points during test execution:
 
-* ``onScenarioStart``: Called before each scenario begins
-* ``onScenarioEnd``: Called after each scenario completes (with results)
-* ``onStepStart``: Called before each step executes
-* ``onStepEnd``: Called after each step completes (with results)
+**Test Execution Level:**
+
+* ``onTestExecutionStart()``: Called once before the first scenario starts
+* ``onTestExecutionEnd()``: Called once after all scenarios complete
+
+**Scenario Level:**
+
+* ``onScenarioStart(context)``: Called before each scenario begins
+* ``onScenarioEnd(context, result)``: Called after each scenario completes (with results)
+
+**Step Level:**
+
+* ``onStepStart(context)``: Called before each step executes
+* ``onStepEnd(context, result)``: Called after each step completes (with results)
+
+Context Objects
+^^^^^^^^^^^^^^^
+
+**ScenarioContext** provides access to scenario execution state:
+
+.. code-block:: kotlin
+
+    interface ScenarioContext {
+        val scenarioName: String           // Name from scenario file
+        val scenarioFile: Path             // Path to scenario file
+        val variables: MutableMap<String, Any>  // Runtime variables
+        val metadata: Map<String, String>  // Scenario metadata
+        val startTime: Instant             // Execution start time
+        val tags: Set<String>              // Scenario tags for filtering
+    }
+
+**StepContext** provides access to step execution state:
+
+.. code-block:: kotlin
+
+    interface StepContext {
+        val stepDescription: String        // Full step description
+        val stepType: StepType             // CALL, ASSERT, EXTRACT, CUSTOM
+        val stepIndex: Int                 // Zero-based index in scenario
+        val scenarioContext: ScenarioContext  // Parent scenario
+        val request: HttpRequest?          // Request details (CALL steps)
+        val response: HttpResponse?        // Response details (after call)
+        val operationId: String?           // OpenAPI operation ID
+    }
+
+Result Objects
+^^^^^^^^^^^^^^
+
+**ScenarioResult** contains the outcome of a scenario:
+
+.. code-block:: kotlin
+
+    interface ScenarioResult {
+        val status: ResultStatus           // PASSED, FAILED, SKIPPED, ERROR
+        val duration: Duration             // Total execution time
+        val failedStep: Int                // First failed step index (-1 if none)
+        val error: Throwable?              // Exception if ERROR status
+        val stepResults: List<StepResult>  // All step results
+    }
+
+**StepResult** contains the outcome of a step:
+
+.. code-block:: kotlin
+
+    interface StepResult {
+        val status: ResultStatus           // PASSED, FAILED, SKIPPED, ERROR
+        val duration: Duration             // Execution time
+        val failure: AssertionFailure?     // Failure details if FAILED
+        val error: Throwable?              // Exception if ERROR
+    }
 
 Priority
 ^^^^^^^^
 
-Plugins are executed in priority order (higher priority first). The default priority is 0.
-Use priority to ensure proper ordering when plugins depend on each other.
+Plugins execute in priority order (lower values execute first):
+
+* Negative priorities (e.g., -100): Setup/infrastructure plugins
+* Zero (default): Standard plugins (reporting, logging)
+* Positive priorities (e.g., 100): Cleanup/finalization plugins
+
+Plugins with the same priority execute in registration order.
 
 Creating a Custom Plugin
 ------------------------
@@ -50,15 +130,15 @@ Basic Plugin
         override val name = "logging"
 
         override fun onScenarioStart(context: ScenarioContext) {
-            println("Starting scenario: ${context.name}")
+            println("Starting scenario: ${context.scenarioName}")
         }
 
         override fun onScenarioEnd(context: ScenarioContext, result: ScenarioResult) {
-            println("Scenario ${context.name}: ${result.status}")
+            println("Scenario ${context.scenarioName}: ${result.status}")
         }
 
         override fun onStepStart(context: StepContext) {
-            println("  Step: ${context.description}")
+            println("  Step: ${context.stepDescription}")
         }
 
         override fun onStepEnd(context: StepContext, result: StepResult) {
@@ -75,7 +155,7 @@ Plugins can maintain state to collect data across scenarios:
 
     class MetricsPlugin : LemonCheckPlugin {
         override val name = "metrics"
-        override val priority = 100  // Run first
+        override val priority = -100  // Run early (lower = earlier)
 
         private val metrics = mutableMapOf<String, Long>()
 
@@ -85,7 +165,7 @@ Plugins can maintain state to collect data across scenarios:
 
         override fun onScenarioEnd(context: ScenarioContext, result: ScenarioResult) {
             val startTime = context.variables["_startTime"] as Long
-            metrics[context.name] = System.currentTimeMillis() - startTime
+            metrics[context.scenarioName] = System.currentTimeMillis() - startTime
         }
 
         fun getMetrics(): Map<String, Long> = metrics.toMap()

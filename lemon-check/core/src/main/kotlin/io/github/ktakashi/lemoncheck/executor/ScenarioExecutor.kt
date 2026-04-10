@@ -419,7 +419,7 @@ class ScenarioExecutor(
 
         return try {
             val actual = JsonPath.read<Any>(body, jsonPath)
-            val passed = actual == expected
+            val passed = valuesEqual(actual, expected)
 
             AssertionResult(
                 assertion = assertion,
@@ -436,6 +436,34 @@ class ScenarioExecutor(
             )
         }
     }
+
+    /**
+     * Compare values handling type coercion (e.g., Int 1 == String "1", Double 1.0 == Int 1).
+     */
+    private fun valuesEqual(
+        actual: Any?,
+        expected: Any?,
+    ): Boolean {
+        if (actual == expected) return true
+        if (actual == null || expected == null) return false
+
+        // Try numeric comparison when both can be converted to numbers
+        val actualNum = toNumber(actual)
+        val expectedNum = toNumber(expected)
+        if (actualNum != null && expectedNum != null) {
+            return actualNum.toDouble() == expectedNum.toDouble()
+        }
+
+        // Fall back to string comparison
+        return actual.toString() == expected.toString()
+    }
+
+    private fun toNumber(value: Any?): Number? =
+        when (value) {
+            is Number -> value
+            is String -> value.toDoubleOrNull()
+            else -> null
+        }
 
     private fun assertBodyMatches(
         response: HttpResponse<String>,

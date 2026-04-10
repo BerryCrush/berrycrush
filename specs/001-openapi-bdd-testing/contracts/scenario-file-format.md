@@ -2,9 +2,12 @@
 
 **Feature**: 001-openapi-bdd-testing  
 **Date**: 2026-04-07  
-**Version**: 1.0.0
+**Updated**: 2026-04-10  
+**Version**: 3.0.0
 
 This document defines the human-readable BDD scenario file format (`.scenario` files).
+
+> **Note**: Version 3.0.0 adds support for tags, feature blocks, and background steps.
 
 ---
 
@@ -18,55 +21,72 @@ This document defines the human-readable BDD scenario file format (`.scenario` f
 
 ```ebnf
 (* Top-level structure *)
-scenario_file     = { metadata } , feature ;
+scenario_file     = [ parameters_block ] , { feature | scenario | scenario_outline | fragment } ;
 
-(* Metadata section - file-level configuration *)
-metadata          = "@" , identifier , ":" , value , NEWLINE ;
+(* Parameters block - file-level configuration *)
+parameters_block  = "parameters:" , NEWLINE , { parameter_entry } ;
+parameter_entry   = INDENT , parameter_name , ":" , parameter_value , NEWLINE ;
 
-(* Feature definition *)
-feature           = "Feature:" , text , NEWLINE ,
-                    [ description ] ,
-                    [ background ] ,
-                    { scenario } ;
+(* Tags - prefix any scenario or feature *)
+tags              = { tag } ;
+tag               = "@" , identifier ;
 
-description       = { INDENT , text , NEWLINE } ;
+(* Feature block - groups related scenarios with optional background *)
+feature           = tags , "feature:" , feature_name , NEWLINE , 
+                    [ background ] , { feature_scenario } ;
+background        = INDENT , "background:" , NEWLINE , { step } ;
+feature_scenario  = INDENT , tags , ( "scenario:" | "outline:" ) , 
+                    scenario_name , NEWLINE , { step } , [ examples_block ] ;
 
-(* Background - shared setup for all scenarios *)
-background        = INDENT , "Background:" , text , NEWLINE ,
-                    { step } ;
+(* Scenario definition *)
+scenario          = tags , "scenario:" , scenario_name , NEWLINE , { step } ;
 
-(* Scenario types *)
-scenario          = INDENT , ( "Scenario:" | "Scenario Outline:" ) , text , NEWLINE ,
-                    [ tags ] ,
-                    { step } ,
-                    [ examples ] ;
+(* Scenario outline - parameterized scenarios *)
+scenario_outline  = tags , "outline:" , scenario_name , NEWLINE , { step } , examples_block ;
 
-tags              = INDENT , INDENT , "@" , identifier , { " " , "@" , identifier } , NEWLINE ;
+(* Fragment definition - reusable steps *)
+fragment          = "fragment:" , fragment_name , NEWLINE , { step } ;
 
-(* Steps - the BDD actions *)
-step              = INDENT , INDENT , step_keyword , text , NEWLINE ,
-                    [ step_table ] ;
+(* Step definition *)
+step              = INDENT , step_keyword , step_description , NEWLINE , { directive } ;
+step_keyword      = "given " | "when " | "then " | "and " | "but " ;
 
-step_keyword      = "Given " | "When " | "Then " | "And " | "But " ;
+(* Step directives *)
+directive         = INDENT , INDENT , ( call_directive | assert_directive | extract_directive 
+                                       | body_directive | include_directive | param_directive ) , NEWLINE ;
 
-(* Step configuration table *)
-step_table        = { INDENT , INDENT , INDENT , "|" , directive , "|" , value , "|" , NEWLINE } ;
+call_directive    = "call" , [ "using" , spec_name ] , "^" , operation_id ;
+assert_directive  = "assert" , assertion_expression ;
+extract_directive = "extract" , json_path , "=>" , variable_name ;
+body_directive    = "body:" , json_body ;
+include_directive = "include" , fragment_name ;
+param_directive   = identifier , ":" , value ;
 
-directive         = "operation" | "using" | "path" | "query" | "header" | "body" 
-                  | "extract" | "assert" | "auto-assert" | "include" ;
-
-(* Examples for Scenario Outline *)
-examples          = INDENT , INDENT , "Examples:" , NEWLINE ,
-                    INDENT , INDENT , INDENT , header_row ,
-                    { INDENT , INDENT , INDENT , data_row } ;
+(* Examples for scenario outline *)
+examples_block    = INDENT , "examples:" , NEWLINE , 
+                    INDENT , INDENT , header_row , 
+                    { INDENT , INDENT , data_row } ;
 
 header_row        = "|" , { cell , "|" } , NEWLINE ;
 data_row          = "|" , { cell , "|" } , NEWLINE ;
 
 (* Terminals *)
-cell              = { ? any character except "|" and NEWLINE ? } ;
-text              = { ? any character except NEWLINE ? } ;
-value             = { ? any character except NEWLINE ? } ;
+feature_name      = text ;
+scenario_name     = text ;
+fragment_name     = text ;
+step_description  = text ;
+operation_id      = identifier ;
+spec_name         = identifier ;
+variable_name     = identifier ;
+json_path         = "$" , { "." , identifier | "[" , index , "]" } ;
+assertion_expression = status_assertion | jsonpath_assertion ;
+status_assertion  = "status" , ( number | number_range ) ;
+jsonpath_assertion = json_path , operator , value ;
+operator          = "equals" | "notEmpty" | "exists" | "greaterThan" | "lessThan" 
+                  | "contains" | "in" | "hasSize" | "matches" ;
+cell              = { character - "|" } ;
+text              = { character - NEWLINE } ;
+value             = quoted_string | number | boolean | json_body ;
 identifier        = letter , { letter | digit | "_" | "-" } ;
 INDENT            = "  " ;  (* 2 spaces *)
 NEWLINE           = "\n" | "\r\n" ;
@@ -76,44 +96,66 @@ NEWLINE           = "\n" | "\r\n" ;
 
 ## Syntax Reference
 
-### 1. Metadata Section
+### 0. Tags
 
-File-level configuration at the top of the file.
+Tags categorize and filter scenarios. They begin with `@` and must appear on lines before the element they annotate.
 
-**Single Spec**:
-```gherkin
-@openapi: path/to/spec.yaml
-@baseUrl: https://api.example.com
-@timeout: 30s
-@environment: staging
+**Syntax**:
+```
+@tag1 @tag2
+scenario: Tagged scenario
+  when test
+    call ^test
 ```
 
-**Multiple Specs** (for microservices/multi-API testing):
-```gherkin
-@openapi: petstore=specs/petstore.yaml, inventory=specs/inventory.yaml, orders=specs/orders.yaml
-@baseUrl.petstore: https://petstore.example.com
-@baseUrl.inventory: https://inventory.example.com
-@baseUrl.orders: https://orders.example.com
-@timeout: 30s
-@environment: staging
-@auto-assert: true
+**Built-in Tags**:
+| Tag | Description |
+|-----|-------------|
+| `@ignore` | Skip this scenario during execution |
+| `@wip` | Work in progress marker |
+| `@slow` | Marks slow-running tests |
+
+**Tag Filtering** (JUnit):
+```java
+@LemonCheckTags(exclude = {"ignore", "wip"})
+@LemonCheckTags(include = {"smoke"})
 ```
 
-| Key | Required | Description |
-|-----|----------|-------------|
-| `@openapi` | Yes | Path to OpenAPI spec(s). Single: `path.yaml`, Multiple: `name=path, name2=path2` |
-| `@baseUrl` | No | Override base URL (supports `${env:VAR}`) |
-| `@baseUrl.<name>` | No | Override base URL for specific spec (multi-spec only) |
-| `@timeout` | No | Default request timeout |
-| `@environment` | No | Environment name for reporting |
-| `@tags` | No | Default tags for all scenarios |
-| `@auto-assert` | No | Enable/disable auto-assertions globally (default: true) |
+### 0.1. Feature Blocks
 
----
+Features group related scenarios and can define shared background steps.
 
-### 1b. Parameters Block (Alternative File-Level Configuration)
+**Syntax**:
+```
+@api
+feature: Pet Store Operations
+  background:
+    given: setup
+      call ^createPet
+        body: {"name": "Test"}
+      assert status 201
+      extract $.id => petId
 
-For simplified scenario files (without `Feature:` block), a `parameters:` section provides
+  scenario: list pets
+    when: list
+      call ^listPets
+    then: success
+      assert status 200
+
+  @ignore
+  scenario: disabled test
+    when: skip
+      call ^skip
+```
+
+**Behavior**:
+- Background steps run before **each** scenario in the feature
+- Feature tags are inherited by all scenarios within
+- Scenario tags are merged with feature tags
+
+### 1. Parameters Block (File-Level Configuration)
+
+For simplified scenario files, a `parameters:` section provides
 file-level configuration that overrides bindings configuration for all scenarios in that file.
 
 **Syntax**:
@@ -166,414 +208,308 @@ scenario: Use the resource
 
 ---
 
-### 2. Feature Block
+### 2. Scenario Definition
 
-```gherkin
-Feature: Pet Store API
-  As a customer
-  I want to browse available pets
-  So that I can find a pet to adopt
+The core element of a scenario file. Each scenario starts with `scenario:` keyword.
+
+```
+scenario: List all available pets
+  given the API is available
+  when I request the list of pets
+    call ^listPets
+  then I get a successful response
+    assert status 200
+    assert $.length notEmpty
 ```
 
-- **Line 1**: Feature name (required)
-- **Lines 2+**: Description (optional, indented)
+**Structure:**
+- **Line 1**: `scenario:` followed by the scenario name
+- **Following lines**: Steps (indented with 2 spaces)
+- **Directives**: Under steps (indented with 4 spaces)
 
 ---
 
-### 3. Background
+### 3. Scenario Outline (Parameterized)
 
-Shared setup steps executed before each scenario.
+Use `outline:` for parameterized scenarios with multiple data sets.
 
-```gherkin
-  Background: Authenticated session
-    Given I have a valid auth token
-      | operation | authenticate                    |
-      | body      | {"user": "test", "pass": "123"} |
-      | extract   | token -> $.accessToken          |
+```
+outline: Test multiple pet retrieval
+  when I get a pet by ID
+    call ^getPetById
+      petId: {{petId}}
+  then I see the expected name
+    assert $.name equals {{expectedName}}
+  examples:
+    | petId | expectedName |
+    | 1     | "Fluffy"     |
+    | 2     | "Buddy"      |
+    | 3     | "Charlie"    |
 ```
 
----
-
-### 4. Scenario
-
-A single test case.
-
-```gherkin
-  Scenario: List all available pets
-    @smoke @pets
-    Given the pet store is accessible
-      | operation | healthCheck |
-      | assert    | status = 200 |
-    
-    When I request the pet list
-      | operation | listPets |
-      | query     | status = available |
-    
-    Then I receive a list of pets
-      | assert    | status = 200 |
-      | assert    | $.pets is not empty |
-```
-
----
-
-### 5. Scenario Outline (Parameterized)
-
-```gherkin
-  Scenario Outline: Validate pet creation
-    When I create a pet named "<name>" with tag "<tag>"
-      | operation | createPet |
-      | body      | {"name": "<name>", "tag": "<tag>"} |
-    
-    Then the response status is <status>
-      | assert    | status = <status> |
-    
-    Examples:
-      | name    | tag  | status |
-      | Buddy   | dog  | 201    |
-      |         | cat  | 400    |
-      | X*256   | bird | 400    |
-```
-
-- `<placeholder>` in steps are replaced with values from the Examples table
+- `{{placeholder}}` in directives are replaced with values from the Examples table
 - Each row generates a separate test execution
 
 ---
 
-### 6. Step Table Directives
+### 4. Step Keywords
 
-#### `using` - Select OpenAPI Spec (Multi-Spec)
+| Keyword | Purpose |
+|---------|---------|
+| `given` | Precondition setup |
+| `when`  | Action to perform |
+| `then`  | Expected outcome/assertion |
+| `and`   | Continuation of previous step type |
+| `but`   | Exception to previous step |
 
-Switches which OpenAPI spec to use for operation resolution. Required when multiple specs are loaded and operationId is ambiguous.
+---
 
-```gherkin
-| using | petstore |
-| using | inventory |
+### 5. Step Directives
+
+#### `call` - API Call
+
+Invokes an OpenAPI operation by its operationId.
+
+**Basic syntax:**
+```
+call ^operationId
 ```
 
-**Example (Cross-Service Flow)**:
-```gherkin
-  Scenario: Cross-service order
-    Given pet exists
-      | using     | petstore |
-      | operation | getPetById |
-      | path      | petId = 123 |
-      | extract   | price -> $.price |
-    
-    When placing order
-      | using     | orders |
-      | operation | createOrder |
-      | body      | {"petId": 123, "price": ${price}} |
+**With named spec (multi-spec):**
+```
+call using auth ^login
 ```
 
-#### `operation` - API Call
-
-Specifies which OpenAPI operation to invoke.
-
-```gherkin
-| operation | getPetById |
+**With parameters:**
+```
+when I create a pet
+  call ^createPet
+    petId: 123
+    status: "available"
+    header_Authorization: "Bearer {{token}}"
+    body: {"name": "Fluffy", "category": "dog"}
 ```
 
-#### `path` - Path Parameters
+#### Parameter Types
 
-```gherkin
-| path | petId = 123 |
-| path | petId = ${extractedId} |
-```
-
-#### `query` - Query Parameters
-
-```gherkin
-| query | limit = 10 |
-| query | status = available |
-| query | tags = dog,cat |
-```
-
-#### `header` - Request Headers
-
-```gherkin
-| header | Authorization = Bearer ${token} |
-| header | X-Request-Id = ${env:REQUEST_ID} |
-```
-
-#### `body` - Request Body
-
-```gherkin
-| body | {"name": "Rex", "tag": "dog"} |
-| body | {"items": [1, 2, 3]} |
-```
-
-Multi-line body using continuation:
-```gherkin
-| body | {                    |
-| body |   "name": "Rex",     |
-| body |   "tag": "dog"       |
-| body | }                    |
-```
-
-#### `extract` - Value Extraction
-
-```gherkin
-| extract | petId -> $.id |
-| extract | firstName -> $.user.name.first |
-| extract | allIds -> $.items[*].id |
-```
-
-Format: `variableName -> jsonPath`
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| Path param | Named path variable | `petId: 123` |
+| Query param | Query string parameter | `status: "available"` |
+| Header | HTTP header (prefix with `header_`) | `header_Authorization: "Bearer token"` |
+| Body | Request body (JSON) | `body: {"name": "Fluffy"}` |
 
 #### `assert` - Assertions
 
-```gherkin
-| assert | status = 200 |
-| assert | status in 200..299 |
-| assert | $.name = "Rex" |
-| assert | $.pets is not empty |
-| assert | $.count > 0 |
-| assert | $.email matches /\S+@\S+/ |
-| assert | schema valid |
-| assert | response time < 500ms |
+**Status code:**
+```
+assert status 200
+assert status 2xx         # 200-299
+assert status 201-204     # Range
 ```
 
-#### `auto-assert` - Control Auto-Assertions
-
-Controls whether assertions are auto-generated from the OpenAPI spec for this step.
-
-```gherkin
-| auto-assert | false |      # Disable all auto-assertions
-| auto-assert | true |       # Enable (default)
-| auto-assert | no-schema |  # Disable only schema validation
-| auto-assert | no-status |  # Disable only status code assertion
+**JSONPath assertions:**
+```
+assert $.name equals "Fluffy"
+assert $.id exists
+assert $.pets notEmpty
+assert $.count greaterThan 0
+assert $.tags contains "urgent"
+assert $.status in ["available", "pending"]
+assert $.items hasSize 5
+assert $.email matches ".*@.*"
 ```
 
-**When to use**: Testing error cases, partial responses, or when spec doesn't match actual behavior.
+| Operator | Description |
+|----------|-------------|
+| `equals` | Exact equality |
+| `not` | Negation prefix |
+| `exists` | Field exists |
+| `notEmpty` | Array/string not empty |
+| `greaterThan` | Numeric > |
+| `lessThan` | Numeric < |
+| `contains` | Array contains or string includes |
+| `in` | Value in list |
+| `hasSize` | Array/string length |
+| `matches` | Regex match |
 
-**Example (Error Case)**:
-```gherkin
-  Scenario: Request non-existent pet
-    When I request a pet that doesn't exist
-      | operation   | getPetById |
-      | path        | petId = 999999 |
-      | auto-assert | false |
-      | assert      | status = 404 |
+#### `extract` - Value Extraction
+
+Extracts values from the response for use in subsequent steps.
+
+```
+extract $.id => petId
+extract $.user.name => userName
+extract $.items[0].id => firstItemId
 ```
 
-**Without any assertions**: If no `assert` directives are present and `auto-assert` is not `false`, assertions are automatically derived from the OpenAPI spec's success response (status code, schema validation, content-type).
+- Left side: JSONPath expression
+- Right side: Variable name
 
-#### `include` - Fragment Reference
+#### `include` - Fragment Inclusion
 
-```gherkin
-| include | authenticate-admin |
+Includes steps from a named fragment.
+
+```
+given I am authenticated
+  include authenticate
 ```
 
----
+#### `body:` - Request Body
 
-### 7. Assertion Expressions
-
-| Expression | Description | Example |
-|------------|-------------|---------|
-| `= value` | Equals | `status = 200` |
-| `!= value` | Not equals | `$.status != "deleted"` |
-| `> value` | Greater than | `$.count > 0` |
-| `< value` | Less than | `$.price < 100` |
-| `>= value` | Greater or equal | `$.age >= 18` |
-| `<= value` | Less or equal | `$.items <= 50` |
-| `in range` | In range | `status in 200..299` |
-| `contains text` | String contains | `$.name contains "Rex"` |
-| `matches /regex/` | Regex match | `$.email matches /\S+@\S+/` |
-| `is empty` | Collection empty | `$.errors is empty` |
-| `is not empty` | Collection has items | `$.pets is not empty` |
-| `is null` | Value is null | `$.deletedAt is null` |
-| `is not null` | Value exists | `$.id is not null` |
-| `schema valid` | Matches OpenAPI schema | `schema valid` |
-| `response time < Xms` | Performance check | `response time < 500ms` |
-
----
-
-### 8. Variable Interpolation
-
-```text
-${variableName}     Extract value from previous step
-${env:VAR_NAME}     Environment variable
-<placeholder>       Scenario Outline parameter (in Examples)
+Inline JSON body:
 ```
-
-**Examples**:
-```gherkin
-| path   | petId = ${firstPetId} |
-| header | Authorization = Bearer ${env:API_TOKEN} |
-| body   | {"name": "<name>"} |
+body: {"name": "Fluffy", "status": "available"}
 ```
 
 ---
 
-### 9. Comments
+### 6. Variable Substitution
+
+Variables are referenced using double curly braces: `{{variableName}}`
+
+**Sources:**
+1. Bindings (from `LemonCheckBindings.getBindings()`)
+2. Extracted values (from `extract`)
+3. Cross-scenario (when `shareVariablesAcrossScenarios: true`)
+4. Example rows (from `examples:` table)
+
+**Example:**
+```
+when I get the pet
+  call ^getPetById
+    petId: {{createdPetId}}
+    header_Authorization: "Bearer {{authToken}}"
+```
+
+---
+
+### 7. Fragment Files
+
+Fragments (`.fragment` files) define reusable step sequences.
+
+**fragments/auth.fragment:**
+```
+fragment: authenticate
+  given I have valid credentials
+    call using auth ^login
+      body: {"username": "test", "password": "test"}
+  then authentication succeeds
+    assert status 200
+    extract $.token => authToken
+
+fragment: logout
+  when I log out
+    call using auth ^logout
+      header_Authorization: "Bearer {{authToken}}"
+  then session is terminated
+    assert status 200
+```
+
+**Usage:**
+```
+scenario: Access protected resource
+  given I am authenticated
+    include authenticate
+  when I access the resource
+    call ^getProfile
+      header_Authorization: "Bearer {{authToken}}"
+```
+
+---
+
+### 8. Comments
 
 Lines starting with `#` are comments:
 
-```gherkin
+```
 # This is a comment
-Feature: My Feature
-  # This describes the background
-  Background: Setup
+scenario: My test
+  # This describes the step
+  when I do something
+    call ^operation
 ```
 
 ---
 
-### 10. Fragments (Reusable Steps)
+## Complete Example
 
-Fragments are defined in separate files with `.fragment` extension:
-
-**fragments/authenticate.fragment**:
-```gherkin
-Fragment: authenticate-admin
-  Given I am authenticated as admin
-    | operation | login |
-    | body      | {"user": "admin", "pass": "${env:ADMIN_PASS}"} |
-    | extract   | authToken -> $.token |
 ```
+# Petstore CRUD Test Suite
+# Tests basic CRUD operations for the Pet Store API
 
-Referenced in scenarios:
-```gherkin
-  Scenario: Admin creates pet
-    Given I am set up
-      | include | authenticate-admin |
-    
-    When I create a pet
-      | operation | createPet |
-      | header    | Authorization = Bearer ${authToken} |
+parameters:
+  shareVariablesAcrossScenarios: true
+  logRequests: true
+
+scenario: Create a new pet
+  when I create a pet
+    call ^createPet
+      body: {"name": "Fluffy", "status": "available", "category": "dog"}
+  then the pet is created
+    assert status 201
+    assert $.id exists
+    extract $.id => petId
+
+scenario: Retrieve the created pet
+  when I get the pet
+    call ^getPetById
+      petId: {{petId}}
+  then I see the correct pet
+    assert status 200
+    assert $.name equals "Fluffy"
+    assert $.status equals "available"
+
+scenario: Update the pet
+  when I update the pet
+    call ^updatePet
+      petId: {{petId}}
+      body: {"name": "Fluffy Updated", "status": "pending"}
+  then the update succeeds
+    assert status 200
+    assert $.name equals "Fluffy Updated"
+
+scenario: Delete the pet
+  when I delete the pet
+    call ^deletePet
+      petId: {{petId}}
+  then the deletion succeeds
+    assert status 204
 ```
 
 ---
 
-## Example Complete File
+## Migration from Legacy Syntax
 
+If you have scenario files using the legacy `Feature:` syntax with table-based directives,
+update them to the current simplified syntax:
+
+**Legacy:**
 ```gherkin
-# petstore-tests.scenario
-@openapi: specs/petstore.yaml
-@baseUrl: ${env:PETSTORE_URL}
-@timeout: 30s
-
-Feature: Pet Store Customer Journey
-  A customer browses the pet store, finds a pet they like,
-  views its details, and completes a purchase.
-
-  Background: Customer session
-    Given I have a customer session
-      | operation | createSession |
-      | extract   | sessionId -> $.sessionId |
-
-  Scenario: Complete pet purchase journey
-    @smoke @e2e @purchase
-    
-    Given pets are available in the store
+Feature: Pet API
+  Scenario: List pets
+    When I request pets
       | operation | listPets |
-      | query     | status = available |
       | assert    | status = 200 |
-      | assert    | $.pets is not empty |
-      | extract   | targetPetId -> $.pets[0].id |
-      | extract   | petPrice -> $.pets[0].price |
-    
-    When I view the pet details
-      | operation | getPetById |
-      | path      | petId = ${targetPetId} |
-      | assert    | status = 200 |
-      | assert    | $.status = "available" |
-    
-    And I add the pet to my cart
-      | operation | addToCart |
-      | body      | {"petId": "${targetPetId}", "sessionId": "${sessionId}"} |
-      | assert    | status = 201 |
-    
-    And I complete the purchase
-      | operation | checkout |
-      | body      | {"sessionId": "${sessionId}", "paymentMethod": "card"} |
-      | assert    | status = 200 |
-      | extract   | orderId -> $.orderId |
-    
-    Then the pet is marked as sold
-      | operation | getPetById |
-      | path      | petId = ${targetPetId} |
-      | assert    | status = 200 |
-      | assert    | $.status = "sold" |
-    
-    And I can view my order
-      | operation | getOrder |
-      | path      | orderId = ${orderId} |
-      | assert    | status = 200 |
-      | assert    | $.totalPrice = ${petPrice} |
-
-  Scenario Outline: Pet creation validation
-    @validation
-    
-    When I attempt to create a pet with name "<name>"
-      | operation | createPet |
-      | body      | {"name": "<name>", "tag": "<tag>", "price": <price>} |
-    
-    Then the response indicates <result>
-      | assert    | status = <status> |
-    
-    Examples:
-      | name      | tag  | price | status | result  |
-      | Buddy     | dog  | 99.99 | 201    | success |
-      |           | cat  | 50.00 | 400    | error   |
-      | X*256     | bird | 25.00 | 400    | error   |
-      | Rex       | dog  | -10   | 400    | error   |
 ```
 
----
-
-## Parser API
-
-```kotlin
-// Load and parse scenarios
-val parser = ScenarioParser()
-
-// Parse single file
-val feature = parser.parse(Path.of("scenarios/petstore.scenario"))
-
-// Parse directory
-val features = parser.parseDirectory(Path.of("scenarios/"))
-
-// Convert to executable scenarios
-val suite = lemonCheck("petstore.yaml") {
-    loadScenarios(features)
-}
-
-// Or load directly
-val suite = lemonCheck("petstore.yaml") {
-    loadScenariosFrom("scenarios/")
-}
-
-// Run all loaded scenarios
-suite.runAll()
+**Current:**
 ```
-
----
-
-## Error Messages
-
-Parser provides clear error messages with location:
-
-```text
-petstore.scenario:15:5: error: Unknown operation 'getPet'. Did you mean 'getPetById'?
-    | operation | getPet |
-                  ^~~~~~
-
-petstore.scenario:23:3: error: 'Then' step cannot appear before 'When'
-    Then I see the pet
-    ^~~~
-
-petstore.scenario:31:5: error: Variable 'petId' used but never extracted
-    | path | petId = ${petId} |
-                      ^~~~~~~
+scenario: List pets
+  when I request pets
+    call ^listPets
+    assert status 200
 ```
 
 ---
 
 ## Versioning
 
-Format version is tracked via metadata:
-```gherkin
-@format: 1.0
-```
+Current format version: **2.0**
 
-Current version: **1.0**
+Changes from 1.0:
+- Removed `Feature:` block requirement
+- Simplified syntax with `scenario:` as top-level
+- New `call ^operationId` syntax replacing `| operation |`
+- New `assert` directive replacing `| assert |`
+- New `extract $.path => var` syntax replacing `| extract |`

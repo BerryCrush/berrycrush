@@ -180,6 +180,33 @@ class ParserTest {
     }
 
     @Test
+    fun `should handle but keyword`() {
+        val source =
+            """
+            scenario: Negative assertion
+              when I request missing resource
+                call ^getResource
+              then response indicates error
+                assert status 404
+              but still has content type header
+                assert header Content-Type
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val steps = result.ast!!.scenarios[0].steps
+        assertTrue(
+            steps.any { it.keyword == StepKeyword.BUT },
+            "Should have BUT step",
+        )
+        assertEquals(
+            "still has content type header",
+            steps.first { it.keyword == StepKeyword.BUT }.description,
+        )
+    }
+
+    @Test
     fun `should track source locations`() {
         val source =
             """
@@ -366,4 +393,367 @@ class ParserTest {
         assertEquals(1, result.ast.fragments.size)
         assertEquals(1, result.ast.scenarios.size)
     }
+
+    @Test
+    fun `should parse feature with background and tags`() {
+        val source =
+            """
+            @api @feature
+            feature: Pet Operations
+              background:
+                given: setup
+                  call ^setupPet
+
+              scenario: list pets
+                when: list
+                  call ^listPets
+                  assert status 200
+
+              @ignore
+              scenario: ignored test
+                when: invalid
+                  call ^invalid
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        assertEquals(1, result.ast!!.features.size)
+
+        val feature = result.ast.features[0]
+        assertEquals("Pet Operations", feature.name)
+        assertEquals(setOf("api", "feature"), feature.tags)
+        assertNotNull(feature.background)
+        assertEquals(1, feature.background!!.steps.size)
+        assertEquals(2, feature.scenarios.size)
+
+        // First scenario inherits feature tags
+        val scenario1 = feature.scenarios[0]
+        assertEquals("list pets", scenario1.name)
+        assertEquals(emptySet(), scenario1.tags) // Tags are not merged in parsing, only in loading
+
+        // Second scenario has @ignore tag
+        val scenario2 = feature.scenarios[1]
+        assertEquals("ignored test", scenario2.name)
+        assertEquals(setOf("ignore"), scenario2.tags)
+    }
+
+    @Test
+    fun `should parse standalone tagged scenario`() {
+        val source =
+            """
+            @smoke @critical
+            scenario: critical test
+              when: test
+                call ^test
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        assertEquals(1, result.ast!!.scenarios.size)
+        assertEquals(setOf("smoke", "critical"), result.ast.scenarios[0].tags)
+    }
+
+    // =========================================================================
+    // Assertion Parsing Tests
+    // Tests for all assertion types supported by parseAssertAction
+    // =========================================================================
+
+    @Test
+    fun `should parse status code assertion`() {
+        val source =
+            """
+            scenario: Status code assertion test
+              then: check status
+                assert status 200
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+
+        val assertions = extractAssertions(result.ast!!.scenarios[0])
+        assertEquals(1, assertions.size)
+        assertEquals(AssertionKind.STATUS_CODE, assertions[0].assertionType)
+    }
+
+    @Test
+    fun `should parse statusCode variant assertion`() {
+        val source =
+            """
+            scenario: StatusCode assertion test
+              then: check status
+                assert statusCode 201
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+
+        val assertions = extractAssertions(result.ast!!.scenarios[0])
+        assertEquals(AssertionKind.STATUS_CODE, assertions[0].assertionType)
+    }
+
+    @Test
+    fun `should parse body contains assertion`() {
+        val source =
+            """
+            scenario: Body contains assertion test
+              then: check body content
+                assert contains "success"
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+
+        val assertions = extractAssertions(result.ast!!.scenarios[0])
+        assertEquals(AssertionKind.BODY_CONTAINS, assertions[0].assertionType)
+    }
+
+    @Test
+    fun `should parse bodyContains variant assertion`() {
+        val source =
+            """
+            scenario: BodyContains assertion test
+              then: check body
+                assert bodyContains "error"
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+
+        val assertions = extractAssertions(result.ast!!.scenarios[0])
+        assertEquals(AssertionKind.BODY_CONTAINS, assertions[0].assertionType)
+    }
+
+    @Test
+    fun `should parse JSONPath equals assertion`() {
+        val source =
+            """
+            scenario: JSONPath equals test
+              then: check json value
+                assert $.name equals "Fluffy"
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+
+        val assertions = extractAssertions(result.ast!!.scenarios[0])
+        assertEquals(1, assertions.size)
+        assertEquals(AssertionKind.BODY_EQUALS, assertions[0].assertionType)
+        assertEquals("$.name", assertions[0].path)
+    }
+
+    @Test
+    fun `should parse JSONPath with = operator`() {
+        val source =
+            """
+            scenario: JSONPath = operator test
+              then: check json value
+                assert $.id = 123
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+
+        val assertions = extractAssertions(result.ast!!.scenarios[0])
+        assertEquals(AssertionKind.BODY_EQUALS, assertions[0].assertionType)
+        assertEquals("$.id", assertions[0].path)
+    }
+
+    @Test
+    fun `should parse JSONPath matches assertion`() {
+        val source =
+            """
+            scenario: JSONPath matches regex test
+              then: check pattern
+                assert $.email matches ".*@.*"
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+
+        val assertions = extractAssertions(result.ast!!.scenarios[0])
+        assertEquals(AssertionKind.BODY_MATCHES, assertions[0].assertionType)
+        assertEquals("$.email", assertions[0].path)
+    }
+
+    @Test
+    fun `should parse array size assertion`() {
+        val source =
+            """
+            scenario: Array size test
+              then: check array length
+                assert $.items size 5
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+
+        val assertions = extractAssertions(result.ast!!.scenarios[0])
+        assertEquals(AssertionKind.BODY_ARRAY_SIZE, assertions[0].assertionType)
+        assertEquals("$.items", assertions[0].path)
+    }
+
+    @Test
+    fun `should parse arraySize variant assertion`() {
+        val source =
+            """
+            scenario: ArraySize variant test
+              then: check array
+                assert $.pets arraySize 3
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+
+        val assertions = extractAssertions(result.ast!!.scenarios[0])
+        assertEquals(AssertionKind.BODY_ARRAY_SIZE, assertions[0].assertionType)
+    }
+
+    @Test
+    fun `should parse array notEmpty assertion`() {
+        val source =
+            """
+            scenario: Array not empty test
+              then: check array has items
+                assert $.results notEmpty
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+
+        val assertions = extractAssertions(result.ast!!.scenarios[0])
+        assertEquals(AssertionKind.BODY_ARRAY_NOT_EMPTY, assertions[0].assertionType)
+        assertEquals("$.results", assertions[0].path)
+    }
+
+    @Test
+    fun `should parse header exists assertion`() {
+        val source =
+            """
+            scenario: Header exists test
+              then: check header present
+                assert header X-Request-Id
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+
+        val assertions = extractAssertions(result.ast!!.scenarios[0])
+        assertEquals(AssertionKind.HEADER_EXISTS, assertions[0].assertionType)
+        assertEquals("X-Request-Id", assertions[0].headerName)
+    }
+
+    @Test
+    fun `should parse header equals assertion with equals sign`() {
+        val source =
+            """
+            scenario: Header equals test
+              then: check header value
+                assert header Content-Type = "application/json"
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+
+        val assertions = extractAssertions(result.ast!!.scenarios[0])
+        assertEquals(AssertionKind.HEADER_EQUALS, assertions[0].assertionType)
+        assertEquals("Content-Type", assertions[0].headerName)
+    }
+
+    @Test
+    fun `should parse header equals assertion with colon`() {
+        val source =
+            """
+            scenario: Header equals with colon test
+              then: check header
+                assert header Accept: "text/plain"
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+
+        val assertions = extractAssertions(result.ast!!.scenarios[0])
+        assertEquals(AssertionKind.HEADER_EQUALS, assertions[0].assertionType)
+        assertEquals("Accept", assertions[0].headerName)
+    }
+
+    @Test
+    fun `should parse schema assertion`() {
+        val source =
+            """
+            scenario: Schema validation test
+              then: validate schema
+                assert schema
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+
+        val assertions = extractAssertions(result.ast!!.scenarios[0])
+        assertEquals(AssertionKind.MATCHES_SCHEMA, assertions[0].assertionType)
+    }
+
+    @Test
+    fun `should parse matchesSchema variant assertion`() {
+        val source =
+            """
+            scenario: MatchesSchema test
+              then: validate
+                assert matchesSchema
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+
+        val assertions = extractAssertions(result.ast!!.scenarios[0])
+        assertEquals(AssertionKind.MATCHES_SCHEMA, assertions[0].assertionType)
+    }
+
+    @Test
+    fun `should parse responseTime assertion`() {
+        val source =
+            """
+            scenario: Response time test
+              then: check performance
+                assert responseTime 1000
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+
+        val assertions = extractAssertions(result.ast!!.scenarios[0])
+        assertEquals(AssertionKind.RESPONSE_TIME, assertions[0].assertionType)
+    }
+
+    @Test
+    fun `should parse multiple assertions in single step`() {
+        val source =
+            """
+            scenario: Multiple assertions test
+              then: validate response
+                assert status 200
+                assert $.id equals 1
+                assert $.name notEmpty
+                assert header Content-Type = "application/json"
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+
+        val assertions = extractAssertions(result.ast!!.scenarios[0])
+        assertEquals(4, assertions.size)
+        assertEquals(AssertionKind.STATUS_CODE, assertions[0].assertionType)
+        assertEquals(AssertionKind.BODY_EQUALS, assertions[1].assertionType)
+        assertEquals(AssertionKind.BODY_ARRAY_NOT_EMPTY, assertions[2].assertionType)
+        assertEquals(AssertionKind.HEADER_EQUALS, assertions[3].assertionType)
+    }
+
+    /**
+     * Helper function to extract all AssertNode from a scenario.
+     */
+    private fun extractAssertions(scenario: ScenarioNode): List<AssertNode> =
+        scenario.steps.flatMap { step ->
+            step.actions.filterIsInstance<AssertNode>()
+        }
 }

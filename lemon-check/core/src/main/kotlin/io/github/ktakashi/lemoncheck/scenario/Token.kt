@@ -5,6 +5,8 @@ package io.github.ktakashi.lemoncheck.scenario
  */
 enum class TokenType {
     // Keywords
+    FEATURE,
+    BACKGROUND,
     SCENARIO,
     OUTLINE,
     FRAGMENT,
@@ -13,6 +15,7 @@ enum class TokenType {
     WHEN,
     THEN,
     AND,
+    BUT,
     CALL,
     EXTRACT,
     ASSERT,
@@ -27,6 +30,7 @@ enum class TokenType {
     OPERATION_ID,
     JSON_PATH,
     VARIABLE,
+    TAG,
 
     // Symbols
     COLON,

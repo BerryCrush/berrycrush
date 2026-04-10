@@ -48,23 +48,31 @@ class Parser(
     fun parse(): ParserResult {
         val scenarios = mutableListOf<ScenarioNode>()
         val fragments = mutableListOf<FragmentNode>()
+        val features = mutableListOf<FeatureNode>()
         var parameters: ParametersNode? = null
         val startLocation = currentLocation()
 
         skipNewlines()
 
         while (!isAtEnd()) {
+            // Collect tags before scenarios or features
+            val tags = parseTags()
+
             when (current().type) {
                 TokenType.PARAMETERS -> {
                     parameters = parseParameters()
                 }
                 TokenType.SCENARIO -> {
-                    val scenario = parseScenario()
+                    val scenario = parseScenario(tags)
                     if (scenario != null) scenarios.add(scenario)
                 }
                 TokenType.OUTLINE -> {
-                    val scenario = parseScenarioOutline()
+                    val scenario = parseScenarioOutline(tags)
                     if (scenario != null) scenarios.add(scenario)
+                }
+                TokenType.FEATURE -> {
+                    val feature = parseFeature(tags)
+                    if (feature != null) features.add(feature)
                 }
                 TokenType.FRAGMENT -> {
                     val fragment = parseFragment()
@@ -79,7 +87,7 @@ class Parser(
                         ParseError(
                             "Unexpected token",
                             currentLocation(),
-                            expected = "parameters, scenario, outline, or fragment",
+                            expected = "parameters, scenario, outline, feature, or fragment",
                             found = current().value,
                         ),
                     )
@@ -91,7 +99,7 @@ class Parser(
 
         val ast =
             if (errors.isEmpty()) {
-                ScenarioFileNode(scenarios, fragments, parameters, startLocation)
+                ScenarioFileNode(scenarios, fragments, features, parameters, startLocation)
             } else {
                 null
             }
@@ -99,7 +107,26 @@ class Parser(
         return ParserResult(ast, errors)
     }
 
-    private fun parseScenario(): ScenarioNode? {
+    /**
+     * Parse tags preceding a scenario or feature.
+     *
+     * Syntax: @tag1 @tag2 @tag3
+     * Tags must be on the same line or on lines before the scenario/feature.
+     */
+    private fun parseTags(): Set<String> {
+        val tags = mutableSetOf<String>()
+
+        while (!isAtEnd() && current().type == TokenType.TAG) {
+            tags.add(current().value)
+            advance()
+            skipWhitespace()
+            skipNewlines()
+        }
+
+        return tags
+    }
+
+    private fun parseScenario(tags: Set<String> = emptySet()): ScenarioNode? {
         val loc = currentLocation()
 
         if (!expect(TokenType.SCENARIO)) return null
@@ -118,11 +145,12 @@ class Parser(
             steps = steps,
             isOutline = false,
             examples = null,
+            tags = tags,
             location = loc,
         )
     }
 
-    private fun parseScenarioOutline(): ScenarioNode? {
+    private fun parseScenarioOutline(tags: Set<String> = emptySet()): ScenarioNode? {
         val loc = currentLocation()
 
         if (!expect(TokenType.OUTLINE)) return null
@@ -142,6 +170,127 @@ class Parser(
             steps = steps,
             isOutline = true,
             examples = examples,
+            tags = tags,
+            location = loc,
+        )
+    }
+
+    /**
+     * Parse a feature block containing grouped scenarios and optional background.
+     *
+     * Syntax:
+     * ```
+     * @tag1 @tag2
+     * feature: My Feature Name
+     *   background:
+     *     given: precondition
+     *       call ^setup
+     *
+     *   scenario: first scenario
+     *     when: ...
+     *
+     *   @ignore
+     *   scenario: second scenario
+     *     when: ...
+     * ```
+     */
+    private fun parseFeature(tags: Set<String> = emptySet()): FeatureNode? {
+        val loc = currentLocation()
+
+        if (!expect(TokenType.FEATURE)) return null
+        skipWhitespace()
+
+        if (!expect(TokenType.COLON)) return null
+        skipWhitespace()
+
+        val name = parseScenarioName() ?: return null
+        skipNewlines()
+
+        // Expect indent for feature body
+        if (current().type == TokenType.INDENT) {
+            advance()
+        }
+
+        var background: BackgroundNode? = null
+        val scenarios = mutableListOf<ScenarioNode>()
+
+        while (!isAtEnd() && current().type != TokenType.DEDENT && current().type != TokenType.FEATURE) {
+            skipNewlines()
+            if (isAtEnd() || current().type == TokenType.DEDENT || current().type == TokenType.FEATURE) break
+
+            // Parse tags for nested scenarios
+            val scenarioTags = parseTags()
+
+            when (current().type) {
+                TokenType.BACKGROUND -> {
+                    background = parseBackground()
+                }
+                TokenType.SCENARIO -> {
+                    val scenario = parseScenario(scenarioTags)
+                    if (scenario != null) scenarios.add(scenario)
+                }
+                TokenType.OUTLINE -> {
+                    val scenario = parseScenarioOutline(scenarioTags)
+                    if (scenario != null) scenarios.add(scenario)
+                }
+                TokenType.NEWLINE, TokenType.INDENT -> {
+                    advance()
+                }
+                else -> {
+                    if (current().type != TokenType.DEDENT && current().type != TokenType.EOF) {
+                        errors.add(
+                            ParseError(
+                                "Unexpected token in feature",
+                                currentLocation(),
+                                expected = "background, scenario, or outline",
+                                found = current().value,
+                            ),
+                        )
+                        advance()
+                    }
+                    break
+                }
+            }
+            skipNewlines()
+        }
+
+        // Consume dedent if present
+        if (current().type == TokenType.DEDENT) {
+            advance()
+        }
+
+        return FeatureNode(
+            name = name,
+            background = background,
+            scenarios = scenarios,
+            tags = tags,
+            location = loc,
+        )
+    }
+
+    /**
+     * Parse background steps shared by all scenarios in a feature.
+     *
+     * Syntax:
+     * ```
+     * background:
+     *   given: precondition
+     *     call ^setup
+     * ```
+     */
+    private fun parseBackground(): BackgroundNode? {
+        val loc = currentLocation()
+
+        if (!expect(TokenType.BACKGROUND)) return null
+        skipWhitespace()
+
+        if (!expect(TokenType.COLON)) return null
+        skipNewlines()
+
+        val steps = parseSteps()
+
+        return BackgroundNode(
+            steps = steps,
             location = loc,
         )
     }
@@ -344,6 +493,7 @@ class Parser(
                     TokenType.WHEN -> StepKeyword.WHEN
                     TokenType.THEN -> StepKeyword.THEN
                     TokenType.AND -> StepKeyword.AND
+                    TokenType.BUT -> StepKeyword.BUT
                     TokenType.DEDENT, TokenType.SCENARIO, TokenType.OUTLINE, TokenType.FRAGMENT, TokenType.EXAMPLES, TokenType.EOF -> break
                     else -> {
                         advance()
@@ -405,7 +555,7 @@ class Parser(
                     TokenType.ASSERT -> actions.add(parseAssertAction())
                     TokenType.INCLUDE -> parseIncludeAction()?.let { actions.add(it) }
                     TokenType.NEWLINE -> advance()
-                    TokenType.DEDENT, TokenType.GIVEN, TokenType.WHEN, TokenType.THEN, TokenType.AND, TokenType.EOF -> break
+                    TokenType.DEDENT, TokenType.GIVEN, TokenType.WHEN, TokenType.THEN, TokenType.AND, TokenType.BUT, TokenType.EOF -> break
                     else -> advance()
                 }
             }
@@ -564,8 +714,8 @@ class Parser(
             }
             typeOrPath == "header" -> {
                 skipWhitespace()
-                headerName = current().value
-                advance()
+                // Parse header name (may contain hyphens, e.g., Content-Type, X-Request-Id)
+                headerName = parseHeaderName()
                 skipWhitespace()
 
                 if (current().type == TokenType.EQUALS || current().type == TokenType.COLON) {
@@ -861,6 +1011,38 @@ class Parser(
         }
 
         return JsonValueNode(sb.toString(), loc)
+    }
+
+    /**
+     * Parse a header name which may contain hyphens.
+     *
+     * HTTP header names commonly use hyphens (e.g., Content-Type, X-Request-Id).
+     * This method concatenates identifier tokens separated by hyphen symbols
+     * to form the complete header name.
+     */
+    private fun parseHeaderName(): String {
+        val sb = StringBuilder()
+
+        // First part must be an identifier
+        if (current().type == TokenType.IDENTIFIER || current().type == TokenType.OPERATION_ID) {
+            sb.append(current().value)
+            advance()
+        }
+
+        // Continue while we see hyphen followed by identifier
+        while (!isAtEnd() && current().value == "-") {
+            sb.append("-")
+            advance() // consume hyphen
+
+            if (current().type == TokenType.IDENTIFIER || current().type == TokenType.OPERATION_ID) {
+                sb.append(current().value)
+                advance()
+            } else {
+                break
+            }
+        }
+
+        return sb.toString()
     }
 
     private fun expect(type: TokenType): Boolean {

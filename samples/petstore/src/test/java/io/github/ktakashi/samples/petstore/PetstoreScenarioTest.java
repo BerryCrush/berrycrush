@@ -3,6 +3,7 @@ package io.github.ktakashi.samples.petstore;
 import io.github.ktakashi.lemoncheck.junit.LemonCheckConfiguration;
 import io.github.ktakashi.lemoncheck.junit.LemonCheckScenarios;
 import io.github.ktakashi.lemoncheck.junit.LemonCheckSpec;
+import io.github.ktakashi.lemoncheck.junit.LemonCheckTags;
 import io.github.ktakashi.lemoncheck.spring.LemonCheckContextConfiguration;
 import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.Suite;
@@ -50,9 +51,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 @LemonCheckConfiguration(
     bindings = PetstoreBindings.class, 
     openApiSpec = "petstore.yaml",
-    plugins = {"report:text", "sample:logging"},
+    plugins = {"report:text", "report:json:lemoncheck/report.json", "sample:logging"},
     stepClasses = {PetCustomSteps.class}
 )
 @LemonCheckSpec(paths = {"petstore.yaml"})
+@LemonCheckTags(exclude = {"ignore"})
 public class PetstoreScenarioTest {
 }

@@ -26,6 +26,8 @@ class Lexer(
     companion object {
         private val KEYWORDS =
             mapOf(
+                "feature" to TokenType.FEATURE,
+                "background" to TokenType.BACKGROUND,
                 "scenario" to TokenType.SCENARIO,
                 "outline" to TokenType.OUTLINE,
                 "fragment" to TokenType.FRAGMENT,
@@ -34,6 +36,7 @@ class Lexer(
                 "when" to TokenType.WHEN,
                 "then" to TokenType.THEN,
                 "and" to TokenType.AND,
+                "but" to TokenType.BUT,
                 "call" to TokenType.CALL,
                 "extract" to TokenType.EXTRACT,
                 "assert" to TokenType.ASSERT,
@@ -109,6 +112,11 @@ class Lexer(
         // Handle JSON path
         if (c == '$') {
             return scanJsonPath()
+        }
+
+        // Handle tags (@tagname)
+        if (c == '@') {
+            return scanTag()
         }
 
         // Handle variable reference
@@ -334,6 +342,33 @@ class Lexer(
         }
 
         return Token(TokenType.OPERATION_ID, sb.toString(), loc)
+    }
+
+    /**
+     * Scan a tag prefixed with @.
+     *
+     * Tags are used to categorize and filter scenarios.
+     * For example: @ignore, @slow, @wip
+     *
+     * @return TAG token with the tag name (excluding @),
+     *         or ERROR token if @ is not followed by a valid identifier
+     */
+    private fun scanTag(): Token {
+        val loc = currentLocation()
+        advance() // consume '@'
+
+        // Check if followed by a valid identifier start (letter or underscore or hyphen)
+        if (isAtEnd() || (!peek().isLetter() && peek() != '_')) {
+            return Token(TokenType.ERROR, "Expected identifier after '@'", loc)
+        }
+
+        // Read the tag name (allows letters, digits, underscore, hyphen)
+        val sb = StringBuilder()
+        while (!isAtEnd() && (peek().isLetterOrDigit() || peek() == '_' || peek() == '-')) {
+            sb.append(advance())
+        }
+
+        return Token(TokenType.TAG, sb.toString(), loc)
     }
 
     private fun scanSymbol(): Token {

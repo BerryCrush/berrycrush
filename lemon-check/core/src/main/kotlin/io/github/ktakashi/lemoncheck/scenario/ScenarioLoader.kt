@@ -90,7 +90,15 @@ class ScenarioLoader {
             throw ScenarioParseException("Failed to parse scenario file:\n$errorMessages")
         }
 
-        val scenarios = result.ast!!.scenarios.map { transformScenario(it) }
+        val scenarios = mutableListOf<Scenario>()
+
+        // Transform standalone scenarios
+        scenarios.addAll(result.ast!!.scenarios.map { transformScenario(it) })
+
+        // Transform scenarios from features (with optional background steps prepended)
+        val featureScenarios = result.ast.features.flatMap { transformFeature(it) }
+        scenarios.addAll(featureScenarios)
+
         val parameters = result.ast.parameters?.values ?: emptyMap()
 
         return ScenarioFileContent(scenarios, parameters)
@@ -114,7 +122,16 @@ class ScenarioLoader {
             throw ScenarioParseException("Failed to parse scenario file:\n$errorMessages")
         }
 
-        return result.ast!!.scenarios.map { transformScenario(it) }
+        val scenarios = mutableListOf<Scenario>()
+
+        // Transform standalone scenarios
+        scenarios.addAll(result.ast!!.scenarios.map { transformScenario(it) })
+
+        // Transform scenarios from features (with optional background steps prepended)
+        val featureScenarios = result.ast.features.flatMap { transformFeature(it) }
+        scenarios.addAll(featureScenarios)
+
+        return scenarios
     }
 
     /**
@@ -170,15 +187,42 @@ class ScenarioLoader {
         return result.ast!!.fragments.associate { it.name to transformFragment(it) }
     }
 
-    private fun transformScenario(node: ScenarioNode): Scenario {
+    private fun transformScenario(
+        node: ScenarioNode,
+        backgroundSteps: List<Step> = emptyList(),
+    ): Scenario {
         val steps = node.steps.flatMap { transformStep(it) }
         val examples = node.examples?.map { transformExampleRow(it) }
 
         return Scenario(
             name = node.name,
+            tags = node.tags,
             steps = steps,
+            background = backgroundSteps,
             examples = examples,
         )
+    }
+
+    /**
+     * Transform a feature node into a list of scenarios.
+     *
+     * Background steps from the feature are prepended to each scenario.
+     * Feature tags are inherited by scenarios unless the scenario overrides them.
+     */
+    private fun transformFeature(node: FeatureNode): List<Scenario> {
+        // Transform background steps if present
+        val backgroundSteps =
+            node.background?.steps?.flatMap { transformStep(it) } ?: emptyList()
+
+        // Transform each scenario in the feature, prepending background steps
+        return node.scenarios.map { scenarioNode ->
+            // Merge feature tags with scenario tags (scenario tags take precedence)
+            val mergedTags = node.tags + scenarioNode.tags
+            transformScenario(
+                scenarioNode.copy(tags = mergedTags),
+                backgroundSteps,
+            )
+        }
     }
 
     private fun transformFragment(node: FragmentNode): Fragment {
@@ -197,6 +241,7 @@ class ScenarioLoader {
                 StepKeyword.WHEN -> StepType.WHEN
                 StepKeyword.THEN -> StepType.THEN
                 StepKeyword.AND -> StepType.AND
+                StepKeyword.BUT -> StepType.BUT
             }
 
         // Each action becomes a separate step (or combine into one step)
