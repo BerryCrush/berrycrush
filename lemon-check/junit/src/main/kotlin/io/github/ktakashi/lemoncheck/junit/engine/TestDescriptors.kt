@@ -12,7 +12,8 @@ import java.net.URL
  *
  * Each scenario file discovered from the locations specified in
  * @LemonCheckScenarios becomes a ScenarioFileDescriptor, which contains
- * individual [IndividualScenarioDescriptor] children for each scenario in the file.
+ * individual [IndividualScenarioDescriptor] children for each scenario in the file,
+ * or [FeatureDescriptor] children for feature blocks.
  *
  * In JUnit reports, this appears as a test suite within the class test suite.
  */
@@ -24,6 +25,25 @@ class ScenarioFileDescriptor(
 ) : AbstractTestDescriptor(uniqueId, displayName, UriSource.from(scenarioSource.toURI())) {
     /**
      * Container type allows this descriptor to have child test descriptors.
+     */
+    override fun getType(): TestDescriptor.Type = TestDescriptor.Type.CONTAINER
+}
+
+/**
+ * Test descriptor representing a feature block within a .scenario file.
+ *
+ * Feature blocks group related scenarios together and support background
+ * steps that run before each scenario in the feature.
+ *
+ * In JUnit reports, this appears as a nested container within the file.
+ */
+class FeatureDescriptor(
+    uniqueId: UniqueId,
+    displayName: String,
+    val featureName: String,
+) : AbstractTestDescriptor(uniqueId, displayName) {
+    /**
+     * Container type allows this descriptor to have child scenario descriptors.
      */
     override fun getType(): TestDescriptor.Type = TestDescriptor.Type.CONTAINER
 }

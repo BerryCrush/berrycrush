@@ -14,13 +14,30 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 /**
+ * Represents a group of scenarios within a feature block.
+ *
+ * @property name Feature name
+ * @property scenarios List of scenarios belonging to this feature
+ * @property tags Tags applied to the feature
+ */
+data class FeatureGroup(
+    val name: String,
+    val scenarios: List<Scenario>,
+    val tags: Set<String> = emptySet(),
+)
+
+/**
  * Result of loading a scenario file.
  *
- * @property scenarios List of parsed scenarios
+ * @property scenarios List of all parsed scenarios (flat, for backward compatibility)
+ * @property features List of feature groups (for structured reporting)
+ * @property standaloneScenarios Scenarios not in any feature block
  * @property parameters Optional file-level configuration parameters
  */
 data class ScenarioFileContent(
     val scenarios: List<Scenario>,
+    val features: List<FeatureGroup> = emptyList(),
+    val standaloneScenarios: List<Scenario> = emptyList(),
     val parameters: Map<String, Any> = emptyMap(),
 )
 
@@ -90,18 +107,30 @@ class ScenarioLoader {
             throw ScenarioParseException("Failed to parse scenario file:\n$errorMessages")
         }
 
-        val scenarios = mutableListOf<Scenario>()
+        // Transform standalone scenarios (not in any feature)
+        val standaloneScenarios = result.ast!!.scenarios.map { transformScenario(it) }
 
-        // Transform standalone scenarios
-        scenarios.addAll(result.ast!!.scenarios.map { transformScenario(it) })
+        // Transform features with their scenarios (with optional background steps prepended)
+        val featureGroups =
+            result.ast.features.map { feature ->
+                FeatureGroup(
+                    name = feature.name,
+                    scenarios = transformFeature(feature),
+                    tags = feature.tags,
+                )
+            }
 
-        // Transform scenarios from features (with optional background steps prepended)
-        val featureScenarios = result.ast.features.flatMap { transformFeature(it) }
-        scenarios.addAll(featureScenarios)
+        // All scenarios in flat list for backward compatibility
+        val allScenarios = standaloneScenarios + featureGroups.flatMap { it.scenarios }
 
         val parameters = result.ast.parameters?.values ?: emptyMap()
 
-        return ScenarioFileContent(scenarios, parameters)
+        return ScenarioFileContent(
+            scenarios = allScenarios,
+            features = featureGroups,
+            standaloneScenarios = standaloneScenarios,
+            parameters = parameters,
+        )
     }
 
     /**
