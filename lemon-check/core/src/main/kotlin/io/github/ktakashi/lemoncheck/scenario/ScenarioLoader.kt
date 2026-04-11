@@ -4,6 +4,7 @@ import io.github.ktakashi.lemoncheck.dsl.LemonCheckSuite
 import io.github.ktakashi.lemoncheck.exception.ScenarioParseException
 import io.github.ktakashi.lemoncheck.model.Assertion
 import io.github.ktakashi.lemoncheck.model.AssertionType
+import io.github.ktakashi.lemoncheck.model.BodyProperty
 import io.github.ktakashi.lemoncheck.model.ExampleRow
 import io.github.ktakashi.lemoncheck.model.Extraction
 import io.github.ktakashi.lemoncheck.model.Fragment
@@ -287,6 +288,7 @@ class ScenarioLoader {
 
             val headers = call.headers.mapValues { extractValue(it.value).toString() }
             val body = call.body?.let { extractStringValue(it) }
+            val bodyProperties = call.bodyProperties?.let { transformBodyProperties(it) }
 
             steps.add(
                 Step(
@@ -298,6 +300,7 @@ class ScenarioLoader {
                     queryParams = queryParams,
                     headers = headers,
                     body = body,
+                    bodyProperties = bodyProperties,
                     bodyFile = call.bodyFile,
                     extractions = currentExtractions.toList(),
                     assertions = currentAssertions.toList(),
@@ -415,6 +418,18 @@ class ScenarioLoader {
             is NumberValueNode -> node.value.toString()
             is VariableValueNode -> $$"${$${node.name}}"
             is JsonValueNode -> node.json
+        }
+
+    /**
+     * Transform AST BodyPropertyValue to model BodyProperty.
+     */
+    private fun transformBodyProperties(props: Map<String, BodyPropertyValue>): Map<String, BodyProperty> =
+        props.mapValues { (_, value) -> transformBodyPropertyValue(value) }
+
+    private fun transformBodyPropertyValue(value: BodyPropertyValue): BodyProperty =
+        when (value) {
+            is BodyPropertyValue.Simple -> BodyProperty.Simple(extractValue(value.value))
+            is BodyPropertyValue.Nested -> BodyProperty.Nested(transformBodyProperties(value.properties))
         }
 }
 

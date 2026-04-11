@@ -79,20 +79,41 @@ Parameter Type Description                      Example
 Path           Replace path variable            ``petId: 123``
 Query          Add query string parameter       ``status: "available"``
 Header         Add HTTP header                  ``header_Authorization: "Bearer {{token}}"``
-Body           Set request body (inline)        ``body: {"name": "Max"}``
+Body (inline)  Set JSON body directly           ``body: {"name": "Max"}``
+Body (struct)  Set body with properties         ``body:`` + newline + indented properties
 BodyFile       Set request body (external file) ``bodyFile: "classpath:templates/pet.json"``
 ============== ================================ ==================================
 
-Example with all parameter types:
+Request Body Syntax
+^^^^^^^^^^^^^^^^^^^
+
+The ``body:`` keyword supports two modes:
+
+**Inline JSON** - Specify JSON directly on the same line:
 
 .. code-block:: text
 
     when: I create a pet
       call ^createPet
-        petId: 123
-        status: "available"
-        header_Authorization: "Bearer {{token}}"
-        body: {"name": "Max", "category": "dog"}
+        body: {"name": "Fluffy", "status": "available"}
+
+**Structured properties** - Use indented properties with OpenAPI schema defaults:
+
+.. code-block:: text
+
+    when: I create a pet
+      call ^createPet
+        body:
+          name: Fluffy
+          status: available
+
+The structured body syntax:
+
+1. Extracts default values from the OpenAPI requestBody schema
+2. Merges with user-provided properties (user values take precedence)
+3. Generates the final JSON body
+
+This allows partial data specification - unspecified fields use schema defaults.
 
 External Body Files
 ^^^^^^^^^^^^^^^^^^^

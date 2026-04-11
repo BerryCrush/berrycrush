@@ -3,6 +3,21 @@ package io.github.ktakashi.lemoncheck.model
 import io.github.ktakashi.lemoncheck.scenario.SourceLocation
 
 /**
+ * Represents a body property value, which can be either a simple value or a nested object.
+ */
+sealed class BodyProperty {
+    /** A simple value (string, number, boolean, etc.) */
+    data class Simple(
+        val value: Any,
+    ) : BodyProperty()
+
+    /** A nested object with properties */
+    data class Nested(
+        val properties: Map<String, BodyProperty>,
+    ) : BodyProperty()
+}
+
+/**
  * Represents a single BDD step within a scenario.
  *
  * @property type The BDD keyword type (GIVEN, WHEN, THEN, etc.)
@@ -12,7 +27,8 @@ import io.github.ktakashi.lemoncheck.scenario.SourceLocation
  * @property pathParams Path parameters for the API call
  * @property queryParams Query parameters for the API call
  * @property headers HTTP headers to include
- * @property body Request body content (inline)
+ * @property body Request body content (inline raw JSON)
+ * @property bodyProperties Structured body properties to merge with schema defaults
  * @property bodyFile External file reference for request body.
  *                    Supports: classpath:path/to/file.json, file:./relative/path.json, or /absolute/path.json
  *                    Variables in the file content are interpolated at runtime.
@@ -31,6 +47,7 @@ data class Step(
     val queryParams: Map<String, Any> = emptyMap(),
     val headers: Map<String, String> = emptyMap(),
     val body: String? = null,
+    val bodyProperties: Map<String, BodyProperty>? = null,
     val bodyFile: String? = null,
     val extractions: List<Extraction> = emptyList(),
     val assertions: List<Assertion> = emptyList(),

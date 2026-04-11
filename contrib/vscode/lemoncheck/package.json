@@ -2,7 +2,7 @@
   "name": "lemoncheck",
   "displayName": "LemonCheck",
   "description": "IDE support for LemonCheck scenario files - syntax highlighting, completion, and navigation",
-  "version": "0.3.1",
+  "version": "0.1.0",
   "publisher": "lemoncheck",
   "license": "Apache-2.0",
   "repository": {

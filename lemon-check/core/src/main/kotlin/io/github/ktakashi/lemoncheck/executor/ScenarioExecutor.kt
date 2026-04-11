@@ -7,6 +7,7 @@ import io.github.ktakashi.lemoncheck.exception.ConfigurationException
 import io.github.ktakashi.lemoncheck.model.Assertion
 import io.github.ktakashi.lemoncheck.model.AssertionResult
 import io.github.ktakashi.lemoncheck.model.AssertionType
+import io.github.ktakashi.lemoncheck.model.BodyProperty
 import io.github.ktakashi.lemoncheck.model.FragmentRegistry
 import io.github.ktakashi.lemoncheck.model.ResultStatus
 import io.github.ktakashi.lemoncheck.model.Scenario
@@ -14,6 +15,7 @@ import io.github.ktakashi.lemoncheck.model.ScenarioResult
 import io.github.ktakashi.lemoncheck.model.Step
 import io.github.ktakashi.lemoncheck.model.StepResult
 import io.github.ktakashi.lemoncheck.openapi.HttpMethod
+import io.github.ktakashi.lemoncheck.openapi.ResolvedOperation
 import io.github.ktakashi.lemoncheck.openapi.SpecRegistry
 import io.github.ktakashi.lemoncheck.plugin.PluginRegistry
 import io.github.ktakashi.lemoncheck.plugin.adapter.ScenarioContextAdapter
@@ -21,9 +23,12 @@ import io.github.ktakashi.lemoncheck.plugin.adapter.ScenarioResultAdapter
 import io.github.ktakashi.lemoncheck.plugin.adapter.StepContextAdapter
 import io.github.ktakashi.lemoncheck.plugin.adapter.StepResultAdapter
 import io.github.ktakashi.lemoncheck.util.FileLoader
+import tools.jackson.databind.ObjectMapper
 import java.net.http.HttpResponse
 import java.time.Duration
 import java.time.Instant
+
+private val objectMapper = ObjectMapper()
 
 /**
  * Executes BDD scenarios against API endpoints.
@@ -305,8 +310,8 @@ class ScenarioExecutor(
         // Merge headers immutably
         val headers = configuration.defaultHeaders + spec.defaultHeaders + step.headers
 
-        // Resolve body: prefer inline body, fall back to bodyFile
-        val body = resolveBody(step, context)
+        // Resolve body: prefer inline body, structured properties, or fall back to bodyFile
+        val body = resolveBody(step, context, resolvedOp)
 
         // Log request if enabled
         logRequest(resolvedOp.method, url, headers, body)
@@ -398,20 +403,28 @@ class ScenarioExecutor(
         }
 
     /**
-     * Resolve the request body from either inline body or external file.
+     * Resolve the request body from either inline body, structured properties, or external file.
      *
      * Priority:
      * 1. Inline body (step.body) takes precedence
-     * 2. External file (step.bodyFile) is used as fallback
+     * 2. Structured body properties (step.bodyProperties) merged with schema defaults
+     * 3. External file (step.bodyFile) is used as fallback
      *
      * Variable interpolation is applied to the final body content.
      */
     private fun resolveBody(
         step: Step,
         context: ExecutionContext,
+        resolvedOp: ResolvedOperation? = null,
     ): String? {
         // Inline body takes precedence
         step.body?.let { return context.interpolate(it) }
+
+        // Structured body properties - generate from schema and merge
+        step.bodyProperties?.let { props ->
+            val bodyJson = generateBodyFromProperties(props, resolvedOp, context)
+            return bodyJson
+        }
 
         // Fall back to body file
         return step.bodyFile?.let { path ->
@@ -419,6 +432,121 @@ class ScenarioExecutor(
             context.interpolate(content)
         }
     }
+
+    /**
+     * Generate JSON body from structured properties and OpenAPI schema defaults.
+     */
+    private fun generateBodyFromProperties(
+        props: Map<String, BodyProperty>,
+        resolvedOp: ResolvedOperation?,
+        context: ExecutionContext,
+    ): String {
+        // Get schema defaults from OpenAPI spec
+        val schemaDefaults = resolvedOp?.let { getSchemaDefaults(it) } ?: emptyMap()
+
+        // Merge schema defaults with user-provided properties (user wins)
+        val merged = mergeBodyProperties(schemaDefaults, props)
+
+        // Convert to JSON and interpolate variables
+        val json = bodyPropertyToJson(merged)
+        return context.interpolate(json)
+    }
+
+    /**
+     * Extract default values from OpenAPI requestBody schema.
+     */
+    private fun getSchemaDefaults(resolvedOp: ResolvedOperation): Map<String, BodyProperty> {
+        val requestBody = resolvedOp.operation.requestBody ?: return emptyMap()
+        val content = requestBody.content ?: return emptyMap()
+
+        // Prefer application/json schema
+        val mediaType = content["application/json"] ?: content.values.firstOrNull() ?: return emptyMap()
+        val schema = mediaType.schema ?: return emptyMap()
+
+        return extractPropertiesFromSchema(schema)
+    }
+
+    /**
+     * Extract default properties from an OpenAPI schema.
+     */
+    private fun extractPropertiesFromSchema(schema: io.swagger.v3.oas.models.media.Schema<*>): Map<String, BodyProperty> {
+        val result = mutableMapOf<String, BodyProperty>()
+
+        schema.properties?.forEach { (name, propSchema) ->
+            val defaultValue = getSchemaDefaultValue(propSchema)
+            if (defaultValue != null) {
+                result[name] = defaultValue
+            }
+        }
+
+        return result
+    }
+
+    /**
+     * Get a default value for a schema property.
+     */
+    private fun getSchemaDefaultValue(schema: io.swagger.v3.oas.models.media.Schema<*>): BodyProperty? {
+        // Use explicit default if provided
+        schema.default?.let { return BodyProperty.Simple(it) }
+
+        // Use example if provided
+        schema.example?.let { return BodyProperty.Simple(it) }
+
+        // Generate a sensible default based on type
+        return when (schema.type) {
+            "string" -> BodyProperty.Simple("")
+            "integer", "number" -> BodyProperty.Simple(0)
+            "boolean" -> BodyProperty.Simple(false)
+            "array" -> BodyProperty.Simple(emptyList<Any>())
+            "object" -> {
+                val nestedProps = extractPropertiesFromSchema(schema)
+                if (nestedProps.isNotEmpty()) {
+                    BodyProperty.Nested(nestedProps)
+                } else {
+                    BodyProperty.Simple(emptyMap<String, Any>())
+                }
+            }
+            else -> null
+        }
+    }
+
+    /**
+     * Merge schema defaults with user-provided properties.
+     * User properties override schema defaults.
+     */
+    private fun mergeBodyProperties(
+        defaults: Map<String, BodyProperty>,
+        userProps: Map<String, BodyProperty>,
+    ): Map<String, BodyProperty> {
+        val result = defaults.toMutableMap()
+
+        userProps.forEach { (key, value) ->
+            val existing = result[key]
+            if (existing is BodyProperty.Nested && value is BodyProperty.Nested) {
+                // Deep merge nested properties
+                result[key] = BodyProperty.Nested(mergeBodyProperties(existing.properties, value.properties))
+            } else {
+                // User property overrides
+                result[key] = value
+            }
+        }
+
+        return result
+    }
+
+    /**
+     * Convert BodyProperty map to JSON string.
+     */
+    private fun bodyPropertyToJson(props: Map<String, BodyProperty>): String {
+        val jsonMap = props.mapValues { (_, prop) -> bodyPropertyToJsonValue(prop) }
+        return objectMapper.writeValueAsString(jsonMap)
+    }
+
+    private fun bodyPropertyToJsonValue(prop: BodyProperty): Any =
+        when (prop) {
+            is BodyProperty.Simple -> prop.value
+            is BodyProperty.Nested -> prop.properties.mapValues { (_, p) -> bodyPropertyToJsonValue(p) }
+        }
 
     private fun extractValues(
         response: HttpResponse<String>,

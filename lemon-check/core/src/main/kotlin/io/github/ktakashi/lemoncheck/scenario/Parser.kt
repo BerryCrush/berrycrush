@@ -599,6 +599,7 @@ class Parser(
         val parameters = mutableMapOf<String, ValueNode>()
         val headers = mutableMapOf<String, ValueNode>()
         var body: ValueNode? = null
+        var bodyProperties: Map<String, BodyPropertyValue>? = null
         var bodyFile: String? = null
 
         // Parse optional parameters block
@@ -625,7 +626,14 @@ class Parser(
                                     headers[paramName.removePrefix("header_").removePrefix("Header_")] = value
                                 }
                             }
-                            paramName == "body" -> body = parseValue()
+                            // body: can be raw JSON (inline) or structured properties (indented)
+                            paramName == "body" -> {
+                                val bodyResult = parseBodyContent()
+                                when (bodyResult) {
+                                    is BodyParseResult.Raw -> body = bodyResult.value
+                                    is BodyParseResult.Properties -> bodyProperties = bodyResult.properties
+                                }
+                            }
                             paramName == "bodyFile" -> bodyFile = parseBodyFilePath()
                             else -> {
                                 val value = parseValue()
@@ -651,9 +659,94 @@ class Parser(
             parameters = parameters,
             headers = headers,
             body = body,
+            bodyProperties = bodyProperties,
             bodyFile = bodyFile,
             location = loc,
         )
+    }
+
+    /**
+     * Result of parsing body content.
+     */
+    private sealed class BodyParseResult {
+        data class Raw(
+            val value: ValueNode?,
+        ) : BodyParseResult()
+
+        data class Properties(
+            val properties: Map<String, BodyPropertyValue>,
+        ) : BodyParseResult()
+    }
+
+    /**
+     * Parse body content. Can be either:
+     * - Raw JSON value on the same line
+     * - Structured properties on subsequent indented lines
+     */
+    private fun parseBodyContent(): BodyParseResult {
+        // Check if there's a value on the same line (raw JSON)
+        if (current().type != TokenType.NEWLINE && current().type != TokenType.EOF) {
+            val value = parseValue()
+            return BodyParseResult.Raw(value)
+        }
+
+        // Check for structured properties (newline + indent)
+        skipNewlines()
+        if (current().type == TokenType.INDENT) {
+            advance()
+            val properties = parseBodyProperties()
+            if (current().type == TokenType.DEDENT) {
+                advance()
+            }
+            return BodyParseResult.Properties(properties)
+        }
+
+        return BodyParseResult.Raw(null)
+    }
+
+    /**
+     * Parse body properties recursively.
+     */
+    private fun parseBodyProperties(): Map<String, BodyPropertyValue> {
+        val properties = mutableMapOf<String, BodyPropertyValue>()
+
+        while (!isAtEnd() && current().type != TokenType.DEDENT) {
+            when (current().type) {
+                TokenType.IDENTIFIER -> {
+                    val propName = current().value
+                    advance()
+                    skipWhitespace()
+
+                    if (current().type == TokenType.COLON) {
+                        advance()
+                        skipWhitespace()
+                    }
+
+                    // Check if this is a nested object (newline + indent)
+                    if (current().type == TokenType.NEWLINE) {
+                        skipNewlines()
+                        if (current().type == TokenType.INDENT) {
+                            advance()
+                            val nestedProps = parseBodyProperties()
+                            if (current().type == TokenType.DEDENT) {
+                                advance()
+                            }
+                            properties[propName] = BodyPropertyValue.Nested(nestedProps)
+                        }
+                    } else {
+                        // Simple value
+                        val value = parseValue()
+                        if (value != null) {
+                            properties[propName] = BodyPropertyValue.Simple(value)
+                        }
+                    }
+                }
+                TokenType.NEWLINE -> advance()
+                else -> advance()
+            }
+        }
+
+        return properties
     }
 
     /**

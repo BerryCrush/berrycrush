@@ -255,9 +255,10 @@ when I authenticate
 | Path parameter | Replace path variable | `petId: 123` |
 | Query parameter | Add query string | `status: "available"` |
 | Header | Add HTTP header | `header_Authorization: "Bearer token"` |
-| Body | Set request body | `body: {"name": "Fluffy"}` |
+| Body (inline) | Set JSON body directly | `body: {"name": "Fluffy"}` |
+| Body (structured) | Set body with properties | `body:` newline + indented properties |
 
-Example with all parameters:
+Example with inline body:
 ```
 when I create a pet
   call ^createPet
@@ -265,6 +266,15 @@ when I create a pet
     status: "available"
     header_Authorization: "Bearer {{token}}"
     body: {"name": "Fluffy", "category": "dog"}
+```
+
+Example with structured body:
+```
+when I create a pet
+  call ^createPet
+    body:
+      name: Fluffy
+      category: dog
 ```
 
 ### Assertions (`assert`)
@@ -357,14 +367,58 @@ scenario: Use authentication
 
 ### Request Body (`body:`)
 
-Inline JSON:
+The `body:` keyword supports two modes:
+
+#### Inline JSON (Raw Mode)
+
+Specify JSON directly on the same line:
+
 ```
 when I create a pet
   call ^createPet
     body: {"name": "Fluffy", "status": "available"}
 ```
 
-Multi-line body (use `>` for multi-line):
+#### Structured Properties
+
+Use indented properties to generate JSON with OpenAPI schema defaults:
+
+```
+when I create a pet
+  call ^createPet
+    body:
+      name: Fluffy
+      status: available
+```
+
+This generates a JSON body by:
+1. Extracting default values from the OpenAPI requestBody schema
+2. Merging with user-provided properties (user values take precedence)
+3. Generating the final JSON
+
+**Example with partial data:**
+```
+# Only specify name, other fields use schema defaults
+when I create a pet
+  call ^createPet
+    body:
+      name: MyPet
+```
+
+**Example with nested objects:**
+```
+when I create a pet
+  call ^createPet
+    body:
+      name: NestedPet
+      metadata:
+        source: test
+        version: 1.0
+```
+
+#### Multi-line JSON
+
+Use `>` for multi-line raw JSON:
 ```
 when I create a pet
   call ^createPet

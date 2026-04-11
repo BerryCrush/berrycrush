@@ -118,6 +118,21 @@ enum class StepKeyword {
 }
 
 /**
+ * Represents a body property value, which can be either a simple value or a nested object.
+ */
+sealed class BodyPropertyValue {
+    /** A simple value (string, number, boolean, etc.) */
+    data class Simple(
+        val value: ValueNode,
+    ) : BodyPropertyValue()
+
+    /** A nested object with properties */
+    data class Nested(
+        val properties: Map<String, BodyPropertyValue>,
+    ) : BodyPropertyValue()
+}
+
+/**
  * Base class for step actions.
  */
 sealed class ActionNode : AstNode()
@@ -130,7 +145,10 @@ data class CallNode(
     val specName: String? = null,
     val parameters: Map<String, ValueNode> = emptyMap(),
     val headers: Map<String, ValueNode> = emptyMap(),
+    /** Raw JSON body (used with body: followed by inline JSON) */
     val body: ValueNode? = null,
+    /** Structured body properties (used with body: followed by indented properties) */
+    val bodyProperties: Map<String, BodyPropertyValue>? = null,
     val bodyFile: String? = null,
     override val location: SourceLocation,
 ) : ActionNode()
