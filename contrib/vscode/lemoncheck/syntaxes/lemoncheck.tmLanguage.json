@@ -88,6 +88,8 @@
         { "include": "#assert-directive" },
         { "include": "#extract-directive" },
         { "include": "#include-directive" },
+        { "include": "#conditional-directive" },
+        { "include": "#fail-directive" },
         { "include": "#body-directive" },
         { "include": "#bodyfile-directive" },
         { "include": "#parameter-value" }
@@ -188,6 +190,73 @@
       "captures": {
         "1": { "name": "keyword.other.include.lemoncheck" },
         "2": { "name": "entity.name.function.fragment-name.lemoncheck" }
+      }
+    },
+    "conditional-directive": {
+      "patterns": [
+        { "include": "#if-status" },
+        { "include": "#if-jsonpath" },
+        { "include": "#if-header" },
+        { "include": "#else-if" },
+        { "include": "#else" }
+      ]
+    },
+    "if-status": {
+      "match": "^\\s*(if)\\s+(status(?:Code)?)\\s+(\\d+(?:xx|-\\d+)?)",
+      "captures": {
+        "1": { "name": "keyword.control.if.lemoncheck" },
+        "2": { "name": "support.type.condition-type.lemoncheck" },
+        "3": { "name": "constant.numeric.status-code.lemoncheck" }
+      }
+    },
+    "if-jsonpath": {
+      "match": "^\\s*(if)\\s+(\\$[\\w\\.\\[\\]\\*]+)\\s+(equals|notEquals|contains|notContains|matches|exists|notExists|greaterThan|lessThan)\\s*(.*)?",
+      "captures": {
+        "1": { "name": "keyword.control.if.lemoncheck" },
+        "2": { "name": "variable.other.jsonpath.lemoncheck" },
+        "3": { "name": "keyword.operator.condition.lemoncheck" },
+        "4": { 
+          "patterns": [
+            { "include": "#string-value" },
+            { "include": "#variable-interpolation" },
+            { "include": "#number" }
+          ]
+        }
+      }
+    },
+    "if-header": {
+      "match": "^\\s*(if)\\s+(header)\\s+([\\w\\-]+)(?:\\s+(equals|notEquals|contains|notContains|exists|notExists)\\s*(.*))?",
+      "captures": {
+        "1": { "name": "keyword.control.if.lemoncheck" },
+        "2": { "name": "support.type.condition-type.lemoncheck" },
+        "3": { "name": "variable.other.header-name.lemoncheck" },
+        "4": { "name": "keyword.operator.condition.lemoncheck" },
+        "5": { 
+          "patterns": [
+            { "include": "#string-value" },
+            { "include": "#variable-interpolation" }
+          ]
+        }
+      }
+    },
+    "else-if": {
+      "match": "^\\s*(else)\\s+(if)\\b",
+      "captures": {
+        "1": { "name": "keyword.control.else.lemoncheck" },
+        "2": { "name": "keyword.control.if.lemoncheck" }
+      }
+    },
+    "else": {
+      "match": "^\\s*(else)\\s*$",
+      "captures": {
+        "1": { "name": "keyword.control.else.lemoncheck" }
+      }
+    },
+    "fail-directive": {
+      "match": "^\\s*(fail)\\s+(.+)$",
+      "captures": {
+        "1": { "name": "keyword.other.fail.lemoncheck" },
+        "2": { "name": "string.unquoted.error-message.lemoncheck" }
       }
     },
     "body-directive": {

@@ -93,15 +93,14 @@ Place your OpenAPI spec in ``src/test/resources/petstore.yaml``:
 
 Create ``src/test/resources/scenarios/pet-api.scenario``:
 
-.. code-block:: gherkin
+.. code-block:: text
 
-    Feature: Pet API
-      
-      Scenario: List all pets
-        Given the API is available at "{baseUrl}"
-        When I request GET /api/pets
-        Then the response status should be 200
-        And the response content-type should be "application/json"
+    scenario: List all pets
+      when: I request the pets list
+        call ^listPets
+      then: I receive a list of pets
+        assert status 200
+        assert $.pets notEmpty
 
 3. Create bindings
 ^^^^^^^^^^^^^^^^^^
@@ -147,6 +146,32 @@ Run your test using Gradle:
     ./gradlew test
 
 You should see output indicating which scenarios passed or failed.
+
+Using Conditional Assertions
+----------------------------
+
+When an API can return different valid responses, use conditional assertions:
+
+.. code-block:: text
+
+    scenario: Create or update a pet
+      when: I upsert a pet
+        call ^updatePet
+          petId: 123
+          body:
+            name: "Max"
+        
+        if status 201
+          # Resource was created
+          assert $.id notEmpty
+        else if status 200
+          # Resource was updated
+          assert $.name equals "Max"
+        else
+          fail "Expected status 200 or 201"
+
+Conditionals support checking status codes, JSON path values, and headers.
+See :doc:`features/scenario-syntax` for full syntax.
 
 Next Steps
 ----------

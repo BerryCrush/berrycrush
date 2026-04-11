@@ -909,10 +909,10 @@ class ParserTest {
                 .firstOrNull()
         assertNotNull(callAction, "Should have call action")
         assertNotNull(callAction.bodyProperties, "Should have body properties")
-        assertEquals(3, callAction.bodyProperties!!.size)
-        assertTrue(callAction.bodyProperties!!.containsKey("name"))
-        assertTrue(callAction.bodyProperties!!.containsKey("status"))
-        assertTrue(callAction.bodyProperties!!.containsKey("category"))
+        assertEquals(3, callAction.bodyProperties.size)
+        assertTrue(callAction.bodyProperties.containsKey("name"))
+        assertTrue(callAction.bodyProperties.containsKey("status"))
+        assertTrue(callAction.bodyProperties.containsKey("category"))
     }
 
     @Test
@@ -940,14 +940,14 @@ class ParserTest {
                 .firstOrNull()
         assertNotNull(callAction, "Should have call action")
         assertNotNull(callAction.bodyProperties, "Should have body properties")
-        assertEquals(2, callAction.bodyProperties!!.size)
+        assertEquals(2, callAction.bodyProperties.size)
 
-        val metadata = callAction.bodyProperties!!["metadata"]
+        val metadata = callAction.bodyProperties["metadata"]
         assertTrue(
             metadata is BodyPropertyValue.Nested,
             "Metadata should be nested",
         )
-        val nested = (metadata as BodyPropertyValue.Nested).properties
+        val nested = metadata.properties
         assertTrue(nested.containsKey("source"))
         assertTrue(nested.containsKey("version"))
     }
@@ -1027,5 +1027,215 @@ class ParserTest {
     private fun extractAssertions(scenario: ScenarioNode): List<AssertNode> =
         scenario.steps.flatMap { step ->
             step.actions.filterIsInstance<AssertNode>()
+        }
+
+    // =========================================================================
+    // Conditional Assertion Tests
+    // Tests for if/else if/else/fail parsing
+    // =========================================================================
+
+    @Test
+    fun `should parse simple if conditional`() {
+        val source =
+            """
+            scenario: Simple conditional
+              when I create a pet
+                call ^createPet
+                if status 201
+                  assert $.status equals "available"
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val conditionals = extractConditionals(result.ast!!.scenarios[0])
+        assertEquals(1, conditionals.size)
+
+        val conditional = conditionals[0]
+        assertTrue(conditional.ifBranch.condition is ConditionNode.StatusCondition)
+        assertEquals(1, conditional.ifBranch.actions.size)
+        assertTrue(conditional.ifBranch.actions[0] is AssertNode)
+    }
+
+    @Test
+    fun `should parse if-else conditional`() {
+        val source =
+            """
+            scenario: If-else conditional
+              when I create a pet
+                call ^createPet
+                if status 201
+                  assert $.status equals "available"
+                else
+                  fail "Expected status 201"
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val conditionals = extractConditionals(result.ast!!.scenarios[0])
+        assertEquals(1, conditionals.size)
+
+        val conditional = conditionals[0]
+        assertNotNull(conditional.elseActions)
+        assertTrue(conditional.elseActions.isNotEmpty())
+        assertTrue(conditional.elseActions[0] is FailNode)
+    }
+
+    @Test
+    fun `should parse if-else if-else conditional`() {
+        val source =
+            """
+            scenario: Full conditional
+              when I create a pet
+                call ^createPet
+                if status 201
+                  assert $.status equals "created"
+                else if status 200
+                  assert $.status equals "exists"
+                else
+                  fail "Unexpected status"
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val conditionals = extractConditionals(result.ast!!.scenarios[0])
+        assertEquals(1, conditionals.size)
+
+        val conditional = conditionals[0]
+        assertEquals(1, conditional.elseIfBranches.size)
+        assertTrue(conditional.elseIfBranches[0].condition is ConditionNode.StatusCondition)
+        assertNotNull(conditional.elseActions)
+    }
+
+    @Test
+    fun `should parse conditional with multiple assertions`() {
+        val source =
+            """
+            scenario: Multiple assertions in conditional
+              when I create a pet
+                call ^createPet
+                if status 201
+                  assert $.status equals "available"
+                  assert $.id notEmpty
+                  extract $.id => petId
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val conditionals = extractConditionals(result.ast!!.scenarios[0])
+        assertEquals(1, conditionals.size)
+
+        val conditional = conditionals[0]
+        assertEquals(
+            2,
+            conditional.ifBranch.actions
+                .filterIsInstance<AssertNode>()
+                .size,
+        )
+        assertEquals(
+            1,
+            conditional.ifBranch.actions
+                .filterIsInstance<ExtractNode>()
+                .size,
+        )
+    }
+
+    @Test
+    fun `should parse conditional with json path condition`() {
+        val source =
+            """
+            scenario: JSON path condition
+              when I get a pet
+                call ^getPetById
+                if $.status equals "active"
+                  assert $.available equals true
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val conditionals = extractConditionals(result.ast!!.scenarios[0])
+        assertEquals(1, conditionals.size)
+
+        val condition = conditionals[0].ifBranch.condition
+        assertTrue(condition is ConditionNode.JsonPathCondition)
+        val jsonPathCondition = condition
+        assertEquals($$"$.status", jsonPathCondition.path)
+        assertEquals(ConditionOperator.EQUALS, jsonPathCondition.operator)
+    }
+
+    @Test
+    fun `should parse conditional with header condition`() {
+        val source =
+            """
+            scenario: Header condition
+              when I get a resource
+                call ^getResource
+                if header Content-Type equals "application/json"
+                  assert $.type equals "json"
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val conditionals = extractConditionals(result.ast!!.scenarios[0])
+        assertEquals(1, conditionals.size)
+
+        val condition = conditionals[0].ifBranch.condition
+        assertTrue(condition is ConditionNode.HeaderCondition)
+        assertEquals("Content-Type", condition.headerName)
+    }
+
+    @Test
+    fun `should parse standalone fail action`() {
+        val source =
+            """
+            scenario: Fail test
+              then: this should fail
+                fail "This test is designed to fail"
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val failNodes =
+            result.ast!!
+                .scenarios[0]
+                .steps
+                .flatMap { it.actions.filterIsInstance<FailNode>() }
+        assertEquals(1, failNodes.size)
+        assertEquals("This test is designed to fail", failNodes[0].message)
+    }
+
+    @Test
+    fun `should parse fail with unquoted message`() {
+        val source =
+            """
+            scenario: Fail without quotes
+              then: this should fail
+                fail status must be 200 or 201
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val failNodes =
+            result.ast!!
+                .scenarios[0]
+                .steps
+                .flatMap { it.actions.filterIsInstance<FailNode>() }
+        assertEquals(1, failNodes.size)
+        assertEquals("status must be 200 or 201", failNodes[0].message)
+    }
+
+    /**
+     * Helper function to extract all ConditionalNode from a scenario.
+     */
+    private fun extractConditionals(scenario: ScenarioNode): List<ConditionalNode> =
+        scenario.steps.flatMap { step ->
+            step.actions.filterIsInstance<ConditionalNode>()
         }
 }

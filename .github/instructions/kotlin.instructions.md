@@ -318,3 +318,35 @@ Always run ktlintFormat before committing:
    // GOOD
    val x = 1 + 2
    ```
+
+## 16. Imports and Aliases
+
+Avoid using fully qualified names in code. Use imports, and when there are name conflicts, use import aliases:
+
+```kotlin
+// BAD: Fully qualified names in code
+private fun transform(branch: io.github.ktakashi.lemoncheck.scenario.ConditionBranch): io.github.ktakashi.lemoncheck.model.ConditionBranch {
+    return io.github.ktakashi.lemoncheck.model.ConditionBranch(...)
+}
+
+// GOOD: Import with aliases for conflicting names
+import io.github.ktakashi.lemoncheck.model.ConditionBranch as ModelConditionBranch
+import io.github.ktakashi.lemoncheck.scenario.ConditionBranch as AstConditionBranch
+
+private fun transform(branch: AstConditionBranch): ModelConditionBranch {
+    return ModelConditionBranch(...)
+}
+
+// GOOD: When only one is used frequently, import the other with alias
+import io.github.ktakashi.lemoncheck.model.ConditionBranch as ModelConditionBranch
+
+// AstConditionBranch is in current package, so no import needed
+private fun transform(branch: ConditionBranch): ModelConditionBranch {
+    return ModelConditionBranch(...)
+}
+```
+
+**Naming Convention for Aliases:**
+- Use `Model` prefix for runtime model classes (e.g., `ModelConditionBranch`)
+- Use `Ast` prefix for AST/parsing classes (e.g., `AstConditionBranch`)
+- Be consistent across the codebase

@@ -144,6 +144,77 @@ assert schema              # Validate against OpenAPI schema
 assert responseTime 1000   # milliseconds
 ```
 
+## Conditional Assertions
+
+Conditional assertions allow different assertions based on response conditions. Useful when APIs return different status codes for different scenarios.
+
+### Basic If Condition
+```
+call ^createPet
+if status 201
+  assert $.status equals "available"
+```
+
+### If-Else
+```
+call ^createPet
+if status 201
+  assert $.status equals "created"
+else
+  fail "Expected status 201"
+```
+
+### If-Else If-Else
+```
+call ^createPet
+if status 201
+  assert $.status equals "created"
+  extract $.id => petId
+else if status 200
+  assert $.status equals "exists"
+else
+  fail "status must be 200 or 201"
+```
+
+### Condition Types
+
+**Status Code:**
+```
+if status 201
+if status 2xx          # Pattern matching
+if status 200-299      # Range
+```
+
+**JSON Path:**
+```
+if $.status equals "active"
+if $.count greaterThan 0
+if $.items exists
+if $.error notExists
+```
+
+**Header:**
+```
+if header Content-Type equals "application/json"
+if header X-Cache exists
+```
+
+### Condition Operators
+- `equals` - Exact match
+- `notEquals` - Not equal
+- `contains` - String/array contains
+- `notContains` - Does not contain
+- `matches` - Regex match
+- `exists` - Value exists
+- `notExists` - Value does not exist
+- `greaterThan` - Numeric comparison
+- `lessThan` - Numeric comparison
+
+### Fail Action
+```
+fail "Custom error message"
+```
+
 ## Variable Extraction
 
 ### Extract to Variable

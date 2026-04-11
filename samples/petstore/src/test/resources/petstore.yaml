@@ -119,8 +119,8 @@ paths:
 
     put:
       operationId: updatePet
-      summary: Update a pet
-      description: Updates an existing pet
+      summary: Update or create a pet (upsert)
+      description: Updates an existing pet or creates a new one with the specified ID
       tags:
         - pets
       parameters:
@@ -138,13 +138,19 @@ paths:
               $ref: "#/components/schemas/NewPet"
       responses:
         "200":
-          description: Pet updated
+          description: Pet updated successfully
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Pet"
-        "404":
-          description: Pet not found
+        "201":
+          description: Pet created (ID did not exist)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+        "400":
+          description: Invalid input
           content:
             application/json:
               schema:

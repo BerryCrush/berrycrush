@@ -43,6 +43,9 @@ class Lexer(
                 "examples" to TokenType.EXAMPLES,
                 "using" to TokenType.USING,
                 "include" to TokenType.INCLUDE,
+                "if" to TokenType.IF,
+                "else" to TokenType.ELSE,
+                "fail" to TokenType.FAIL,
             )
     }
 
@@ -284,19 +287,23 @@ class Lexer(
             }
 
             val c = advance()
-            if (c == '\n') {
-                sb.append(c)
-                line++
-                column = 1
-            } else if (c == '\r') {
-                if (!isAtEnd() && peek() == '\n') {
-                    advance()
+            when (c) {
+                '\n' -> {
+                    sb.append(c)
+                    line++
+                    column = 1
                 }
-                sb.append('\n')
-                line++
-                column = 1
-            } else {
-                sb.append(c)
+                '\r' -> {
+                    if (!isAtEnd() && peek() == '\n') {
+                        advance()
+                    }
+                    sb.append('\n')
+                    line++
+                    column = 1
+                }
+                else -> {
+                    sb.append(c)
+                }
             }
         }
 
@@ -351,14 +358,13 @@ class Lexer(
 
         // Remove the common indentation
         return lines
-            .map { line ->
+            .joinToString("\n") { line ->
                 if (line.length >= minIndent && line.isNotBlank()) {
                     line.substring(minIndent)
                 } else {
                     line
                 }
-            }.joinToString("\n")
-            .trim()
+            }.trim()
     }
 
     private fun scanJsonPath(): Token {
