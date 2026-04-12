@@ -297,6 +297,89 @@ The escape sequences:
 * ``\\{{`` → literal ``{{``
 * ``\\$`` → literal ``$``
 
+Conditional Assertions
+----------------------
+
+Conditional assertions allow branching logic based on response status, JSON path values, or headers.
+This is useful when an API can return different success responses.
+
+Basic Syntax
+^^^^^^^^^^^^
+
+.. code-block:: text
+
+    when: I upsert a resource
+      call ^updatePet
+        petId: 123
+        body:
+          name: "Max"
+      
+      if status 201
+        # Resource was created
+        assert $.id notEmpty
+        extract $.id => createdId
+      else if status 200
+        # Resource was updated
+        assert $.name equals "Max"
+      else
+        fail "Expected status 200 or 201"
+
+Condition Types
+^^^^^^^^^^^^^^^
+
+**Status code:**
+
+.. code-block:: text
+
+    if status 201
+      assert $.id notEmpty
+
+**JSON path value:**
+
+.. code-block:: text
+
+    if $.count greaterThan 0
+      assert $.items[0].id notEmpty
+    else
+      # Empty list is acceptable
+      assert $.items size 0
+
+**Header value:**
+
+.. code-block:: text
+
+    if header Content-Type equals "application/json"
+      assert $.data notEmpty
+    else
+      fail "Expected JSON response"
+
+Nested Conditionals
+^^^^^^^^^^^^^^^^^^^
+
+Conditionals can be nested for complex logic:
+
+.. code-block:: text
+
+    if status 200
+      if $.status equals "available"
+        assert $.price notEmpty
+      else
+        assert $.status notEmpty
+    else if status 201
+      assert $.id notEmpty
+    else
+      fail "Unexpected status"
+
+The ``fail`` Action
+^^^^^^^^^^^^^^^^^^^
+
+Use ``fail`` to explicitly fail a scenario with a custom message:
+
+.. code-block:: text
+
+    else
+      fail "Expected status 200 or 201 but got something else"
+
 Tags
 ----
 

@@ -6,7 +6,7 @@ This guide helps you migrate from other API testing tools to LemonCheck.
 From Cucumber
 -------------
 
-LemonCheck's scenario syntax is inspired by Gherkin, making migration straightforward.
+LemonCheck's scenario syntax is simpler and more API-focused than Gherkin.
 
 Feature Files
 ^^^^^^^^^^^^^
@@ -24,19 +24,22 @@ Cucumber:
 
 LemonCheck:
 
-.. code-block:: gherkin
+.. code-block:: text
 
     # scenarios/pets.scenario
-    Feature: Pet API
-      Scenario: List pets
-        Given the API is available at "{baseUrl}"
-        When I request GET /api/pets
-        Then the response status should be 200
+    scenario: List pets
+      when: I request pets
+        call ^listPets
+      then: I get a response
+        assert status 200
 
 Key differences:
+
 - File extension is ``.scenario`` (not ``.feature``)
-- Built-in HTTP steps (no custom step definitions needed for basic operations)
-- Variable binding syntax uses ``{variableName}``
+- No ``Feature:`` block needed (use ``feature:`` for grouping if desired)
+- Uses ``call ^operationId`` instead of raw HTTP requests
+- Built-in assertions (``assert status``, ``assert $.path``, etc.)
+- Variable binding syntax uses ``{{variableName}}``
 
 Step Definitions
 ^^^^^^^^^^^^^^^^
@@ -113,25 +116,28 @@ REST Assured:
 
 LemonCheck:
 
-.. code-block:: gherkin
+.. code-block:: text
 
-    Scenario: List pets
-      Given the API is available at "http://localhost:8080"
-      And the Accept header is "application/json"
-      When I request GET /api/pets
-      Then the response status should be 200
-      And the response body at "$.length()" should be greater than 0
-      And the response body at "$[0].name" should not be null
+    scenario: List pets
+      when: I request pets
+        call ^listPets
+          header_Accept: "application/json"
+      then: pets are returned
+        assert status 200
+        assert $.length() greaterThan 0
+        assert $[0].name notEmpty
 
 Benefits:
+
 - Readable by non-technical team members
-- Scenarios are documentation
+- Scenarios serve as documentation
 - OpenAPI validation included
+- Operations referenced by operationId
 
 From Karate
 -----------
 
-Karate and LemonCheck share similar goals, with some syntax differences.
+Karate and LemonCheck share similar goals, with different syntax approaches.
 
 Karate:
 
@@ -149,21 +155,27 @@ Karate:
 
 LemonCheck:
 
-.. code-block:: gherkin
+.. code-block:: text
 
-    Feature: Pet API
-      Background:
-        Given the API is available at "http://localhost:8080"
+    feature: Pet API
+      background:
+        given: API is ready
+          call ^health
+          assert status 200
 
-      Scenario: List pets
-        When I request GET /api/pets
-        Then the response status should be 200
-        And the response body should be an array
+      scenario: List pets
+        when: I request pets
+          call ^listPets
+        then: pets are returned
+          assert status 200
+          assert $.pets notEmpty
 
 Key differences:
-- LemonCheck uses standard Gherkin syntax (Given/When/Then)
-- OpenAPI integration for automatic validation
-- JUnit 5 native (no custom runner)
+
+- LemonCheck uses ``call ^operationId`` instead of raw paths
+- OpenAPI integration for automatic request/response validation
+- JUnit 5 native (no custom runner needed)
+- Conditional assertions with if/else/fail
 
 Migration Checklist
 -------------------

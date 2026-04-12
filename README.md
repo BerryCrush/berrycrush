@@ -235,6 +235,32 @@ call ^getPetById
   petId: {{petId}}
 ```
 
+### Conditional Assertions
+
+Handle different response scenarios with `if/else if/else/fail`:
+
+```
+when I upsert a resource
+  call ^updateOrCreate
+    id: 123
+    body: {"name": "Test"}
+    
+  if status 201
+    # Resource was created
+    assert $.id notEmpty
+    extract $.id => createdId
+  else if status 200
+    # Resource was updated
+    assert $.name equals "Test"
+  else
+    fail "Expected status 200 or 201"
+```
+
+Conditions support status codes, JSON path values, and headers:
+- `if status 200`
+- `if $.count greaterThan 0`
+- `if header Content-Type equals "application/json"`
+
 ### File-Level Parameters
 
 Override configuration settings at the file level using a `parameters:` block:

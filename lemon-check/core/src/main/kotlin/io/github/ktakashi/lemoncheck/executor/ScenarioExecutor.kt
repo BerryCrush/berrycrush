@@ -8,6 +8,10 @@ import io.github.ktakashi.lemoncheck.model.Assertion
 import io.github.ktakashi.lemoncheck.model.AssertionResult
 import io.github.ktakashi.lemoncheck.model.AssertionType
 import io.github.ktakashi.lemoncheck.model.BodyProperty
+import io.github.ktakashi.lemoncheck.model.Condition
+import io.github.ktakashi.lemoncheck.model.ConditionOperator
+import io.github.ktakashi.lemoncheck.model.ConditionalActions
+import io.github.ktakashi.lemoncheck.model.ConditionalAssertion
 import io.github.ktakashi.lemoncheck.model.FragmentRegistry
 import io.github.ktakashi.lemoncheck.model.ResultStatus
 import io.github.ktakashi.lemoncheck.model.Scenario
@@ -346,8 +350,41 @@ class ScenarioExecutor(
         stepStartTime: Instant,
         context: ExecutionContext,
     ): StepResult {
+        // Check for unconditional fail
+        if (step.failMessage != null) {
+            return StepResult(
+                step = step,
+                status = ResultStatus.FAILED,
+                statusCode = response.statusCode(),
+                responseBody = response.body(),
+                responseHeaders = response.headers().map(),
+                duration = Duration.between(stepStartTime, Instant.now()),
+                error = AssertionError(step.failMessage),
+            )
+        }
+
         val extractedValues = extractValues(response, step, context)
-        val assertionResults = runAssertions(response, step.assertions, context)
+        val assertionResults = runAssertions(response, step.assertions, context).toMutableList()
+
+        // Run conditional assertions
+        val conditionalResults = runConditionals(response, step.conditionals, context)
+        assertionResults.addAll(conditionalResults.assertionResults)
+
+        // Check for conditional fail
+        if (conditionalResults.failMessage != null) {
+            return StepResult(
+                step = step,
+                status = ResultStatus.FAILED,
+                statusCode = response.statusCode(),
+                responseBody = response.body(),
+                responseHeaders = response.headers().map(),
+                duration = Duration.between(stepStartTime, Instant.now()),
+                extractedValues = extractedValues + conditionalResults.extractedValues,
+                assertionResults = assertionResults,
+                error = AssertionError(conditionalResults.failMessage),
+            )
+        }
+
         val allPassed = assertionResults.all { it.passed }
 
         return StepResult(
@@ -357,7 +394,7 @@ class ScenarioExecutor(
             responseBody = response.body(),
             responseHeaders = response.headers().map(),
             duration = Duration.between(stepStartTime, Instant.now()),
-            extractedValues = extractedValues,
+            extractedValues = extractedValues + conditionalResults.extractedValues,
             assertionResults = assertionResults,
         )
     }
@@ -570,6 +607,255 @@ class ScenarioExecutor(
         context: ExecutionContext,
     ): List<AssertionResult> = assertions.map { assertion -> runAssertion(response, assertion, context) }
 
+    /**
+     * Result of running conditional assertions.
+     */
+    private data class ConditionalRunResult(
+        val assertionResults: List<AssertionResult> = emptyList(),
+        val extractedValues: Map<String, Any?> = emptyMap(),
+        val failMessage: String? = null,
+    )
+
+    /**
+     * Run conditional assertions against the response.
+     *
+     * Evaluates each conditional's conditions in order and runs the actions
+     * for the first matching branch.
+     */
+    private fun runConditionals(
+        response: HttpResponse<String>,
+        conditionals: List<ConditionalAssertion>,
+        context: ExecutionContext,
+    ): ConditionalRunResult {
+        val allResults = mutableListOf<AssertionResult>()
+        val allExtracted = mutableMapOf<String, Any?>()
+        var failMessage: String? = null
+
+        for (conditional in conditionals) {
+            val result = runConditional(response, conditional, context)
+            allResults.addAll(result.assertionResults)
+            allExtracted.putAll(result.extractedValues)
+            if (result.failMessage != null) {
+                failMessage = result.failMessage
+                break // Stop on first fail
+            }
+        }
+
+        return ConditionalRunResult(
+            assertionResults = allResults,
+            extractedValues = allExtracted,
+            failMessage = failMessage,
+        )
+    }
+
+    /**
+     * Run a single conditional assertion.
+     */
+    private fun runConditional(
+        response: HttpResponse<String>,
+        conditional: ConditionalAssertion,
+        context: ExecutionContext,
+    ): ConditionalRunResult {
+        // Try if branch
+        if (evaluateCondition(response, conditional.ifBranch.condition, context)) {
+            return runConditionalActions(response, conditional.ifBranch.actions, context)
+        }
+
+        // Try else-if branches
+        for (elseIfBranch in conditional.elseIfBranches) {
+            if (evaluateCondition(response, elseIfBranch.condition, context)) {
+                return runConditionalActions(response, elseIfBranch.actions, context)
+            }
+        }
+
+        // Run else branch if present
+        if (conditional.elseActions != null) {
+            return runConditionalActions(response, conditional.elseActions, context)
+        }
+
+        // No branch matched - that's OK, no assertions to run
+        return ConditionalRunResult()
+    }
+
+    /**
+     * Run actions within a conditional branch.
+     */
+    private fun runConditionalActions(
+        response: HttpResponse<String>,
+        actions: ConditionalActions,
+        context: ExecutionContext,
+    ): ConditionalRunResult {
+        // Check for fail first
+        if (actions.failMessage != null) {
+            return ConditionalRunResult(failMessage = actions.failMessage)
+        }
+
+        val assertionResults = mutableListOf<AssertionResult>()
+        val extractedValues = mutableMapOf<String, Any?>()
+
+        // Run extractions
+        for (extraction in actions.extractions) {
+            val value =
+                runCatching {
+                    val body = response.body() ?: ""
+                    JsonPath.read<Any>(body, extraction.jsonPath).also {
+                        context[extraction.variableName] = it
+                    }
+                }.getOrNull()
+            extractedValues[extraction.variableName] = value
+        }
+
+        // Run assertions
+        assertionResults.addAll(runAssertions(response, actions.assertions, context))
+
+        // Run nested conditionals
+        for (nested in actions.nestedConditionals) {
+            val nestedResult = runConditional(response, nested, context)
+            assertionResults.addAll(nestedResult.assertionResults)
+            extractedValues.putAll(nestedResult.extractedValues)
+            if (nestedResult.failMessage != null) {
+                return ConditionalRunResult(
+                    assertionResults = assertionResults,
+                    extractedValues = extractedValues,
+                    failMessage = nestedResult.failMessage,
+                )
+            }
+        }
+
+        return ConditionalRunResult(
+            assertionResults = assertionResults,
+            extractedValues = extractedValues,
+        )
+    }
+
+    /**
+     * Evaluate a condition against the response.
+     */
+    private fun evaluateCondition(
+        response: HttpResponse<String>,
+        condition: Condition,
+        context: ExecutionContext,
+    ): Boolean =
+        when (condition) {
+            is Condition.Status -> evaluateStatusCondition(response, condition)
+            is Condition.JsonPath -> evaluateJsonPathCondition(response, condition, context)
+            is Condition.Header -> evaluateHeaderCondition(response, condition, context)
+        }
+
+    /**
+     * Evaluate a status code condition.
+     */
+    private fun evaluateStatusCondition(
+        response: HttpResponse<String>,
+        condition: Condition.Status,
+    ): Boolean {
+        val actual = response.statusCode()
+        return when (val expected = condition.expected) {
+            is Number -> actual == expected.toInt()
+            is IntRange -> actual in expected
+            is String -> {
+                // Handle patterns like "2xx", "20x", "200-299"
+                val pattern = expected.lowercase()
+                when {
+                    pattern.contains('-') -> {
+                        val (start, end) = pattern.split('-').map { it.trim().toIntOrNull() }
+                        if (start != null && end != null) actual in start..end else false
+                    }
+                    pattern.contains('x') -> {
+                        val regex = pattern.replace("x", "\\d").toRegex()
+                        actual.toString().matches(regex)
+                    }
+                    else -> expected.toIntOrNull()?.let { actual == it } ?: false
+                }
+            }
+            else -> false
+        }
+    }
+
+    /**
+     * Evaluate a JSON path condition.
+     */
+    private fun evaluateJsonPathCondition(
+        response: HttpResponse<String>,
+        condition: Condition.JsonPath,
+        context: ExecutionContext,
+    ): Boolean {
+        val body = response.body() ?: ""
+        val actualValue = runCatching { JsonPath.read<Any>(body, condition.path) }.getOrNull()
+        val expectedValue = condition.expected?.let { resolveConditionValue(it, context) }
+
+        return when (condition.operator) {
+            ConditionOperator.EXISTS -> actualValue != null
+            ConditionOperator.NOT_EXISTS -> actualValue == null
+            ConditionOperator.EQUALS -> actualValue == expectedValue || actualValue?.toString() == expectedValue?.toString()
+            ConditionOperator.NOT_EQUALS -> actualValue != expectedValue && actualValue?.toString() != expectedValue?.toString()
+            ConditionOperator.CONTAINS -> {
+                when (actualValue) {
+                    is String -> actualValue.contains(expectedValue?.toString() ?: "")
+                    is Collection<*> -> actualValue.contains(expectedValue)
+                    else -> false
+                }
+            }
+            ConditionOperator.NOT_CONTAINS -> {
+                when (actualValue) {
+                    is String -> !actualValue.contains(expectedValue?.toString() ?: "")
+                    is Collection<*> -> !actualValue.contains(expectedValue)
+                    else -> true
+                }
+            }
+            ConditionOperator.MATCHES -> {
+                val pattern = expectedValue?.toString() ?: ""
+                actualValue?.toString()?.matches(pattern.toRegex()) ?: false
+            }
+            ConditionOperator.GREATER_THAN -> {
+                val actualNum = (actualValue as? Number)?.toDouble()
+                val expectedNum = (expectedValue as? Number)?.toDouble()
+                if (actualNum != null && expectedNum != null) actualNum > expectedNum else false
+            }
+            ConditionOperator.LESS_THAN -> {
+                val actualNum = (actualValue as? Number)?.toDouble()
+                val expectedNum = (expectedValue as? Number)?.toDouble()
+                if (actualNum != null && expectedNum != null) actualNum < expectedNum else false
+            }
+        }
+    }
+
+    /**
+     * Evaluate a header condition.
+     */
+    private fun evaluateHeaderCondition(
+        response: HttpResponse<String>,
+        condition: Condition.Header,
+        context: ExecutionContext,
+    ): Boolean {
+        val headerValues = response.headers().allValues(condition.name)
+        val actualValue = headerValues.firstOrNull()
+        val expectedValue = condition.expected?.let { resolveConditionValue(it, context) }
+
+        return when (condition.operator) {
+            ConditionOperator.EXISTS -> headerValues.isNotEmpty()
+            ConditionOperator.NOT_EXISTS -> headerValues.isEmpty()
+            ConditionOperator.EQUALS -> actualValue == expectedValue?.toString()
+            ConditionOperator.NOT_EQUALS -> actualValue != expectedValue?.toString()
+            ConditionOperator.CONTAINS -> actualValue?.contains(expectedValue?.toString() ?: "") ?: false
+            ConditionOperator.NOT_CONTAINS -> !(actualValue?.contains(expectedValue?.toString() ?: "") ?: false)
+            ConditionOperator.MATCHES -> actualValue?.matches((expectedValue?.toString() ?: "").toRegex()) ?: false
+            ConditionOperator.GREATER_THAN, ConditionOperator.LESS_THAN -> false // Not applicable for headers
+        }
+    }
+
+    /**
+     * Resolve condition value, handling variable interpolation.
+     */
+    private fun resolveConditionValue(
+        value: Any,
+        context: ExecutionContext,
+    ): Any =
+        when (value) {
+            is String -> context.interpolate(value)
+            else -> value
+        }
+
     private fun runAssertion(
         response: HttpResponse<String>,
         assertion: Assertion,
@@ -665,10 +951,9 @@ class ScenarioExecutor(
     ): AssertionResult {
         val body = response.body() ?: ""
         val jsonPath = assertion.jsonPath ?: "$"
-        val rawExpected = assertion.expected
         // Interpolate expected value if it's a string
         val expected =
-            when (rawExpected) {
+            when (val rawExpected = assertion.expected) {
                 is String -> context.interpolate(rawExpected)
                 else -> rawExpected
             }

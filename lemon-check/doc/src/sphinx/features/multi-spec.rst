@@ -62,7 +62,7 @@ Default Operations
 
 Operations from the default spec can be called directly:
 
-.. code-block:: gherkin
+.. code-block:: text
 
     scenario: List all pets
       when I request pets
@@ -75,7 +75,7 @@ Named Spec Operations
 
 To call operations from a named spec, use the ``using`` keyword:
 
-.. code-block:: gherkin
+.. code-block:: text
 
     scenario: Authenticate and list pets
       given I have valid credentials
@@ -153,7 +153,7 @@ Example: Separating Auth from Main API
 
 **auth.scenario:**
 
-.. code-block:: gherkin
+.. code-block:: text
 
     # Authentication tests using the 'auth' spec
     
@@ -236,7 +236,7 @@ Cross-Service Scenarios
 
 With multi-host configuration, you can test scenarios that span multiple services:
 
-.. code-block:: gherkin
+.. code-block:: text
 
     scenario: Cross-service order flow
       given I am authenticated

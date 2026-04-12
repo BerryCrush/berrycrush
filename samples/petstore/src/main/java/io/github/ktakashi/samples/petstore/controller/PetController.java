@@ -94,8 +94,9 @@ public class PetController {
     }
 
     /**
-     * Update an existing pet.
+     * Update an existing pet, or create if not exists (upsert).
      * PUT /pets/{petId}
+     * Returns 200 if updated, 201 if created.
      */
     @PutMapping("/{petId}")
     public ResponseEntity<?> updatePet(
@@ -109,11 +110,12 @@ public class PetController {
                     List.of("status must be one of: available, pending, sold")));
         }
 
-        return petService.updatePet(petId, newPet)
-            .map(pet -> ResponseEntity.ok((Object) pet))
-            .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ErrorResponse.of(404, "Pet not found",
-                    List.of("No pet exists with id: " + petId))));
+        PetService.UpsertResult result = petService.upsertPet(petId, newPet);
+        
+        if (result.created()) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(result.pet());
+        }
+        return ResponseEntity.ok(result.pet());
     }
 
     /**

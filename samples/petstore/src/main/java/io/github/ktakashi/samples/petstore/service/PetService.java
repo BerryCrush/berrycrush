@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -104,6 +105,58 @@ public class PetService {
                 Pet saved = petRepository.save(pet);
                 return PetResponse.from(saved);
             });
+    }
+
+    /**
+     * Result of upsert operation.
+     */
+    public record UpsertResult(PetResponse pet, boolean created) {}
+
+    /**
+     * Create or update a pet (upsert).
+     * If the pet with the given ID exists, update it and return (pet, false).
+     * If the pet doesn't exist, create it with the given ID and return (pet, true).
+     */
+    public UpsertResult upsertPet(Long id, NewPet newPet) {
+        Optional<Pet> existing = petRepository.findById(id);
+        
+        if (existing.isPresent()) {
+            // Update existing pet
+            Pet pet = existing.get();
+            pet.setName(newPet.name());
+            pet.setStatus(parseStatus(newPet.status()));
+            pet.setCategory(newPet.category());
+            pet.setTags(newPet.tags() != null ? newPet.tags() : List.of());
+            if (newPet.price() != null) {
+                pet.setPrice(BigDecimal.valueOf(newPet.price()));
+            }
+            Pet saved = petRepository.save(pet);
+            return new UpsertResult(PetResponse.from(saved), false);
+        } else {
+            // Create new pet with specified ID using native SQL
+            Instant now = Instant.now();
+            BigDecimal price = newPet.price() != null ? BigDecimal.valueOf(newPet.price()) : null;
+            String status = newPet.status() != null ? parseStatus(newPet.status()).name() : PetStatus.AVAILABLE.name();
+            
+            petRepository.insertWithId(
+                id,
+                newPet.name(),
+                status,
+                newPet.category(),
+                price,
+                now,
+                now
+            );
+            
+            // Fetch the created pet to return the full response
+            Pet created = petRepository.findById(id).orElseThrow();
+            // Handle tags if provided
+            if (newPet.tags() != null && !newPet.tags().isEmpty()) {
+                created.setTags(newPet.tags());
+                created = petRepository.save(created);
+            }
+            return new UpsertResult(PetResponse.from(created), true);
+        }
     }
 
     /**

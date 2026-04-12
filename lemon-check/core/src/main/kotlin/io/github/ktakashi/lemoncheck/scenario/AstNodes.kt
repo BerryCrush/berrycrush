@@ -183,6 +183,108 @@ data class IncludeNode(
 ) : ActionNode()
 
 /**
+ * Conditional action - evaluates conditions and executes matching actions.
+ *
+ * Example:
+ * ```
+ * if status 201
+ *   assert $.status equals "available"
+ * else if status 200
+ *   assert $.status equals "in-progress"
+ * else
+ *   fail "status must be 200 or 201"
+ * ```
+ */
+data class ConditionalNode(
+    /** The primary if condition and its actions */
+    val ifBranch: ConditionBranch,
+    /** Optional else-if branches */
+    val elseIfBranches: List<ConditionBranch> = emptyList(),
+    /** Optional else branch actions (no condition) */
+    val elseActions: List<ActionNode>? = null,
+    override val location: SourceLocation,
+) : ActionNode()
+
+/**
+ * A condition branch with its associated actions.
+ *
+ * @property condition The condition to evaluate (status code, json path, etc.)
+ * @property actions Actions to execute if condition is true
+ */
+data class ConditionBranch(
+    val condition: ConditionNode,
+    val actions: List<ActionNode>,
+    val location: SourceLocation,
+)
+
+/**
+ * Represents a condition to evaluate.
+ * Conditions are similar to assertions but return true/false instead of failing.
+ */
+sealed class ConditionNode {
+    abstract val location: SourceLocation
+
+    /**
+     * Status code condition.
+     * Example: `if status 201` or `if status 2xx`
+     */
+    data class StatusCondition(
+        val expected: ValueNode,
+        override val location: SourceLocation,
+    ) : ConditionNode()
+
+    /**
+     * JSON path condition.
+     * Example: `if $.status equals "active"`
+     */
+    data class JsonPathCondition(
+        val path: String,
+        val operator: ConditionOperator,
+        val expected: ValueNode?,
+        override val location: SourceLocation,
+    ) : ConditionNode()
+
+    /**
+     * Header condition.
+     * Example: `if header Content-Type equals "application/json"`
+     */
+    data class HeaderCondition(
+        val headerName: String,
+        val operator: ConditionOperator?,
+        val expected: ValueNode?,
+        override val location: SourceLocation,
+    ) : ConditionNode()
+}
+
+/**
+ * Operators for conditions.
+ */
+enum class ConditionOperator {
+    EQUALS,
+    NOT_EQUALS,
+    CONTAINS,
+    NOT_CONTAINS,
+    MATCHES,
+    EXISTS,
+    NOT_EXISTS,
+    GREATER_THAN,
+    LESS_THAN,
+}
+
+/**
+ * Fail action - fails the scenario with a custom message.
+ *
+ * Example:
+ * ```
+ * fail "Expected status 200 or 201"
+ * ```
+ */
+data class FailNode(
+    val message: String,
+    override val location: SourceLocation,
+) : ActionNode()
+
+/**
  * Types of assertions.
  */
 enum class AssertionKind {

@@ -177,10 +177,20 @@ class ScenarioTestExecutor(
         return runCatching {
             val sourceFile = File(fileContext.scenarioPath)
 
-            // Add example row values to context if this is an outline scenario
-            initializeContextWithExamples(scenarioDescriptor.scenario, fileContext.sharedContext)
+            // Create execution context - use shared context if available,
+            // or create one for outline scenarios with examples
+            val executionContext =
+                fileContext.sharedContext
+                    ?: if (scenarioDescriptor.scenario.examples?.isNotEmpty() == true) {
+                        ExecutionContext()
+                    } else {
+                        null
+                    }
 
-            fileContext.executor.execute(scenarioDescriptor.scenario, fileContext.sharedContext, sourceFile)
+            // Add example row values to context if this is an outline scenario
+            initializeContextWithExamples(scenarioDescriptor.scenario, executionContext)
+
+            fileContext.executor.execute(scenarioDescriptor.scenario, executionContext, sourceFile)
         }.fold(
             onSuccess = { result -> handleScenarioResult(scenarioDescriptor, result, listener) },
             onFailure = { e ->

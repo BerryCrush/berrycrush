@@ -69,16 +69,14 @@ Quick Example
 
 Scenario file (``pet-api.scenario``):
 
-.. code-block:: gherkin
+.. code-block:: text
 
-    Feature: Pet API
-      Background:
-        Given the petstore API is available
-
-      Scenario: List all pets
-        When I request GET /api/pets
-        Then the response status should be 200
-        And the response body should match the schema
+    scenario: List all pets
+      when: I request all pets
+        call ^listPets
+      then: pets are returned
+        assert status 200
+        assert schema
 
 Installation
 ------------

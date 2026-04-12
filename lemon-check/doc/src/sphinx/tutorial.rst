@@ -63,108 +63,107 @@ Basic Scenario
 
 Create ``src/test/resources/scenarios/pets.scenario``:
 
-.. code-block:: gherkin
+.. code-block:: text
 
-    Feature: Pet Store API
-      As a pet store user
-      I want to manage pets through the API
-      So that I can keep track of available pets
+    scenario: List all pets
+      when: I request all pets
+        call ^listPets
+      then: I receive a list
+        assert status 200
+        assert $.pets notEmpty
 
-      Background:
-        Given the API base URL is "{baseUrl}"
-
-      Scenario: List all pets returns empty list initially
-        When I request GET /api/pets
-        Then the response status should be 200
-        And the response body should be an empty array
-
-      Scenario: Create a new pet
-        Given the request body is:
-          """
-          {
-            "name": "Fluffy",
-            "category": "cat"
-          }
-          """
-        When I request POST /api/pets
-        Then the response status should be 201
-        And the response body should contain:
-          | $.name     | "Fluffy" |
-          | $.category | "cat"    |
+    scenario: Create a new pet
+      when: I create a pet
+        call ^createPet
+          body:
+            name: "Fluffy"
+            category: "cat"
+      then: pet is created
+        assert status 201
+        assert $.name equals "Fluffy"
+        assert $.category equals "cat"
+        extract $.id => petId
 
 Scenario Outline with Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: gherkin
+Use ``outline:`` and ``examples:`` for parameterized tests:
 
-      Scenario Outline: Create pets of different categories
-        Given the request body is:
-          """
-          {
-            "name": "<name>",
-            "category": "<category>"
-          }
-          """
-        When I request POST /api/pets
-        Then the response status should be 201
+.. code-block:: text
 
-        Examples:
-          | name     | category |
-          | Fluffy   | cat      |
-          | Buddy    | dog      |
-          | Tweety   | bird     |
+    outline: Create pets of different categories
+      when: I create a pet named {{name}} in category {{category}}
+        call ^createPet
+          body:
+            name: "{{name}}"
+            category: "{{category}}"
+      then: pet is created
+        assert status 201
+        assert $.name equals "{{name}}"
+
+      examples:
+        | name   | category |
+        | Fluffy | cat      |
+        | Buddy  | dog      |
+        | Tweety | bird     |
 
 Advanced Scenarios
 ^^^^^^^^^^^^^^^^^^
 
-.. code-block:: gherkin
+.. code-block:: text
 
-      Scenario: Get pet by ID
-        Given a pet exists with name "Max"
-        When I request GET /api/pets/{petId}
-        Then the response status should be 200
-        And the response body at "$.name" should be "Max"
+    scenario: Get pet by ID
+      given: a pet exists
+        call ^createPet
+          body:
+            name: "Max"
+        assert status 201
+        extract $.id => petId
+      when: I request the pet
+        call ^getPetById
+          petId: {{petId}}
+      then: I receive the pet
+        assert status 200
+        assert $.name equals "Max"
 
-      Scenario: Update a pet
-        Given a pet exists with name "Max"
-        And the request body is:
-          """
-          {
-            "name": "Maximum"
-          }
-          """
-        When I request PUT /api/pets/{petId}
-        Then the response status should be 200
-        And the response body at "$.name" should be "Maximum"
+    scenario: Update a pet
+      given: a pet exists
+        call ^createPet
+          body:
+            name: "Max"
+        assert status 201
+        extract $.id => petId
+      when: I update the pet
+        call ^updatePet
+          petId: {{petId}}
+          body:
+            name: "Maximum"
+      then: pet is updated
+        assert status 200
+        assert $.name equals "Maximum"
 
-Custom Step Definitions
------------------------
+Conditional Assertions
+^^^^^^^^^^^^^^^^^^^^^^
 
-For complex setup logic, create custom steps:
+When APIs can return different valid responses, use if/else:
 
-.. code-block:: kotlin
+.. code-block:: text
 
-    @Component
-    class PetSteps {
-        @Autowired
-        lateinit var petRepository: PetRepository
-
-        @Step("a pet exists with name {string}")
-        fun createPet(name: String, context: StepContext) {
-            val pet = Pet(name = name)
-            petRepository.save(pet)
-            context.variables["petId"] = pet.id
-        }
-    }
-
-Register steps in your test configuration:
-
-.. code-block:: kotlin
-
-    @LemonCheckConfiguration(
-        bindings = PetStoreBindings::class,
-        stepClasses = [PetSteps::class]
-    )
+    scenario: Upsert a pet
+      when: I upsert pet 999
+        call ^updatePet
+          petId: 999
+          body:
+            name: "NewPet"
+        
+        if status 201
+          # Pet was created
+          assert $.id equals 999
+        else if status 200
+          # Pet was updated
+          assert $.name equals "NewPet"
+        else
+          fail "Expected 200 or 201"
 
 Running Tests
 -------------

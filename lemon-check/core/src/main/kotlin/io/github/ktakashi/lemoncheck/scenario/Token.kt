@@ -22,6 +22,9 @@ enum class TokenType {
     EXAMPLES,
     USING,
     INCLUDE,
+    IF,
+    ELSE,
+    FAIL,
 
     // Literals
     STRING,

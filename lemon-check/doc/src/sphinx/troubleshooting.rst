@@ -38,7 +38,7 @@ Scenario Files Not Loaded
 
 1. Check the file extension is ``.scenario``
 2. Verify the path in ``locations`` is relative to the resources folder
-3. Ensure the file contains valid Gherkin syntax
+3. Ensure the file contains valid scenario syntax
 
 .. code-block:: kotlin
 
@@ -178,12 +178,14 @@ JSONPath Not Matching
 2. Verify the JSONPath expression
 3. Check data types (string vs number)
 
-.. code-block:: gherkin
+.. code-block:: text
 
-    Scenario: Debug response
-      When I request GET /api/pets
-      Then the response body should be logged
-      And the response body at "$.name" should be "Fluffy"
+    scenario: Debug response
+      when: I request pets
+        call ^listPets
+      then: I check the response
+        assert status 200
+        assert $.name equals "Fluffy"
 
 Schema Validation Fails
 ^^^^^^^^^^^^^^^^^^^^^^^

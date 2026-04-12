@@ -49,7 +49,19 @@ step_keyword      = "given " | "when " | "then " | "and " | "but " ;
 
 (* Step directives *)
 step_directive    = INDENT , INDENT , directive_type , [ directive_value ] , NEWLINE ;
-directive_type    = "call" | "assert" | "extract" | "include" | "body:" ;
+directive_type    = "call" | "assert" | "extract" | "include" | "body:" | conditional ;
+
+(* Conditional assertions *)
+conditional       = if_branch , { else_if_branch } , [ else_branch ] ;
+if_branch         = "if" , condition , NEWLINE , { conditional_action } ;
+else_if_branch    = "else if" , condition , NEWLINE , { conditional_action } ;
+else_branch       = "else" , NEWLINE , { conditional_action } ;
+conditional_action = assertion | extraction | fail_action | conditional ;
+condition         = status_condition | jsonpath_condition | header_condition ;
+status_condition  = "status" , number ;
+jsonpath_condition = jsonpath , operator , value ;
+header_condition  = "header" , header_name , operator , value ;
+fail_action       = "fail" , quoted_string ;
 
 (* Examples for parameterized scenarios *)
 examples          = INDENT , "examples:" , NEWLINE , example_header , { example_row } ;
@@ -353,6 +365,73 @@ Use extracted variables with `{{variableName}}`:
 when I get the pet
   call ^getPetById
     petId: {{petId}}
+```
+
+### Conditional Assertions (`if/else if/else/fail`)
+
+Conditional assertions allow branching logic based on response status, JSON path values, or headers.
+
+#### Basic Syntax
+
+```
+when I make a request
+  call ^operation
+  
+  if status 201
+    # Executed if status is 201 (created)
+    assert $.id notEmpty
+    extract $.id => createdId
+  else if status 200
+    # Executed if status is 200 (already exists)
+    assert $.id notEmpty
+  else
+    # Executed if none of the above matched
+    fail "Expected status 200 or 201"
+```
+
+#### Condition Types
+
+| Type | Syntax | Example |
+|------|--------|---------|
+| Status code | `if status <code>` | `if status 201` |
+| JSON path | `if $.path <operator> <value>` | `if $.count greaterThan 0` |
+| Header | `if header <name> <operator> <value>` | `if header Content-Type equals "application/json"` |
+
+#### JSON Path Operators
+
+Same operators as assertions: `equals`, `notEmpty`, `greaterThan`, `lessThan`, `contains`, etc.
+
+```
+if $.items greaterThan 0
+  assert $.items[0].id notEmpty
+else
+  # Empty list is acceptable
+  assert $.items hasSize 0
+```
+
+#### Nested Conditionals
+
+Conditionals can be nested for complex logic:
+
+```
+if status 200
+  if $.status equals "available"
+    assert $.price notEmpty
+  else
+    assert $.status notEmpty
+else if status 201
+  assert $.id notEmpty
+else
+  fail "Unexpected status"
+```
+
+#### The `fail` Action
+
+Use `fail` to explicitly fail a scenario with a custom message:
+
+```
+else
+  fail "Expected status 200 or 201 but got something else"
 ```
 
 ### Fragment Inclusion (`include`)

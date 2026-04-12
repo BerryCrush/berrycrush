@@ -5,6 +5,9 @@ import io.github.ktakashi.lemoncheck.exception.ScenarioParseException
 import io.github.ktakashi.lemoncheck.model.Assertion
 import io.github.ktakashi.lemoncheck.model.AssertionType
 import io.github.ktakashi.lemoncheck.model.BodyProperty
+import io.github.ktakashi.lemoncheck.model.Condition
+import io.github.ktakashi.lemoncheck.model.ConditionalActions
+import io.github.ktakashi.lemoncheck.model.ConditionalAssertion
 import io.github.ktakashi.lemoncheck.model.ExampleRow
 import io.github.ktakashi.lemoncheck.model.Extraction
 import io.github.ktakashi.lemoncheck.model.Fragment
@@ -13,6 +16,8 @@ import io.github.ktakashi.lemoncheck.model.Step
 import io.github.ktakashi.lemoncheck.model.StepType
 import java.nio.file.Files
 import java.nio.file.Path
+import io.github.ktakashi.lemoncheck.model.ConditionBranch as ModelConditionBranch
+import io.github.ktakashi.lemoncheck.model.ConditionOperator as ModelConditionOperator
 
 /**
  * Represents a group of scenarios within a feature block.
@@ -273,6 +278,8 @@ class ScenarioLoader {
         var pendingCall: CallNode? = null
         var currentExtractions = mutableListOf<Extraction>()
         var currentAssertions = mutableListOf<Assertion>()
+        var currentConditionals = mutableListOf<ConditionalAssertion>()
+        var currentFailMessage: String? = null
 
         fun finalizeCall(call: CallNode) {
             val pathParams =
@@ -304,11 +311,15 @@ class ScenarioLoader {
                     bodyFile = call.bodyFile,
                     extractions = currentExtractions.toList(),
                     assertions = currentAssertions.toList(),
+                    conditionals = currentConditionals.toList(),
+                    failMessage = currentFailMessage,
                     sourceLocation = call.location,
                 ),
             )
             currentExtractions = mutableListOf()
             currentAssertions = mutableListOf()
+            currentConditionals = mutableListOf()
+            currentFailMessage = null
         }
 
         for (action in node.actions) {
@@ -344,20 +355,35 @@ class ScenarioLoader {
                         ),
                     )
                 }
+                is ConditionalNode -> {
+                    currentConditionals.add(transformConditional(action))
+                }
+                is FailNode -> {
+                    currentFailMessage = action.message
+                }
             }
         }
 
         // Finalize any remaining pending call with extractions/assertions
         pendingCall?.let { finalizeCall(it) }
 
-        // If there are orphan extractions/assertions without a call, add them as a separate step
-        if (pendingCall == null && (currentExtractions.isNotEmpty() || currentAssertions.isNotEmpty())) {
+        // If there are orphan extractions/assertions/conditionals without a call, add them as a separate step
+        if (pendingCall == null &&
+            (
+                currentExtractions.isNotEmpty() ||
+                    currentAssertions.isNotEmpty() ||
+                    currentConditionals.isNotEmpty() ||
+                    currentFailMessage != null
+            )
+        ) {
             steps.add(
                 Step(
                     type = stepType,
                     description = node.description,
                     extractions = currentExtractions.toList(),
                     assertions = currentAssertions.toList(),
+                    conditionals = currentConditionals.toList(),
+                    failMessage = currentFailMessage,
                     sourceLocation = node.location,
                 ),
             )
@@ -431,6 +457,103 @@ class ScenarioLoader {
             is BodyPropertyValue.Simple -> BodyProperty.Simple(extractValue(value.value))
             is BodyPropertyValue.Nested -> BodyProperty.Nested(transformBodyProperties(value.properties))
         }
+
+    /**
+     * Transform AST ConditionalNode to model ConditionalAssertion.
+     */
+    private fun transformConditional(node: ConditionalNode): ConditionalAssertion {
+        val ifBranch = transformConditionBranch(node.ifBranch)
+        val elseIfBranches = node.elseIfBranches.map { transformConditionBranch(it) }
+        val elseActions = node.elseActions?.let { transformConditionalActions(it) }
+
+        return ConditionalAssertion(
+            ifBranch = ifBranch,
+            elseIfBranches = elseIfBranches,
+            elseActions = elseActions,
+            sourceLocation = node.location,
+        )
+    }
+
+    /**
+     * Transform AST ConditionBranch to model ConditionBranch.
+     */
+    private fun transformConditionBranch(branch: ConditionBranch): ModelConditionBranch {
+        val condition = transformCondition(branch.condition)
+        val actions = transformConditionalActions(branch.actions)
+        return ModelConditionBranch(condition = condition, actions = actions)
+    }
+
+    /**
+     * Transform AST ConditionNode to model Condition.
+     */
+    private fun transformCondition(node: ConditionNode): Condition =
+        when (node) {
+            is ConditionNode.StatusCondition -> Condition.Status(extractValue(node.expected))
+            is ConditionNode.JsonPathCondition ->
+                Condition.JsonPath(
+                    path = node.path,
+                    operator = transformConditionOperator(node.operator),
+                    expected = node.expected?.let { extractValue(it) },
+                )
+            is ConditionNode.HeaderCondition ->
+                Condition.Header(
+                    name = node.headerName,
+                    operator = node.operator?.let { transformConditionOperator(it) } ?: ModelConditionOperator.EXISTS,
+                    expected = node.expected?.let { extractValue(it) },
+                )
+        }
+
+    /**
+     * Transform AST ConditionOperator to model ConditionOperator.
+     */
+    private fun transformConditionOperator(op: ConditionOperator): ModelConditionOperator =
+        when (op) {
+            ConditionOperator.EQUALS -> ModelConditionOperator.EQUALS
+            ConditionOperator.NOT_EQUALS -> ModelConditionOperator.NOT_EQUALS
+            ConditionOperator.CONTAINS -> ModelConditionOperator.CONTAINS
+            ConditionOperator.NOT_CONTAINS -> ModelConditionOperator.NOT_CONTAINS
+            ConditionOperator.MATCHES -> ModelConditionOperator.MATCHES
+            ConditionOperator.EXISTS -> ModelConditionOperator.EXISTS
+            ConditionOperator.NOT_EXISTS -> ModelConditionOperator.NOT_EXISTS
+            ConditionOperator.GREATER_THAN -> ModelConditionOperator.GREATER_THAN
+            ConditionOperator.LESS_THAN -> ModelConditionOperator.LESS_THAN
+        }
+
+    /**
+     * Transform a list of AST ActionNodes to ConditionalActions.
+     */
+    private fun transformConditionalActions(actions: List<ActionNode>): ConditionalActions {
+        val assertions = mutableListOf<Assertion>()
+        val extractions = mutableListOf<Extraction>()
+        val conditionals = mutableListOf<ConditionalAssertion>()
+        var failMessage: String? = null
+
+        for (action in actions) {
+            when (action) {
+                is AssertNode -> assertions.add(transformAssertion(action))
+                is ExtractNode ->
+                    extractions.add(
+                        Extraction(
+                            variableName = action.variableName,
+                            jsonPath = action.jsonPath,
+                        ),
+                    )
+                is ConditionalNode -> conditionals.add(transformConditional(action))
+                is FailNode -> failMessage = action.message
+                is CallNode, is IncludeNode -> {
+                    // Calls and includes are not allowed in conditional branches
+                    // They should be ignored or logged as a warning
+                }
+            }
+        }
+
+        return ConditionalActions(
+            assertions = assertions,
+            extractions = extractions,
+            failMessage = failMessage,
+            nestedConditionals = conditionals,
+        )
+    }
 }
 
 /**

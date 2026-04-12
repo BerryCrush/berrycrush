@@ -554,8 +554,11 @@ class Parser(
                     TokenType.EXTRACT -> parseExtractAction()?.let { actions.add(it) }
                     TokenType.ASSERT -> parseAssertAction()?.let { actions.add(it) }
                     TokenType.INCLUDE -> parseIncludeAction()?.let { actions.add(it) }
+                    TokenType.IF -> parseConditionalAction()?.let { actions.add(it) }
+                    TokenType.FAIL -> parseFailAction()?.let { actions.add(it) }
                     TokenType.NEWLINE -> advance()
                     TokenType.DEDENT, TokenType.GIVEN, TokenType.WHEN, TokenType.THEN, TokenType.AND, TokenType.BUT, TokenType.EOF -> break
+                    TokenType.ELSE -> break // else is handled by parseConditionalAction
                     else -> advance()
                 }
             }
@@ -628,8 +631,7 @@ class Parser(
                             }
                             // body: can be raw JSON (inline) or structured properties (indented)
                             paramName == "body" -> {
-                                val bodyResult = parseBodyContent()
-                                when (bodyResult) {
+                                when (val bodyResult = parseBodyContent()) {
                                     is BodyParseResult.Raw -> body = bodyResult.value
                                     is BodyParseResult.Properties -> bodyProperties = bodyResult.properties
                                 }
@@ -942,7 +944,7 @@ class Parser(
                 errors.add(
                     ParseError(
                         "Unknown assertion type '$typeOrPath'. " +
-                            "Expected: status, header, contains, \$.<jsonpath>, schema, or responsetime",
+                            $$"Expected: status, header, contains, $.<jsonpath>, schema, or responsetime",
                         typeOrPathLoc,
                     ),
                 )
@@ -980,6 +982,246 @@ class Parser(
             fragmentName = fragmentName,
             location = loc,
         )
+    }
+
+    /**
+     * Parse a conditional action (if/else if/else).
+     *
+     * Syntax:
+     * ```
+     * if status 201
+     *   assert $.status equals "available"
+     * else if status 200
+     *   assert $.status equals "in-progress"
+     * else
+     *   fail "status must be 200 or 201"
+     * ```
+     */
+    private fun parseConditionalAction(): ConditionalNode? {
+        val loc = currentLocation()
+
+        if (!expect(TokenType.IF)) return null
+        skipWhitespace()
+
+        // Parse the if condition
+        val ifCondition = parseCondition() ?: return null
+        skipNewlines()
+
+        // Parse if-branch actions
+        val ifActions = parseConditionalBranchActions()
+        val ifBranch = ConditionBranch(ifCondition, ifActions, loc)
+
+        // Parse else if and else branches
+        val elseIfBranches = mutableListOf<ConditionBranch>()
+        var elseActions: List<ActionNode>? = null
+
+        while (!isAtEnd() && current().type == TokenType.ELSE) {
+            val elseLoc = currentLocation()
+            advance() // consume 'else'
+            skipWhitespace()
+
+            if (current().type == TokenType.IF) {
+                // else if branch
+                advance() // consume 'if'
+                skipWhitespace()
+                val elseIfCondition = parseCondition() ?: return null
+                skipNewlines()
+                val elseIfActions = parseConditionalBranchActions()
+                elseIfBranches.add(ConditionBranch(elseIfCondition, elseIfActions, elseLoc))
+            } else {
+                // else branch (no condition)
+                skipNewlines()
+                elseActions = parseConditionalBranchActions()
+                break // else is the last branch
+            }
+        }
+
+        return ConditionalNode(
+            ifBranch = ifBranch,
+            elseIfBranches = elseIfBranches,
+            elseActions = elseActions,
+            location = loc,
+        )
+    }
+
+    /**
+     * Parse actions inside a conditional branch.
+     * Similar to parseActions but stops at else/else if.
+     */
+    private fun parseConditionalBranchActions(): List<ActionNode> {
+        val actions = mutableListOf<ActionNode>()
+
+        // Check for indent
+        if (current().type == TokenType.INDENT) {
+            advance()
+
+            while (!isAtEnd()) {
+                when (current().type) {
+                    TokenType.CALL -> parseCallAction()?.let { actions.add(it) }
+                    TokenType.EXTRACT -> parseExtractAction()?.let { actions.add(it) }
+                    TokenType.ASSERT -> parseAssertAction()?.let { actions.add(it) }
+                    TokenType.INCLUDE -> parseIncludeAction()?.let { actions.add(it) }
+                    TokenType.IF -> parseConditionalAction()?.let { actions.add(it) }
+                    TokenType.FAIL -> parseFailAction()?.let { actions.add(it) }
+                    TokenType.NEWLINE -> advance()
+                    TokenType.DEDENT -> {
+                        advance()
+                        break
+                    }
+                    TokenType.ELSE -> break // Don't consume, let parent handle it
+                    TokenType.GIVEN, TokenType.WHEN, TokenType.THEN, TokenType.AND, TokenType.BUT, TokenType.EOF -> break
+                    else -> advance()
+                }
+            }
+        }
+
+        return actions
+    }
+
+    /**
+     * Parse a condition (similar to an assertion but for if/else if).
+     *
+     * Supports:
+     * - status <code> or status <range>
+     * - header <name> [equals <value>]
+     * - $.<jsonpath> <operator> <value>
+     */
+    private fun parseCondition(): ConditionNode? {
+        val loc = currentLocation()
+
+        val typeOrPath = current().value.lowercase()
+
+        when {
+            typeOrPath == "status" || typeOrPath == "statuscode" -> {
+                advance()
+                skipWhitespace()
+                val expected =
+                    parseValue() ?: run {
+                        errors.add(ParseError("Expected status code value", currentLocation()))
+                        return null
+                    }
+                return ConditionNode.StatusCondition(expected, loc)
+            }
+            typeOrPath == "header" -> {
+                advance()
+                skipWhitespace()
+                val headerName =
+                    parseHeaderName() ?: run {
+                        errors.add(ParseError("Expected header name", currentLocation()))
+                        return null
+                    }
+                skipWhitespace()
+
+                // Check for operator
+                val operator = parseConditionOperator()
+                val expected =
+                    if (operator != null) {
+                        skipWhitespace()
+                        parseValue()
+                    } else {
+                        null
+                    }
+
+                return ConditionNode.HeaderCondition(
+                    headerName = headerName,
+                    operator = operator ?: ConditionOperator.EXISTS,
+                    expected = expected,
+                    location = loc,
+                )
+            }
+            typeOrPath.startsWith("$") -> {
+                advance() // consume json path
+                skipWhitespace()
+
+                val operator =
+                    parseConditionOperator() ?: run {
+                        errors.add(ParseError("Expected condition operator (equals, contains, etc.)", currentLocation()))
+                        return null
+                    }
+                skipWhitespace()
+
+                val expected =
+                    when (operator) {
+                        ConditionOperator.EXISTS, ConditionOperator.NOT_EXISTS -> null
+                        else -> parseValue()
+                    }
+
+                return ConditionNode.JsonPathCondition(
+                    path = typeOrPath,
+                    operator = operator,
+                    expected = expected,
+                    location = loc,
+                )
+            }
+            else -> {
+                errors.add(
+                    ParseError(
+                        $$"Invalid condition. Expected: status, header, or $.<jsonpath>",
+                        loc,
+                    ),
+                )
+                return null
+            }
+        }
+    }
+
+    /**
+     * Parse a condition operator.
+     */
+    private fun parseConditionOperator(): ConditionOperator? {
+        val keyword = current().value.lowercase()
+        val op =
+            when {
+                current().type == TokenType.EQUALS || keyword == "equals" || keyword == "=" -> ConditionOperator.EQUALS
+                keyword == "notequals" || keyword == "not_equals" -> ConditionOperator.NOT_EQUALS
+                keyword == "contains" -> ConditionOperator.CONTAINS
+                keyword == "notcontains" || keyword == "not_contains" -> ConditionOperator.NOT_CONTAINS
+                keyword == "matches" -> ConditionOperator.MATCHES
+                keyword == "exists" -> ConditionOperator.EXISTS
+                keyword == "notexists" || keyword == "not_exists" -> ConditionOperator.NOT_EXISTS
+                keyword == "greaterthan" || keyword == ">" -> ConditionOperator.GREATER_THAN
+                keyword == "lessthan" || keyword == "<" -> ConditionOperator.LESS_THAN
+                else -> return null
+            }
+        advance()
+        return op
+    }
+
+    /**
+     * Parse a fail action.
+     *
+     * Syntax: fail "error message"
+     */
+    private fun parseFailAction(): FailNode? {
+        val loc = currentLocation()
+        advance() // consume 'fail'
+        skipWhitespace()
+
+        // Parse error message
+        val message =
+            when (current().type) {
+                TokenType.STRING -> {
+                    val value = current().value
+                    advance()
+                    value
+                }
+                else -> {
+                    // Read until end of line as message
+                    val parts = mutableListOf<String>()
+                    while (!isAtEnd() && current().type != TokenType.NEWLINE && current().type != TokenType.DEDENT) {
+                        parts.add(current().value)
+                        advance()
+                    }
+                    parts.joinToString(" ").trim()
+                }
+            }
+
+        if (message.isEmpty()) {
+            errors.add(ParseError("Expected error message after 'fail'", loc))
+            return null
+        }
+
+        return FailNode(message = message, location = loc)
     }
 
     private fun parseExamples(): List<ExampleRowNode>? {
