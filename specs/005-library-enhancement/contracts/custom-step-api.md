@@ -6,7 +6,7 @@
 
 ## Overview
 
-This contract defines four mechanisms for users to create custom steps that extend lemon-check's built-in step library:
+This contract defines four mechanisms for users to create custom steps that extend berrycrush's built-in step library:
 1. **Annotation-based binding** - Java/Kotlin friendly, IDE autocomplete support
 2. **Registration API** - Programmatic, runtime registration
 3. **Kotlin DSL builder** - Idiomatic Kotlin syntax
@@ -115,20 +115,20 @@ class MathSteps {
 
 ```kotlin
 // Option 1: Explicit class registration
-@LemonCheckConfiguration(
+@BerryCrushConfiguration(
     stepClasses = [MathSteps::class]
 )
 class MyApiTest
 
 // Option 2: Package scanning
-@LemonCheckConfiguration(
+@BerryCrushConfiguration(
     stepPackages = ["com.example.steps", "com.example.validators"]
 )
 class MyApiTest
 
 // Option 3: Spring auto-discovery
 @SpringBootTest
-@LemonCheckConfiguration
+@BerryCrushConfiguration
 class MyApiTest {
     // Spring will auto-discover @Step methods in @Component classes
 }
@@ -143,7 +143,7 @@ class MyApiTest {
 Enable package-based discovery to automatically find all `@Step` annotated methods in specified packages:
 
 ```kotlin
-@LemonCheckConfiguration(
+@BerryCrushConfiguration(
     stepPackages = [
         "com.example.steps",           // Scan this package
         "com.example.validators"       // And this one
@@ -254,7 +254,7 @@ object SchemaSteps {
 Mix package scanning with explicit class registration:
 
 ```kotlin
-@LemonCheckConfiguration(
+@BerryCrushConfiguration(
     stepPackages = ["com.example.steps"],      // Auto-discover in this package
     stepClasses = [SpecialSteps::class]        // Plus this specific class (from any package)
 )
@@ -272,7 +272,7 @@ Mix package scanning with explicit class registration:
 Exclude classes from scanning using package naming conventions:
 
 ```kotlin
-@LemonCheckConfiguration(
+@BerryCrushConfiguration(
     stepPackages = ["com.example.steps"],
     excludePackages = ["com.example.steps.internal"]  // Don't scan internal package
 )
@@ -310,7 +310,7 @@ No `stepPackages` needed - Spring auto-discovery handles it:
 
 ```kotlin
 @SpringBootTest
-@LemonCheckConfiguration  // Just enable, auto-discovers Spring components
+@BerryCrushConfiguration  // Just enable, auto-discovers Spring components
 ```
 
 ---
@@ -360,7 +360,7 @@ interface StepRegistry {
 ### Java Example
 
 ```java
-public class MyStepBindings implements LemonCheckBindings {
+public class MyStepBindings implements BerryCrushBindings {
     
     @Override
     public void registerSteps(StepRegistry registry) {
@@ -393,7 +393,7 @@ public class MyStepBindings implements LemonCheckBindings {
 ### Kotlin Example
 
 ```kotlin
-class MyStepBindings : LemonCheckBindings {
+class MyStepBindings : BerryCrushBindings {
     
     override fun registerSteps(registry: StepRegistry) {
         // Simple pattern with automatic parameter extraction
@@ -518,7 +518,7 @@ val mySteps = steps {
 }
 
 // Register the steps
-@LemonCheckConfiguration(
+@BerryCrushConfiguration(
     stepRegistry = mySteps
 )
 class MyApiTest

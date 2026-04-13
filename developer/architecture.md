@@ -1,12 +1,12 @@
-# LemonCheck Architecture
+# BerryCrush Architecture
 
-This document describes the high-level architecture of LemonCheck and how its components interact.
+This document describes the high-level architecture of BerryCrush and how its components interact.
 
 ## System Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              LemonCheck System                               │
+│                              BerryCrush System                               │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌───────────┐ │
@@ -17,7 +17,7 @@ This document describes the high-level architecture of LemonCheck and how its co
 │         └───────────┬───────┴───────────────────┼───────────────────┘       │
 │                     ▼                           ▼                           │
 │            ┌─────────────────┐         ┌─────────────────┐                  │
-│            │  ScenarioLoader │         │ LemonCheckTest- │                  │
+│            │  ScenarioLoader │         │ BerryCrushTest- │                  │
 │            │                 │         │     Engine      │                  │
 │            └────────┬────────┘         └────────┬────────┘                  │
 │                     │                           │                           │
@@ -197,9 +197,9 @@ suite.scenario("List all pets") {
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌─────────────────────┐                                       │
-│  │ LemonCheckTestEngine│ ◄── Registered via ServiceLoader       │
+│  │ BerryCrushTestEngine│ ◄── Registered via ServiceLoader       │
 │  │   (ENGINE_ID =      │     META-INF/services/                 │
-│  │    "lemoncheck")    │     org.junit.platform.engine.TestEngine│
+│  │    "berrycrush")    │     org.junit.platform.engine.TestEngine│
 │  └──────────┬──────────┘                                       │
 │             │                                                   │
 │             │ discover()                                        │
@@ -207,7 +207,7 @@ suite.scenario("List all pets") {
 │  ┌─────────────────────┐                                       │
 │  │ ScenarioDiscovery   │                                       │
 │  │                     │                                       │
-│  │ Finds @LemonCheck-  │                                       │
+│  │ Finds @BerryCrush-  │                                       │
 │  │ Scenarios classes   │                                       │
 │  └──────────┬──────────┘                                       │
 │             │                                                   │
@@ -237,7 +237,7 @@ suite.scenario("List all pets") {
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  @SpringBootTest                                                │
-│  @LemonCheckContextConfiguration(bindings = MyBindings.class)   │
+│  @BerryCrushContextConfiguration(bindings = MyBindings.class)   │
 │                                                                 │
 │  ┌────────────────────┐     ┌────────────────────┐             │
 │  │ SpringBindings-    │────▶│ SpringContext-     │             │
@@ -307,7 +307,7 @@ suite.scenario("List all pets") {
 
 Variables are stored in `ExecutionContext` and can be:
 
-1. **Predefined bindings** - From `LemonCheckBindings.getBindings()`
+1. **Predefined bindings** - From `BerryCrushBindings.getBindings()`
 2. **Extracted values** - From response via JSONPath (`extract $.id => petId`)
 3. **Cross-scenario** - When `shareVariablesAcrossScenarios = true`
 

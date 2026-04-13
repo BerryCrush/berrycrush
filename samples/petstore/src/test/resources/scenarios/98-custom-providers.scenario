@@ -4,8 +4,8 @@
 # - NoSqlInjectionProvider: Tests NoSQL injection attack payloads
 #
 # These providers are automatically discovered via ServiceLoader from:
-# META-INF/services/io.github.ktakashi.lemoncheck.autotest.provider.InvalidTestProvider
-# META-INF/services/io.github.ktakashi.lemoncheck.autotest.provider.SecurityTestProvider
+# META-INF/services/org.berrycrush.berrycrush.autotest.provider.InvalidTestProvider
+# META-INF/services/org.berrycrush.berrycrush.autotest.provider.SecurityTestProvider
 
 @auto-test @custom-providers
 scenario: Auto-test with custom providers

@@ -13,10 +13,10 @@
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Create new lemon-check/spring module with basic structure
+**Purpose**: Create new berrycrush/spring module with basic structure
 
-- [X] T001 Create module directory structure at lemon-check/spring/
-- [X] T002 Create build.gradle.kts at lemon-check/spring/build.gradle.kts with Spring Boot Test dependencies
+- [X] T001 Create module directory structure at berrycrush/spring/
+- [X] T002 Create build.gradle.kts at berrycrush/spring/build.gradle.kts with Spring Boot Test dependencies
 - [X] T003 Register spring module in settings.gradle.kts
 - [X] T004 [P] Add spring-boot-starter-test dependency to samples/petstore/build.gradle.kts
 
@@ -24,15 +24,15 @@
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Add BindingsProvider SPI to lemon-check/junit module - MUST complete before user stories
+**Purpose**: Add BindingsProvider SPI to berrycrush/junit module - MUST complete before user stories
 
 **⚠️ CRITICAL**: No Spring integration can begin until SPI extension point is in place
 
-- [X] T005 Create BindingsProvider interface at lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/spi/BindingsProvider.kt
-- [X] T006 Add ServiceLoader discovery for BindingsProvider in LemonCheckTestEngine at lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/engine/LemonCheckTestEngine.kt
-- [X] T007 Extract binding creation to use BindingsProvider SPI with fallback to reflection in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/engine/LemonCheckTestEngine.kt
-- [X] T008 Add lifecycle hooks (initialize/cleanup) calls in LemonCheckTestEngine execute method
-- [X] T009 [P] Add unit test for BindingsProvider SPI fallback behavior in lemon-check/junit/src/test/kotlin/io/github/ktakashi/lemoncheck/junit/spi/BindingsProviderTest.kt
+- [X] T005 Create BindingsProvider interface at berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/spi/BindingsProvider.kt
+- [X] T006 Add ServiceLoader discovery for BindingsProvider in BerryCrushTestEngine at berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/engine/BerryCrushTestEngine.kt
+- [X] T007 Extract binding creation to use BindingsProvider SPI with fallback to reflection in berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/engine/BerryCrushTestEngine.kt
+- [X] T008 Add lifecycle hooks (initialize/cleanup) calls in BerryCrushTestEngine execute method
+- [X] T009 [P] Add unit test for BindingsProvider SPI fallback behavior in berrycrush/junit/src/test/kotlin/io/github/ktakashi/berrycrush/junit/spi/BindingsProviderTest.kt
 
 **Checkpoint**: SPI extension point ready - Spring integration can now begin
 
@@ -46,16 +46,16 @@
 
 ### Implementation for User Story 1
 
-- [X] T010 [P] [US1] Create @LemonCheckContextConfiguration annotation at lemon-check/spring/src/main/kotlin/io/github/ktakashi/lemoncheck/spring/LemonCheckContextConfiguration.kt
-- [X] T011 [P] [US1] Create SpringContextAdapter class at lemon-check/spring/src/main/kotlin/io/github/ktakashi/lemoncheck/spring/SpringContextAdapter.kt
+- [X] T010 [P] [US1] Create @BerryCrushContextConfiguration annotation at berrycrush/spring/src/main/kotlin/io/github/ktakashi/berrycrush/spring/BerryCrushContextConfiguration.kt
+- [X] T011 [P] [US1] Create SpringContextAdapter class at berrycrush/spring/src/main/kotlin/io/github/ktakashi/berrycrush/spring/SpringContextAdapter.kt
 - [X] T012 [US1] Implement TestContextManager lifecycle in SpringContextAdapter (initializeContext, getBean, getApplicationContext, cleanup)
-- [X] T013 [US1] Create SpringBindingsProvider implementing BindingsProvider SPI at lemon-check/spring/src/main/kotlin/io/github/ktakashi/lemoncheck/spring/SpringBindingsProvider.kt
-- [X] T014 [US1] Implement supports() to detect @LemonCheckContextConfiguration annotation in SpringBindingsProvider
+- [X] T013 [US1] Create SpringBindingsProvider implementing BindingsProvider SPI at berrycrush/spring/src/main/kotlin/io/github/ktakashi/berrycrush/spring/SpringBindingsProvider.kt
+- [X] T014 [US1] Implement supports() to detect @BerryCrushContextConfiguration annotation in SpringBindingsProvider
 - [X] T015 [US1] Implement initialize() to start Spring context via SpringContextAdapter
 - [X] T016 [US1] Implement createBindings() to retrieve bean from ApplicationContext
 - [X] T017 [US1] Implement cleanup() to release Spring context following Spring Test semantics
-- [X] T018 [US1] Create ServiceLoader registration file at lemon-check/spring/src/main/resources/META-INF/services/io.github.ktakashi.lemoncheck.junit.spi.BindingsProvider
-- [X] T019 [US1] Add test for SpringBindingsProvider lifecycle at lemon-check/spring/src/test/kotlin/io/github/ktakashi/lemoncheck/spring/SpringBindingsProviderTest.kt
+- [X] T018 [US1] Create ServiceLoader registration file at berrycrush/spring/src/main/resources/META-INF/services/org.berrycrush.berrycrush.junit.spi.BindingsProvider
+- [X] T019 [US1] Add test for SpringBindingsProvider lifecycle at berrycrush/spring/src/test/kotlin/io/github/ktakashi/berrycrush/spring/SpringBindingsProviderTest.kt
 
 **Checkpoint**: Spring context injection working - @LocalServerPort can be injected into bindings classes
 
@@ -65,7 +65,7 @@
 
 **Goal**: Clear error messages when Spring configuration is invalid or missing
 
-**Independent Test**: Test class with @LemonCheckContextConfiguration but missing @SpringBootTest shows clear error
+**Independent Test**: Test class with @BerryCrushContextConfiguration but missing @SpringBootTest shows clear error
 
 ### Implementation for User Story 2
 
@@ -73,8 +73,8 @@
 - [X] T021 [US2] Implement error handling for missing @SpringBootTest with descriptive message
 - [X] T022 [US2] Implement error handling for bindings class not found as Spring bean
 - [X] T023 [US2] Implement error handling for Spring context initialization failures
-- [X] T024 [P] [US2] Add test for missing @SpringBootTest error message at lemon-check/spring/src/test/kotlin/io/github/ktakashi/lemoncheck/spring/SpringBindingsProviderErrorTest.kt
-- [X] T025 [P] [US2] Add test for bean not found error message at lemon-check/spring/src/test/kotlin/io/github/ktakashi/lemoncheck/spring/SpringBindingsProviderErrorTest.kt
+- [X] T024 [P] [US2] Add test for missing @SpringBootTest error message at berrycrush/spring/src/test/kotlin/io/github/ktakashi/berrycrush/spring/SpringBindingsProviderErrorTest.kt
+- [X] T025 [P] [US2] Add test for bean not found error message at berrycrush/spring/src/test/kotlin/io/github/ktakashi/berrycrush/spring/SpringBindingsProviderErrorTest.kt
 
 **Checkpoint**: Error handling complete - invalid configurations show clear messages
 
@@ -88,9 +88,9 @@
 
 ### Implementation for User Story 3
 
-- [X] T026 [US3] Add lemon-check/spring dependency to samples/petstore/build.gradle.kts
+- [X] T026 [US3] Add berrycrush/spring dependency to samples/petstore/build.gradle.kts
 - [X] T027 [US3] Update PetstoreBindings to use @LocalServerPort injection at samples/petstore/src/test/java/io/github/ktakashi/samples/petstore/PetstoreBindings.java
-- [X] T028 [US3] Add @LemonCheckContextConfiguration to PetstoreScenarioTest at samples/petstore/src/test/java/io/github/ktakashi/samples/petstore/PetstoreScenarioTest.java
+- [X] T028 [US3] Add @BerryCrushContextConfiguration to PetstoreScenarioTest at samples/petstore/src/test/java/io/github/ktakashi/samples/petstore/PetstoreScenarioTest.java
 - [X] T029 [US3] Remove @Disabled annotation from PetstoreScenarioTest
 - [X] T030 [US3] Run samples:petstore:test to verify scenarios pass with Spring integration
 
@@ -102,7 +102,7 @@
 
 **Purpose**: Documentation and cleanup
 
-- [X] T031 [P] Add KDoc documentation to public API classes in lemon-check/spring module
+- [X] T031 [P] Add KDoc documentation to public API classes in berrycrush/spring module
 - [X] T032 [P] Update PetstoreScenarioTest comments to document Spring integration usage
 - [X] T033 Run quickstart.md validation - verify documentation matches implementation
 - [X] T034 Run full build verification: `./gradlew build` to ensure no regressions
@@ -144,7 +144,7 @@ T004 (parallel with above - different file)
 **Phase 2 (Foundational)**:
 ```
 T005 (interface first)
-T006 → T007 → T008 (modify LemonCheckTestEngine - sequential)
+T006 → T007 → T008 (modify BerryCrushTestEngine - sequential)
 T009 (parallel - different module test file)
 ```
 

@@ -5,18 +5,18 @@
 
 ## Summary
 
-Implement a custom JUnit 5 TestEngine (`lemoncheck`) that discovers and executes `.scenario` files based on the `@LemonCheckScenarios` annotation. The engine integrates with the existing lemon-check core module for scenario parsing and execution. Additionally, rewrite the samples/petstore project in Java 21 with Spring Boot 3.x and H2/JPA to demonstrate the integration.
+Implement a custom JUnit 5 TestEngine (`berrycrush`) that discovers and executes `.scenario` files based on the `@BerryCrushScenarios` annotation. The engine integrates with the existing berrycrush core module for scenario parsing and execution. Additionally, rewrite the samples/petstore project in Java 21 with Spring Boot 3.x and H2/JPA to demonstrate the integration.
 
 ## Technical Context
 
 **Language/Version**: Kotlin 2.3.20 (JUnit engine), Java 21 (sample petstore)  
 **Primary Dependencies**: JUnit Platform 5.10.x, Spring Boot 3.x, H2, Spring Data JPA  
 **Storage**: H2 in-memory database (sample only)  
-**Testing**: JUnit Platform TestEngine, Spring Boot Test, lemon-check scenarios  
+**Testing**: JUnit Platform TestEngine, Spring Boot Test, berrycrush scenarios  
 **Target Platform**: JVM 21+ (library and sample)
-**Project Type**: Library (lemon-check/junit) + Sample application (samples/petstore)  
+**Project Type**: Library (berrycrush/junit) + Sample application (samples/petstore)  
 **Performance Goals**: Scenario discovery < 2s for 100 scenarios, test execution < 30s including Spring context  
-**Constraints**: Must maintain backward compatibility with existing LemonCheckExtension; no external runtime dependencies beyond JUnit Platform  
+**Constraints**: Must maintain backward compatibility with existing BerryCrushExtension; no external runtime dependencies beyond JUnit Platform  
 **Scale/Scope**: Single-module engine, sample API with 5 endpoints (listPets, getPetById, createPet, updatePet, deletePet) + auth
 
 ## Constitution Check
@@ -52,20 +52,20 @@ specs/002-junit-engine-integration/
 ### Source Code (repository root)
 
 ```text
-lemon-check/
+berrycrush/
 ├── core/                           # Existing - scenario parsing & execution
-│   └── src/main/kotlin/io/github/ktakashi/lemoncheck/
+│   └── src/main/kotlin/io/github/ktakashi/berrycrush/
 │       ├── scenario/               # Existing - Lexer, Parser, AST
 │       ├── model/                  # Existing - Scenario, Step models
 │       └── executor/               # Existing - ScenarioExecutor
 └── junit/                          # Target module for JUnit engine
     └── src/
-        ├── main/kotlin/io/github/ktakashi/lemoncheck/junit/
-        │   ├── Annotations.kt          # Update: Add locations to LemonCheckScenarios
-        │   ├── LemonCheckConfiguration.kt  # NEW: Configuration annotation
+        ├── main/kotlin/io/github/ktakashi/berrycrush/junit/
+        │   ├── Annotations.kt          # Update: Add locations to BerryCrushScenarios
+        │   ├── BerryCrushConfiguration.kt  # NEW: Configuration annotation
         │   ├── engine/                  # NEW: TestEngine implementation
-        │   │   ├── LemonCheckTestEngine.kt
-        │   │   ├── LemonCheckEngineDescriptor.kt
+        │   │   ├── BerryCrushTestEngine.kt
+        │   │   ├── BerryCrushEngineDescriptor.kt
         │   │   ├── ScenarioTestDescriptor.kt
         │   │   └── ScenarioExecutionListener.kt
         │   └── discovery/               # NEW: Scenario discovery
@@ -103,7 +103,7 @@ samples/
                 └── petstore.yaml
 ```
 
-**Structure Decision**: Extends existing multi-module Gradle project structure. JUnit engine in `lemon-check/junit` module uses Kotlin. Sample petstore in `samples/petstore` uses Java 21 with Spring Boot conventions (controller/service/repository layers).
+**Structure Decision**: Extends existing multi-module Gradle project structure. JUnit engine in `berrycrush/junit` module uses Kotlin. Sample petstore in `samples/petstore` uses Java 21 with Spring Boot conventions (controller/service/repository layers).
 
 ## Complexity Tracking
 
@@ -117,7 +117,7 @@ No constitution violations requiring justification.
 | II. User Experience | ✅ PASS | Quickstart provides clear onboarding path; annotations are intuitive |
 | III. Maintainability | ✅ PASS | Clear separation: engine/discovery/descriptors; backward compatible |
 | IV. Testing Standards | ✅ PASS | Sample demonstrates testing patterns; engine tested via integration |
-| V. Flexibility | ✅ PASS | LemonCheckBindings interface allows custom configuration |
+| V. Flexibility | ✅ PASS | BerryCrushBindings interface allows custom configuration |
 
 **Post-Design Gate Result**: PASS - Design artifacts complete and compliant.
 

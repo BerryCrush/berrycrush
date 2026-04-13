@@ -15,7 +15,7 @@
 - `SpringExtension` (for JUnit Jupiter) shows the pattern for integration
 - Key lifecycle hooks: `beforeTestClass()`, `prepareTestInstance()`, `afterTestClass()`
 
-**Decision**: Use `TestContextManager` directly, instantiating it with the test class and calling lifecycle methods at appropriate points in `LemonCheckTestEngine.execute()`.
+**Decision**: Use `TestContextManager` directly, instantiating it with the test class and calling lifecycle methods at appropriate points in `BerryCrushTestEngine.execute()`.
 
 **Rationale**: This is the same approach used by `SpringExtension` and provides full Spring TestContext integration including context caching.
 
@@ -30,16 +30,16 @@
 **Question**: How to obtain Spring-managed bindings instance instead of direct reflection instantiation?
 
 **Findings**:
-- Current code: `bindingsClass.getDeclaredConstructor().newInstance()` in `LemonCheckTestEngine.createBindings()`
+- Current code: `bindingsClass.getDeclaredConstructor().newInstance()` in `BerryCrushTestEngine.createBindings()`
 - Spring approach: Get bean from `ApplicationContext.getBean(bindingsClass)`
 - TestContextManager exposes context via `testContextManager.testContext.applicationContext`
 
-**Decision**: Introduce `BindingsProvider` SPI in `lemon-check/junit`. The `lemon-check/spring` module provides `SpringBindingsProvider` that retrieves beans from Spring's ApplicationContext.
+**Decision**: Introduce `BindingsProvider` SPI in `berrycrush/junit`. The `berrycrush/spring` module provides `SpringBindingsProvider` that retrieves beans from Spring's ApplicationContext.
 
-**Rationale**: SPI pattern keeps `lemon-check/junit` Spring-agnostic while allowing Spring integration when `lemon-check/spring` is on classpath.
+**Rationale**: SPI pattern keeps `berrycrush/junit` Spring-agnostic while allowing Spring integration when `berrycrush/spring` is on classpath.
 
 **Alternatives Considered**:
-1. **Direct modification of LemonCheckTestEngine** - Rejected to avoid Spring dependency in junit module
+1. **Direct modification of BerryCrushTestEngine** - Rejected to avoid Spring dependency in junit module
 2. **Reflection-based detection** - Rejected as fragile and harder to test
 
 ---
@@ -65,10 +65,10 @@
 
 **Findings**:
 - Java `ServiceLoader` is the standard SPI mechanism
-- Create `META-INF/services/io.github.ktakashi.lemoncheck.junit.spi.BindingsProvider` file
+- Create `META-INF/services/org.berrycrush.berrycrush.junit.spi.BindingsProvider` file
 - ServiceLoader automatically discovers implementations on classpath
 
-**Decision**: Use `ServiceLoader` in `LemonCheckTestEngine` to discover `BindingsProvider` implementations. When `lemon-check/spring` is on classpath, `SpringBindingsProvider` is automatically loaded.
+**Decision**: Use `ServiceLoader` in `BerryCrushTestEngine` to discover `BindingsProvider` implementations. When `berrycrush/spring` is on classpath, `SpringBindingsProvider` is automatically loaded.
 
 **Rationale**: Standard Java SPI mechanism, no additional dependencies required.
 
@@ -80,7 +80,7 @@
 
 **Findings**:
 - Spring's `TestContextManager` expects a test instance for `prepareTestInstance()`
-- LemonCheck bindings are separate from test class
+- BerryCrush bindings are separate from test class
 - Test class instance only needed for annotation scanning and context initialization
 
 **Decision**: Create test class instance, use it for Spring context initialization, then retrieve bindings bean separately from the ApplicationContext.
@@ -95,8 +95,8 @@
 |--------|----------|-----------|
 | Spring Integration API | TestContextManager | Standard Spring Test approach; context caching works |
 | SPI Mechanism | Java ServiceLoader | Standard; automatic discovery; no config needed |
-| Module Structure | Separate lemon-check/spring | Keeps Spring optional; clear dependency direction |
-| Annotation Design | @LemonCheckContextConfiguration | Explicit entry point; mirrors @SpringBootTest pattern |
+| Module Structure | Separate berrycrush/spring | Keeps Spring optional; clear dependency direction |
+| Annotation Design | @BerryCrushContextConfiguration | Explicit entry point; mirrors @SpringBootTest pattern |
 
 ## Risk Assessment
 

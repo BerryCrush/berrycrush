@@ -1,16 +1,16 @@
 # Module Structure
 
-LemonCheck is organized as a multi-module Gradle project with clear separation of concerns.
+BerryCrush is organized as a multi-module Gradle project with clear separation of concerns.
 
 ## Project Layout
 
 ```
-lemon-check/
+berrycrush/
 ├── build.gradle.kts          # Root build configuration
 ├── settings.gradle.kts       # Module declarations
 ├── gradle/
 │   └── libs.versions.toml    # Version catalog
-├── lemon-check/              # Library modules
+├── berrycrush/              # Library modules
 │   ├── core/                 # Core library (standalone)
 │   ├── junit/                # JUnit 5 integration
 │   ├── spring/               # Spring Boot integration
@@ -50,7 +50,7 @@ lemon-check/
 
 ## Module Details
 
-### lemon-check/core
+### berrycrush/core
 
 **Purpose:** Core library providing standalone scenario execution without framework dependencies.
 
@@ -58,20 +58,20 @@ lemon-check/
 
 | Package | Description |
 |---------|-------------|
-| `io.github.ktakashi.lemoncheck.dsl` | Kotlin DSL for scenario definition |
-| `io.github.ktakashi.lemoncheck.model` | Domain model classes |
-| `io.github.ktakashi.lemoncheck.scenario` | Scenario file parsing (Lexer, Parser, Loader) |
-| `io.github.ktakashi.lemoncheck.openapi` | OpenAPI integration |
-| `io.github.ktakashi.lemoncheck.executor` | Scenario execution engine |
-| `io.github.ktakashi.lemoncheck.step` | Custom step definitions |
-| `io.github.ktakashi.lemoncheck.plugin` | Plugin system |
-| `io.github.ktakashi.lemoncheck.report` | Report generation |
-| `io.github.ktakashi.lemoncheck.context` | Execution context and variables |
-| `io.github.ktakashi.lemoncheck.config` | Configuration classes |
-| `io.github.ktakashi.lemoncheck.logging` | HTTP logging |
-| `io.github.ktakashi.lemoncheck.exception` | Exception types |
-| `io.github.ktakashi.lemoncheck.runner` | Standalone runner |
-| `io.github.ktakashi.lemoncheck.assertion` | Assertion generation and schema validation |
+| `org.berrycrush.dsl` | Kotlin DSL for scenario definition |
+| `org.berrycrush.model` | Domain model classes |
+| `org.berrycrush.scenario` | Scenario file parsing (Lexer, Parser, Loader) |
+| `org.berrycrush.openapi` | OpenAPI integration |
+| `org.berrycrush.executor` | Scenario execution engine |
+| `org.berrycrush.step` | Custom step definitions |
+| `org.berrycrush.plugin` | Plugin system |
+| `org.berrycrush.report` | Report generation |
+| `org.berrycrush.context` | Execution context and variables |
+| `org.berrycrush.config` | Configuration classes |
+| `org.berrycrush.logging` | HTTP logging |
+| `org.berrycrush.exception` | Exception types |
+| `org.berrycrush.runner` | Standalone runner |
+| `org.berrycrush.assertion` | Assertion generation and schema validation |
 
 **Dependencies:**
 - Swagger Parser (OpenAPI parsing)
@@ -93,7 +93,7 @@ dependencies {
 }
 ```
 
-### lemon-check/junit
+### berrycrush/junit
 
 **Purpose:** JUnit 5 TestEngine implementation for IDE and build tool integration.
 
@@ -101,31 +101,31 @@ dependencies {
 
 | Package | Description |
 |---------|-------------|
-| `io.github.ktakashi.lemoncheck.junit` | Annotations and bindings |
-| `io.github.ktakashi.lemoncheck.junit.engine` | JUnit TestEngine implementation |
-| `io.github.ktakashi.lemoncheck.junit.discovery` | Scenario and fragment discovery |
-| `io.github.ktakashi.lemoncheck.junit.spi` | Service provider interfaces |
-| `io.github.ktakashi.lemoncheck.junit.plugin` | JUnit-specific plugins |
+| `org.berrycrush.junit` | Annotations and bindings |
+| `org.berrycrush.junit.engine` | JUnit TestEngine implementation |
+| `org.berrycrush.junit.discovery` | Scenario and fragment discovery |
+| `org.berrycrush.junit.spi` | Service provider interfaces |
+| `org.berrycrush.junit.plugin` | JUnit-specific plugins |
 
 **Key Classes:**
 
 | Class | Description |
 |-------|-------------|
-| `LemonCheckTestEngine` | JUnit 5 TestEngine (ENGINE_ID = "lemoncheck") |
-| `LemonCheckScenarios` | Annotation for scenario locations |
-| `LemonCheckConfiguration` | Annotation for test configuration |
-| `LemonCheckBindings` | Interface for runtime bindings |
+| `BerryCrushTestEngine` | JUnit 5 TestEngine (ENGINE_ID = "berrycrush") |
+| `BerryCrushScenarios` | Annotation for scenario locations |
+| `BerryCrushConfiguration` | Annotation for test configuration |
+| `BerryCrushBindings` | Interface for runtime bindings |
 | `BindingsProvider` | SPI for custom bindings creation |
 
 **Dependencies:**
-- lemon-check/core
+- berrycrush/core
 - JUnit Platform Engine
 - JUnit Platform Commons
 
 **build.gradle.kts:**
 ```kotlin
 dependencies {
-    api(project(":lemon-check:core"))
+    api(project(":berrycrush:core"))
     api(libs.junit.platform.engine)
     api(libs.junit.platform.commons)
     
@@ -134,7 +134,7 @@ dependencies {
 }
 ```
 
-### lemon-check/spring
+### berrycrush/spring
 
 **Purpose:** Spring Boot integration with dependency injection support.
 
@@ -142,25 +142,25 @@ dependencies {
 
 | Package | Description |
 |---------|-------------|
-| `io.github.ktakashi.lemoncheck.spring` | Spring integration classes |
+| `org.berrycrush.spring` | Spring integration classes |
 
 **Key Classes:**
 
 | Class | Description |
 |-------|-------------|
 | `SpringBindingsProvider` | BindingsProvider that retrieves beans from Spring context |
-| `SpringContextAdapter` | Bridges LemonCheck and Spring TestContext |
-| `LemonCheckContextConfiguration` | Annotation for Spring context integration |
+| `SpringContextAdapter` | Bridges BerryCrush and Spring TestContext |
+| `BerryCrushContextConfiguration` | Annotation for Spring context integration |
 | `SpringStepDiscovery` | Auto-discovers step definitions from Spring beans |
 
 **Dependencies:**
-- lemon-check/junit
+- berrycrush/junit
 - Spring Boot Starter Test
 
 **build.gradle.kts:**
 ```kotlin
 dependencies {
-    api(project(":lemon-check:junit"))
+    api(project(":berrycrush:junit"))
     api(libs.spring.boot.starter.test)
     
     testImplementation(libs.bundles.junit)
@@ -169,7 +169,7 @@ dependencies {
 
 ### samples/petstore
 
-**Purpose:** Demonstrates LemonCheck usage with a complete Spring Boot application.
+**Purpose:** Demonstrates BerryCrush usage with a complete Spring Boot application.
 
 **Structure:**
 ```
@@ -189,11 +189,11 @@ samples/petstore/
 
 **Key Files:**
 - `petstore.yaml` - OpenAPI specification for the sample API
-- `PetstoreScenarioTest.kt` - JUnit test with LemonCheck
+- `PetstoreScenarioTest.kt` - JUnit test with BerryCrush
 - `PetstoreBindings.kt` - Runtime bindings configuration
 - Various `.scenario` files demonstrating features
 
-### lemon-check/doc
+### berrycrush/doc
 
 **Purpose:** Sphinx documentation source.
 
@@ -227,9 +227,9 @@ doc/src/sphinx/
 
 ### Build Specific Module
 ```bash
-./gradlew :lemon-check:core:build
-./gradlew :lemon-check:junit:build
-./gradlew :lemon-check:spring:build
+./gradlew :berrycrush:core:build
+./gradlew :berrycrush:junit:build
+./gradlew :berrycrush:spring:build
 ```
 
 ### Run Tests
@@ -241,7 +241,7 @@ doc/src/sphinx/
 ### Generate Documentation
 ```bash
 ./gradlew dokkaHtml                      # API documentation
-cd lemon-check/doc && make html          # Sphinx docs
+cd berrycrush/doc && make html          # Sphinx docs
 ```
 
 ### Check Dependencies
@@ -277,6 +277,6 @@ When published, modules are available at:
 
 | Module | Maven Coordinates |
 |--------|-------------------|
-| Core | `io.github.ktakashi.lemoncheck:core:VERSION` |
-| JUnit | `io.github.ktakashi.lemoncheck:junit:VERSION` |
-| Spring | `io.github.ktakashi.lemoncheck:spring:VERSION` |
+| Core | `org.berrycrush:core:VERSION` |
+| JUnit | `org.berrycrush:junit:VERSION` |
+| Spring | `org.berrycrush:spring:VERSION` |

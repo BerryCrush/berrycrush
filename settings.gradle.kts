@@ -1,7 +1,7 @@
-rootProject.name = "lemon-check"
+rootProject.name = "berrycrush"
 
-include("lemon-check:core")
-include("lemon-check:junit")
-include("lemon-check:spring")
-include("lemon-check:doc")
+include("berrycrush:core")
+include("berrycrush:junit")
+include("berrycrush:spring")
+include("berrycrush:doc")
 include("samples:petstore")

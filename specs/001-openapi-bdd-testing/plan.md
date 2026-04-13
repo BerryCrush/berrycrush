@@ -56,18 +56,18 @@ specs/001-openapi-bdd-testing/
 ### Source Code (repository root)
 
 ```text
-lemon-check/
+berrycrush/
 ├── build.gradle.kts              # Root build config
 ├── settings.gradle.kts           # Multi-module settings
 ├── gradle/
 │   └── libs.versions.toml        # Version catalog
 │
-├── lemon-check-core/             # Core library module
+├── berrycrush-core/             # Core library module
 │   ├── build.gradle.kts
 │   └── src/
 │       ├── main/
 │       │   ├── kotlin/
-│       │   │   └── io/github/ktakashi/lemoncheck/
+│       │   │   └── io/github/ktakashi/berrycrush/
 │       │   │       ├── dsl/          # Kotlin DSL for scenarios
 │       │   │       │   ├── ScenarioDsl.kt
 │       │   │       │   ├── StepDsl.kt
@@ -98,7 +98,7 @@ lemon-check/
 │       │   └── resources/
 │       └── test/
 │           ├── kotlin/
-│           │   └── io/github/ktakashi/lemoncheck/
+│           │   └── io/github/ktakashi/berrycrush/
 │           │       ├── dsl/
 │           │       ├── scenario/     # Parser tests
 │           │       ├── openapi/
@@ -110,12 +110,12 @@ lemon-check/
 │                   ├── valid/
 │                   └── invalid/      # Error case tests
 │
-├── lemon-check-junit/            # JUnit 5 integration module
+├── berrycrush-junit/            # JUnit 5 integration module
 │   ├── build.gradle.kts
 │   └── src/
 │       └── main/kotlin/
-│           └── io/github/ktakashi/lemoncheck/junit/
-│               ├── LemonCheckExtension.kt
+│           └── io/github/ktakashi/berrycrush/junit/
+│               ├── BerryCrushExtension.kt
 │               └── ScenarioTest.kt
 │
 └── samples/                      # Example scenarios

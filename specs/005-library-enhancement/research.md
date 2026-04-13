@@ -33,7 +33,7 @@ This document consolidates research findings for technical unknowns identified d
 **Adopt Lifecycle Interfaces pattern** (JUnit 5 style) with optional SPI discovery:
 
 ```kotlin
-interface LemonCheckPlugin {
+interface BerryCrushPlugin {
     val priority: Int get() = 0  // Default priority (execution order)
     
     fun onScenarioStart(context: ScenarioContext) {}
@@ -239,9 +239,9 @@ Body (excerpt):
 
 ```python
 # Minimal configuration for Kotlin/Java library docs
-project = 'Lemon Check'
-copyright = '2026, Lemon Check Contributors'
-author = 'Lemon Check Contributors'
+project = 'BerryCrush'
+copyright = '2026, BerryCrush Contributors'
+author = 'BerryCrush Contributors'
 
 extensions = [
     'sphinx.ext.autodoc',      # Not useful for Kotlin
@@ -380,10 +380,10 @@ Configure Dokka in **each library module** (core, junit, spring) with:
 ### Findings
 
 **Required Artifacts**:
-1. Main JAR: `lemon-check-core-0.1.0.jar`
-2. Sources JAR: `lemon-check-core-0.1.0-sources.jar`
-3. Javadoc JAR: `lemon-check-core-0.1.0-javadoc.jar`
-4. POM file: `lemon-check-core-0.1.0.pom`
+1. Main JAR: `berrycrush-core-0.1.0.jar`
+2. Sources JAR: `berrycrush-core-0.1.0-sources.jar`
+3. Javadoc JAR: `berrycrush-core-0.1.0-javadoc.jar`
+4. POM file: `berrycrush-core-0.1.0.pom`
 5. Signatures: `.asc` files for each artifact (GPG signing)
 
 **POM Requirements** (Maven Central):
@@ -411,9 +411,9 @@ publishing {
             from(components["java"])
             
             pom {
-                name.set("Lemon Check")
+                name.set("BerryCrush")
                 description.set("BDD-style API testing framework for Java/Kotlin")
-                url.set("https://github.com/ktakashi/lemon-check")
+                url.set("https://github.com/ktakashi/berrycrush")
                 
                 licenses {
                     license {
@@ -430,8 +430,8 @@ publishing {
                 }
                 
                 scm {
-                    connection.set("scm:git:git://github.com/ktakashi/lemon-check.git")
-                    url.set("https://github.com/ktakashi/lemon-check")
+                    connection.set("scm:git:git://github.com/ktakashi/berrycrush.git")
+                    url.set("https://github.com/ktakashi/berrycrush")
                 }
             }
         }
@@ -518,7 +518,7 @@ Configure **Maven publishing in each library module** with:
 
 ```
 ================================================================================
-Lemon Check Test Report
+BerryCrush Test Report
 ================================================================================
 Date: 2026-04-09 10:00:00
 Duration: 1.234s
@@ -719,7 +719,7 @@ All specified future versions do not exist in Maven Central as of the implementa
 ## Outstanding Questions
 
 1. **Dependency Versions**: Clarify target versions - specified versions (Spring Boot 4.0.5, Jackson 3.1.1, JUnit 6.0.3) don't exist as of April 2026
-2. **Report File Naming**: Confirm file naming convention (e.g., `lemon-check-report.xml` vs `TEST-results.xml`)
+2. **Report File Naming**: Confirm file naming convention (e.g., `berrycrush-report.xml` vs `TEST-results.xml`)
 3. **Plugin Discovery**: Should plugins be auto-discovered via SPI or only explicit registration?
 
 ## Next Steps

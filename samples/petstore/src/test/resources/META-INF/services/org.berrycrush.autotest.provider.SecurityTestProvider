@@ -1,0 +1,2 @@
+# Custom security test provider for NoSQL injection testing
+org.berrycrush.samples.petstore.provider.NoSqlInjectionProvider

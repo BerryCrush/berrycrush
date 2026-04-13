@@ -1,14 +1,14 @@
-# Contributing to LemonCheck
+# Contributing to BerryCrush
 
-Thank you for your interest in contributing to LemonCheck! This guide will help you get started.
+Thank you for your interest in contributing to BerryCrush! This guide will help you get started.
 
 ## Getting Started
 
 1. **Fork the repository** on GitHub
 2. **Clone your fork:**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/lemon-check.git
-   cd lemon-check
+   git clone https://github.com/YOUR_USERNAME/berrycrush.git
+   cd berrycrush
    ```
 3. **Set up the development environment:**
    ```bash

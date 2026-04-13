@@ -1,4 +1,4 @@
-# DSL API Contract: LemonCheck Kotlin DSL
+# DSL API Contract: BerryCrush Kotlin DSL
 
 **Feature**: 001-openapi-bdd-testing  
 **Date**: 2026-04-07  
@@ -11,7 +11,7 @@ This document defines the public Kotlin DSL API that users interact with to writ
 ## Package Structure
 
 ```
-io.github.ktakashi.lemoncheck
+org.berrycrush.berrycrush
 ├── dsl           # User-facing DSL functions
 ├── config        # Configuration classes
 ├── result        # Result types (read-only)
@@ -22,37 +22,37 @@ io.github.ktakashi.lemoncheck
 
 ## Core DSL Functions
 
-### `lemonCheck` - Entry Point
+### `berryCrush` - Entry Point
 
-Creates and configures a LemonCheck test suite.
+Creates and configures a BerryCrush test suite.
 
 **Single Spec (Simple)**:
 ```kotlin
-fun lemonCheck(
+fun berryCrush(
     openApiSpec: String,                    // Path to OpenAPI spec file
     config: Configuration.() -> Unit = {}  // Optional configuration block
-): LemonCheckSuite
+): BerryCrushSuite
 ```
 
 **Multiple Specs (Advanced)**:
 ```kotlin
-fun lemonCheck(
+fun berryCrush(
     config: MultiSpecConfiguration.() -> Unit
-): LemonCheckSuite
+): BerryCrushSuite
 ```
 
 **Examples**:
 
 ```kotlin
 // Single spec - simple usage
-val suite = lemonCheck("src/test/resources/petstore.yaml") {
+val suite = berryCrush("src/test/resources/petstore.yaml") {
     baseUrl = "https://petstore.example.com"
     timeout = 30.seconds
     defaultHeaders["X-Api-Key"] = System.getenv("API_KEY")
 }
 
 // Multiple specs - microservices or multi-API testing
-val suite = lemonCheck {
+val suite = berryCrush {
     spec("petstore", "specs/petstore.yaml") {
         baseUrl = "https://petstore.example.com/api/v1"
     }
@@ -121,7 +121,7 @@ scenario("Cross-service order flow") {
 Defines a BDD scenario within a suite.
 
 ```kotlin
-fun LemonCheckSuite.scenario(
+fun BerryCrushSuite.scenario(
     name: String,
     tags: Set<String> = emptySet(),
     block: ScenarioScope.() -> Unit
@@ -151,7 +151,7 @@ suite.scenario("List all pets", tags = setOf("smoke", "pets")) {
 Defines a scenario that runs multiple times with different data.
 
 ```kotlin
-fun LemonCheckSuite.scenarioOutline(
+fun BerryCrushSuite.scenarioOutline(
     name: String,
     block: ScenarioOutlineScope.() -> Unit
 ): List<Scenario>
@@ -395,11 +395,11 @@ then("the pet details are correct") {
 
 ## Auto-Assertions (Spec-Driven)
 
-LemonCheck automatically generates assertions from OpenAPI spec responses. This enables "happy path" testing with zero boilerplate.
+BerryCrush automatically generates assertions from OpenAPI spec responses. This enables "happy path" testing with zero boilerplate.
 
 ### How It Works
 
-When you call an operation without explicit assertions, LemonCheck extracts expected behavior from the spec:
+When you call an operation without explicit assertions, BerryCrush extracts expected behavior from the spec:
 
 ```kotlin
 // Without explicit assertions - auto-generated from spec
@@ -496,7 +496,7 @@ class AutoAssertionConfig {
 
 **Example**:
 ```kotlin
-lemonCheck("petstore.yaml") {
+berryCrush("petstore.yaml") {
     baseUrl = System.getenv("API_BASE_URL")
     timeout = 30.seconds
     environment = "staging"
@@ -519,27 +519,27 @@ lemonCheck("petstore.yaml") {
 
 ```kotlin
 // Run all scenarios in the suite
-fun LemonCheckSuite.runAll(): TestReport
+fun BerryCrushSuite.runAll(): TestReport
 
 // Run scenarios matching tags
-fun LemonCheckSuite.runTagged(vararg tags: String): TestReport
+fun BerryCrushSuite.runTagged(vararg tags: String): TestReport
 
 // Run specific scenario by name
-fun LemonCheckSuite.run(scenarioName: String): ScenarioResult
+fun BerryCrushSuite.run(scenarioName: String): ScenarioResult
 ```
 
 ---
 
-## JUnit 5 Integration (lemon-check-junit module)
+## JUnit 5 Integration (berrycrush-junit module)
 
 ### Extension
 
 ```kotlin
-@ExtendWith(LemonCheckExtension::class)
+@ExtendWith(BerryCrushExtension::class)
 class PetstoreTests {
     
-    @LemonCheckSpec("petstore.yaml")
-    lateinit var suite: LemonCheckSuite
+    @BerryCrushSpec("petstore.yaml")
+    lateinit var suite: BerryCrushSuite
     
     @Test
     fun `list pets returns 200`() {
@@ -610,7 +610,7 @@ typealias VariableName = String
 
 ## Thread Safety
 
-- `LemonCheckSuite` is immutable after creation
+- `BerryCrushSuite` is immutable after creation
 - `Scenario` instances are immutable
 - `ExecutionContext` is NOT thread-safe (scenarios run sequentially)
 - `Configuration` is immutable after suite creation

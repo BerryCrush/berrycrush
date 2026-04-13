@@ -12,7 +12,7 @@ java {
 
 tasks.withType<Test> {
     useJUnitPlatform {
-        includeEngines("lemoncheck")
+        includeEngines("berrycrush")
     }
     testLogging {
         showStandardStreams = true
@@ -26,9 +26,9 @@ dependencies {
 
     // Testing - Spring Boot starter-test includes JUnit 5
     testImplementation(libs.spring.boot.starter.test)
-    testImplementation(project(":lemon-check:core"))
-    testImplementation(project(":lemon-check:junit"))
-    testImplementation(project(":lemon-check:spring"))
+    testImplementation(project(":berrycrush:core"))
+    testImplementation(project(":berrycrush:junit"))
+    testImplementation(project(":berrycrush:spring"))
     // JUnit Platform suite API for @Suite annotations
     testImplementation(libs.junit.platform.suite.api)
     testImplementation(libs.junit.platform.launcher)

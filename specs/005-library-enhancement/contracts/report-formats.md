@@ -6,7 +6,7 @@
 
 ## Overview
 
-This contract defines the four built-in report formats provided by lemon-check:
+This contract defines the four built-in report formats provided by berrycrush:
 1. **Text** - Human-readable console output
 2. **JSON** - Machine-parseable structured data
 3. **XML** - Generic XML structure
@@ -19,14 +19,14 @@ All formats represent the same underlying test execution data but optimize for d
 ## Format 1: Text Report
 
 **File Extension**: `.txt`  
-**Default Path**: `build/reports/lemoncheck/report.txt`  
+**Default Path**: `build/reports/berrycrush/report.txt`  
 **MIME Type**: `text/plain`
 
 ### Format Specification
 
 ```
 ================================================================================
-Lemon Check Test Report
+BerryCrush Test Report
 ================================================================================
 Execution Date: {ISO-8601 timestamp}
 Duration: {total duration in seconds with 3 decimals}
@@ -79,7 +79,7 @@ Failed Scenarios:
 
 ```
 ================================================================================
-Lemon Check Test Report
+BerryCrush Test Report
 ================================================================================
 Execution Date: 2026-04-09T14:23:15.123Z
 Duration: 2.456s
@@ -126,7 +126,7 @@ Failed Scenarios:
 ## Format 2: JSON Report
 
 **File Extension**: `.json`  
-**Default Path**: `build/reports/lemoncheck/report.json`  
+**Default Path**: `build/reports/berrycrush/report.json`  
 **MIME Type**: `application/json`
 
 ### Schema
@@ -134,7 +134,7 @@ Failed Scenarios:
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/ktakashi/lemon-check/schemas/test-report.json",
+  "$id": "https://github.com/ktakashi/berrycrush/schemas/test-report.json",
   "type": "object",
   "required": ["timestamp", "duration", "summary", "scenarios"],
   "properties": {
@@ -247,7 +247,7 @@ Failed Scenarios:
   "environment": {
     "java.version": "21.0.1",
     "os.name": "macOS",
-    "lemoncheck.version": "0.1.0"
+    "berrycrush.version": "0.1.0"
   },
   "scenarios": [
     {
@@ -328,7 +328,7 @@ Failed Scenarios:
 ## Format 3: XML Report
 
 **File Extension**: `.xml`  
-**Default Path**: `build/reports/lemoncheck/report.xml`  
+**Default Path**: `build/reports/berrycrush/report.xml`  
 **MIME Type**: `application/xml`
 
 ### XML Schema (XSD)
@@ -403,7 +403,7 @@ Failed Scenarios:
   <environment>
     <property name="java.version" value="21.0.1"/>
     <property name="os.name" value="macOS"/>
-    <property name="lemoncheck.version" value="0.1.0"/>
+    <property name="berrycrush.version" value="0.1.0"/>
   </environment>
   <scenarios>
     <scenario name="List all pets" status="PASSED" duration="0.123">
@@ -447,13 +447,13 @@ Failed Scenarios:
 ## Format 4: JUnit XML Report
 
 **File Extension**: `.xml`  
-**Default Path**: `build/test-results/lemoncheck/TEST-lemoncheck.xml`  
+**Default Path**: `build/test-results/berrycrush/TEST-berrycrush.xml`  
 **MIME Type**: `application/xml`  
 **Standard**: JUnit XML (Ant JUnit task format)
 
 ### Mapping Rules
 
-| Lemon Check Concept | JUnit XML Element |
+| BerryCrush Concept | JUnit XML Element |
 |---------------------|-------------------|
 | Scenario | `<testcase>` |
 | Step failure | `<failure>` within testcase |
@@ -464,7 +464,7 @@ Failed Scenarios:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="LemonCheck" tests="{total}" failures="{failures}" errors="{errors}" time="{duration}">
+<testsuites name="BerryCrush" tests="{total}" failures="{failures}" errors="{errors}" time="{duration}">
   <testsuite name="{scenario-file-name}" tests="{scenarios-in-file}" failures="{}" errors="{}" skipped="{}" time="{}" timestamp="{ISO-8601}">
     <testcase name="{scenario-name}" classname="{scenario-file-path}" time="{duration}">
       <!-- If scenario passed: empty element -->
@@ -490,7 +490,7 @@ Failed Scenarios:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="LemonCheck" tests="3" failures="1" errors="0" time="2.456">
+<testsuites name="BerryCrush" tests="3" failures="1" errors="0" time="2.456">
   <testsuite name="pet-api-scenarios" tests="3" failures="1" errors="0" skipped="0" 
              time="2.456" timestamp="2026-04-09T14:23:15.123Z">
     
@@ -558,20 +558,20 @@ Response:
 
 #### Via Configuration File
 
-Create `lemoncheck.properties`:
+Create `berrycrush.properties`:
 
 ```properties
-lemoncheck.reports.enabled=text,json,junit
-lemoncheck.reports.outputDir=build/reports/lemoncheck
+berrycrush.reports.enabled=text,json,junit
+berrycrush.reports.outputDir=build/reports/berrycrush
 ```
 
-Or `lemoncheck.yml`:
+Or `berrycrush.yml`:
 
 ```yaml
-lemoncheck:
+berrycrush:
   reports:
     enabled: [text, json, junit]
-    outputDir: build/reports/lemoncheck
+    outputDir: build/reports/berrycrush
     formats:
       junit:
         includeSystemOut: true
@@ -581,7 +581,7 @@ lemoncheck:
 #### Via Annotation
 
 ```kotlin
-@LemonCheckConfiguration(
+@BerryCrushConfiguration(
     reports = [
         ReportFormat.TEXT,
         ReportFormat.JSON,
@@ -594,7 +594,7 @@ class MyApiTest
 #### Per-Test Override
 
 ```kotlin
-@LemonCheckReports([ReportFormat.JUNIT])
+@BerryCrushReports([ReportFormat.JUNIT])
 @Test
 fun testCriticalFlow() {
     // Only JUnit report for this test
@@ -609,9 +609,9 @@ All four formats are implemented as plugins (see [plugin-spi.md](plugin-spi.md))
 
 ```kotlin
 class JunitReportPlugin(
-    val outputPath: Path = Paths.get("build/test-results/lemoncheck/TEST-lemoncheck.xml"),
+    val outputPath: Path = Paths.get("build/test-results/berrycrush/TEST-berrycrush.xml"),
     val includeSystemOut: Boolean = false
-) : LemonCheckPlugin {
+) : BerryCrushPlugin {
     
     override val priority: Int = 100  // Run after tests
     override val name: String = "JUnit XML Report"
@@ -631,10 +631,10 @@ class JunitReportPlugin(
 
 ## Custom Report Formats
 
-Users can create custom report formats by implementing `LemonCheckPlugin`:
+Users can create custom report formats by implementing `BerryCrushPlugin`:
 
 ```kotlin
-class CsvReportPlugin : LemonCheckPlugin {
+class CsvReportPlugin : BerryCrushPlugin {
     override val priority: Int = 100
     override val name: String = "CSV Report"
     
@@ -649,7 +649,7 @@ class CsvReportPlugin : LemonCheckPlugin {
 Register custom format:
 
 ```kotlin
-@LemonCheckConfiguration(
+@BerryCrushConfiguration(
     plugins = [CsvReportPlugin::class]
 )
 ```

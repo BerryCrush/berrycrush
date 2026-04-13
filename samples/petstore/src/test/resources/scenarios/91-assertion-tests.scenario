@@ -1,5 +1,5 @@
 # Comprehensive Assertion Test Scenario
-# Tests all supported assertion types in the LemonCheck library
+# Tests all supported assertion types in the BerryCrush library
 
 # Test status code assertions
 scenario: Status code assertions

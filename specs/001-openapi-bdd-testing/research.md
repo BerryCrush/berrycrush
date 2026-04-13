@@ -86,7 +86,7 @@ val requestBody = operation?.requestBody?.content?.get("application/json")?.sche
 **Implementation Pattern**:
 ```kotlin
 // Named specs for multi-service scenarios
-val suite = lemonCheck {
+val suite = berryCrush {
     spec("petstore", "specs/petstore.yaml") {
         baseUrl = "https://petstore.example.com"
     }
@@ -401,7 +401,7 @@ class ConsoleReporter : TestReporter {
 **Built-in Reporters**:
 - `ConsoleReporter` - Human-readable terminal output
 - `JsonReporter` - Machine-readable JSON for CI integration
-- JUnit XML via `lemon-check-junit` module
+- JUnit XML via `berrycrush-junit` module
 
 ---
 
@@ -667,7 +667,7 @@ class AssertionGenerator(private val openApi: OpenAPI) {
 ### Configuration Options
 
 ```kotlin
-lemonCheck("spec.yaml") {
+berryCrush("spec.yaml") {
     // Global auto-assertion settings
     autoAssertions {
         enabled = true                    // Default: true

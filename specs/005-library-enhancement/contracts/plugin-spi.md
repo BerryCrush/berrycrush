@@ -6,18 +6,18 @@
 
 ## Overview
 
-This contract defines the Plugin Service Provider Interface (SPI) that allows users to extend lemon-check with custom lifecycle hooks. Plugins receive events at key points during scenario execution (scenario start/end, step start/end) and can perform custom actions like setup, teardown, logging, or reporting.
+This contract defines the Plugin Service Provider Interface (SPI) that allows users to extend berrycrush with custom lifecycle hooks. Plugins receive events at key points during scenario execution (scenario start/end, step start/end) and can perform custom actions like setup, teardown, logging, or reporting.
 
 ---
 
 ## Core Interface
 
-###LemonCheckPlugin
+###BerryCrushPlugin
 
 Main plugin interface that all plugins must implement.
 
 ```kotlin
-interface LemonCheckPlugin {
+interface BerryCrushPlugin {
     /**
      * Unique identifier for this plugin.
      * Must be unique within a test run.
@@ -279,7 +279,7 @@ interface AssertionFailure {
 Use string identifiers for built-in plugins with optional configuration:
 
 ```kotlin
-@LemonCheckConfiguration(
+@BerryCrushConfiguration(
     plugins = [
         "report:json:build/reports/output.json",
         "report:junit:build/test-results/junit.xml",
@@ -302,7 +302,7 @@ Examples:
 **Plugin Name Resolution**: The plugin name is provided by the plugin's `name` property:
 
 ```kotlin
-class MyCustomPlugin : LemonCheckPlugin {
+class MyCustomPlugin : BerryCrushPlugin {
     override val name: String = "my-custom"  // Used in name-based registration
 }
 ```
@@ -311,7 +311,7 @@ class MyCustomPlugin : LemonCheckPlugin {
 
 ```kotlin
 // Explicit class registration
-@LemonCheckConfiguration(
+@BerryCrushConfiguration(
     pluginClasses = [
         MyCustomPlugin::class,
         AnotherPlugin::class
@@ -322,7 +322,7 @@ class MyApiTest
 
 ### Service Provider Interface (SPI) Discovery
 
-Create file: `src/main/resources/META-INF/services/io.github.ktakashi.lemoncheck.plugin.LemonCheckPlugin`
+Create file: `src/main/resources/META-INF/services/org.berrycrush.berrycrush.plugin.BerryCrushPlugin`
 
 ```text
 com.example.myplugin.MyCustomPlugin
@@ -342,7 +342,7 @@ com.example.reporting.CustomReporter
 ### Example 1: Logging Plugin
 
 ```kotlin
-class LoggingPlugin : LemonCheckPlugin {
+class LoggingPlugin : BerryCrushPlugin {
     override val priority: Int = -50  // Run early
     override val name: String = "Logging Plugin"
     
@@ -368,7 +368,7 @@ class LoggingPlugin : LemonCheckPlugin {
 ### Example 2: Docker Testcontainers Plugin
 
 ```kotlin
-class TestcontainersPlugin : LemonCheckPlugin {
+class TestcontainersPlugin : BerryCrushPlugin {
     override val priority: Int = -100  // Run first (setup)
     override val name: String = "Testcontainers Plugin"
     
@@ -399,7 +399,7 @@ class TestcontainersPlugin : LemonCheckPlugin {
 ### Example 3: Performance Monitoring Plugin
 
 ```kotlin
-class PerformanceMonitorPlugin : LemonCheckPlugin {
+class PerformanceMonitorPlugin : BerryCrushPlugin {
     override val priority: Int = 0
     override val name: String = "Performance Monitor"
     
@@ -443,10 +443,10 @@ These plugins are provided by the library and use the same SPI.
 | `report:junit` | `[output-path]` | JUnit-compatible XML |
 
 **Default Output Paths** (when not specified):
-- text: `build/reports/lemoncheck/report.txt`
-- json: `build/reports/lemoncheck/report.json`
-- xml: `build/reports/lemoncheck/report.xml`
-- junit: `build/test-results/lemoncheck/TEST-lemoncheck.xml`
+- text: `build/reports/berrycrush/report.txt`
+- json: `build/reports/berrycrush/report.json`
+- xml: `build/reports/berrycrush/report.xml`
+- junit: `build/test-results/berrycrush/TEST-berrycrush.xml`
 
 ### TextReportPlugin
 
@@ -454,16 +454,16 @@ Generates human-readable text reports.
 
 ```kotlin
 // Name-based registration with default path
-@LemonCheckConfiguration(plugins = ["report:text"])
+@BerryCrushConfiguration(plugins = ["report:text"])
 
 // Name-based with custom path
-@LemonCheckConfiguration(plugins = ["report:text:custom/report.txt"])
+@BerryCrushConfiguration(plugins = ["report:text:custom/report.txt"])
 
 // Class-based for advanced configuration
 class TextReportPlugin(
-    val outputPath: Path = Paths.get("build/reports/lemoncheck/report.txt"),
+    val outputPath: Path = Paths.get("build/reports/berrycrush/report.txt"),
     val useColor: Boolean = true
-) : LemonCheckPlugin {
+) : BerryCrushPlugin {
     override val priority: Int = 100  // Run late (after tests)
     override val name: String = "report:text"
     
@@ -478,13 +478,13 @@ Generates machine-parseable JSON reports using JSON Schema 2020-12.
 
 ```kotlin
 // Name-based registration
-@LemonCheckConfiguration(plugins = ["report:json:output/report.json"])
+@BerryCrushConfiguration(plugins = ["report:json:output/report.json"])
 
 // Class-based
 class JsonReportPlugin(
-    val outputPath: Path = Paths.get("build/reports/lemoncheck/report.json"),
+    val outputPath: Path = Paths.get("build/reports/berrycrush/report.json"),
     val prettyPrint: Boolean = true
-) : LemonCheckPlugin {
+) : BerryCrushPlugin {
     override val priority: Int = 100
     override val name: String = "report:json"
 }
@@ -496,7 +496,7 @@ Generates generic XML reports.
 
 ```kotlin
 // Name-based registration
-@LemonCheckConfiguration(plugins = ["report:xml:reports/test.xml"])
+@BerryCrushConfiguration(plugins = ["report:xml:reports/test.xml"])
 ```
 
 ### JunitReportPlugin
@@ -505,13 +505,13 @@ Generates JUnit-compatible XML for CI/CD integration.
 
 ```kotlin
 // Name-based registration
-@LemonCheckConfiguration(plugins = ["report:junit"])
+@BerryCrushConfiguration(plugins = ["report:junit"])
 
 // Class-based for advanced configuration
 class JunitReportPlugin(
-    val outputPath: Path = Paths.get("build/test-results/lemoncheck/TEST-lemoncheck.xml"),
+    val outputPath: Path = Paths.get("build/test-results/berrycrush/TEST-berrycrush.xml"),
     val includeSystemOut: Boolean = false
-) : LemonCheckPlugin {
+) : BerryCrushPlugin {
     override val priority: Int = 100
     override val name: String = "report:junit"
 }
@@ -528,7 +528,7 @@ class JunitReportPlugin(
 ### Example: Resilient Plugin
 
 ```kotlin
-class ResilientPlugin : LemonCheckPlugin {
+class ResilientPlugin : BerryCrushPlugin {
     override fun onStepEnd(context: StepContext, result: StepResult) {
         try {
             // Plugin logic that might fail

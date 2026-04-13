@@ -5,26 +5,26 @@
 
 ## JUnit Engine Entities
 
-### LemonCheckTestEngine
+### BerryCrushTestEngine
 
 The core TestEngine implementation registered with JUnit Platform.
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| id | String | Engine identifier: `"lemoncheck"` |
+| id | String | Engine identifier: `"berrycrush"` |
 
-**Relationships**: Creates `LemonCheckEngineDescriptor` as root descriptor.
+**Relationships**: Creates `BerryCrushEngineDescriptor` as root descriptor.
 
 ---
 
-### LemonCheckEngineDescriptor
+### BerryCrushEngineDescriptor
 
 Root test descriptor representing the engine in the test tree.
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
 | uniqueId | UniqueId | JUnit Platform unique identifier |
-| displayName | String | Display name: `"LemonCheck"` |
+| displayName | String | Display name: `"BerryCrush"` |
 
 **Relationships**: Contains child `ClassTestDescriptor` nodes.
 
@@ -32,7 +32,7 @@ Root test descriptor representing the engine in the test tree.
 
 ### ClassTestDescriptor
 
-Represents a test class annotated with `@LemonCheckScenarios`.
+Represents a test class annotated with `@BerryCrushScenarios`.
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
@@ -41,7 +41,7 @@ Represents a test class annotated with `@LemonCheckScenarios`.
 | testClass | Class | The annotated test class |
 | locations | Array<String> | Scenario file location patterns |
 | bindings | Class? | Optional custom bindings class |
-| configuration | LemonCheckConfiguration? | Configuration annotation instance |
+| configuration | BerryCrushConfiguration? | Configuration annotation instance |
 
 **Relationships**: Contains child `ScenarioTestDescriptor` nodes.
 
@@ -62,7 +62,7 @@ Represents a single `.scenario` file to execute.
 
 ---
 
-### LemonCheckBindings (Interface)
+### BerryCrushBindings (Interface)
 
 Contract for custom bindings classes that provide runtime values.
 
@@ -143,16 +143,16 @@ Standard error response format.
 │                     JUnit Engine Domain                         │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  LemonCheckTestEngine                                           │
+│  BerryCrushTestEngine                                           │
 │         │                                                       │
 │         ▼ creates                                               │
-│  LemonCheckEngineDescriptor (root)                              │
+│  BerryCrushEngineDescriptor (root)                              │
 │         │                                                       │
 │         ▼ contains 0..*                                         │
 │  ClassTestDescriptor ───────────────┐                           │
 │     │   (test class)                │ references                │
 │     │                               ▼                           │
-│     │                        LemonCheckBindings                 │
+│     │                        BerryCrushBindings                 │
 │     │                         (interface)                       │
 │     ▼ contains 0..*                                             │
 │  ScenarioTestDescriptor                                         │

@@ -1,0 +1,108 @@
+package org.berrycrush.spring
+
+import org.berrycrush.config.Configuration
+import org.berrycrush.exception.ConfigurationException
+import org.berrycrush.junit.BerryCrushBindings
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
+import org.springframework.boot.test.context.SpringBootTest
+import kotlin.test.assertTrue
+
+/**
+ * Tests for SpringBindingsProvider error handling.
+ */
+class SpringBindingsProviderErrorTest {
+    private val provider = SpringBindingsProvider()
+
+    @Test
+    fun `initialize throws descriptive error when SpringBootTest is missing`() {
+        val exception =
+            assertThrows<ConfigurationException> {
+                provider.initialize(MissingSpringBootTestClass::class.java)
+            }
+
+        // Verify error message contains helpful information
+        assertTrue(
+            exception.message!!.contains("@BerryCrushContextConfiguration"),
+            "Error should mention @BerryCrushContextConfiguration",
+        )
+        assertTrue(
+            exception.message!!.contains("@SpringBootTest"),
+            "Error should mention @SpringBootTest",
+        )
+        assertTrue(
+            exception.message!!.contains("MissingSpringBootTestClass"),
+            "Error should mention the class name",
+        )
+    }
+
+    @Test
+    fun `createBindings throws error when bean not found in Spring context`() {
+        // Initialize with valid test class
+        provider.initialize(ValidTestClassWithoutBindings::class.java)
+
+        try {
+            val exception =
+                assertThrows<ConfigurationException> {
+                    provider.createBindings(
+                        ValidTestClassWithoutBindings::class.java,
+                        NonExistentBindings::class.java,
+                    )
+                }
+
+            // Verify error message contains helpful information
+            assertTrue(
+                exception.message!!.contains("NonExistentBindings"),
+                "Error should mention the bindings class name",
+            )
+            assertTrue(
+                exception.message!!.contains("Spring bean") ||
+                    exception.message!!.contains("not registered"),
+                "Error should explain the bean is not registered",
+            )
+        } finally {
+            provider.cleanup(ValidTestClassWithoutBindings::class.java)
+        }
+    }
+
+    @Test
+    fun `createBindings throws error when context not initialized`() {
+        // Try to create bindings without initializing first
+        val exception =
+            assertThrows<ConfigurationException> {
+                provider.createBindings(
+                    MissingSpringBootTestClass::class.java,
+                    NonExistentBindings::class.java,
+                )
+            }
+
+        assertTrue(
+            exception.message!!.contains("not initialized"),
+            "Error should indicate context is not initialized",
+        )
+    }
+
+    // Test fixtures
+
+    @SpringBootApplication(exclude = [DataSourceAutoConfiguration::class])
+    class TestApplication
+
+    @BerryCrushContextConfiguration
+    class MissingSpringBootTestClass
+
+    @SpringBootTest(
+        classes = [TestApplication::class],
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+    )
+    @BerryCrushContextConfiguration
+    class ValidTestClassWithoutBindings
+
+    // This bindings class is NOT registered as a Spring component
+    class NonExistentBindings : BerryCrushBindings {
+        override fun getBindings(): Map<String, Any> = emptyMap()
+
+        override fun configure(config: Configuration) {}
+    }
+}

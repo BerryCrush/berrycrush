@@ -1,13 +1,13 @@
 # Class Hierarchy
 
-This document provides a comprehensive view of the key classes and interfaces in LemonCheck.
+This document provides a comprehensive view of the key classes and interfaces in BerryCrush.
 
-## Core Module (`lemon-check/core`)
+## Core Module (`berrycrush/core`)
 
 ### Domain Model
 
 ```
-io.github.ktakashi.lemoncheck.model
+org.berrycrush.model
 ├── Scenario                    # Test scenario with steps
 ├── Step                        # Single step in a scenario
 ├── StepType                    # Enum: GIVEN, WHEN, THEN, AND, BUT
@@ -27,9 +27,9 @@ io.github.ktakashi.lemoncheck.model
 ### DSL Classes
 
 ```
-io.github.ktakashi.lemoncheck.dsl
-├── @LemonCheckDsl              # DSL marker annotation
-├── LemonCheckSuite             # Main entry point for DSL
+org.berrycrush.dsl
+├── @BerryCrushDsl              # DSL marker annotation
+├── BerryCrushSuite             # Main entry point for DSL
 │   ├── spec(path)              # Register OpenAPI spec
 │   ├── configure { }           # Configure execution
 │   ├── scenario(name) { }      # Define scenario
@@ -67,7 +67,7 @@ io.github.ktakashi.lemoncheck.dsl
 ### Scenario Parsing
 
 ```
-io.github.ktakashi.lemoncheck.scenario
+org.berrycrush.scenario
 ├── Lexer                       # Tokenizes scenario files
 │   └── tokenize(source): List<Token>
 ├── Parser                      # Parses tokens into AST
@@ -90,7 +90,7 @@ io.github.ktakashi.lemoncheck.scenario
 ### Execution Engine
 
 ```
-io.github.ktakashi.lemoncheck.executor
+org.berrycrush.executor
 ├── ScenarioExecutor            # Main executor
 │   ├── execute(scenario, context)
 │   └── execute(scenario, sharedContext, sourceFile)
@@ -105,7 +105,7 @@ io.github.ktakashi.lemoncheck.executor
 ### OpenAPI Integration
 
 ```
-io.github.ktakashi.lemoncheck.openapi
+org.berrycrush.openapi
 ├── SpecRegistry                # Manages OpenAPI specs
 │   ├── registerDefault(path, config)
 │   ├── register(name, path, config)
@@ -126,7 +126,7 @@ io.github.ktakashi.lemoncheck.openapi
 ### Step Definitions
 
 ```
-io.github.ktakashi.lemoncheck.step
+org.berrycrush.step
 ├── @Step                       # Annotation for step methods
 │   ├── pattern: String         # Step pattern with placeholders
 │   └── description: String     # Optional description
@@ -154,8 +154,8 @@ io.github.ktakashi.lemoncheck.step
 ### Plugin System
 
 ```
-io.github.ktakashi.lemoncheck.plugin
-├── LemonCheckPlugin            # Plugin interface
+org.berrycrush.plugin
+├── BerryCrushPlugin            # Plugin interface
 │   ├── id: String
 │   ├── name: String
 │   ├── priority: Int
@@ -177,7 +177,7 @@ io.github.ktakashi.lemoncheck.plugin
 │   ├── dispatchStepStart(context)
 │   └── dispatchStepEnd(context, result)
 ├── PluginNameResolver          # Resolves plugin names
-│   └── resolve(name): LemonCheckPlugin
+│   └── resolve(name): BerryCrushPlugin
 ├── ScenarioContext             # Context for scenario lifecycle
 ├── StepContext                 # Context for step lifecycle
 ├── ScenarioResult              # Plugin-facing result
@@ -187,7 +187,7 @@ io.github.ktakashi.lemoncheck.plugin
 ### Reporting
 
 ```
-io.github.ktakashi.lemoncheck.report
+org.berrycrush.report
 ├── ReportPlugin (abstract)     # Base class for report plugins
 │   ├── outputPath: Path
 │   ├── generateReport()
@@ -209,7 +209,7 @@ io.github.ktakashi.lemoncheck.report
 ### Configuration
 
 ```
-io.github.ktakashi.lemoncheck.config
+org.berrycrush.config
 ├── Configuration               # Main configuration
 │   ├── baseUrl: String?
 │   ├── timeout: Duration
@@ -236,7 +236,7 @@ io.github.ktakashi.lemoncheck.config
 ### Context and Variables
 
 ```
-io.github.ktakashi.lemoncheck.context
+org.berrycrush.context
 ├── ExecutionContext            # Runtime variable storage
 │   ├── get(name): Any?
 │   ├── set(name, value)
@@ -251,7 +251,7 @@ io.github.ktakashi.lemoncheck.context
 ### Logging
 
 ```
-io.github.ktakashi.lemoncheck.logging
+org.berrycrush.logging
 ├── HttpLogger                  # Interface for HTTP logging
 │   ├── logRequest(method, url, headers, body)
 │   └── logResponse(method, url, response, duration)
@@ -266,24 +266,24 @@ io.github.ktakashi.lemoncheck.logging
 ### Exceptions
 
 ```
-io.github.ktakashi.lemoncheck.exception
-├── LemonCheckException         # Base exception
+org.berrycrush.exception
+├── BerryCrushException         # Base exception
 ├── ConfigurationException      # Configuration errors
 ├── ScenarioParseException      # Parsing errors
 ├── StepExecutionException      # Step execution errors
 └── AssertionException          # Assertion failures
 ```
 
-## JUnit Module (`lemon-check/junit`)
+## JUnit Module (`berrycrush/junit`)
 
 ### Annotations
 
 ```
-io.github.ktakashi.lemoncheck.junit
-├── @LemonCheckScenarios        # Specify scenario locations
+org.berrycrush.junit
+├── @BerryCrushScenarios        # Specify scenario locations
 │   ├── locations: Array<String>
 │   └── fragments: Array<String>
-├── @LemonCheckConfiguration    # Configure execution
+├── @BerryCrushConfiguration    # Configure execution
 │   ├── bindings: KClass
 │   ├── openApiSpec: String
 │   ├── timeout: Long
@@ -291,13 +291,13 @@ io.github.ktakashi.lemoncheck.junit
 │   ├── pluginClasses: Array<KClass>
 │   ├── stepClasses: Array<KClass>
 │   └── stepPackages: Array<String>
-├── @LemonCheckSpec             # Specify OpenAPI specs
+├── @BerryCrushSpec             # Specify OpenAPI specs
 │   ├── paths: Array<String>
 │   └── baseUrl: String
-├── @LemonCheckTags             # Filter by tags
+├── @BerryCrushTags             # Filter by tags
 │   ├── include: Array<String>
 │   └── exclude: Array<String>
-└── @LemonCheckTimeout          # Scenario timeout
+└── @BerryCrushTimeout          # Scenario timeout
     ├── value: Long
     └── unit: TimeUnit
 ```
@@ -305,13 +305,13 @@ io.github.ktakashi.lemoncheck.junit
 ### Bindings
 
 ```
-io.github.ktakashi.lemoncheck.junit
-├── LemonCheckBindings          # Interface for runtime bindings
+org.berrycrush.junit
+├── BerryCrushBindings          # Interface for runtime bindings
 │   ├── getBindings(): Map<String, Any>
 │   ├── getOpenApiSpec(): String?
 │   ├── getAdditionalSpecs(): Map<String, String>
 │   ├── configure(config)
-│   ├── getPlugins(): List<LemonCheckPlugin>
+│   ├── getPlugins(): List<BerryCrushPlugin>
 │   └── getStepClasses(): Array<Class<*>>
 ├── DefaultBindings             # No-op implementation
 └── ScenarioTest (abstract)     # Base class for DSL tests
@@ -322,12 +322,12 @@ io.github.ktakashi.lemoncheck.junit
 ### Test Engine
 
 ```
-io.github.ktakashi.lemoncheck.junit.engine
-├── LemonCheckTestEngine        # JUnit 5 TestEngine
-│   ├── getId(): String         # "lemoncheck"
+org.berrycrush.junit.engine
+├── BerryCrushTestEngine        # JUnit 5 TestEngine
+│   ├── getId(): String         # "berrycrush"
 │   ├── discover(request, id): TestDescriptor
 │   └── execute(request)
-├── LemonCheckEngineDescriptor  # Root test descriptor
+├── BerryCrushEngineDescriptor  # Root test descriptor
 ├── ClassTestDescriptor         # Per-class descriptor
 ├── ScenarioFileDescriptor      # Per-file descriptor
 ├── ScenarioTestDescriptor      # Per-scenario descriptor
@@ -337,7 +337,7 @@ io.github.ktakashi.lemoncheck.junit.engine
 ### Discovery
 
 ```
-io.github.ktakashi.lemoncheck.junit.discovery
+org.berrycrush.junit.discovery
 ├── ScenarioDiscovery           # Discovers scenario files
 │   └── discoverScenarios(classLoader, patterns)
 ├── FragmentDiscovery           # Discovers fragment files
@@ -349,7 +349,7 @@ io.github.ktakashi.lemoncheck.junit.discovery
 ### SPI
 
 ```
-io.github.ktakashi.lemoncheck.junit.spi
+org.berrycrush.junit.spi
 └── BindingsProvider            # SPI for custom bindings creation
     ├── supports(testClass): Boolean
     ├── priority(): Int
@@ -358,11 +358,11 @@ io.github.ktakashi.lemoncheck.junit.spi
     └── cleanup(testClass)
 ```
 
-## Spring Module (`lemon-check/spring`)
+## Spring Module (`berrycrush/spring`)
 
 ```
-io.github.ktakashi.lemoncheck.spring
-├── @LemonCheckContextConfiguration  # Spring integration annotation
+org.berrycrush.spring
+├── @BerryCrushContextConfiguration  # Spring integration annotation
 ├── SpringBindingsProvider      # BindingsProvider for Spring
 │   ├── supports(testClass): Boolean
 │   ├── priority(): Int         # 100 (high priority)
@@ -382,7 +382,7 @@ io.github.ktakashi.lemoncheck.spring
 ### Scenario Execution Flow
 
 ```
-LemonCheckTestEngine
+BerryCrushTestEngine
     │
     ├── uses ──▶ ScenarioDiscovery
     │               │
@@ -405,7 +405,7 @@ LemonCheckTestEngine
 ### Plugin Hierarchy
 
 ```
-LemonCheckPlugin (interface)
+BerryCrushPlugin (interface)
     │
     ├── ReportPlugin (abstract)
     │       │
@@ -424,7 +424,7 @@ ServiceLoader<BindingsProvider>
     │
     ├── SpringBindingsProvider (priority: 100)
     │       │
-    │       └── If @LemonCheckContextConfiguration present
+    │       └── If @BerryCrushContextConfiguration present
     │
     └── DefaultBindingsProvider (priority: 0)
             │
@@ -435,10 +435,10 @@ ServiceLoader<BindingsProvider>
 
 ### 1. Custom Plugins
 
-Implement `LemonCheckPlugin`:
+Implement `BerryCrushPlugin`:
 
 ```kotlin
-class MyPlugin : LemonCheckPlugin {
+class MyPlugin : BerryCrushPlugin {
     override val name = "my-plugin"
     override val priority = 50
     

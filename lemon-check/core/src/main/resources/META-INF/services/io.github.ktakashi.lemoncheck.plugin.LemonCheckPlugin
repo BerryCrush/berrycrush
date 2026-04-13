@@ -1,4 +1,0 @@
-io.github.ktakashi.lemoncheck.report.TextReportPlugin
-io.github.ktakashi.lemoncheck.report.JsonReportPlugin
-io.github.ktakashi.lemoncheck.report.XmlReportPlugin
-io.github.ktakashi.lemoncheck.report.JunitReportPlugin

@@ -10,13 +10,13 @@
 
 **Question**: How to implement a custom JUnit 5 TestEngine that discovers tests based on annotations rather than method scanning?
 
-**Decision**: Implement `org.junit.platform.engine.TestEngine` interface with custom discovery logic that scans for `@LemonCheckScenarios` annotated classes and resolves scenario files from the classpath.
+**Decision**: Implement `org.junit.platform.engine.TestEngine` interface with custom discovery logic that scans for `@BerryCrushScenarios` annotated classes and resolves scenario files from the classpath.
 
 **Rationale**:
 - JUnit Platform provides the `TestEngine` SPI for custom test frameworks
 - `EngineDiscoveryRequest` provides `ClassSelector` and `PackageSelector` for finding annotated classes
 - `TestDescriptor` hierarchy maps naturally to scenario files (engine → test class → scenario file)
-- The engine ID (`lemoncheck`) allows use with `@IncludeEngines("lemoncheck")` for selective execution
+- The engine ID (`berrycrush`) allows use with `@IncludeEngines("berrycrush")` for selective execution
 
 **Alternatives Considered**:
 - **JUnit Extension only**: Already exists in current codebase, but doesn't support `.scenario` file discovery from classpath; requires programmatic scenario definition
@@ -24,15 +24,15 @@
 
 **Implementation Notes**:
 ```kotlin
-class LemonCheckTestEngine : TestEngine {
-    override fun getId(): String = "lemoncheck"
+class BerryCrushTestEngine : TestEngine {
+    override fun getId(): String = "berrycrush"
     
     override fun discover(
         discoveryRequest: EngineDiscoveryRequest,
         uniqueId: UniqueId
     ): TestDescriptor {
         // 1. Create root descriptor
-        // 2. Find classes with @LemonCheckScenarios
+        // 2. Find classes with @BerryCrushScenarios
         // 3. For each class, resolve scenario files from locations
         // 4. Create ScenarioTestDescriptor for each file
     }
@@ -78,7 +78,7 @@ fun discoverScenarios(classLoader: ClassLoader, locationPattern: String): List<U
 
 **Question**: How to integrate with `@SpringBootTest` so scenarios can access running application context?
 
-**Decision**: The TestEngine should not directly depend on Spring. Instead, users provide bindings via `@LemonCheckConfiguration(bindings = ...)` that can access Spring's `@LocalServerPort` or `@Value` injected fields.
+**Decision**: The TestEngine should not directly depend on Spring. Instead, users provide bindings via `@BerryCrushConfiguration(bindings = ...)` that can access Spring's `@LocalServerPort` or `@Value` injected fields.
 
 **Rationale**:
 - Keeps engine free of Spring dependency (optional runtime dependency)
@@ -92,7 +92,7 @@ fun discoverScenarios(classLoader: ClassLoader, locationPattern: String): List<U
 **Implementation Notes**:
 ```java
 // User-provided bindings class (in test code)
-public class PetstoreBindings implements LemonCheckBindings {
+public class PetstoreBindings implements BerryCrushBindings {
     @LocalServerPort
     private int port;
     
@@ -104,9 +104,9 @@ public class PetstoreBindings implements LemonCheckBindings {
 
 // Test class
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-@IncludeEngines("lemoncheck")
-@LemonCheckScenarios(locations = "scenarios/*.scenario")
-@LemonCheckConfiguration(bindings = PetstoreBindings.class)
+@IncludeEngines("berrycrush")
+@BerryCrushScenarios(locations = "scenarios/*.scenario")
+@BerryCrushConfiguration(bindings = PetstoreBindings.class)
 class PetstoreScenarioTest {
 }
 ```
@@ -115,7 +115,7 @@ class PetstoreScenarioTest {
 
 ### 4. Configuration Annotation Design
 
-**Question**: What attributes should `@LemonCheckConfiguration` support?
+**Question**: What attributes should `@BerryCrushConfiguration` support?
 
 **Decision**: Support `bindings` (required for custom bindings), optional `openApiSpec` (override spec path), and optional `timeout` (per-scenario timeout).
 
@@ -132,8 +132,8 @@ class PetstoreScenarioTest {
 ```kotlin
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class LemonCheckConfiguration(
-    val bindings: KClass<out LemonCheckBindings> = DefaultBindings::class,
+annotation class BerryCrushConfiguration(
+    val bindings: KClass<out BerryCrushBindings> = DefaultBindings::class,
     val openApiSpec: String = "",
     val timeout: Long = 30_000L  // milliseconds
 )
@@ -162,7 +162,7 @@ dependencies {
     runtimeOnly("com.h2database:h2")
     
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation(project(":lemon-check:junit"))
+    testImplementation(project(":berrycrush:junit"))
 }
 ```
 
@@ -170,7 +170,7 @@ dependencies {
 
 ### 6. Backward Compatibility with Existing Extension
 
-**Question**: How to maintain backward compatibility with existing `LemonCheckExtension` while adding TestEngine?
+**Question**: How to maintain backward compatibility with existing `BerryCrushExtension` while adding TestEngine?
 
 **Decision**: Keep existing extension for programmatic DSL-based tests. TestEngine is a separate discovery mechanism for `.scenario` file-based tests. Both can coexist.
 
@@ -180,8 +180,8 @@ dependencies {
 - No breaking changes to existing API
 
 **Coexistence Strategy**:
-- Extension: `@ExtendWith(LemonCheckExtension::class)` + `ScenarioTest` base class
-- Engine: `@LemonCheckScenarios(locations = ...)` + `@IncludeEngines("lemoncheck")`
+- Extension: `@ExtendWith(BerryCrushExtension::class)` + `ScenarioTest` base class
+- Engine: `@BerryCrushScenarios(locations = ...)` + `@IncludeEngines("berrycrush")`
 
 ---
 

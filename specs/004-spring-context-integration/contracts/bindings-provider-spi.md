@@ -1,25 +1,25 @@
 # Contract: BindingsProvider SPI
 
-**Module**: lemon-check/junit  
-**Package**: io.github.ktakashi.lemoncheck.junit.spi
+**Module**: berrycrush/junit  
+**Package**: org.berrycrush.berrycrush.junit.spi
 
 ## Purpose
 
-Service Provider Interface allowing pluggable mechanisms for creating `LemonCheckBindings` instances. Enables Spring integration without coupling the junit module to Spring.
+Service Provider Interface allowing pluggable mechanisms for creating `BerryCrushBindings` instances. Enables Spring integration without coupling the junit module to Spring.
 
 ## Interface Definition
 
 ```kotlin
-package io.github.ktakashi.lemoncheck.junit.spi
+package org.berrycrush.berrycrush.junit.spi
 
-import io.github.ktakashi.lemoncheck.junit.LemonCheckBindings
+import org.berrycrush.berrycrush.junit.BerryCrushBindings
 
 /**
- * Service Provider Interface for creating LemonCheckBindings instances.
+ * Service Provider Interface for creating BerryCrushBindings instances.
  * 
  * Implementations are discovered via Java ServiceLoader.
  * When a test class is annotated with framework-specific annotations
- * (e.g., @LemonCheckContextConfiguration), the corresponding provider
+ * (e.g., @BerryCrushContextConfiguration), the corresponding provider
  * handles bindings creation with proper dependency injection.
  */
 interface BindingsProvider {
@@ -52,17 +52,17 @@ interface BindingsProvider {
     fun initialize(testClass: Class<*>)
     
     /**
-     * Creates a LemonCheckBindings instance for the given test class.
+     * Creates a BerryCrushBindings instance for the given test class.
      * 
      * @param testClass The test class being executed
-     * @param bindingsClass The bindings class to instantiate (from @LemonCheckConfiguration)
+     * @param bindingsClass The bindings class to instantiate (from @BerryCrushConfiguration)
      * @return The bindings instance
      * @throws IllegalStateException if bindings cannot be created
      */
     fun createBindings(
         testClass: Class<*>,
-        bindingsClass: Class<out LemonCheckBindings>
-    ): LemonCheckBindings
+        bindingsClass: Class<out BerryCrushBindings>
+    ): BerryCrushBindings
     
     /**
      * Cleans up resources after test execution completes.
@@ -81,18 +81,18 @@ interface BindingsProvider {
 Implementations must register via META-INF/services:
 
 ```text
-# File: META-INF/services/io.github.ktakashi.lemoncheck.junit.spi.BindingsProvider
-io.github.ktakashi.lemoncheck.spring.SpringBindingsProvider
+# File: META-INF/services/org.berrycrush.berrycrush.junit.spi.BindingsProvider
+org.berrycrush.berrycrush.spring.SpringBindingsProvider
 ```
 
 ## Default Behavior
 
-When no `BindingsProvider` supports a test class, `LemonCheckTestEngine` falls back to direct instantiation via reflection (existing behavior).
+When no `BindingsProvider` supports a test class, `BerryCrushTestEngine` falls back to direct instantiation via reflection (existing behavior).
 
 ## Lifecycle Sequence
 
 ```
-1. LemonCheckTestEngine.execute() starts
+1. BerryCrushTestEngine.execute() starts
 2. ServiceLoader discovers BindingsProvider implementations
 3. For each class descriptor:
    a. Find provider where supports(testClass) = true (highest priority)

@@ -1,6 +1,6 @@
-# LemonCheck Developer Guide
+# BerryCrush Developer Guide
 
-This guide provides comprehensive documentation for developers who want to understand, extend, or contribute to LemonCheck.
+This guide provides comprehensive documentation for developers who want to understand, extend, or contribute to BerryCrush.
 
 ## Table of Contents
 
@@ -14,7 +14,7 @@ This guide provides comprehensive documentation for developers who want to under
 
 ## Overview
 
-LemonCheck is an OpenAPI-driven BDD-style API testing library for Kotlin and Java. It enables developers to write human-readable test scenarios that are automatically validated against OpenAPI specifications.
+BerryCrush is an OpenAPI-driven BDD-style API testing library for Kotlin and Java. It enables developers to write human-readable test scenarios that are automatically validated against OpenAPI specifications.
 
 ## Key Technologies
 

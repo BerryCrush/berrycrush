@@ -30,4 +30,4 @@ spring:
 logging:
   level:
     org.springframework: INFO
-    io.github.ktakashi.samples.petstore: DEBUG
+    org.berrycrush.samples.petstore: DEBUG

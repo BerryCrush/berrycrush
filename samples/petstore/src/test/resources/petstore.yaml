@@ -1,10 +1,10 @@
 openapi: "3.0.3"
 info:
   title: Petstore API
-  description: A sample API for testing LemonCheck BDD scenarios
+  description: A sample API for testing BerryCrush BDD scenarios
   version: "1.0.0"
   contact:
-    name: LemonCheck Team
+    name: BerryCrush Team
 
 servers:
   - url: https://petstore.example.com/api/v1

@@ -1,28 +1,28 @@
 # Quickstart: Spring Context Integration
 
 **Feature**: 004-spring-context-integration  
-**Module**: lemon-check/spring
+**Module**: berrycrush/spring
 
 ## Goal
 
-Enable `@LocalServerPort` and `@Autowired` injection in lemon-check bindings classes when running scenario tests with Spring Boot.
+Enable `@LocalServerPort` and `@Autowired` injection in berrycrush bindings classes when running scenario tests with Spring Boot.
 
 ## Prerequisites
 
 - Spring Boot 3.x application
 - JUnit 5 test infrastructure
-- Existing lemon-check scenario files (`.scenario`)
+- Existing berrycrush scenario files (`.scenario`)
 
 ## Step 1: Add Dependency
 
-Add the lemon-check/spring module to your test dependencies:
+Add the berrycrush/spring module to your test dependencies:
 
 ```kotlin
 // build.gradle.kts
 dependencies {
-    testImplementation(project(":lemon-check:spring"))
+    testImplementation(project(":berrycrush:spring"))
     // or when published:
-    // testImplementation("io.github.ktakashi:lemon-check-spring:x.y.z")
+    // testImplementation("org.berrycrush:berrycrush-spring:x.y.z")
 }
 ```
 
@@ -33,7 +33,7 @@ Make your bindings class a Spring component with `@Lazy` for proper `@LocalServe
 ```java
 @Component
 @Lazy  // Required for @LocalServerPort - port is set after server starts
-public class MyBindings implements LemonCheckBindings {
+public class MyBindings implements BerryCrushBindings {
     
     @LocalServerPort
     private int port;
@@ -54,15 +54,15 @@ public class MyBindings implements LemonCheckBindings {
 
 ## Step 3: Configure Test Class
 
-Add `@LemonCheckContextConfiguration` alongside your existing annotations:
+Add `@BerryCrushContextConfiguration` alongside your existing annotations:
 
 ```java
 @Suite
-@IncludeEngines("lemoncheck")
+@IncludeEngines("berrycrush")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@LemonCheckContextConfiguration  // <-- Add this
-@LemonCheckScenarios(locations = "scenarios/*.scenario")
-@LemonCheckConfiguration(bindings = MyBindings.class, openApiSpec = "my-api.yaml")
+@BerryCrushContextConfiguration  // <-- Add this
+@BerryCrushScenarios(locations = "scenarios/*.scenario")
+@BerryCrushConfiguration(bindings = MyBindings.class, openApiSpec = "my-api.yaml")
 public class MyApiScenarioTest {
 }
 ```
@@ -80,18 +80,18 @@ The Spring application context starts before scenarios execute, and `@LocalServe
 ```java
 // src/test/java/com/example/PetstoreScenarioTest.java
 @Suite
-@IncludeEngines("lemoncheck")
+@IncludeEngines("berrycrush")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@LemonCheckContextConfiguration
-@LemonCheckScenarios(locations = "scenarios/*.scenario")
-@LemonCheckConfiguration(bindings = PetstoreBindings.class, openApiSpec = "petstore.yaml")
+@BerryCrushContextConfiguration
+@BerryCrushScenarios(locations = "scenarios/*.scenario")
+@BerryCrushConfiguration(bindings = PetstoreBindings.class, openApiSpec = "petstore.yaml")
 public class PetstoreScenarioTest {
 }
 
 // src/test/java/com/example/PetstoreBindings.java
 @Component
 @Lazy  // Required for @LocalServerPort timing
-public class PetstoreBindings implements LemonCheckBindings {
+public class PetstoreBindings implements BerryCrushBindings {
     
     @LocalServerPort
     private int port;
@@ -115,7 +115,7 @@ public class PetstoreBindings implements LemonCheckBindings {
 Ensure your test class has both annotations:
 ```java
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@LemonCheckContextConfiguration
+@BerryCrushContextConfiguration
 ```
 
 ### "Bindings not a Spring bean" Error
@@ -131,7 +131,7 @@ Verify `webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT` is set. With
 If you have a test marked `@Disabled("Requires Spring context integration")`:
 
 1. Remove `@Disabled` annotation
-2. Add `@LemonCheckContextConfiguration`
+2. Add `@BerryCrushContextConfiguration`
 3. Ensure bindings class has `@Component`
 4. Run tests
 

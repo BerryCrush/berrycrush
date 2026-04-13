@@ -1,10 +1,10 @@
-# AGENTS.md - LemonCheck Development Guide
+# AGENTS.md - BerryCrush Development Guide
 
-This document provides guidance for AI agents and developers working on the LemonCheck codebase.
+This document provides guidance for AI agents and developers working on the BerryCrush codebase.
 
 ## Project Overview
 
-LemonCheck is an OpenAPI-driven BDD-style API testing library for Kotlin and Java. It enables writing human-readable test scenarios that automatically validate APIs against their OpenAPI specifications.
+BerryCrush is an OpenAPI-driven BDD-style API testing library for Kotlin and Java. It enables writing human-readable test scenarios that automatically validate APIs against their OpenAPI specifications.
 
 ### Key Features
 - BDD-style test scenarios with Gherkin-like syntax
@@ -17,10 +17,10 @@ LemonCheck is an OpenAPI-driven BDD-style API testing library for Kotlin and Jav
 ## Module Structure
 
 ```
-lemon-check/
+berrycrush/
 ├── core/                    # Standalone execution engine
 │   ├── src/main/kotlin/
-│   │   └── io.github.ktakashi.lemoncheck/
+│   │   └── org.berrycrush.berrycrush/
 │   │       ├── config/      # Configuration classes
 │   │       ├── context/     # Execution context
 │   │       ├── executor/    # Scenario execution
@@ -60,7 +60,7 @@ samples/petstore/
 ├── src/test/resources/
 │   ├── scenarios/           # Test scenario files (.scenario)
 │   └── openapi.yaml         # OpenAPI specification
-└── lemoncheck/
+└── berrycrush/
     └── openapi/             # OpenAPI specs for tests
 ```
 
@@ -95,7 +95,7 @@ samples/petstore/
 ./gradlew test
 
 # Run specific module tests
-./gradlew :lemon-check:core:test
+./gradlew :berrycrush:core:test
 
 # Format code
 ./gradlew ktlintFormat
@@ -104,7 +104,7 @@ samples/petstore/
 ./gradlew ktlintCheck
 
 # Generate documentation
-./gradlew :lemon-check:doc:sphinx
+./gradlew :berrycrush:doc:sphinx
 ```
 
 ## Test Commands
@@ -175,6 +175,6 @@ docs: update developer guide with architecture diagram
 ## Related Documentation
 
 - **Kotlin Coding Guidelines**: See `.github/instructions/kotlin.instructions.md`
-- **Scenario Syntax**: See `.github/skills/lemoncheck/SKILL.md`
+- **Scenario Syntax**: See `.github/skills/berrycrush/SKILL.md`
 - **Developer Docs**: See `developer/` directory
 - **Architecture**: See `developer/architecture.md`

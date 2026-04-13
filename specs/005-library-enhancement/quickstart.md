@@ -5,7 +5,7 @@
 
 ## Overview
 
-This guide helps you quickly get started with the new lemon-check features:
+This guide helps you quickly get started with the new berrycrush features:
 - 🔌 **Plugin System** - Extend with lifecycle hooks
 - 🎯 **Custom Steps** - Define your own test steps
 - 📊 **Enhanced Reporting** - Detailed failure diagnostics
@@ -19,20 +19,20 @@ This guide helps you quickly get started with the new lemon-check features:
 
 **Option A: Configuration File**
 
-Create `src/test/resources/lemoncheck.properties`:
+Create `src/test/resources/berrycrush.properties`:
 
 ```properties
-lemoncheck.reports.enabled=text,json,junit
-lemoncheck.reports.outputDir=build/reports/lemoncheck
+berrycrush.reports.enabled=text,json,junit
+berrycrush.reports.outputDir=build/reports/berrycrush
 ```
 
 **Option B: Annotation**
 
 ```kotlin
 @Suite
-@IncludeEngines("lemoncheck")
-@LemonCheckScenarios(locations = "scenarios/*.scenario")
-@LemonCheckReports([ReportFormat.TEXT, ReportFormat.JSON, ReportFormat.JUNIT])
+@IncludeEngines("berrycrush")
+@BerryCrushScenarios(locations = "scenarios/*.scenario")
+@BerryCrushReports([ReportFormat.TEXT, ReportFormat.JSON, ReportFormat.JUNIT])
 class PetApiTest
 ```
 
@@ -67,7 +67,7 @@ Response:
 ### Step 1: Implement the Plugin Interface
 
 ```kotlin
-class LoggingPlugin : LemonCheckPlugin {
+class LoggingPlugin : BerryCrushPlugin {
     override val name: String = "Request Logger"
     override val priority: Int = 0
     
@@ -83,9 +83,9 @@ class LoggingPlugin : LemonCheckPlugin {
 
 ```kotlin
 @Suite
-@IncludeEngines("lemoncheck")
-@LemonCheckScenarios(locations = "scenarios/*.scenario")
-@LemonCheckConfiguration(
+@IncludeEngines("berrycrush")
+@BerryCrushScenarios(locations = "scenarios/*.scenario")
+@BerryCrushConfiguration(
     plugins = [LoggingPlugin::class]
 )
 class PetApiTest
@@ -143,7 +143,7 @@ class MathSteps {
 ### Step 2: Register Step Class
 
 ```kotlin
-@LemonCheckConfiguration(
+@BerryCrushConfiguration(
     stepClasses = [MathSteps::class]
 )
 class MathApiTest
@@ -192,7 +192,7 @@ val databaseSteps = steps {
 ### Step 2: Register DSL Steps
 
 ```kotlin
-@LemonCheckConfiguration(
+@BerryCrushConfiguration(
     stepRegistry = databaseSteps
 )
 class DatabaseTest
@@ -215,7 +215,7 @@ scenario: User management
 ### Create Testcontainers Plugin
 
 ```kotlin
-class PostgresPlugin : LemonCheckPlugin {
+class PostgresPlugin : BerryCrushPlugin {
     override val priority: Int = -100  // Start early
     override val name: String = "PostgreSQL Testcontainer"
     
@@ -240,7 +240,7 @@ class PostgresPlugin : LemonCheckPlugin {
 
 ```kotlin
 @SpringBootTest
-@LemonCheckConfiguration(
+@BerryCrushConfiguration(
     plugins = [PostgresPlugin::class]
 )
 class ApiWithDatabaseTest
@@ -282,8 +282,8 @@ class UserSteps(
 
 ```kotlin
 @SpringBootTest
-@LemonCheckContextConfiguration  // Enables Spring integration
-@LemonCheckScenarios(locations = "scenarios/*.scenario")
+@BerryCrushContextConfiguration  // Enables Spring integration
+@BerryCrushScenarios(locations = "scenarios/*.scenario")
 class DatabaseIntegrationTest
 ```
 
@@ -322,7 +322,7 @@ Documentation includes:
 ### Scenario: Test Logging + JUnit Reports for CI
 
 ```kotlin
-@LemonCheckConfiguration(
+@BerryCrushConfiguration(
     plugins = [LoggingPlugin::class],
     reports = [ReportFormat.JUNIT]
 )
@@ -331,7 +331,7 @@ Documentation includes:
 ### Scenario: Docker Setup + Custom Validation Steps
 
 ```kotlin
-@LemonCheckConfiguration(
+@BerryCrushConfiguration(
     plugins = [TestcontainersPlugin::class],
     stepClasses = [DatabaseValidationSteps::class]
 )
@@ -341,8 +341,8 @@ Documentation includes:
 
 ```kotlin
 @SpringBootTest
-@LemonCheckContextConfiguration
-@LemonCheckReports([
+@BerryCrushContextConfiguration
+@BerryCrushReports([
     ReportFormat.TEXT,
     ReportFormat.JSON,
     ReportFormat.JUNIT
@@ -353,29 +353,29 @@ Documentation includes:
 
 ## Configuration Reference
 
-### lemoncheck.properties
+### berrycrush.properties
 
 ```properties
 # Report formats
-lemoncheck.reports.enabled=text,json,xml,junit
-lemoncheck.reports.outputDir=build/reports/lemoncheck
+berrycrush.reports.enabled=text,json,xml,junit
+berrycrush.reports.outputDir=build/reports/berrycrush
 
 # Report options
-lemoncheck.reports.junit.includeSystemOut=true
-lemoncheck.reports.json.pretty=true
-lemoncheck.reports.text.color=true
+berrycrush.reports.junit.includeSystemOut=true
+berrycrush.reports.json.pretty=true
+berrycrush.reports.text.color=true
 
 # Plugin configuration
-lemoncheck.plugins.discovery.enabled=true
+berrycrush.plugins.discovery.enabled=true
 ```
 
-### lemoncheck.yml
+### berrycrush.yml
 
 ```yaml
-lemoncheck:
+berrycrush:
   reports:
     enabled: [text, json, junit]
-    outputDir: build/reports/lemoncheck
+    outputDir: build/reports/berrycrush
     formats:
       junit:
         includeSystemOut: true
@@ -423,7 +423,7 @@ lemoncheck:
 **Solution**: Check plugin priority and registration:
 
 ```kotlin
-class MyPlugin : LemonCheckPlugin {
+class MyPlugin : BerryCrushPlugin {
     override val priority: Int = 0  // Ensure priority is set
     override val name: String = "MyPlugin"  // For debugging
 }
@@ -437,7 +437,7 @@ class MyPlugin : LemonCheckPlugin {
 
 ```kotlin
 // Check step class is registered
-@LemonCheckConfiguration(
+@BerryCrushConfiguration(
     stepClasses = [MySteps::class]  // ← Ensure class is listed
 )
 ```
@@ -449,8 +449,8 @@ class MyPlugin : LemonCheckPlugin {
 **Solution**: Check output directory exists and is writable:
 
 ```bash
-mkdir -p build/reports/lemoncheck
-ls -la build/reports/lemoncheck/
+mkdir -p build/reports/berrycrush
+ls -la build/reports/berrycrush/
 ```
 
 ### Dependency Version Conflicts

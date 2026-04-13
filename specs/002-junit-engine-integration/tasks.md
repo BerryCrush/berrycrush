@@ -16,8 +16,8 @@
 **Purpose**: Project initialization and dependency configuration
 
 - [X] T001 Update gradle/libs.versions.toml with JUnit Platform Engine dependencies
-- [X] T002 Update lemon-check/junit/build.gradle.kts with JUnit Platform Engine API dependency
-- [X] T003 [P] Update samples/petstore/build.gradle.kts with Spring Boot 3.x, H2, JPA, and lemon-check-junit dependencies
+- [X] T002 Update berrycrush/junit/build.gradle.kts with JUnit Platform Engine API dependency
+- [X] T003 [P] Update samples/petstore/build.gradle.kts with Spring Boot 3.x, H2, JPA, and berrycrush-junit dependencies
 - [X] T004 [P] Create samples/petstore/src/main/resources/application.yaml with H2 and JPA configuration
 
 ---
@@ -28,9 +28,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [X] T005 Create LemonCheckBindings interface in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/LemonCheckBindings.kt
-- [X] T006 Create DefaultBindings implementation in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/DefaultBindings.kt
-- [X] T007 Create META-INF/services/org.junit.platform.engine.TestEngine service file in lemon-check/junit/src/main/resources/
+- [X] T005 Create BerryCrushBindings interface in berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/BerryCrushBindings.kt
+- [X] T006 Create DefaultBindings implementation in berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/DefaultBindings.kt
+- [X] T007 Create META-INF/services/org.junit.platform.engine.TestEngine service file in berrycrush/junit/src/main/resources/
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -38,44 +38,44 @@
 
 ## Phase 3: User Story 1 - Run Scenario Tests via JUnit Engine (Priority: P1) 🎯 MVP
 
-**Goal**: Implement custom JUnit 5 TestEngine that discovers and executes `.scenario` files based on `@LemonCheckScenarios` annotation
+**Goal**: Implement custom JUnit 5 TestEngine that discovers and executes `.scenario` files based on `@BerryCrushScenarios` annotation
 
-**Independent Test**: Create test class annotated with `@LemonCheckScenarios(locations = "scenarios/")`, run via JUnit Platform, verify scenario files are discovered and executed
+**Independent Test**: Create test class annotated with `@BerryCrushScenarios(locations = "scenarios/")`, run via JUnit Platform, verify scenario files are discovered and executed
 
 ### Implementation for User Story 1
 
-- [X] T008 [US1] Update @LemonCheckScenarios annotation with `locations` parameter in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/Annotations.kt
-- [X] T009 [US1] Create LemonCheckEngineDescriptor in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/engine/LemonCheckEngineDescriptor.kt
-- [X] T010 [US1] Create ClassTestDescriptor in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/engine/ClassTestDescriptor.kt
-- [X] T011 [US1] Create ScenarioTestDescriptor in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/engine/ScenarioTestDescriptor.kt
-- [X] T012 [US1] Implement ScenarioDiscovery for classpath .scenario file discovery in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/discovery/ScenarioDiscovery.kt
-- [X] T013 [US1] Implement LemonCheckTestEngine.discover() method in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/engine/LemonCheckTestEngine.kt
-- [X] T014 [US1] Implement LemonCheckTestEngine.execute() method in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/engine/LemonCheckTestEngine.kt
-- [X] T015 [US1] Add error handling for scenario parsing errors and missing files in LemonCheckTestEngine
-- [X] T016 [US1] Create integration test for basic scenario discovery in lemon-check/junit/src/test/kotlin/io/github/ktakashi/lemoncheck/junit/engine/LemonCheckTestEngineTest.kt
-- [X] T017 [US1] Add test scenario files for integration tests in lemon-check/junit/src/test/resources/scenarios/
+- [X] T008 [US1] Update @BerryCrushScenarios annotation with `locations` parameter in berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/Annotations.kt
+- [X] T009 [US1] Create BerryCrushEngineDescriptor in berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/engine/BerryCrushEngineDescriptor.kt
+- [X] T010 [US1] Create ClassTestDescriptor in berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/engine/ClassTestDescriptor.kt
+- [X] T011 [US1] Create ScenarioTestDescriptor in berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/engine/ScenarioTestDescriptor.kt
+- [X] T012 [US1] Implement ScenarioDiscovery for classpath .scenario file discovery in berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/discovery/ScenarioDiscovery.kt
+- [X] T013 [US1] Implement BerryCrushTestEngine.discover() method in berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/engine/BerryCrushTestEngine.kt
+- [X] T014 [US1] Implement BerryCrushTestEngine.execute() method in berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/engine/BerryCrushTestEngine.kt
+- [X] T015 [US1] Add error handling for scenario parsing errors and missing files in BerryCrushTestEngine
+- [X] T016 [US1] Create integration test for basic scenario discovery in berrycrush/junit/src/test/kotlin/io/github/ktakashi/berrycrush/junit/engine/BerryCrushTestEngineTest.kt
+- [X] T017 [US1] Add test scenario files for integration tests in berrycrush/junit/src/test/resources/scenarios/
 
-**Checkpoint**: JUnit engine discovers and executes `.scenario` files via `@LemonCheckScenarios` annotation
+**Checkpoint**: JUnit engine discovers and executes `.scenario` files via `@BerryCrushScenarios` annotation
 
 ---
 
 ## Phase 4: User Story 2 - Configure Scenario Execution (Priority: P2)
 
-**Goal**: Enable custom configuration of scenario execution via `@LemonCheckConfiguration` annotation with bindings support
+**Goal**: Enable custom configuration of scenario execution via `@BerryCrushConfiguration` annotation with bindings support
 
-**Independent Test**: Create test class with `@LemonCheckConfiguration(bindings = MyBindings.class)`, verify custom bindings are applied during scenario execution
+**Independent Test**: Create test class with `@BerryCrushConfiguration(bindings = MyBindings.class)`, verify custom bindings are applied during scenario execution
 
 ### Implementation for User Story 2
 
-- [X] T018 [US2] Create @LemonCheckConfiguration annotation in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/LemonCheckConfiguration.kt
-- [X] T019 [US2] Update ClassTestDescriptor to read @LemonCheckConfiguration annotation in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/engine/ClassTestDescriptor.kt
-- [X] T020 [US2] Implement bindings instantiation and validation in LemonCheckTestEngine
-- [X] T021 [US2] Integrate bindings with scenario execution context in LemonCheckTestEngine.execute()
-- [X] T022 [US2] Add timeout support from @LemonCheckConfiguration to scenario execution
+- [X] T018 [US2] Create @BerryCrushConfiguration annotation in berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/BerryCrushConfiguration.kt
+- [X] T019 [US2] Update ClassTestDescriptor to read @BerryCrushConfiguration annotation in berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/engine/ClassTestDescriptor.kt
+- [X] T020 [US2] Implement bindings instantiation and validation in BerryCrushTestEngine
+- [X] T021 [US2] Integrate bindings with scenario execution context in BerryCrushTestEngine.execute()
+- [X] T022 [US2] Add timeout support from @BerryCrushConfiguration to scenario execution
 - [X] T023 [US2] Add error handling for invalid or missing bindings class
-- [X] T024 [US2] Create integration test for custom bindings in lemon-check/junit/src/test/kotlin/io/github/ktakashi/lemoncheck/junit/engine/LemonCheckConfigurationTest.kt
+- [X] T024 [US2] Create integration test for custom bindings in berrycrush/junit/src/test/kotlin/io/github/ktakashi/berrycrush/junit/engine/BerryCrushConfigurationTest.kt
 
-**Checkpoint**: Custom bindings and configuration work via `@LemonCheckConfiguration` annotation
+**Checkpoint**: Custom bindings and configuration work via `@BerryCrushConfiguration` annotation
 
 ---
 
@@ -110,7 +110,7 @@
 
 ### Spring Boot Test Integration
 
-- [X] T042 [US3] Create PetstoreBindings class implementing LemonCheckBindings in samples/petstore/src/test/java/io/github/ktakashi/samples/petstore/PetstoreBindings.java
+- [X] T042 [US3] Create PetstoreBindings class implementing BerryCrushBindings in samples/petstore/src/test/java/io/github/ktakashi/samples/petstore/PetstoreBindings.java
 - [X] T043 [US3] Create PetstoreScenarioTest with @SpringBootTest and @IncludeEngines annotations in samples/petstore/src/test/java/io/github/ktakashi/samples/petstore/PetstoreScenarioTest.java
 - [X] T044 [US3] Add test data initialization in samples/petstore/src/test/resources/data.sql (if needed)
 - [X] T045 [US3] Verify all scenario tests pass with `./gradlew :samples:petstore:test`
@@ -124,7 +124,7 @@
 **Purpose**: Documentation, cleanup, and final verification
 
 - [X] T046 [P] Update quickstart.md with any adjustments from implementation
-- [X] T047 [P] Add KDoc/Javadoc to public API classes (annotations, LemonCheckBindings interface)
+- [X] T047 [P] Add KDoc/Javadoc to public API classes (annotations, BerryCrushBindings interface)
 - [X] T048 Run full test suite: `./gradlew test`
 - [ ] T049 Verify IDE integration (IntelliJ scenario test discovery and execution)
 
@@ -188,7 +188,7 @@ Polish (Phase 6)
 - **Phase 2**: Foundational
 - **Phase 3**: User Story 1 (JUnit Engine core)
 
-MVP delivers: Working JUnit 5 TestEngine that discovers and executes `.scenario` files via `@LemonCheckScenarios` annotation.
+MVP delivers: Working JUnit 5 TestEngine that discovers and executes `.scenario` files via `@BerryCrushScenarios` annotation.
 
 ### Incremental Delivery
 

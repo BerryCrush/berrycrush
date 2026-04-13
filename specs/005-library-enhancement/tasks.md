@@ -18,12 +18,12 @@
 
 **Purpose**: Project initialization and module structure
 
-- [X] T001 Create doc module structure at lemon-check/doc/ with src/sphinx/ and build/ directories
+- [X] T001 Create doc module structure at berrycrush/doc/ with src/sphinx/ and build/ directories
 - [X] T002 Add doc module to settings.gradle.kts
 - [X] T003 [P] Configure ktlint for doc module in doc/build.gradle.kts
-- [X] T004 [P] Create plugin package structure in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/plugin/
-- [X] T005 [P] Create step package structure in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/step/
-- [X] T006 [P] Create report package structure in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/report/
+- [X] T004 [P] Create plugin package structure in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/plugin/
+- [X] T005 [P] Create step package structure in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/step/
+- [X] T006 [P] Create report package structure in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/report/
 
 ---
 
@@ -33,17 +33,17 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [X] T007 Create base Plugin SPI interface in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/plugin/LemonCheckPlugin.kt
-- [X] T008 [P] Create ScenarioContext interface in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/plugin/ScenarioContext.kt  
-- [X] T009 [P] Create StepContext interface in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/plugin/StepContext.kt
-- [X] T010 [P] Create ScenarioResult interface in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/plugin/ScenarioResult.kt
-- [X] T011 [P] Create StepResult interface in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/plugin/StepResult.kt
-- [X] T012 [P] Create AssertionFailure data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/plugin/AssertionFailure.kt
-- [X] T013 Create PluginRegistry for managing plugin lifecycle in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/plugin/PluginRegistry.kt
+- [X] T007 Create base Plugin SPI interface in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/plugin/BerryCrushPlugin.kt
+- [X] T008 [P] Create ScenarioContext interface in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/plugin/ScenarioContext.kt  
+- [X] T009 [P] Create StepContext interface in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/plugin/StepContext.kt
+- [X] T010 [P] Create ScenarioResult interface in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/plugin/ScenarioResult.kt
+- [X] T011 [P] Create StepResult interface in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/plugin/StepResult.kt
+- [X] T012 [P] Create AssertionFailure data class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/plugin/AssertionFailure.kt
+- [X] T013 Create PluginRegistry for managing plugin lifecycle in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/plugin/PluginRegistry.kt
 - [X] T014 Implement plugin priority-based ordering in PluginRegistry
-- [X] T015 Create TestReport data model in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/report/TestReport.kt
-- [X] T016 [P] Create ScenarioReportEntry in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/report/ScenarioReportEntry.kt
-- [X] T017 [P] Create StepReportEntry in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/report/StepReportEntry.kt
+- [X] T015 Create TestReport data model in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/report/TestReport.kt
+- [X] T016 [P] Create ScenarioReportEntry in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/report/ScenarioReportEntry.kt
+- [X] T017 [P] Create StepReportEntry in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/report/StepReportEntry.kt
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -57,19 +57,19 @@
 
 ### Implementation for User Story 1
 
-- [X] T018 [P] [US1] Implement name-based plugin registration parser in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/plugin/PluginNameResolver.kt
+- [X] T018 [P] [US1] Implement name-based plugin registration parser in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/plugin/PluginNameResolver.kt
 - [X] T019 [P] [US1] Implement class-based plugin registration in PluginRegistry
-- [X] T020 [US1] Add plugin lifecycle event dispatch in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/engine/ScenarioExecutor.kt
+- [X] T020 [US1] Add plugin lifecycle event dispatch in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/engine/ScenarioExecutor.kt
 - [X] T021 [US1] Integrate plugin hooks into scenario start in ScenarioExecutor
 - [X] T022 [US1] Integrate plugin hooks into scenario end in ScenarioExecutor
 - [X] T023 [US1] Integrate plugin hooks into step start in StepExecutor
 - [X] T024 [US1] Integrate plugin hooks into step end in StepExecutor
 - [X] T025 [US1] Implement fail-fast exception handling for plugin errors in PluginRegistry
-- [X] T026 [US1] Add plugin registration annotations (@LemonCheckConfiguration) in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/annotations/LemonCheckConfiguration.kt
-- [X] T027 [US1] Process plugin registration from annotations in JUnit engine in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/engine/LemonCheckTestEngine.kt
-- [X] T028 [P] [US1] Create integration test for plugin lifecycle events in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/plugin/PluginLifecycleTest.kt
-- [X] T029 [P] [US1] Create test for priority-based plugin ordering in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/plugin/PluginPriorityTest.kt
-- [X] T030 [P] [US1] Create test for plugin exception handling in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/plugin/PluginExceptionTest.kt
+- [X] T026 [US1] Add plugin registration annotations (@BerryCrushConfiguration) in berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/annotations/BerryCrushConfiguration.kt
+- [X] T027 [US1] Process plugin registration from annotations in JUnit engine in berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/engine/BerryCrushTestEngine.kt
+- [X] T028 [P] [US1] Create integration test for plugin lifecycle events in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/plugin/PluginLifecycleTest.kt
+- [X] T029 [P] [US1] Create test for priority-based plugin ordering in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/plugin/PluginPriorityTest.kt
+- [X] T030 [P] [US1] Create test for plugin exception handling in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/plugin/PluginExceptionTest.kt
 
 **Checkpoint**: Plugin system fully functional - users can create and register plugins
 
@@ -83,24 +83,24 @@
 
 ### Implementation for User Story 2
 
-- [X] T031 [P] [US2] Enhance AssertionFailure to capture HTTP request snapshot in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/plugin/AssertionFailure.kt
+- [X] T031 [P] [US2] Enhance AssertionFailure to capture HTTP request snapshot in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/plugin/AssertionFailure.kt
 - [X] T032 [P] [US2] Enhance AssertionFailure to capture HTTP response snapshot
 - [X] T033 [P] [US2] Add diff calculation for AssertionFailure
-- [X] T034 [US2] Update assertion logic to populate expected/actual values in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/engine/AssertionExecutor.kt
-- [X] T035 [US2] Implement TextReportPlugin in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/report/TextReportPlugin.kt
-- [X] T036 [P] [US2] Implement JsonReportPlugin with JSON Schema 2020-12 in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/report/JsonReportPlugin.kt
-- [X] T037 [P] [US2] Implement XmlReportPlugin in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/report/XmlReportPlugin.kt
-- [X] T038 [P] [US2] Implement JunitReportPlugin in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/report/JunitReportPlugin.kt
-- [X] T039 [US2] Implement report format configuration parsing in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/config/ReportConfiguration.kt
-- [X] T040 [US2] Support lemoncheck.properties for report configuration
-- [X] T041 [US2] Support lemoncheck.yml for report configuration
-- [X] T042 [US2] Add @LemonCheckReports annotation for per-test overrides in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/annotations/LemonCheckReports.kt
+- [X] T034 [US2] Update assertion logic to populate expected/actual values in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/engine/AssertionExecutor.kt
+- [X] T035 [US2] Implement TextReportPlugin in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/report/TextReportPlugin.kt
+- [X] T036 [P] [US2] Implement JsonReportPlugin with JSON Schema 2020-12 in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/report/JsonReportPlugin.kt
+- [X] T037 [P] [US2] Implement XmlReportPlugin in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/report/XmlReportPlugin.kt
+- [X] T038 [P] [US2] Implement JunitReportPlugin in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/report/JunitReportPlugin.kt
+- [X] T039 [US2] Implement report format configuration parsing in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/config/ReportConfiguration.kt
+- [X] T040 [US2] Support berrycrush.properties for report configuration
+- [X] T041 [US2] Support berrycrush.yml for report configuration
+- [X] T042 [US2] Add @BerryCrushReports annotation for per-test overrides in berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/annotations/BerryCrushReports.kt
 - [X] T043 [US2] Process report format annotations in JUnit engine
 - [X] T044 [US2] Register default text report plugin
-- [X] T045 [P] [US2] Create test for text report output in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/report/TextReportPluginTest.kt
-- [X] T046 [P] [US2] Create test for JSON report schema validation in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/report/JsonReportPluginTest.kt
-- [X] T047 [P] [US2] Create test for JUnit XML format in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/report/JunitReportPluginTest.kt
-- [X] T048 [US2] Create integration test verifying failure details in all formats in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/report/ReportIntegrationTest.kt
+- [X] T045 [P] [US2] Create test for text report output in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/report/TextReportPluginTest.kt
+- [X] T046 [P] [US2] Create test for JSON report schema validation in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/report/JsonReportPluginTest.kt
+- [X] T047 [P] [US2] Create test for JUnit XML format in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/report/JunitReportPluginTest.kt
+- [X] T048 [US2] Create integration test verifying failure details in all formats in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/report/ReportIntegrationTest.kt
 
 **Checkpoint**: All report formats generate with detailed diagnostics
 
@@ -114,26 +114,26 @@
 
 ### Implementation for User Story 3
 
-- [X] T049 [P] [US3] Create @Step annotation in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/step/Step.kt
-- [X] T050 [P] [US3] Create StepRegistry interface in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/step/StepRegistry.kt
-- [X] T051 [US3] Implement StepMatcher for pattern matching in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/step/StepMatcher.kt  
+- [X] T049 [P] [US3] Create @Step annotation in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/step/Step.kt
+- [X] T050 [P] [US3] Create StepRegistry interface in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/step/StepRegistry.kt
+- [X] T051 [US3] Implement StepMatcher for pattern matching in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/step/StepMatcher.kt  
 - [X] T052 [US3] Implement parameter extraction for {int}, {string}, {word} placeholders
 - [X] T053 [US3] Implement parameter type conversion
-- [X] T054 [US3] Create annotation-based step scanner in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/step/AnnotationStepScanner.kt
-- [X] T055 [US3] Implement package-based step discovery in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/step/PackageStepScanner.kt
-- [X] T056 [US3] Create Kotlin DSL builder for step registration in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/step/StepDsl.kt
-- [X] T057 [US3] Add @LemonCheckConfiguration.stepClasses parameter
-- [X] T058 [US3] Add @LemonCheckConfiguration.stepPackages parameter
+- [X] T054 [US3] Create annotation-based step scanner in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/step/AnnotationStepScanner.kt
+- [X] T055 [US3] Implement package-based step discovery in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/step/PackageStepScanner.kt
+- [X] T056 [US3] Create Kotlin DSL builder for step registration in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/step/StepDsl.kt
+- [X] T057 [US3] Add @BerryCrushConfiguration.stepClasses parameter
+- [X] T058 [US3] Add @BerryCrushConfiguration.stepPackages parameter
 - [X] T059 [US3] Process stepClasses annotation parameter in JUnit engine
 - [X] T060 [US3] Process stepPackages annotation parameter in JUnit engine
 - [X] T061 [US3] Integrate custom steps with existing step execution in StepExecutor
 - [X] T062 [US3] Add custom step result integration with reporting
-- [X] T063 [US3] Enable Spring auto-discovery of @Step methods in @Component classes in lemon-check/spring/src/main/kotlin/io/github/ktakashi/lemoncheck/spring/SpringStepDiscovery.kt
-- [X] T064 [P] [US3] Create test for annotation-based step binding in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/step/AnnotationStepTest.kt
-- [X] T065 [P] [US3] Create test for registration API in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/step/RegistrationApiTest.kt
-- [X] T066 [P] [US3] Create test for Kotlin DSL builder in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/step/StepDslTest.kt
-- [X] T067 [P] [US3] Create test for package scanning in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/step/PackageScanningTest.kt
-- [X] T068 [US3] Create integration test for custom step execution in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/step/CustomStepIntegrationTest.kt
+- [X] T063 [US3] Enable Spring auto-discovery of @Step methods in @Component classes in berrycrush/spring/src/main/kotlin/io/github/ktakashi/berrycrush/spring/SpringStepDiscovery.kt
+- [X] T064 [P] [US3] Create test for annotation-based step binding in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/step/AnnotationStepTest.kt
+- [X] T065 [P] [US3] Create test for registration API in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/step/RegistrationApiTest.kt
+- [X] T066 [P] [US3] Create test for Kotlin DSL builder in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/step/StepDslTest.kt
+- [X] T067 [P] [US3] Create test for package scanning in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/step/PackageScanningTest.kt
+- [X] T068 [US3] Create integration test for custom step execution in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/step/CustomStepIntegrationTest.kt
 
 **Checkpoint**: All custom step binding mechanisms working
 
@@ -179,10 +179,10 @@
 ### Implementation for User Story 5
 
 - [X] T080 [P] [US5] Add Dokka plugin version 2.2.0 to root build.gradle.kts
-- [X] T081 [P] [US5] Configure Dokka in lemon-check/core/build.gradle.kts
-- [X] T082 [P] [US5] Configure Dokka in lemon-check/junit/build.gradle.kts
-- [X] T083 [P] [US5] Configure Dokka in lemon-check/spring/build.gradle.kts
-- [X] T084 [US5] Configure dokkaHtml task to output to lemon-check/doc/build/dokka/
+- [X] T081 [P] [US5] Configure Dokka in berrycrush/core/build.gradle.kts
+- [X] T082 [P] [US5] Configure Dokka in berrycrush/junit/build.gradle.kts
+- [X] T083 [P] [US5] Configure Dokka in berrycrush/spring/build.gradle.kts
+- [X] T084 [US5] Configure dokkaHtml task to output to berrycrush/doc/build/dokka/
 - [X] T085 [US5] Configure dokkaJavadoc task for Maven publishing
 - [X] T086 [US5] Create dokkaJavadocJar task in each library module
 - [X] T087 [US5] Configure maven-publish plugin in each library module
@@ -206,16 +206,16 @@
 
 ### Implementation for User Story 6
 
-- [X] T095 [US6] Add Sphinx configuration in lemon-check/doc/src/sphinx/conf.py
-- [X] T096 [US6] Create buildSphinx Gradle task in lemon-check/doc/build.gradle.kts
-- [X] T097 [P] [US6] Create index.rst in lemon-check/doc/src/sphinx/index.rst
-- [X] T098 [P] [US6] Create quickstart.rst based on quickstart.md in lemon-check/doc/src/sphinx/quickstart.rst
-- [X] T099 [P] [US6] Create tutorial.rst in lemon-check/doc/src/sphinx/tutorial.rst
-- [X] T100 [P] [US6] Create features/plugins.rst for plugin system guide in lemon-check/doc/src/sphinx/features/plugins.rst
-- [X] T101 [P] [US6] Create features/custom-steps.rst for custom steps guide in lemon-check/doc/src/sphinx/features/custom-steps.rst
-- [X] T102 [P] [US6] Create features/reporting.rst for reporting guide in lemon-check/doc/src/sphinx/features/reporting.rst
-- [X] T103 [P] [US6] Create migration.rst for migration guide in lemon-check/doc/src/sphinx/migration.rst
-- [X] T104 [P] [US6] Create troubleshooting.rst in lemon-check/doc/src/sphinx/troubleshooting.rst
+- [X] T095 [US6] Add Sphinx configuration in berrycrush/doc/src/sphinx/conf.py
+- [X] T096 [US6] Create buildSphinx Gradle task in berrycrush/doc/build.gradle.kts
+- [X] T097 [P] [US6] Create index.rst in berrycrush/doc/src/sphinx/index.rst
+- [X] T098 [P] [US6] Create quickstart.rst based on quickstart.md in berrycrush/doc/src/sphinx/quickstart.rst
+- [X] T099 [P] [US6] Create tutorial.rst in berrycrush/doc/src/sphinx/tutorial.rst
+- [X] T100 [P] [US6] Create features/plugins.rst for plugin system guide in berrycrush/doc/src/sphinx/features/plugins.rst
+- [X] T101 [P] [US6] Create features/custom-steps.rst for custom steps guide in berrycrush/doc/src/sphinx/features/custom-steps.rst
+- [X] T102 [P] [US6] Create features/reporting.rst for reporting guide in berrycrush/doc/src/sphinx/features/reporting.rst
+- [X] T103 [P] [US6] Create migration.rst for migration guide in berrycrush/doc/src/sphinx/migration.rst
+- [X] T104 [P] [US6] Create troubleshooting.rst in berrycrush/doc/src/sphinx/troubleshooting.rst
 - [X] T105 [US6] Link Dokka API docs from Sphinx documentation
 - [X] T106 [US6] Add code examples from quickstart.md to documentation
 - [X] T107 [US6] Test documentation build with ./gradlew buildSphinx
@@ -233,14 +233,14 @@
 
 ### Implementation for User Story 7
 
-- [X] T109 [P] [US7] Add KDoc comments to Plugin interfaces in lemon-check/core/
-- [X] T110 [P] [US7] Add KDoc comments to Step interfaces in lemon-check/core/
-- [X] T111 [P] [US7] Add KDoc comments to Report classes in lemon-check/core/
-- [X] T112 [P] [US7] Add KDoc comments to JUnit annotations in lemon-check/junit/
-- [X] T113 [P] [US7] Add KDoc comments to Spring integration classes in lemon-check/spring/
+- [X] T109 [P] [US7] Add KDoc comments to Plugin interfaces in berrycrush/core/
+- [X] T110 [P] [US7] Add KDoc comments to Step interfaces in berrycrush/core/
+- [X] T111 [P] [US7] Add KDoc comments to Report classes in berrycrush/core/
+- [X] T112 [P] [US7] Add KDoc comments to JUnit annotations in berrycrush/junit/
+- [X] T113 [P] [US7] Add KDoc comments to Spring integration classes in berrycrush/spring/
 - [X] T114 [US7] Configure dokkaHtmlMultiModule in root build.gradle.kts for aggregated docs
 - [X] T115 [US7] Run Dokka generation with ./gradlew dokkaHtmlMultiModule
-- [X] T116 [US7] Verify API docs are in lemon-check/doc/build/dokka/
+- [X] T116 [US7] Verify API docs are in berrycrush/doc/build/dokka/
 - [X] T117 [US7] Verify all public APIs are documented in generated HTML
 
 **Checkpoint**: API documentation generated and accessible
@@ -315,7 +315,7 @@
 # These can run in parallel:
 T018: PluginNameResolver.kt
 T019: PluginRegistry class-based registration
-T026: @LemonCheckConfiguration annotation
+T026: @BerryCrushConfiguration annotation
 # Then integrate into engine
 ```
 
@@ -431,7 +431,7 @@ With 3 developers:
 
 ## Notes
 
-- All paths relative to repository root (`/Users/yo32es/projects/lemon-check/`)
+- All paths relative to repository root (`/Users/yo32es/projects/berrycrush/`)
 - [P] = Parallelizable (different files, no blocking dependencies)
 - [US#] = User story mapping for traceability
 - Each user story is independently testable

@@ -118,5 +118,5 @@ The test `should parse scenario with extraction` fails because:
 
 ## References
 
-- Current Lexer implementation: `lemon-check/core/src/main/kotlin/.../scenario/Lexer.kt`
+- Current Lexer implementation: `berrycrush/core/src/main/kotlin/.../scenario/Lexer.kt`
 - Test failure trace: ParserTest.kt:60 in `should parse scenario with extraction`

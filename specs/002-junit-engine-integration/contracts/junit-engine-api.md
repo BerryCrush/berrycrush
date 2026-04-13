@@ -5,7 +5,7 @@
 
 ## Annotations
 
-### @LemonCheckScenarios
+### @BerryCrushScenarios
 
 Marks a test class for scenario file discovery and execution.
 
@@ -13,7 +13,7 @@ Marks a test class for scenario file discovery and execution.
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 @MustBeDocumented
-annotation class LemonCheckScenarios(
+annotation class BerryCrushScenarios(
     /**
      * Classpath locations to search for scenario files.
      * Supports glob patterns (e.g., "scenarios/*.scenario", "**/*.scenario").
@@ -25,14 +25,14 @@ annotation class LemonCheckScenarios(
 
 **Example Usage**:
 ```java
-@LemonCheckScenarios(locations = {"scenarios/pets/*.scenario", "scenarios/auth/*.scenario"})
+@BerryCrushScenarios(locations = {"scenarios/pets/*.scenario", "scenarios/auth/*.scenario"})
 public class PetApiTest {
 }
 ```
 
 ---
 
-### @LemonCheckConfiguration
+### @BerryCrushConfiguration
 
 Provides configuration options for scenario execution.
 
@@ -40,16 +40,16 @@ Provides configuration options for scenario execution.
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 @MustBeDocumented
-annotation class LemonCheckConfiguration(
+annotation class BerryCrushConfiguration(
     /**
-     * Class implementing LemonCheckBindings to provide runtime values.
+     * Class implementing BerryCrushBindings to provide runtime values.
      * Must have a no-arg constructor.
      */
-    val bindings: KClass<out LemonCheckBindings> = DefaultBindings::class,
+    val bindings: KClass<out BerryCrushBindings> = DefaultBindings::class,
     
     /**
      * Path to OpenAPI specification file.
-     * Overrides any spec discovery from @LemonCheckSpec.
+     * Overrides any spec discovery from @BerryCrushSpec.
      */
     val openApiSpec: String = "",
     
@@ -63,12 +63,12 @@ annotation class LemonCheckConfiguration(
 
 **Example Usage**:
 ```java
-@LemonCheckConfiguration(
+@BerryCrushConfiguration(
     bindings = MyCustomBindings.class,
     openApiSpec = "api/petstore.yaml",
     timeout = 60_000L
 )
-@LemonCheckScenarios(locations = "scenarios/*.scenario")
+@BerryCrushScenarios(locations = "scenarios/*.scenario")
 public class PetApiTest {
 }
 ```
@@ -77,12 +77,12 @@ public class PetApiTest {
 
 ## Interfaces
 
-### LemonCheckBindings
+### BerryCrushBindings
 
 Interface for providing runtime bindings to scenario execution.
 
 ```kotlin
-interface LemonCheckBindings {
+interface BerryCrushBindings {
     /**
      * Returns variable bindings available to scenarios.
      * Common bindings include baseUrl, authToken, etc.
@@ -105,7 +105,7 @@ interface LemonCheckBindings {
 
 **Example Implementation**:
 ```java
-public class PetstoreBindings implements LemonCheckBindings {
+public class PetstoreBindings implements BerryCrushBindings {
     @LocalServerPort
     private int port;
     
@@ -128,20 +128,20 @@ public class PetstoreBindings implements LemonCheckBindings {
 
 ## TestEngine SPI
 
-### LemonCheckTestEngine
+### BerryCrushTestEngine
 
 JUnit Platform TestEngine implementation.
 
 | Method | Description |
 |--------|-------------|
-| `getId(): String` | Returns `"lemoncheck"` |
+| `getId(): String` | Returns `"berrycrush"` |
 | `discover(request, uniqueId): TestDescriptor` | Discovers scenarios from annotated classes |
 | `execute(request)` | Executes discovered scenarios |
 
 **Service Registration**:
 ```text
 # META-INF/services/org.junit.platform.engine.TestEngine
-io.github.ktakashi.lemoncheck.junit.engine.LemonCheckTestEngine
+org.berrycrush.berrycrush.junit.engine.BerryCrushTestEngine
 ```
 
 ---
@@ -149,25 +149,25 @@ io.github.ktakashi.lemoncheck.junit.engine.LemonCheckTestEngine
 ## Test Descriptor Hierarchy
 
 ```text
-LemonCheckEngineDescriptor (root)
-    displayName: "LemonCheck"
-    uniqueId: [engine:lemoncheck]
+BerryCrushEngineDescriptor (root)
+    displayName: "BerryCrush"
+    uniqueId: [engine:berrycrush]
     │
     └── ClassTestDescriptor
             displayName: "PetApiTest"
-            uniqueId: [engine:lemoncheck]/[class:com.example.PetApiTest]
+            uniqueId: [engine:berrycrush]/[class:com.example.PetApiTest]
             │
             ├── ScenarioTestDescriptor
             │       displayName: "list-pets.scenario"
-            │       uniqueId: [engine:lemoncheck]/[class:...]/[scenario:list-pets]
+            │       uniqueId: [engine:berrycrush]/[class:...]/[scenario:list-pets]
             │
             ├── ScenarioTestDescriptor
             │       displayName: "create-pet.scenario"
-            │       uniqueId: [engine:lemoncheck]/[class:...]/[scenario:create-pet]
+            │       uniqueId: [engine:berrycrush]/[class:...]/[scenario:create-pet]
             │
             └── ScenarioTestDescriptor
                     displayName: "delete-pet.scenario"
-                    uniqueId: [engine:lemoncheck]/[class:...]/[scenario:delete-pet]
+                    uniqueId: [engine:berrycrush]/[class:...]/[scenario:delete-pet]
 ```
 
 ---
@@ -189,11 +189,11 @@ LemonCheckEngineDescriptor (root)
 ### Selective Engine Execution
 
 ```java
-// Run only lemoncheck scenarios
-@IncludeEngines("lemoncheck")
+// Run only berrycrush scenarios
+@IncludeEngines("berrycrush")
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-@LemonCheckScenarios(locations = "scenarios/*.scenario")
-@LemonCheckConfiguration(bindings = PetstoreBindings.class)
+@BerryCrushScenarios(locations = "scenarios/*.scenario")
+@BerryCrushConfiguration(bindings = PetstoreBindings.class)
 public class PetstoreScenarioTest {
 }
 ```
@@ -203,8 +203,8 @@ public class PetstoreScenarioTest {
 ```kotlin
 tasks.test {
     useJUnitPlatform {
-        // Optional: include only lemoncheck engine
-        includeEngines("lemoncheck")
+        // Optional: include only berrycrush engine
+        includeEngines("berrycrush")
     }
 }
 ```

@@ -1,6 +1,6 @@
-# Quickstart: LemonCheck
+# Quickstart: BerryCrush
 
-Get started with LemonCheck in 5 minutes.
+Get started with BerryCrush in 5 minutes.
 
 ## Prerequisites
 
@@ -15,8 +15,8 @@ Get started with LemonCheck in 5 minutes.
 **build.gradle.kts**:
 ```kotlin
 dependencies {
-    testImplementation("io.github.ktakashi.lemoncheck:lemon-check-core:1.0.0")
-    testImplementation("io.github.ktakashi.lemoncheck:lemon-check-junit:1.0.0")  // Optional: JUnit 5 integration
+    testImplementation("org.berrycrush.berrycrush:berrycrush-core:1.0.0")
+    testImplementation("org.berrycrush.berrycrush:berrycrush-junit:1.0.0")  // Optional: JUnit 5 integration
 }
 ```
 
@@ -86,13 +86,13 @@ components:
 
 **src/test/kotlin/PetstoreScenarios.kt**:
 ```kotlin
-import io.github.ktakashi.lemoncheck.dsl.*
+import org.berrycrush.berrycrush.dsl.*
 import org.junit.jupiter.api.Test
 import kotlin.time.Duration.Companion.seconds
 
 class PetstoreScenarios {
 
-    private val suite = lemonCheck("petstore.yaml") {
+    private val suite = berryCrush("petstore.yaml") {
         baseUrl = System.getenv("PETSTORE_URL") ?: "https://petstore.example.com/api/v1"
         timeout = 10.seconds
     }
@@ -243,7 +243,7 @@ fun `create pet with various inputs`() {
 
 ## 8. Text-Based Scenario Files (For Non-Technical Users)
 
-LemonCheck supports human-readable `.scenario` files that can be written by product owners, QA analysts, or business stakeholders without Kotlin knowledge.
+BerryCrush supports human-readable `.scenario` files that can be written by product owners, QA analysts, or business stakeholders without Kotlin knowledge.
 
 ### Create a Scenario File
 
@@ -279,13 +279,13 @@ Feature: Pet Store Customer Journey
 ### Run Scenario Files from Kotlin
 
 ```kotlin
-import io.github.ktakashi.lemoncheck.dsl.*
+import org.berrycrush.berrycrush.dsl.*
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.DynamicTest
 
 class PetstoreScenarioFileTests {
 
-    private val suite = lemonCheck("petstore.yaml") {
+    private val suite = berryCrush("petstore.yaml") {
         baseUrl = System.getenv("PETSTORE_URL")
         // Load all .scenario files from directory
         loadScenariosFrom("src/test/resources/scenarios/")
@@ -359,7 +359,7 @@ Use in scenarios:
 
 ## 9. Auto-Assertions (Zero Boilerplate Happy Path)
 
-LemonCheck automatically generates assertions from your OpenAPI spec. For happy path tests, you often need zero explicit assertions:
+BerryCrush automatically generates assertions from your OpenAPI spec. For happy path tests, you often need zero explicit assertions:
 
 ```kotlin
 // OpenAPI spec defines: GET /pets returns 200 with Pet[] schema
@@ -401,7 +401,7 @@ Test scenarios that span multiple services:
 
 ```kotlin
 // Multi-spec configuration
-val suite = lemonCheck {
+val suite = berryCrush {
     spec("petstore", "specs/petstore.yaml") {
         baseUrl = "https://petstore.example.com"
     }
@@ -460,7 +460,7 @@ Feature: Cross-Service Order Flow
 ## Configuration Options
 
 ```kotlin
-val suite = lemonCheck("spec.yaml") {
+val suite = berryCrush("spec.yaml") {
     // Override base URL
     baseUrl = "https://staging.api.example.com"
     

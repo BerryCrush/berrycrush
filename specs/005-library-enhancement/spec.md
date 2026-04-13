@@ -207,7 +207,7 @@ As a potential library user, I want clear licensing information so that I can ve
 - **FR-009**: System MUST capture and include actual input values when a validation fails
 - **FR-010**: System MUST capture and include expected values when a validation fails
 - **FR-011**: System MUST implement reporting as a plugin using the plugin mechanism
-- **FR-011a**: System MUST support configuration file/properties for specifying enabled report formats (e.g., `lemon-check.reports=text,junit,json`)
+- **FR-011a**: System MUST support configuration file/properties for specifying enabled report formats (e.g., `berrycrush.reports=text,junit,json`)
 - **FR-011b**: System MUST support annotation-based override of report formats for specific tests
 - **FR-012**: System MUST provide a text report format plugin (enabled by default)
 - **FR-013**: System MUST provide a JSON report format plugin

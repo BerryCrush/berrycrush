@@ -117,8 +117,8 @@ scenario: Tagged scenario
 
 **Tag Filtering** (JUnit):
 ```java
-@LemonCheckTags(exclude = {"ignore", "wip"})
-@LemonCheckTags(include = {"smoke"})
+@BerryCrushTags(exclude = {"ignore", "wip"})
+@BerryCrushTags(include = {"smoke"})
 ```
 
 ### 0.1. Feature Blocks
@@ -369,7 +369,7 @@ body: {"name": "Fluffy", "status": "available"}
 Variables are referenced using double curly braces: `{{variableName}}`
 
 **Sources:**
-1. Bindings (from `LemonCheckBindings.getBindings()`)
+1. Bindings (from `BerryCrushBindings.getBindings()`)
 2. Extracted values (from `extract`)
 3. Cross-scenario (when `shareVariablesAcrossScenarios: true`)
 4. Example rows (from `examples:` table)

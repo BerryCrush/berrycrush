@@ -1,6 +1,6 @@
 # Auto-Test Provider Extensibility
 
-LemonCheck's auto-test feature supports custom test providers through Java's ServiceLoader pattern. This allows users to add custom invalid request tests and security test payloads without modifying the core library.
+BerryCrush's auto-test feature supports custom test providers through Java's ServiceLoader pattern. This allows users to add custom invalid request tests and security test payloads without modifying the core library.
 
 ## Overview
 
@@ -50,8 +50,8 @@ Create a class implementing `InvalidTestProvider`:
 ```kotlin
 package com.example
 
-import io.github.ktakashi.lemoncheck.autotest.provider.InvalidTestProvider
-import io.github.ktakashi.lemoncheck.autotest.provider.InvalidTestValue
+import org.berrycrush.autotest.provider.InvalidTestProvider
+import org.berrycrush.autotest.provider.InvalidTestValue
 import io.swagger.v3.oas.models.media.Schema
 
 class NumericOverflowProvider : InvalidTestProvider {
@@ -87,9 +87,9 @@ Create a class implementing `SecurityTestProvider`:
 ```kotlin
 package com.example
 
-import io.github.ktakashi.lemoncheck.autotest.ParameterLocation
-import io.github.ktakashi.lemoncheck.autotest.provider.SecurityTestProvider
-import io.github.ktakashi.lemoncheck.autotest.provider.SecurityPayload
+import org.berrycrush.autotest.ParameterLocation
+import org.berrycrush.autotest.provider.SecurityTestProvider
+import org.berrycrush.autotest.provider.SecurityPayload
 
 class NoSqlInjectionProvider : SecurityTestProvider {
     // Unique identifier for excludes
@@ -121,12 +121,12 @@ class NoSqlInjectionProvider : SecurityTestProvider {
 
 Create a service configuration file in your project:
 
-**`src/main/resources/META-INF/services/io.github.ktakashi.lemoncheck.autotest.provider.InvalidTestProvider`**:
+**`src/main/resources/META-INF/services/org.berrycrush.autotest.provider.InvalidTestProvider`**:
 ```
 com.example.NumericOverflowProvider
 ```
 
-**`src/main/resources/META-INF/services/io.github.ktakashi.lemoncheck.autotest.provider.SecurityTestProvider`**:
+**`src/main/resources/META-INF/services/org.berrycrush.autotest.provider.SecurityTestProvider`**:
 ```
 com.example.NoSqlInjectionProvider
 ```

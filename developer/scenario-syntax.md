@@ -1,6 +1,6 @@
 # Scenario File Syntax
 
-This document defines the complete syntax for LemonCheck `.scenario` and `.fragment` files.
+This document defines the complete syntax for BerryCrush `.scenario` and `.fragment` files.
 
 ## File Types
 
@@ -111,17 +111,17 @@ feature: API Tests
 
 ### Tag Filtering with JUnit
 
-Use `@LemonCheckTags` annotation to filter scenarios:
+Use `@BerryCrushTags` annotation to filter scenarios:
 
 ```java
 // Exclude @ignore tagged scenarios
-@LemonCheckTags(exclude = {"ignore"})
+@BerryCrushTags(exclude = {"ignore"})
 
 // Only run @smoke tagged scenarios
-@LemonCheckTags(include = {"smoke"})
+@BerryCrushTags(include = {"smoke"})
 
 // Combine include and exclude
-@LemonCheckTags(include = {"api"}, exclude = {"slow", "wip"})
+@BerryCrushTags(include = {"api"}, exclude = {"slow", "wip"})
 ```
 
 ## Features and Background
@@ -715,7 +715,7 @@ Variables are referenced using double curly braces: `{{variableName}}`
 
 ### Sources
 
-1. **Bindings** - From `LemonCheckBindings.getBindings()`
+1. **Bindings** - From `BerryCrushBindings.getBindings()`
 2. **Extracted values** - From `extract $.path => varName`
 3. **Cross-scenario** - When `shareVariablesAcrossScenarios: true`
 4. **Example rows** - From `examples:` table

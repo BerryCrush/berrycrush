@@ -7,7 +7,7 @@ info:
     multi-host API testing where different services have different base URLs.
   version: "1.0.0"
   contact:
-    name: LemonCheck Team
+    name: BerryCrush Team
 
 servers:
   - url: https://auth.example.com/auth/api/v1

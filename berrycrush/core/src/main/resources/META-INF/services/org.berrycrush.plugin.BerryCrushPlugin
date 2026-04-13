@@ -1,0 +1,4 @@
+org.berrycrush.report.TextReportPlugin
+org.berrycrush.report.JsonReportPlugin
+org.berrycrush.report.XmlReportPlugin
+org.berrycrush.report.JunitReportPlugin

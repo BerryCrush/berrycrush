@@ -1,8 +1,8 @@
-# Lemon-Check
+# BerryCrush
 
 **BDD-style API testing framework for Java/Kotlin with OpenAPI integration**
 
-Lemon-Check enables you to write human-readable scenario files that test your REST APIs against their OpenAPI specifications. It integrates seamlessly with JUnit 5 and optionally with Spring Boot for dependency injection.
+BerryCrush enables you to write human-readable scenario files that test your REST APIs against their OpenAPI specifications. It integrates seamlessly with JUnit 5 and optionally with Spring Boot for dependency injection.
 
 ## Features
 
@@ -25,10 +25,10 @@ Lemon-Check enables you to write human-readable scenario files that test your RE
 ```kotlin
 // build.gradle.kts
 dependencies {
-    testImplementation("io.github.ktakashi:lemon-check-junit:1.0.0")
+    testImplementation("org.berrycrush:berrycrush-junit:1.0.0")
     
     // Optional: For Spring Boot integration
-    testImplementation("io.github.ktakashi:lemon-check-spring:1.0.0")
+    testImplementation("org.berrycrush:berrycrush-spring:1.0.0")
 }
 ```
 
@@ -70,15 +70,15 @@ scenario: Get pet by ID
 
 ```java
 @Suite
-@IncludeEngines("lemoncheck")
-@LemonCheckScenarios(locations = "scenarios/*.scenario")
-@LemonCheckConfiguration(bindings = PetBindings.class, openApiSpec = "petstore.yaml")
+@IncludeEngines("berrycrush")
+@BerryCrushScenarios(locations = "scenarios/*.scenario")
+@BerryCrushConfiguration(bindings = PetBindings.class, openApiSpec = "petstore.yaml")
 public class PetApiTest {
 }
 ```
 
 ```java
-public class PetBindings implements LemonCheckBindings {
+public class PetBindings implements BerryCrushBindings {
     
     @Override
     public Map<String, Object> getBindings() {
@@ -96,11 +96,11 @@ public class PetBindings implements LemonCheckBindings {
 
 ```java
 @Suite
-@IncludeEngines("lemoncheck")
+@IncludeEngines("berrycrush")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@LemonCheckContextConfiguration
-@LemonCheckScenarios(locations = "scenarios/*.scenario")
-@LemonCheckConfiguration(bindings = PetBindings.class, openApiSpec = "petstore.yaml")
+@BerryCrushContextConfiguration
+@BerryCrushScenarios(locations = "scenarios/*.scenario")
+@BerryCrushConfiguration(bindings = PetBindings.class, openApiSpec = "petstore.yaml")
 public class PetApiTest {
 }
 ```
@@ -108,7 +108,7 @@ public class PetApiTest {
 ```java
 @Component
 @Lazy  // Required for @LocalServerPort
-public class PetBindings implements LemonCheckBindings {
+public class PetBindings implements BerryCrushBindings {
     
     @LocalServerPort
     private int port;
@@ -357,9 +357,9 @@ call using auth ^login
 ### Fragments
 
 Create reusable steps in `.fragment` files. By default, fragments are discovered from
-`lemoncheck/fragments/*.fragment`:
+`berrycrush/fragments/*.fragment`:
 
-**lemoncheck/fragments/auth.fragment:**
+**berrycrush/fragments/auth.fragment:**
 ```
 fragment: authenticate
   given I have valid credentials
@@ -384,7 +384,7 @@ scenario: Authenticated API access
 Configure custom fragment locations (overriding defaults):
 
 ```java
-@LemonCheckScenarios(
+@BerryCrushScenarios(
     locations = {"scenarios/*.scenario"},
     fragments = {"auth/*.fragment", "common/*.fragment"}
 )
@@ -396,20 +396,20 @@ public class MyApiTest {
 
 | Module | Description |
 |--------|-------------|
-| `lemon-check/core` | Scenario parser, executor, assertions |
-| `lemon-check/junit` | JUnit 5 TestEngine integration |
-| `lemon-check/spring` | Spring TestContext integration |
-| `lemon-check/doc` | Sphinx documentation |
+| `berrycrush/core` | Scenario parser, executor, assertions |
+| `berrycrush/junit` | JUnit 5 TestEngine integration |
+| `berrycrush/spring` | Spring TestContext integration |
+| `berrycrush/doc` | Sphinx documentation |
 | `samples/petstore` | Complete working example |
 
 ## Annotations Reference
 
 | Annotation | Module | Purpose |
 |------------|--------|---------|
-| `@LemonCheckScenarios` | junit | Specify scenario and fragment file locations (defaults: `lemoncheck/scenarios/*.scenario`, `lemoncheck/fragments/*.fragment`) |
-| `@LemonCheckConfiguration` | junit | Configure bindings class and OpenAPI spec |
-| `@LemonCheckSpec` | junit | Specify additional OpenAPI specs |
-| `@LemonCheckContextConfiguration` | spring | Enable Spring context integration |
+| `@BerryCrushScenarios` | junit | Specify scenario and fragment file locations (defaults: `berrycrush/scenarios/*.scenario`, `berrycrush/fragments/*.fragment`) |
+| `@BerryCrushConfiguration` | junit | Configure bindings class and OpenAPI spec |
+| `@BerryCrushSpec` | junit | Specify additional OpenAPI specs |
+| `@BerryCrushContextConfiguration` | spring | Enable Spring context integration |
 
 ## Spring Integration Notes
 
@@ -420,7 +420,7 @@ When using `@LocalServerPort`, the bindings class must be annotated with `@Lazy`
 ```java
 @Component
 @Lazy  // Port is set after server starts
-public class MyBindings implements LemonCheckBindings {
+public class MyBindings implements BerryCrushBindings {
     @LocalServerPort
     private int port;
 }
@@ -453,8 +453,8 @@ samples/petstore/
 ## Building from Source
 
 ```bash
-git clone https://github.com/ktakashi/lemon-check.git
-cd lemon-check
+git clone https://github.com/ktakashi/berrycrush.git
+cd berrycrush
 ./gradlew build
 ```
 

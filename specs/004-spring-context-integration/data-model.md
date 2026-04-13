@@ -5,17 +5,17 @@
 
 ## Entities
 
-### LemonCheckContextConfiguration (Annotation)
+### BerryCrushContextConfiguration (Annotation)
 
-Annotation that marks a test class for Spring context integration with lemon-check scenarios.
+Annotation that marks a test class for Spring context integration with berrycrush scenarios.
 
 | Attribute | Type | Required | Description |
 |-----------|------|----------|-------------|
-| bindings | Class | No | The Spring-managed bindings class (defaults to class from @LemonCheckConfiguration) |
+| bindings | Class | No | The Spring-managed bindings class (defaults to class from @BerryCrushConfiguration) |
 
 **Relationships**:
 - Applied to test classes alongside `@SpringBootTest`
-- Works with existing `@LemonCheckScenarios` and `@LemonCheckConfiguration` annotations
+- Works with existing `@BerryCrushScenarios` and `@BerryCrushConfiguration` annotations
 
 **Constraints**:
 - Test class MUST have `@SpringBootTest` present
@@ -25,20 +25,20 @@ Annotation that marks a test class for Spring context integration with lemon-che
 
 ### BindingsProvider (Interface/SPI)
 
-Service Provider Interface for creating LemonCheckBindings instances.
+Service Provider Interface for creating BerryCrushBindings instances.
 
 | Method | Return Type | Description |
 |--------|-------------|-------------|
 | supports(Class<?> testClass) | boolean | Returns true if this provider can handle the test class |
 | priority() | int | Priority when multiple providers match (higher = preferred) |
-| createBindings(Class<?> testClass, Class<? extends LemonCheckBindings> bindingsClass) | LemonCheckBindings | Creates the bindings instance |
+| createBindings(Class<?> testClass, Class<? extends BerryCrushBindings> bindingsClass) | BerryCrushBindings | Creates the bindings instance |
 | initialize(Class<?> testClass) | void | Called before test execution to initialize context |
 | cleanup(Class<?> testClass) | void | Called after test execution to cleanup context |
 
 **Relationships**:
 - Discovered via Java ServiceLoader
 - Implemented by `SpringBindingsProvider` in spring module
-- Used by `LemonCheckTestEngine` during execution
+- Used by `BerryCrushTestEngine` during execution
 
 ---
 
@@ -52,7 +52,7 @@ Implementation of BindingsProvider that integrates with Spring TestContext.
 | testInstances | Map | Cache of test instances per test class |
 
 **State Transitions**:
-1. **Uninitialized** → `supports()` returns true for @LemonCheckContextConfiguration classes
+1. **Uninitialized** → `supports()` returns true for @BerryCrushContextConfiguration classes
 2. **Initialized** → `initialize()` creates TestContextManager, starts Spring context
 3. **Ready** → `createBindings()` retrieves bean from ApplicationContext
 4. **Cleaned** → `cleanup()` releases context following Spring semantics
@@ -61,7 +61,7 @@ Implementation of BindingsProvider that integrates with Spring TestContext.
 
 ### SpringContextAdapter (Internal)
 
-Bridge between LemonCheck engine and Spring TestContext framework.
+Bridge between BerryCrush engine and Spring TestContext framework.
 
 | Method | Description |
 |--------|-------------|
@@ -83,9 +83,9 @@ Bridge between LemonCheck engine and Spring TestContext framework.
 ┌──────────────────────────────┐
 │      Test Class              │
 │  @SpringBootTest             │
-│  @LemonCheckContextConfiguration
-│  @LemonCheckScenarios        │
-│  @LemonCheckConfiguration    │
+│  @BerryCrushContextConfiguration
+│  @BerryCrushScenarios        │
+│  @BerryCrushConfiguration    │
 └──────────────┬───────────────┘
                │ annotated with
                ▼
@@ -110,14 +110,14 @@ Bridge between LemonCheck engine and Spring TestContext framework.
 ┌──────────────────────────────┐              │
 │  Bindings Bean               │◄─────────────┘
 │  @Component                  │
-│  implements LemonCheckBindings│
+│  implements BerryCrushBindings│
 │  @LocalServerPort injected   │
 └──────────────────────────────┘
 ```
 
 ## Validation Rules
 
-1. **@LemonCheckContextConfiguration present** → Test class MUST also have @SpringBootTest
+1. **@BerryCrushContextConfiguration present** → Test class MUST also have @SpringBootTest
 2. **Bindings class** → MUST be discoverable as Spring bean (component scan or explicit config)
 3. **TestContextManager** → MUST be initialized before scenario execution
 4. **ApplicationContext** → MUST be available before createBindings() is called

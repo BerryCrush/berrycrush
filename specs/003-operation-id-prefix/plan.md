@@ -50,18 +50,18 @@ specs/003-operation-id-prefix/
 ### Source Code (repository root)
 
 ```text
-lemon-check/
+berrycrush/
 ├── core/
-│   ├── src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/
+│   ├── src/main/kotlin/io/github/ktakashi/berrycrush/scenario/
 │   │   ├── Lexer.kt      # PRIMARY: Add scanOperationId(), modify scanIdentifier()
 │   │   ├── Token.kt      # No changes needed (TokenType.OPERATION_ID already exists)
 │   │   └── Parser.kt     # OPTIONAL: Update to require OPERATION_ID for call target
-│   └── src/test/kotlin/io/github/ktakashi/lemoncheck/scenario/
+│   └── src/test/kotlin/io/github/ktakashi/berrycrush/scenario/
 │       ├── LexerTest.kt  # Update: Add ^prefix tests, modify existing OPERATION_ID tests
 │       └── ParserTest.kt # Fix: Update scenario inputs to use ^operationId syntax
 ```
 
-**Structure Decision**: Multi-module Gradle project with core (DSL/lexer/parser) and junit (test engine) modules. This feature affects only the `lemon-check/core` module.
+**Structure Decision**: Multi-module Gradle project with core (DSL/lexer/parser) and junit (test engine) modules. This feature affects only the `berrycrush/core` module.
 
 ## Constitution Check (Post-Design)
 

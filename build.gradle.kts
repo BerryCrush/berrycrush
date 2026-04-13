@@ -22,7 +22,7 @@ dependencyCheck {
 }
 
 allprojects {
-    group = "io.github.ktakashi.lemoncheck"
+    group = "org.berrycrush"
     version = version
 
     repositories {
@@ -53,6 +53,6 @@ subprojects {
 }
 dokka {
     dokkaPublications.html {
-        outputDirectory.set(file("lemon-check/doc/build/dokka"))
+        outputDirectory.set(file("berrycrush/doc/build/dokka"))
     }
 }

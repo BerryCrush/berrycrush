@@ -2,7 +2,7 @@
 applyTo: "*.kt"
 ---
 
-# Kotlin Best Practices for LemonCheck
+# Kotlin Best Practices for BerryCrush
 
 ## Technology Stack
 | Technology | Version | Notes |
@@ -129,9 +129,9 @@ For DSL builders, use `@DslMarker`:
 
 ```kotlin
 @DslMarker
-annotation class LemonCheckDsl
+annotation class BerryCrushDsl
 
-@LemonCheckDsl
+@BerryCrushDsl
 class ScenarioScope {
     // Prevents scope leakage
 }
@@ -159,7 +159,7 @@ Use specific exception types:
 class ConfigurationException(
     message: String,
     cause: Throwable? = null
-) : LemonCheckException(message, cause)
+) : BerryCrushException(message, cause)
 
 // GOOD: Descriptive error messages
 throw ConfigurationException(
@@ -244,7 +244,7 @@ runCatching { cleanup() }
 ./gradlew ktlintCheck
 
 # Check specific module
-./gradlew :lemon-check:core:ktlintCheck
+./gradlew :berrycrush:core:ktlintCheck
 ```
 
 ### Auto-Format Code
@@ -253,7 +253,7 @@ runCatching { cleanup() }
 ./gradlew ktlintFormat
 
 # Format specific module
-./gradlew :lemon-check:core:ktlintFormat
+./gradlew :berrycrush:core:ktlintFormat
 ```
 
 ### Before Every Commit
@@ -267,11 +267,11 @@ Always run ktlintFormat before committing:
 1. **No wildcard imports**
    ```kotlin
    // BAD
-   import io.github.ktakashi.lemoncheck.model.*
+   import org.berrycrush.model.*
    
    // GOOD
-   import io.github.ktakashi.lemoncheck.model.Scenario
-   import io.github.ktakashi.lemoncheck.model.Step
+   import org.berrycrush.model.Scenario
+   import org.berrycrush.model.Step
    ```
 
 2. **Consistent indentation (4 spaces)**
@@ -325,20 +325,20 @@ Avoid using fully qualified names in code. Use imports, and when there are name 
 
 ```kotlin
 // BAD: Fully qualified names in code
-private fun transform(branch: io.github.ktakashi.lemoncheck.scenario.ConditionBranch): io.github.ktakashi.lemoncheck.model.ConditionBranch {
-    return io.github.ktakashi.lemoncheck.model.ConditionBranch(...)
+private fun transform(branch: org.berrycrush.scenario.ConditionBranch): org.berrycrush.model.ConditionBranch {
+    return org.berrycrush.model.ConditionBranch(...)
 }
 
 // GOOD: Import with aliases for conflicting names
-import io.github.ktakashi.lemoncheck.model.ConditionBranch as ModelConditionBranch
-import io.github.ktakashi.lemoncheck.scenario.ConditionBranch as AstConditionBranch
+import org.berrycrush.model.ConditionBranch as ModelConditionBranch
+import org.berrycrush.scenario.ConditionBranch as AstConditionBranch
 
 private fun transform(branch: AstConditionBranch): ModelConditionBranch {
     return ModelConditionBranch(...)
 }
 
 // GOOD: When only one is used frequently, import the other with alias
-import io.github.ktakashi.lemoncheck.model.ConditionBranch as ModelConditionBranch
+import org.berrycrush.model.ConditionBranch as ModelConditionBranch
 
 // AstConditionBranch is in current package, so no import needed
 private fun transform(branch: ConditionBranch): ModelConditionBranch {

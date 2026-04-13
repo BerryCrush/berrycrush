@@ -1,4 +1,4 @@
-# Tasks: OpenAPI BDD Testing Library (LemonCheck)
+# Tasks: OpenAPI BDD Testing Library (BerryCrush)
 
 **Input**: Design documents from `/specs/001-openapi-bdd-testing/`
 **Prerequisites**: plan.md ✅, spec.md ✅, research.md ✅, data-model.md ✅, contracts/ ✅
@@ -16,9 +16,9 @@
 ## Path Conventions
 
 Multi-module Gradle project:
-- `lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/` - Core library
-- `lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/` - Core tests
-- `lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/` - JUnit integration
+- `berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/` - Core library
+- `berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/` - Core tests
+- `berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/` - JUnit integration
 - `samples/petstore/src/test/kotlin/` - Example scenarios
 
 ---
@@ -28,13 +28,13 @@ Multi-module Gradle project:
 **Purpose**: Initialize Gradle multi-module project structure with all dependencies
 
 - [x] T001 Create root build.gradle.kts with Kotlin 2.3.20 and Java 21 configuration
-- [x] T002 Create settings.gradle.kts with multi-module structure (lemon-check/core, lemon-check/junit, samples/petstore)
+- [x] T002 Create settings.gradle.kts with multi-module structure (berrycrush/core, berrycrush/junit, samples/petstore)
 - [x] T003 [P] Create gradle/libs.versions.toml with version catalog (swagger-parser 2.1.22, json-path 2.9.0, json-schema-validator 1.4.0, junit 5.10.x)
-- [x] T004 [P] Create lemon-check/core/build.gradle.kts with dependencies
-- [x] T005 [P] Create lemon-check/junit/build.gradle.kts with JUnit 5 dependencies
+- [x] T004 [P] Create berrycrush/core/build.gradle.kts with dependencies
+- [x] T005 [P] Create berrycrush/junit/build.gradle.kts with JUnit 5 dependencies
 - [x] T006 [P] Create samples/petstore/build.gradle.kts with test configuration
 - [x] T007 [P] Configure ktlint for code formatting in root build.gradle.kts
-- [x] T008 Create lemon-check/core/src/test/resources/petstore.yaml OpenAPI test fixture
+- [x] T008 Create berrycrush/core/src/test/resources/petstore.yaml OpenAPI test fixture
 
 **Checkpoint**: `./gradlew build` compiles successfully with empty modules ✅
 
@@ -48,41 +48,41 @@ Multi-module Gradle project:
 
 ### Core Models
 
-- [x] T009 [P] Create StepType enum in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/StepType.kt
-- [x] T010 [P] Create ResultStatus enum in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/ResultStatus.kt
-- [x] T011 [P] Create Scenario data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/Scenario.kt
-- [x] T012 [P] Create Step data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/Step.kt
-- [x] T013 [P] Create Extraction data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/Extraction.kt
-- [x] T014 [P] Create Assertion data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/Assertion.kt
-- [x] T015 [P] Create StepResult data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/StepResult.kt
-- [x] T016 [P] Create ScenarioResult data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/ScenarioResult.kt
-- [x] T017 [P] Create Configuration data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/config/Configuration.kt
+- [x] T009 [P] Create StepType enum in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/model/StepType.kt
+- [x] T010 [P] Create ResultStatus enum in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/model/ResultStatus.kt
+- [x] T011 [P] Create Scenario data class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/model/Scenario.kt
+- [x] T012 [P] Create Step data class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/model/Step.kt
+- [x] T013 [P] Create Extraction data class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/model/Extraction.kt
+- [x] T014 [P] Create Assertion data class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/model/Assertion.kt
+- [x] T015 [P] Create StepResult data class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/model/StepResult.kt
+- [x] T016 [P] Create ScenarioResult data class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/model/ScenarioResult.kt
+- [x] T017 [P] Create Configuration data class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/config/Configuration.kt
 
 ### OpenAPI Integration
 
-- [x] T018 Create OpenApiLoader class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/openapi/OpenApiLoader.kt (wraps Swagger Parser)
-- [x] T019 Create OperationResolver class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/openapi/OperationResolver.kt (resolves operationId to path+method)
-- [x] T020 Create SpecRegistry class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/openapi/SpecRegistry.kt (multi-spec support)
-- [x] T021 [P] Create unit tests for OpenApiLoader in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/openapi/OpenApiLoaderTest.kt
-- [x] T022 [P] Create unit tests for OperationResolver in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/openapi/OperationResolverTest.kt
+- [x] T018 Create OpenApiLoader class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/openapi/OpenApiLoader.kt (wraps Swagger Parser)
+- [x] T019 Create OperationResolver class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/openapi/OperationResolver.kt (resolves operationId to path+method)
+- [x] T020 Create SpecRegistry class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/openapi/SpecRegistry.kt (multi-spec support)
+- [x] T021 [P] Create unit tests for OpenApiLoader in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/openapi/OpenApiLoaderTest.kt
+- [x] T022 [P] Create unit tests for OperationResolver in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/openapi/OperationResolverTest.kt
 
 ### HTTP Execution Foundation
 
-- [x] T023 Create HttpRequestBuilder class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/executor/HttpRequestBuilder.kt (uses java.net.http.HttpClient)
-- [x] T024 Create ResponseHandler class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/executor/ResponseHandler.kt
-- [x] T025 [P] Create unit tests for HttpRequestBuilder in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/executor/HttpRequestBuilderTest.kt
+- [x] T023 Create HttpRequestBuilder class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/executor/HttpRequestBuilder.kt (uses java.net.http.HttpClient)
+- [x] T024 Create ResponseHandler class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/executor/ResponseHandler.kt
+- [x] T025 [P] Create unit tests for HttpRequestBuilder in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/executor/HttpRequestBuilderTest.kt
 
 ### Execution Context
 
-- [x] T026 Create ExecutionContext class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/context/ExecutionContext.kt
-- [x] T027 [P] Create unit tests for ExecutionContext in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/context/ExecutionContextTest.kt
+- [x] T026 Create ExecutionContext class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/context/ExecutionContext.kt
+- [x] T027 [P] Create unit tests for ExecutionContext in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/context/ExecutionContextTest.kt
 
 ### Error Handling
 
-- [x] T028 [P] Create LemonCheckException base class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/exception/Exceptions.kt
-- [x] T029 [P] Create OperationNotFoundException in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/exception/Exceptions.kt
-- [x] T030 [P] Create ExtractionException in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/exception/Exceptions.kt
-- [x] T031 [P] Create AssertionFailedException in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/exception/Exceptions.kt
+- [x] T028 [P] Create BerryCrushException base class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/exception/Exceptions.kt
+- [x] T029 [P] Create OperationNotFoundException in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/exception/Exceptions.kt
+- [x] T030 [P] Create ExtractionException in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/exception/Exceptions.kt
+- [x] T031 [P] Create AssertionFailedException in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/exception/Exceptions.kt
 
 **Checkpoint**: Foundation ready - all core models compiled, OpenAPI loading works, HTTP client configured ✅
 
@@ -96,36 +96,36 @@ Multi-module Gradle project:
 
 ### DSL Implementation for US1
 
-- [x] T032 [US1] Create @DslMarker annotation LemonCheckDsl in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/DslMarker.kt
-- [x] T033 [US1] Create LemonCheckSuite class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/LemonCheckSuite.kt
-- [x] T034 [US1] Create lemonCheck() entry point function in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/LemonCheckDsl.kt
-- [x] T035 [US1] Create ScenarioScope class with given/when/then functions in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/ScenarioScope.kt
-- [x] T036 [US1] Create StepScope class with call() function in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/StepScope.kt
-- [x] T037 [US1] Create CallScope class with pathParam/queryParam/header/body in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/CallScope.kt
+- [x] T032 [US1] Create @DslMarker annotation BerryCrushDsl in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/dsl/DslMarker.kt
+- [x] T033 [US1] Create BerryCrushSuite class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/dsl/BerryCrushSuite.kt
+- [x] T034 [US1] Create berryCrush() entry point function in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/dsl/BerryCrushDsl.kt
+- [x] T035 [US1] Create ScenarioScope class with given/when/then functions in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/dsl/ScenarioScope.kt
+- [x] T036 [US1] Create StepScope class with call() function in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/dsl/StepScope.kt
+- [x] T037 [US1] Create CallScope class with pathParam/queryParam/header/body in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/dsl/CallScope.kt
 
 ### Basic Assertions for US1
 
-- [x] T038 [US1] Implement statusCode() assertion in StepScope in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/StepScope.kt
+- [x] T038 [US1] Implement statusCode() assertion in StepScope in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/dsl/StepScope.kt
 - [x] T039 [US1] Implement bodyContains() assertion in StepScope
 - [x] T040 [US1] Implement bodyEquals() assertion using JSONPath in StepScope
 - [x] T041 [US1] Implement headerExists() and headerEquals() assertions in StepScope
 
 ### Scenario Execution for US1
 
-- [x] T042 [US1] Create ScenarioExecutor class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/executor/ScenarioExecutor.kt
+- [x] T042 [US1] Create ScenarioExecutor class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/executor/ScenarioExecutor.kt
 - [x] T043 [US1] Implement step-by-step execution with result tracking in ScenarioExecutor
-- [x] T044 [US1] Implement Scenario.run() extension function in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/ScenarioExtensions.kt
+- [x] T044 [US1] Implement Scenario.run() extension function in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/dsl/ScenarioExtensions.kt
 
 ### Reporting for US1
 
-- [x] T045 [US1] Create TestReporter interface in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/report/TestReporter.kt
-- [x] T046 [US1] Create ConsoleReporter implementation in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/report/ConsoleReporter.kt
+- [x] T045 [US1] Create TestReporter interface in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/report/TestReporter.kt
+- [x] T046 [US1] Create ConsoleReporter implementation in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/report/ConsoleReporter.kt
 
 ### Tests for US1
 
-- [x] T047 [P] [US1] Create DSL contract test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/dsl/LemonCheckDslTest.kt
-- [x] T048 [P] [US1] Create ScenarioExecutor unit test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/executor/ScenarioExecutorTest.kt
-- [x] T049 [US1] Create integration test with petstore.yaml in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/integration/SimpleScenarioIntegrationTest.kt
+- [x] T047 [P] [US1] Create DSL contract test in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/dsl/BerryCrushDslTest.kt
+- [x] T048 [P] [US1] Create ScenarioExecutor unit test in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/executor/ScenarioExecutorTest.kt
+- [x] T049 [US1] Create integration test with petstore.yaml in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/integration/SimpleScenarioIntegrationTest.kt
 
 **Checkpoint**: User Story 1 complete - can execute `scenario("name") { given { call("op") } then { statusCode(200) } }.run()` ✅
 
@@ -139,7 +139,7 @@ Multi-module Gradle project:
 
 ### Value Extraction for US2
 
-- [x] T050 [US2] Create ValueExtractor class using JSONPath in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/context/ValueExtractor.kt
+- [x] T050 [US2] Create ValueExtractor class using JSONPath in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/context/ValueExtractor.kt
 - [x] T051 [US2] Implement extractTo() function in StepScope for variable extraction
 - [x] T052 [US2] Implement context property in StepScope for variable access
 - [x] T053 [US2] Add variable interpolation support in CallScope (body, pathParam, etc.)
@@ -152,8 +152,8 @@ Multi-module Gradle project:
 
 ### Tests for US2
 
-- [x] T057 [P] [US2] Create ValueExtractor unit test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/context/ValueExtractorTest.kt
-- [x] T058 [US2] Create data flow integration test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/integration/DataFlowIntegrationTest.kt
+- [x] T057 [P] [US2] Create ValueExtractor unit test in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/context/ValueExtractorTest.kt
+- [x] T058 [US2] Create data flow integration test in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/integration/DataFlowIntegrationTest.kt
 
 **Checkpoint**: User Story 2 complete - `extractTo("id", "$.id")` then `pathParam("petId", context["id"])` works ✅
 
@@ -167,11 +167,11 @@ Multi-module Gradle project:
 
 ### Fragment DSL for US3
 
-- [x] T059 [US3] Create Fragment data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/Fragment.kt
-- [x] T060 [US3] Create FragmentScope class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/FragmentScope.kt
-- [x] T061 [US3] Create fragment() builder function in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/FragmentDsl.kt
+- [x] T059 [US3] Create Fragment data class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/model/Fragment.kt
+- [x] T060 [US3] Create FragmentScope class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/dsl/FragmentScope.kt
+- [x] T061 [US3] Create fragment() builder function in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/dsl/FragmentDsl.kt
 - [x] T062 [US3] Implement include() function in ScenarioScope
-- [x] T063 [US3] Implement Background support in LemonCheckSuite for shared setup
+- [x] T063 [US3] Implement Background support in BerryCrushSuite for shared setup
 
 ### Fragment Execution for US3
 
@@ -180,8 +180,8 @@ Multi-module Gradle project:
 
 ### Tests for US3
 
-- [x] T066 [P] [US3] Create Fragment DSL test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/dsl/FragmentDslTest.kt
-- [x] T067 [US3] Create fragment reuse integration test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/integration/FragmentIntegrationTest.kt
+- [x] T066 [P] [US3] Create Fragment DSL test in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/dsl/FragmentDslTest.kt
+- [x] T067 [US3] Create fragment reuse integration test in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/integration/FragmentIntegrationTest.kt
 
 **Checkpoint**: User Story 3 complete - `val authFragment = fragment("auth") { ... }; scenario { include(authFragment) }` works ✅
 
@@ -195,9 +195,9 @@ Multi-module Gradle project:
 
 ### Parameterization DSL for US4
 
-- [x] T068 [US4] Create ExampleRow data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/ExampleRow.kt
-- [x] T069 [US4] Create ScenarioOutlineScope class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/dsl/ScenarioOutlineScope.kt
-- [x] T070 [US4] Create scenarioOutline() builder function in LemonCheckSuite
+- [x] T068 [US4] Create ExampleRow data class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/model/ExampleRow.kt
+- [x] T069 [US4] Create ScenarioOutlineScope class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/dsl/ScenarioOutlineScope.kt
+- [x] T070 [US4] Create scenarioOutline() builder function in BerryCrushSuite
 - [x] T071 [US4] Implement examples() and row() functions in ScenarioOutlineScope
 - [x] T072 [US4] Add parameter placeholder substitution (<name> syntax) in step execution
 
@@ -209,8 +209,8 @@ Multi-module Gradle project:
 
 ### Tests for US4
 
-- [x] T076 [P] [US4] Create ScenarioOutline DSL test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/dsl/ScenarioOutlineDslTest.kt
-- [x] T077 [US4] Create parameterized scenario integration test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/integration/ParameterizedScenarioIntegrationTest.kt
+- [x] T076 [P] [US4] Create ScenarioOutline DSL test in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/dsl/ScenarioOutlineDslTest.kt
+- [x] T077 [US4] Create parameterized scenario integration test in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/integration/ParameterizedScenarioIntegrationTest.kt
 
 **Checkpoint**: User Story 4 complete - `scenarioOutline { examples(row(...), row(...)) }` generates multiple test runs ✅
 
@@ -224,23 +224,23 @@ Multi-module Gradle project:
 
 ### Schema Validation for US5
 
-- [x] T078 [US5] Create SchemaValidator class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/assertion/SchemaValidator.kt (uses networknt json-schema-validator)
-- [x] T079 [US5] Create ValidationError data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/ValidationError.kt
+- [x] T078 [US5] Create SchemaValidator class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/assertion/SchemaValidator.kt (uses networknt json-schema-validator)
+- [x] T079 [US5] Create ValidationError data class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/model/ValidationError.kt
 - [x] T080 [US5] Implement matchesSchema() assertion in StepScope
 - [x] T081 [US5] Add strict vs lenient validation modes to Configuration
 
 ### Auto-Assertions for US5
 
-- [x] T082 [US5] Create AssertionGenerator class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/assertion/AssertionGenerator.kt
+- [x] T082 [US5] Create AssertionGenerator class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/assertion/AssertionGenerator.kt
 - [x] T083 [US5] Implement auto-assertion extraction from OpenAPI responses (status code, schema, content-type)
 - [x] T084 [US5] Add autoAssert(Boolean) control in CallScope
 - [x] T085 [US5] Add autoAssertions configuration block in Configuration
 
 ### Tests for US5
 
-- [x] T086 [P] [US5] Create SchemaValidator unit test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/assertion/SchemaValidatorTest.kt
-- [x] T087 [P] [US5] Create AssertionGenerator unit test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/assertion/AssertionGeneratorTest.kt
-- [x] T088 [US5] Create schema validation integration test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/integration/SchemaValidationIntegrationTest.kt
+- [x] T086 [P] [US5] Create SchemaValidator unit test in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/assertion/SchemaValidatorTest.kt
+- [x] T087 [P] [US5] Create AssertionGenerator unit test in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/assertion/AssertionGeneratorTest.kt
+- [x] T088 [US5] Create schema validation integration test in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/integration/SchemaValidationIntegrationTest.kt
 
 **Checkpoint**: User Story 5 complete - `matchesSchema()` validates responses, auto-assertions derive from spec ✅
 
@@ -254,33 +254,33 @@ Multi-module Gradle project:
 
 ### Lexer & Parser
 
-- [x] T089 [P] Create Token types in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/Token.kt
-- [x] T090 [P] Create SourceLocation data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/SourceLocation.kt
-- [x] T091 [P] Create ParseError data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/ParseError.kt
-- [x] T092 Create Lexer class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/Lexer.kt
-- [x] T093 Create AST data classes (FeatureFile, Feature, Background, ParsedScenario, ParsedStep) in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/AstNodes.kt
-- [x] T094 Create Parser class (recursive descent) in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/Parser.kt
-- [x] T095 Create DirectiveType enum in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/Token.kt (TokenType enum)
-- [x] T096 Create StepDirective data class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/AstNodes.kt (ActionNode classes)
+- [x] T089 [P] Create Token types in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/scenario/Token.kt
+- [x] T090 [P] Create SourceLocation data class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/scenario/SourceLocation.kt
+- [x] T091 [P] Create ParseError data class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/scenario/ParseError.kt
+- [x] T092 Create Lexer class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/scenario/Lexer.kt
+- [x] T093 Create AST data classes (FeatureFile, Feature, Background, ParsedScenario, ParsedStep) in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/scenario/AstNodes.kt
+- [x] T094 Create Parser class (recursive descent) in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/scenario/Parser.kt
+- [x] T095 Create DirectiveType enum in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/scenario/Token.kt (TokenType enum)
+- [x] T096 Create StepDirective data class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/scenario/AstNodes.kt (ActionNode classes)
 
 ### Semantic Analysis
 
-- [x] T097 Create SemanticAnalyzer class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/ScenarioLoader.kt (integrated with loader)
-- [x] T098 Create AssertionParser class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/Parser.kt (parseAssertAction method)
+- [x] T097 Create SemanticAnalyzer class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/scenario/ScenarioLoader.kt (integrated with loader)
+- [x] T098 Create AssertionParser class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/scenario/Parser.kt (parseAssertAction method)
 
 ### Scenario Loading
 
-- [x] T099 Create ScenarioLoader class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/scenario/ScenarioLoader.kt
-- [x] T100 Implement loadScenariosFrom() function in LemonCheckSuite
-- [x] T101 Implement loadFragmentsFrom() function in LemonCheckSuite
+- [x] T099 Create ScenarioLoader class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/scenario/ScenarioLoader.kt
+- [x] T100 Implement loadScenariosFrom() function in BerryCrushSuite
+- [x] T101 Implement loadFragmentsFrom() function in BerryCrushSuite
 - [x] T102 Create AST to executable Scenario transformer
 
 ### Parser Tests
 
-- [x] T103 [P] Create Lexer unit tests in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/scenario/LexerTest.kt
-- [x] T104 [P] Create Parser unit tests in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/scenario/ParserTest.kt
-- [x] T105 [P] Create test fixtures in lemon-check/core/src/test/resources/scenarios/valid/ and invalid/
-- [x] T106 Create ScenarioLoader integration test in lemon-check/core/src/test/kotlin/io/github/ktakashi/lemoncheck/scenario/ScenarioLoaderTest.kt
+- [x] T103 [P] Create Lexer unit tests in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/scenario/LexerTest.kt
+- [x] T104 [P] Create Parser unit tests in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/scenario/ParserTest.kt
+- [x] T105 [P] Create test fixtures in berrycrush/core/src/test/resources/scenarios/valid/ and invalid/
+- [x] T106 Create ScenarioLoader integration test in berrycrush/core/src/test/kotlin/io/github/ktakashi/berrycrush/scenario/ScenarioLoaderTest.kt
 
 **Checkpoint**: `.scenario` files can be parsed and executed alongside Kotlin DSL scenarios ✅
 
@@ -292,14 +292,14 @@ Multi-module Gradle project:
 
 ### JUnit Extension
 
-- [x] T107 [P] Create LemonCheckExtension class in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/LemonCheckExtension.kt
-- [x] T108 [P] Create @LemonCheckSpec annotation in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/Annotations.kt
-- [x] T109 Create ScenarioTest base class in lemon-check/junit/src/main/kotlin/io/github/ktakashi/lemoncheck/junit/ScenarioTest.kt
+- [x] T107 [P] Create BerryCrushExtension class in berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/BerryCrushExtension.kt
+- [x] T108 [P] Create @BerryCrushSpec annotation in berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/Annotations.kt
+- [x] T109 Create ScenarioTest base class in berrycrush/junit/src/main/kotlin/io/github/ktakashi/berrycrush/junit/ScenarioTest.kt
 - [x] T110 Implement dynamic test generation from scenarios for @TestFactory
 
 ### JUnit Tests
 
-- [x] T111 [P] Create LemonCheckExtension tests in lemon-check/junit/src/test/kotlin/io/github/ktakashi/lemoncheck/junit/LemonCheckExtensionTest.kt
+- [x] T111 [P] Create BerryCrushExtension tests in berrycrush/junit/src/test/kotlin/io/github/ktakashi/berrycrush/junit/BerryCrushExtensionTest.kt
 
 **Checkpoint**: Scenarios can run as JUnit 5 tests with IDE integration ✅
 
@@ -329,8 +329,8 @@ Multi-module Gradle project:
 
 ### JSON Reporter
 
-- [x] T121 Create JsonReporter implementation in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/report/JsonReporter.kt
-- [x] T122 Create TestReport aggregation class in lemon-check/core/src/main/kotlin/io/github/ktakashi/lemoncheck/model/TestReport.kt
+- [x] T121 Create JsonReporter implementation in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/report/JsonReporter.kt
+- [x] T122 Create TestReport aggregation class in berrycrush/core/src/main/kotlin/io/github/ktakashi/berrycrush/model/TestReport.kt
 
 ### Multi-Spec Support Enhancement
 

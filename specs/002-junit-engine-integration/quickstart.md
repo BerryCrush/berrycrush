@@ -1,4 +1,4 @@
-# Quickstart: LemonCheck JUnit Engine
+# Quickstart: BerryCrush JUnit Engine
 
 **Feature**: 002-junit-engine-integration  
 **Date**: 2026-04-07
@@ -7,7 +7,7 @@
 
 - JDK 21 or later
 - Gradle 8.x or Maven 3.x
-- lemon-check library added to your project
+- berrycrush library added to your project
 
 ## Installation
 
@@ -15,7 +15,7 @@
 
 ```kotlin
 dependencies {
-    testImplementation("io.github.ktakashi:lemon-check-junit:0.1.0")
+    testImplementation("org.berrycrush:berrycrush-junit:0.1.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -28,8 +28,8 @@ tasks.test {
 
 ```xml
 <dependency>
-    <groupId>io.github.ktakashi</groupId>
-    <artifactId>lemon-check-junit</artifactId>
+    <groupId>org.berrycrush</groupId>
+    <artifactId>berrycrush-junit</artifactId>
     <version>0.1.0</version>
     <scope>test</scope>
 </dependency>
@@ -55,13 +55,13 @@ scenario: List all pets
 ### Step 2: Create Test Class
 
 ```java
-import io.github.ktakashi.lemoncheck.junit.LemonCheckScenarios;
+import org.berrycrush.berrycrush.junit.BerryCrushScenarios;
 import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.Suite;
 
 @Suite
-@IncludeEngines("lemoncheck")
-@LemonCheckScenarios(locations = "scenarios/*.scenario")
+@IncludeEngines("berrycrush")
+@BerryCrushScenarios(locations = "scenarios/*.scenario")
 public class PetApiTest {
     // No test methods needed - scenarios are discovered automatically
 }
@@ -79,12 +79,12 @@ For Spring Boot integration, the recommended approach is using the Kotlin DSL
 instead of text-based scenario files, as it allows proper dependency injection:
 
 ```kotlin
-import io.github.ktakashi.lemoncheck.junit.LemonCheckSpec
-import io.github.ktakashi.lemoncheck.junit.ScenarioTest
+import org.berrycrush.berrycrush.junit.BerryCrushSpec
+import org.berrycrush.berrycrush.junit.ScenarioTest
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 
-@LemonCheckSpec("petstore.yaml")
+@BerryCrushSpec("petstore.yaml")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class PetstoreKotlinTest : ScenarioTest() {
     
@@ -120,7 +120,7 @@ text-based scenario files with static configuration:
 
 ```kotlin
 dependencies {
-    testImplementation("io.github.ktakashi:lemon-check-junit:0.1.0")
+    testImplementation("org.berrycrush:berrycrush-junit:0.1.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -132,7 +132,7 @@ tasks.test {
 ### Step 2: Create Bindings Class
 
 ```java
-import io.github.ktakashi.lemoncheck.junit.LemonCheckBindings;
+import org.berrycrush.berrycrush.junit.BerryCrushBindings;
 import java.util.Map;
 
 /**
@@ -140,7 +140,7 @@ import java.util.Map;
  * Note: The JUnit engine instantiates this via no-arg constructor,
  * so Spring injection won't work here.
  */
-public class ApiBindings implements LemonCheckBindings {
+public class ApiBindings implements BerryCrushBindings {
     
     @Override
     public Map<String, Object> getBindings() {
@@ -154,15 +154,15 @@ public class ApiBindings implements LemonCheckBindings {
 ### Step 3: Create Test Class
 
 ```java
-import io.github.ktakashi.lemoncheck.junit.LemonCheckScenarios;
-import io.github.ktakashi.lemoncheck.junit.LemonCheckConfiguration;
+import org.berrycrush.berrycrush.junit.BerryCrushScenarios;
+import org.berrycrush.berrycrush.junit.BerryCrushConfiguration;
 import org.junit.platform.suite.api.IncludeEngines;
 import org.junit.platform.suite.api.Suite;
 
 @Suite
-@IncludeEngines("lemoncheck")
-@LemonCheckScenarios(locations = "scenarios/*.scenario")
-@LemonCheckConfiguration(bindings = ApiBindings.class, openApiSpec = "petstore.yaml")
+@IncludeEngines("berrycrush")
+@BerryCrushScenarios(locations = "scenarios/*.scenario")
+@BerryCrushConfiguration(bindings = ApiBindings.class, openApiSpec = "petstore.yaml")
 public class ApiScenarioTest {
     // Scenarios are discovered and executed automatically
 }
@@ -176,7 +176,7 @@ public class ApiScenarioTest {
 
 ## Configuration Options
 
-### @LemonCheckScenarios
+### @BerryCrushScenarios
 
 | Attribute | Type | Default | Description |
 |-----------|------|---------|-------------|
@@ -185,16 +185,16 @@ public class ApiScenarioTest {
 **Examples**:
 ```java
 // Single location
-@LemonCheckScenarios(locations = "scenarios/*.scenario")
+@BerryCrushScenarios(locations = "scenarios/*.scenario")
 
 // Multiple locations
-@LemonCheckScenarios(locations = {"scenarios/pets/*.scenario", "scenarios/auth/*.scenario"})
+@BerryCrushScenarios(locations = {"scenarios/pets/*.scenario", "scenarios/auth/*.scenario"})
 
 // Recursive search
-@LemonCheckScenarios(locations = "scenarios/**/*.scenario")
+@BerryCrushScenarios(locations = "scenarios/**/*.scenario")
 ```
 
-### @LemonCheckConfiguration
+### @BerryCrushConfiguration
 
 | Attribute | Type | Default | Description |
 |-----------|------|---------|-------------|
@@ -204,7 +204,7 @@ public class ApiScenarioTest {
 
 **Example**:
 ```java
-@LemonCheckConfiguration(
+@BerryCrushConfiguration(
     bindings = MyBindings.class,
     openApiSpec = "api/petstore.yaml",
     timeout = 60_000L
@@ -240,7 +240,7 @@ src/test/resources/
 
 1. Ensure bindings class has a public no-arg constructor
 2. For Spring Boot, make sure the class is in the component scan path
-3. Check that the class implements `LemonCheckBindings` interface
+3. Check that the class implements `BerryCrushBindings` interface
 
 ### Scenario parse errors
 

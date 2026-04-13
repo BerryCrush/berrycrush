@@ -7,7 +7,7 @@
 
 ## Summary
 
-Modernize and enhance the lemon-check BDD API testing library by adding:
+Modernize and enhance the berrycrush BDD API testing library by adding:
 1. Plugin system with lifecycle hooks (scenario/step start/end)
 2. Enhanced reporting with detailed failure diagnostics (text, JSON, XML, JUnit formats)
 3. Multiple custom step binding mechanisms (annotations, registration API, Kotlin DSL)
@@ -93,11 +93,11 @@ specs/005-library-enhancement/
 ### Source Code (repository root)
 
 ```text
-lemon-check/
+berrycrush/
 ├── core/                    # Core BDD engine (scenario parsing, execution)
 │   └── src/
 │       ├── main/kotlin/
-│       │   └── io/github/ktakashi/lemoncheck/
+│       │   └── io/github/ktakashi/berrycrush/
 │       │       ├── engine/          # Scenario execution engine
 │       │       ├── parser/          # Scenario file parser
 │       │       ├── plugin/          # NEW: Plugin SPI
@@ -110,7 +110,7 @@ lemon-check/
 ├── junit/                   # JUnit 5 Platform integration
 │   └── src/
 │       ├── main/kotlin/
-│       │   └── io/github/ktakashi/lemoncheck/junit/
+│       │   └── io/github/ktakashi/berrycrush/junit/
 │       │       ├── engine/          # JUnit TestEngine implementation
 │       │       └── annotations/     # Test annotations
 │       └── test/
@@ -118,7 +118,7 @@ lemon-check/
 ├── spring/                  # Spring Boot integration
 │   └── src/
 │       ├── main/kotlin/
-│       │   └── io/github/ktakashi/lemoncheck/spring/
+│       │   └── io/github/ktakashi/berrycrush/spring/
 │       │       ├── config/          # Spring configuration
 │       │       └── bindings/        # Spring-aware bindings
 │       └── test/
@@ -199,7 +199,7 @@ lemon-check/
 
 **Key Designs**:
 1. **Plugin System**:
-   - `LemonCheckPlugin` interface with 4 lifecycle hooks
+   - `BerryCrushPlugin` interface with 4 lifecycle hooks
    - Priority-based execution order (lower first) with registration fallback
    - Name-based registration: `"report:json:output.json"` with plugin name from `name` property
    - Class-based registration: `pluginClasses = [MyPlugin::class]`

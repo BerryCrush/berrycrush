@@ -1,12 +1,12 @@
 # Development Tools
 
-This document describes the tools and workflows used for developing LemonCheck.
+This document describes the tools and workflows used for developing BerryCrush.
 
 ## Build System
 
 ### Gradle
 
-LemonCheck uses Gradle with Kotlin DSL for build automation.
+BerryCrush uses Gradle with Kotlin DSL for build automation.
 
 **Gradle Version:** 8.x (via wrapper)
 
@@ -33,23 +33,23 @@ gradlew.bat <task>
 
 ```bash
 # Build specific module
-./gradlew :lemon-check:core:build
-./gradlew :lemon-check:junit:build
-./gradlew :lemon-check:spring:build
+./gradlew :berrycrush:core:build
+./gradlew :berrycrush:junit:build
+./gradlew :berrycrush:spring:build
 
 # Run specific module tests
-./gradlew :lemon-check:core:test
+./gradlew :berrycrush:core:test
 ./gradlew :samples:petstore:test
 
 # Run single test class
-./gradlew :lemon-check:core:test --tests "*.StepMatcherTest"
+./gradlew :berrycrush:core:test --tests "*.StepMatcherTest"
 ```
 
 ## Code Formatting
 
 ### ktlint
 
-LemonCheck uses [ktlint](https://pinterest.github.io/ktlint/) for Kotlin code formatting via the [ktlint-gradle](https://github.com/JLLeitschuh/ktlint-gradle) plugin.
+BerryCrush uses [ktlint](https://pinterest.github.io/ktlint/) for Kotlin code formatting via the [ktlint-gradle](https://github.com/JLLeitschuh/ktlint-gradle) plugin.
 
 **Version:** 14.0.1 (as configured in `build.gradle.kts`)
 
@@ -60,7 +60,7 @@ LemonCheck uses [ktlint](https://pinterest.github.io/ktlint/) for Kotlin code fo
 ./gradlew ktlintCheck
 
 # Check specific module
-./gradlew :lemon-check:core:ktlintCheck
+./gradlew :berrycrush:core:ktlintCheck
 ```
 
 #### Auto-Format Code
@@ -70,7 +70,7 @@ LemonCheck uses [ktlint](https://pinterest.github.io/ktlint/) for Kotlin code fo
 ./gradlew ktlintFormat
 
 # Format specific module
-./gradlew :lemon-check:core:ktlintFormat
+./gradlew :berrycrush:core:ktlintFormat
 ```
 
 #### ktlint Exit Codes
@@ -93,10 +93,10 @@ ktlint enforces the official Kotlin coding conventions:
 Example of well-formatted code:
 
 ```kotlin
-package io.github.ktakashi.lemoncheck.example
+package org.berrycrush.example
 
-import io.github.ktakashi.lemoncheck.model.Scenario
-import io.github.ktakashi.lemoncheck.model.Step
+import org.berrycrush.model.Scenario
+import org.berrycrush.model.Step
 
 class MyClass(
     private val name: String,
@@ -125,13 +125,13 @@ class MyClass(
 
 ### API Documentation (Dokka)
 
-LemonCheck uses [Dokka](https://kotlinlang.org/docs/dokka-introduction.html) for generating API documentation.
+BerryCrush uses [Dokka](https://kotlinlang.org/docs/dokka-introduction.html) for generating API documentation.
 
 ```bash
 # Generate HTML documentation
 ./gradlew dokkaHtml
 
-# Output: lemon-check/doc/build/dokka/
+# Output: berrycrush/doc/build/dokka/
 ```
 
 ### User Documentation (Sphinx)
@@ -139,7 +139,7 @@ LemonCheck uses [Dokka](https://kotlinlang.org/docs/dokka-introduction.html) for
 User documentation uses [Sphinx](https://www.sphinx-doc.org/).
 
 ```bash
-cd lemon-check/doc
+cd berrycrush/doc
 
 # Install dependencies (first time)
 pip install sphinx sphinx-rtd-theme
@@ -147,7 +147,7 @@ pip install sphinx sphinx-rtd-theme
 # Build HTML documentation
 make html
 
-# Output: lemon-check/doc/build/html/
+# Output: berrycrush/doc/build/html/
 ```
 
 ## Dependency Management
@@ -173,7 +173,7 @@ swagger-parser = { module = "io.swagger.parser.v3:swagger-parser", version.ref =
 ./gradlew dependencies
 
 # Show dependencies for specific configuration
-./gradlew :lemon-check:core:dependencies --configuration runtimeClasspath
+./gradlew :berrycrush:core:dependencies --configuration runtimeClasspath
 ```
 
 ### OWASP Dependency Check
@@ -199,7 +199,7 @@ Security vulnerability scanning is configured:
 ./gradlew test --info
 
 # Specific test
-./gradlew test --tests "*.LemonCheckDslTest"
+./gradlew test --tests "*.BerryCrushDslTest"
 
 # Re-run failed tests
 ./gradlew test --rerun
@@ -229,7 +229,7 @@ tasks.test {
 ### IntelliJ IDEA (Recommended)
 
 1. **Import Project**
-   - File → Open → Select `lemon-check` directory
+   - File → Open → Select `berrycrush` directory
    - Import as Gradle project
 
 2. **Configure JDK**
@@ -292,7 +292,7 @@ Types:
 
 Example:
 ```
-feat(junit): add support for @LemonCheckTimeout annotation
+feat(junit): add support for @BerryCrushTimeout annotation
 
 Allow per-class and per-method timeout configuration for scenarios.
 
@@ -426,6 +426,6 @@ if (!result.isSuccess) {
 
 ### Getting Help
 
-1. Check existing [GitHub Issues](https://github.com/ktakashi/lemon-check/issues)
+1. Check existing [GitHub Issues](https://github.com/ktakashi/berrycrush/issues)
 2. Review the [specifications](../specs/) for expected behavior
 3. Enable debug logging to trace issues

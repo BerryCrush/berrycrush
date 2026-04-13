@@ -1,5 +1,5 @@
 # Custom Step Demonstration
-# This scenario file demonstrates LemonCheck's custom step capability
+# This scenario file demonstrates BerryCrush's custom step capability
 # with user-defined step implementations.
 
 scenario: Custom steps with string parameters

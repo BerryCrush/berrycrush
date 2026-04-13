@@ -25,7 +25,7 @@ Follow-up TODOs: None
 ================================================================================
 -->
 
-# Lemon Check Constitution
+# BerryCrush Constitution
 
 ## Core Principles
 

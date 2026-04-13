@@ -5,7 +5,7 @@
 
 ## Summary
 
-Add Spring TestContext integration to the lemon-check JUnit engine, enabling bindings classes to receive Spring dependency injection (`@LocalServerPort`, `@Autowired`). The core problem is that `LemonCheckTestEngine.createBindings()` directly instantiates bindings classes via reflection, bypassing Spring. The solution introduces a `lemon-check/spring` module with `@LemonCheckContextConfiguration` annotation and a `SpringContextAdapter` that intercepts binding creation and retrieves beans from Spring's ApplicationContext.
+Add Spring TestContext integration to the berrycrush JUnit engine, enabling bindings classes to receive Spring dependency injection (`@LocalServerPort`, `@Autowired`). The core problem is that `BerryCrushTestEngine.createBindings()` directly instantiates bindings classes via reflection, bypassing Spring. The solution introduces a `berrycrush/spring` module with `@BerryCrushContextConfiguration` annotation and a `SpringContextAdapter` that intercepts binding creation and retrieves beans from Spring's ApplicationContext.
 
 ## Technical Context
 
@@ -17,7 +17,7 @@ Add Spring TestContext integration to the lemon-check JUnit engine, enabling bin
 **Project Type**: library  
 **Performance Goals**: N/A (test execution time not critical)  
 **Constraints**: Must not break existing non-Spring tests; must integrate with Spring TestContext caching  
-**Scale/Scope**: Integration module for Spring Boot + lemon-check  
+**Scale/Scope**: Integration module for Spring Boot + berrycrush  
 
 ## Constitution Check
 
@@ -26,7 +26,7 @@ Add Spring TestContext integration to the lemon-check JUnit engine, enabling bin
 | Principle | Status | Notes |
 |-----------|--------|-------|
 | I. Code Quality | ✅ PASS | Clean, documented Kotlin code following existing patterns |
-| II. User Experience | ✅ PASS | Single annotation entry point (`@LemonCheckContextConfiguration`) |
+| II. User Experience | ✅ PASS | Single annotation entry point (`@BerryCrushContextConfiguration`) |
 | III. Maintainability | ✅ PASS | Separate module with clear boundaries, depends only on junit module |
 | IV. Testing Standards | ✅ PASS | Validated via petstore sample test enablement |
 | V. Flexibility | ✅ PASS | Optional module; existing tests unaffected |
@@ -50,32 +50,32 @@ specs/004-spring-context-integration/
 ### Source Code (repository root)
 
 ```text
-lemon-check/
+berrycrush/
 ├── core/                       # Existing - no changes
 ├── junit/                      # Existing - add extension point
-│   └── src/main/kotlin/io/github/ktakashi/lemoncheck/junit/
+│   └── src/main/kotlin/io/github/ktakashi/berrycrush/junit/
 │       ├── engine/
-│       │   └── LemonCheckTestEngine.kt     # Add BindingsProvider SPI
+│       │   └── BerryCrushTestEngine.kt     # Add BindingsProvider SPI
 │       └── spi/
 │           └── BindingsProvider.kt         # NEW - SPI for custom bindings creation
 └── spring/                     # NEW MODULE
     ├── build.gradle.kts
     └── src/
-        ├── main/kotlin/io/github/ktakashi/lemoncheck/spring/
-        │   ├── LemonCheckContextConfiguration.kt   # Entry point annotation
+        ├── main/kotlin/io/github/ktakashi/berrycrush/spring/
+        │   ├── BerryCrushContextConfiguration.kt   # Entry point annotation
         │   ├── SpringBindingsProvider.kt           # SPI implementation
         │   └── SpringContextAdapter.kt             # TestContext bridge
         └── test/kotlin/
-            └── io/github/ktakashi/lemoncheck/spring/
+            └── io/github/ktakashi/berrycrush/spring/
                 └── SpringContextAdapterTest.kt
 
 samples/petstore/
 └── src/test/java/io/github/ktakashi/samples/petstore/
-    ├── PetstoreScenarioTest.java   # UPDATE: Remove @Disabled, add @LemonCheckContextConfiguration
+    ├── PetstoreScenarioTest.java   # UPDATE: Remove @Disabled, add @BerryCrushContextConfiguration
     └── PetstoreBindings.java       # UPDATE: Use @LocalServerPort injection
 ```
 
-**Structure Decision**: Add new `lemon-check/spring` submodule alongside existing `core` and `junit` modules. This keeps Spring-specific code isolated and optional.
+**Structure Decision**: Add new `berrycrush/spring` submodule alongside existing `core` and `junit` modules. This keeps Spring-specific code isolated and optional.
 
 ## Complexity Tracking
 
