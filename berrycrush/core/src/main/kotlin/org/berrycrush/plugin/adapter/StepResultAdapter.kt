@@ -19,6 +19,18 @@ class StepResultAdapter(
     override val duration: Duration
         get() = modelResult.duration
 
+    override val stepDescription: String
+        get() = modelResult.step.description
+
+    override val httpStatusCode: Int?
+        get() = modelResult.statusCode
+
+    override val responseBody: String?
+        get() = modelResult.responseBody
+
+    override val responseHeaders: Map<String, List<String>>
+        get() = modelResult.responseHeaders
+
     override val failure: AssertionFailure?
         get() =
             modelResult.assertionResults
