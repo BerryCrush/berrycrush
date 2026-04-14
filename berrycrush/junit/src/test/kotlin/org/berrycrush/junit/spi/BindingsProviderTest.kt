@@ -1,6 +1,6 @@
 package org.berrycrush.junit.spi
 
-import org.berrycrush.config.Configuration
+import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.junit.BerryCrushBindings
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -71,7 +71,7 @@ class BindingsProviderTest {
     private class TestBindings : BerryCrushBindings {
         override fun getBindings(): Map<String, Any> = mapOf("testKey" to "test-value")
 
-        override fun configure(config: Configuration) {}
+        override fun configure(config: BerryCrushConfiguration) {}
     }
 
     // Test classes for provider support checks

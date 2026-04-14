@@ -60,8 +60,7 @@ org.berrycrush.dsl
 │   ├── bearerToken(token)
 │   ├── basicAuth(user, pass)
 │   └── apiKey(key)
-├── FragmentScope               # DSL scope for fragments
-└── ScenarioExtensions          # Extension functions for DSL
+└── FragmentScope               # DSL scope for fragments
 ```
 
 ### Scenario Parsing
@@ -200,10 +199,7 @@ org.berrycrush.report
 ├── TestReport                  # Report data model
 ├── ScenarioReportEntry         # Scenario in report
 ├── StepReportEntry             # Step in report
-├── TestSummaryBuilder          # Builds test summary
-├── TestReporter                # Interface for reporters
-├── ConsoleReporter             # Console output reporter
-└── JsonReporter                # JSON reporter implementation
+└── TestSummaryBuilder          # Builds test summary
 ```
 
 ### Configuration

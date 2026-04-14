@@ -1,6 +1,6 @@
 package org.berrycrush.junit.engine
 
-import org.berrycrush.config.Configuration
+import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.junit.BerryCrushBindings
 import org.berrycrush.junit.BerryCrushConfiguration
 import org.junit.jupiter.api.Test
@@ -55,7 +55,7 @@ class TestBindings : BerryCrushBindings {
 
     override fun getOpenApiSpec(): String = "custom-spec.yaml"
 
-    override fun configure(config: Configuration) {
+    override fun configure(config: BerryCrushConfiguration) {
         config.baseUrl = "http://localhost:8080"
     }
 }

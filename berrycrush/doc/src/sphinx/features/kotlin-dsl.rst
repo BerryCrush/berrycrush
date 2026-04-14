@@ -580,6 +580,143 @@ CallScope
 | ``autoAssert(enabled)``        | Enable/disable auto-assertions                 |
 +--------------------------------+------------------------------------------------+
 
+JUnit 5 Integration with BerryCrushExtension
+--------------------------------------------
+
+For JUnit 5 tests, ``BerryCrushExtension`` provides dependency injection of the suite,
+configuration, and executor. This is the recommended approach for integrating with JUnit 5.
+
+Basic Usage
+^^^^^^^^^^^
+
+.. code-block:: kotlin
+
+    import org.berrycrush.junit.BerryCrushExtension
+    import org.berrycrush.junit.BerryCrushSpec
+    import org.junit.jupiter.api.Test
+    import org.junit.jupiter.api.extension.ExtendWith
+
+    @ExtendWith(BerryCrushExtension::class)
+    @BerryCrushSpec("petstore.yaml", baseUrl = "http://localhost:8080/api")
+    class PetApiTest {
+        @Test
+        fun `list all pets`(
+            suite: BerryCrushSuite,
+            executor: BerryCrushScenarioExecutor,
+        ) {
+            val scenario = suite.scenario("List all pets") {
+                `when`("I request all pets") {
+                    call("listPets")
+                }
+                then("I get a successful response") {
+                    statusCode(200)
+                }
+            }
+
+            val result = executor.execute(scenario)
+            assertEquals(ResultStatus.PASSED, result.status)
+        }
+    }
+
+Spring Boot with Dynamic Port
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When using Spring Boot's random port, inject ``BerryCrushConfiguration`` in ``@BeforeEach``
+to set the ``baseUrl`` dynamically. Inject ``BerryCrushSuite`` and ``BerryCrushScenarioExecutor``
+directly in ``@Test`` methods:
+
+.. code-block:: kotlin
+
+    import org.berrycrush.config.BerryCrushConfiguration
+    import org.berrycrush.dsl.BerryCrushSuite
+    import org.berrycrush.executor.BerryCrushScenarioExecutor
+    import org.berrycrush.junit.BerryCrushExtension
+    import org.berrycrush.junit.BerryCrushSpec
+    import org.junit.jupiter.api.*
+    import org.junit.jupiter.api.extension.ExtendWith
+    import org.springframework.boot.test.context.SpringBootTest
+    import org.springframework.boot.test.web.server.LocalServerPort
+
+    @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    @ExtendWith(BerryCrushExtension::class)
+    @BerryCrushSpec("classpath:/petstore.yaml")
+    class PetApiTest {
+        @LocalServerPort
+        private var port: Int = 0
+
+        @BeforeEach
+        fun setup(config: BerryCrushConfiguration) {
+            // Set dynamic port - Configuration is shared, changes affect executor
+            config.baseUrl = "http://localhost:$port/api"
+        }
+
+        @Test
+        fun `list all pets`(
+            suite: BerryCrushSuite,
+            executor: BerryCrushScenarioExecutor,
+        ) {
+            val scenario = suite.scenario("List all pets") {
+                `when`("I request all pets") {
+                    call("listPets")
+                }
+                then("I get a successful response") {
+                    statusCode(200)
+                }
+            }
+
+            val result = executor.execute(scenario)
+            assertEquals(ResultStatus.PASSED, result.status)
+        }
+    }
+
+Nested Test Classes
+^^^^^^^^^^^^^^^^^^^
+
+``BerryCrushExtension`` automatically shares the suite with ``@Nested`` inner classes.
+Configuration set in the outer class's ``@BeforeEach`` is inherited by nested classes:
+
+.. code-block:: kotlin
+
+    @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+    @ExtendWith(BerryCrushExtension::class)
+    @BerryCrushSpec("classpath:/petstore.yaml")
+    class PetApiTest {
+        @LocalServerPort
+        private var port: Int = 0
+
+        @BeforeEach
+        fun setup(config: BerryCrushConfiguration) {
+            config.baseUrl = "http://localhost:$port/api"
+        }
+
+        @Nested
+        inner class GetPets {
+            @Test
+            fun `should return list`(
+                suite: BerryCrushSuite,
+                executor: BerryCrushScenarioExecutor,
+            ) {
+                val scenario = suite.scenario("List pets") { ... }
+                val result = executor.execute(scenario)
+                assertEquals(ResultStatus.PASSED, result.status)
+            }
+        }
+    }
+
+Supported Parameter Types
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The extension can inject the following types into ``@BeforeEach`` or ``@Test`` methods:
+
+- ``BerryCrushSuite``: The test suite containing the OpenAPI spec
+- ``BerryCrushConfiguration``: Configuration object for setting ``baseUrl``, ``timeout``, etc.
+- ``BerryCrushScenarioExecutor``: Executor for running scenarios
+
+.. note::
+    The ``BerryCrushConfiguration`` object is shared between the suite and executor.
+    Changes to the configuration affect the executor, even after the executor is created.
+
 See Also
 --------
 

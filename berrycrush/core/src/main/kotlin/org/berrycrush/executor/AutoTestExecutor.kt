@@ -2,7 +2,7 @@ package org.berrycrush.executor
 
 import org.berrycrush.autotest.AutoTestCase
 import org.berrycrush.autotest.AutoTestGenerator
-import org.berrycrush.config.Configuration
+import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.model.Assertion
 import org.berrycrush.model.AssertionResult
@@ -38,7 +38,7 @@ import java.time.Instant
  */
 class AutoTestExecutor(
     private val specRegistry: SpecRegistry,
-    private val configuration: Configuration,
+    private val configuration: BerryCrushConfiguration,
     private val httpBuilder: HttpRequestBuilder,
     private val assertionRunner: (HttpResponse<String>, List<Assertion>, ExecutionContext) -> List<AssertionResult>,
     private val paramResolver: (Map<String, Any>, ExecutionContext) -> Map<String, Any>,
@@ -63,7 +63,7 @@ class AutoTestExecutor(
         step: Step,
         context: ExecutionContext,
         stepStartTime: Instant,
-        listener: ExecutionListener = ExecutionListener.NOOP,
+        listener: BerryCrushExecutionListener = BerryCrushExecutionListener.NOOP,
     ): StepResult {
         val autoTestConfig = step.autoTestConfig!!
         val operationId = step.operationId!!

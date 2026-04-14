@@ -2,7 +2,7 @@ package org.berrycrush.integration
 
 import org.berrycrush.assertion.SchemaValidator
 import org.berrycrush.config.AutoAssertionConfig
-import org.berrycrush.config.Configuration
+import org.berrycrush.config.BerryCrushConfiguration
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -158,7 +158,7 @@ class SchemaValidationIntegrationTest {
     @Test
     fun `should handle configuration with auto assertions enabled`() {
         val config =
-            Configuration(
+            BerryCrushConfiguration(
                 autoAssertions =
                     AutoAssertionConfig(
                         enabled = true,
@@ -177,7 +177,7 @@ class SchemaValidationIntegrationTest {
     @Test
     fun `should support strict validation mode`() {
         val config =
-            Configuration(
+            BerryCrushConfiguration(
                 strictSchemaValidation = true,
             )
 

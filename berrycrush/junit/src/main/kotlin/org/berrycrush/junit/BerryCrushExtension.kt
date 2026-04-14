@@ -1,9 +1,9 @@
 package org.berrycrush.junit
 
-import org.berrycrush.config.Configuration
+import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.dsl.BerryCrushSuite
 import org.berrycrush.exception.ConfigurationException
-import org.berrycrush.executor.ScenarioExecutor
+import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.model.Scenario
 import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
@@ -20,23 +20,69 @@ import java.util.stream.Stream
  * This extension integrates BerryCrush scenarios with JUnit 5's test framework,
  * enabling scenario execution as JUnit tests with full IDE and CI support.
  *
- * Usage:
+ * The extension creates a [BerryCrushSuite] in `beforeAll` and the
+ * [BerryCrushScenarioExecutor] is created lazily when first requested. This allows
+ * configuration changes (e.g., dynamic port from Spring Boot's `@LocalServerPort`)
+ * to be applied before the executor is created.
+ *
+ * ## Usage with static configuration
+ *
  * ```kotlin
  * @ExtendWith(BerryCrushExtension::class)
- * @BerryCrushSpec("api-spec.yaml")
- * class ApiTest : ScenarioTest() {
- *     override fun defineScenarios() {
- *         scenario("List pets") {
- *             `when`("I list all pets") {
- *                 call("listPets")
- *             }
- *             then("I get a list of pets") {
- *                 statusCode(200)
- *             }
- *         }
+ * @BerryCrushSpec("api-spec.yaml", baseUrl = "http://localhost:8080")
+ * class ApiTest {
+ *     @Test
+ *     fun testApi(
+ *         suite: BerryCrushSuite,
+ *         executor: BerryCrushScenarioExecutor,
+ *     ) {
+ *         val scenario = suite.scenario("Test") { ... }
+ *         val result = executor.execute(scenario)
  *     }
  * }
  * ```
+ *
+ * ## Usage with dynamic configuration (e.g., Spring Boot)
+ *
+ * For Spring Boot tests with random ports, inject config in `@BeforeEach` and
+ * suite/executor in `@Test` methods:
+ *
+ * ```kotlin
+ * @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+ * @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+ * @ExtendWith(BerryCrushExtension::class)
+ * @BerryCrushSpec("classpath:/api-spec.yaml")
+ * class ApiTest {
+ *     @LocalServerPort
+ *     private var port: Int = 0
+ *
+ *     @BeforeEach
+ *     fun setup(config: BerryCrushConfiguration) {
+ *         // Set dynamic port - Configuration is shared, changes affect executor
+ *         config.baseUrl = "http://localhost:$port/api"
+ *     }
+ *
+ *     @Test
+ *     fun testApi(
+ *         suite: BerryCrushSuite,
+ *         executor: BerryCrushScenarioExecutor,
+ *     ) {
+ *         val scenario = suite.scenario("Test") { ... }
+ *         val result = executor.execute(scenario)
+ *     }
+ * }
+ * ```
+ *
+ * ## Nested Test Classes
+ *
+ * The extension automatically shares the suite with `@Nested` inner test classes.
+ * Configuration set in the outer class's `@BeforeEach` is inherited by nested classes.
+ *
+ * ## Supported Parameter Types
+ *
+ * - [BerryCrushSuite]: The test suite containing the OpenAPI spec
+ * - [BerryCrushConfiguration]: Configuration object for setting baseUrl, timeout, etc.
+ * - [BerryCrushScenarioExecutor]: Executor for running scenarios
  */
 class BerryCrushExtension :
     BeforeAllCallback,
@@ -47,9 +93,18 @@ class BerryCrushExtension :
         private val NAMESPACE = ExtensionContext.Namespace.create(BerryCrushExtension::class.java)
         private const val SUITE_KEY = "berryCrushSuite"
         private const val EXECUTOR_KEY = "scenarioExecutor"
+        private const val CLASSPATH_PREFIX = "classpath:"
     }
 
     override fun beforeAll(context: ExtensionContext) {
+        // Check if parent context already has a suite (for nested test classes)
+        val parentSuite = findParentSuite(context)
+        if (parentSuite != null) {
+            // Nested class - reuse parent's suite
+            context.getStore(NAMESPACE).put(SUITE_KEY, parentSuite)
+            return
+        }
+
         val testClass = context.requiredTestClass
         val specAnnotation = testClass.getAnnotation(BerryCrushSpec::class.java)
 
@@ -57,24 +112,58 @@ class BerryCrushExtension :
 
         // Load spec from annotation
         specAnnotation?.paths?.forEach { path ->
-            suite.spec(path)
+            val resolvedPath = resolvePath(path, testClass)
+            suite.spec(resolvedPath)
         }
 
-        // Apply configuration
+        // Apply initial configuration from annotation
         specAnnotation?.baseUrl?.takeIf { it.isNotBlank() }?.let {
             suite.configuration.baseUrl = it
         }
 
         context.getStore(NAMESPACE).put(SUITE_KEY, suite)
+    }
 
-        // Create executor
-        val executor = ScenarioExecutor(suite.specRegistry, suite.configuration)
-        context.getStore(NAMESPACE).put(EXECUTOR_KEY, executor)
+    /**
+     * Resolve a spec path, supporting both file paths and classpath resources.
+     *
+     * Paths prefixed with `classpath:` are resolved from the test class's classloader.
+     * Example: `classpath:/petstore.yaml` or `classpath:specs/api.yaml`
+     */
+    private fun resolvePath(path: String, testClass: Class<*>): String {
+        if (!path.startsWith(CLASSPATH_PREFIX)) {
+            return path
+        }
+
+        val resourcePath = path.removePrefix(CLASSPATH_PREFIX)
+        val resource = testClass.getResource(resourcePath)
+            ?: testClass.classLoader.getResource(resourcePath.removePrefix("/"))
+            ?: throw ConfigurationException(
+                "Classpath resource not found: $resourcePath. " +
+                "Make sure the file exists in src/test/resources or src/main/resources."
+            )
+
+        return resource.path
+    }
+
+    /**
+     * Find parent context's suite for nested test classes.
+     */
+    private fun findParentSuite(context: ExtensionContext): BerryCrushSuite? {
+        var parent = context.parent.orElse(null)
+        while (parent != null) {
+            val suite = parent.getStore(NAMESPACE).get(SUITE_KEY, BerryCrushSuite::class.java)
+            if (suite != null) return suite
+            parent = parent.parent.orElse(null)
+        }
+        return null
     }
 
     override fun beforeEach(context: ExtensionContext) {
-        // Reset execution context for each test
-        // Clear any scenario-specific state if needed
+        // Clear executor so it gets recreated with latest config when requested
+        // This allows test's @BeforeEach to configure dynamic values (e.g., port)
+        // before the executor is created
+        context.getStore(NAMESPACE).remove(EXECUTOR_KEY)
     }
 
     override fun supportsParameter(
@@ -83,8 +172,8 @@ class BerryCrushExtension :
     ): Boolean {
         val paramType = parameterContext.parameter.type
         return paramType == BerryCrushSuite::class.java ||
-            paramType == ScenarioExecutor::class.java ||
-            paramType == Configuration::class.java
+            paramType == BerryCrushScenarioExecutor::class.java ||
+            paramType == BerryCrushConfiguration::class.java
     }
 
     override fun resolveParameter(
@@ -93,8 +182,8 @@ class BerryCrushExtension :
     ): Any =
         when (val paramType = parameterContext.parameter.type) {
             BerryCrushSuite::class.java -> getSuite(extensionContext)
-            ScenarioExecutor::class.java -> getExecutor(extensionContext)
-            Configuration::class.java -> getSuite(extensionContext).configuration
+            BerryCrushScenarioExecutor::class.java -> getOrCreateExecutor(extensionContext)
+            BerryCrushConfiguration::class.java -> getSuite(extensionContext).configuration
             else -> throw ConfigurationException("Unsupported parameter type: $paramType")
         }
 
@@ -104,23 +193,40 @@ class BerryCrushExtension :
 
     override fun provideTestTemplateInvocationContexts(context: ExtensionContext): Stream<TestTemplateInvocationContext> =
         getSuite(context).allScenarios().stream().map { scenario ->
-            ScenarioInvocationContext(scenario, getExecutor(context))
+            ScenarioInvocationContext(scenario, getOrCreateExecutor(context))
         }
 
-    private fun getSuite(context: ExtensionContext): BerryCrushSuite =
-        context.getStore(NAMESPACE).get(SUITE_KEY, BerryCrushSuite::class.java)
-            ?: throw ConfigurationException("BerryCrushSuite not initialized. Is @ExtendWith(BerryCrushExtension::class) present?")
+    private fun getSuite(context: ExtensionContext): BerryCrushSuite {
+        // Walk up the context hierarchy to find the suite (handles nested test classes)
+        var current: ExtensionContext? = context
+        while (current != null) {
+            val suite = current.getStore(NAMESPACE).get(SUITE_KEY, BerryCrushSuite::class.java)
+            if (suite != null) return suite
+            current = current.parent.orElse(null)
+        }
+        throw ConfigurationException("BerryCrushSuite not initialized. Is @ExtendWith(BerryCrushExtension::class) present?")
+    }
 
-    private fun getExecutor(context: ExtensionContext): ScenarioExecutor =
-        context.getStore(NAMESPACE).get(EXECUTOR_KEY, ScenarioExecutor::class.java)
-            ?: throw ConfigurationException("ScenarioExecutor not initialized.")
+    /**
+     * Get or create the executor. Creating lazily allows test's @BeforeEach
+     * to configure dynamic values before the executor is created.
+     */
+    private fun getOrCreateExecutor(context: ExtensionContext): BerryCrushScenarioExecutor {
+        var executor = context.getStore(NAMESPACE).get(EXECUTOR_KEY, BerryCrushScenarioExecutor::class.java)
+        if (executor == null) {
+            val suite = getSuite(context)
+            executor = BerryCrushScenarioExecutor(suite.specRegistry, suite.configuration)
+            context.getStore(NAMESPACE).put(EXECUTOR_KEY, executor)
+        }
+        return executor
+    }
 
     /**
      * Context for a single scenario invocation.
      */
     private class ScenarioInvocationContext(
         private val scenario: Scenario,
-        private val executor: ScenarioExecutor,
+        private val executor: BerryCrushScenarioExecutor,
     ) : TestTemplateInvocationContext {
         override fun getDisplayName(invocationIndex: Int): String = scenario.name
 
@@ -135,7 +241,7 @@ class BerryCrushExtension :
      */
     private class ScenarioParameterResolver(
         private val scenario: Scenario,
-        private val executor: ScenarioExecutor,
+        private val executor: BerryCrushScenarioExecutor,
     ) : ParameterResolver {
         override fun supportsParameter(
             parameterContext: ParameterContext,

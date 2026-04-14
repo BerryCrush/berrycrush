@@ -3,8 +3,8 @@ package org.berrycrush.junit.engine
 import org.berrycrush.autotest.AutoTestCase
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.dsl.BerryCrushSuite
-import org.berrycrush.executor.ExecutionListener
-import org.berrycrush.executor.ScenarioExecutor
+import org.berrycrush.executor.BerryCrushExecutionListener
+import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.junit.BerryCrushBindings
 import org.berrycrush.junit.BerryCrushConfiguration
 import org.berrycrush.junit.DefaultBindings
@@ -313,7 +313,7 @@ class ScenarioTestExecutor(
             }
 
         val executor =
-            ScenarioExecutor(
+            BerryCrushScenarioExecutor(
                 context.suite.specRegistry,
                 fileConfig,
                 context.pluginRegistry,
@@ -429,10 +429,10 @@ class ScenarioTestExecutor(
     }
 
     /**
-     * Adapter that bridges [ExecutionListener] to JUnit's [EngineExecutionListener].
+     * Adapter that bridges [BerryCrushExecutionListener] to JUnit's [EngineExecutionListener].
      *
      * This adapter centralizes all JUnit event reporting by implementing the
-     * [ExecutionListener] interface and firing corresponding JUnit events:
+     * [BerryCrushExecutionListener] interface and firing corresponding JUnit events:
      * - [onScenarioStarting] → `executionStarted(scenarioDescriptor)`
      * - [onScenarioCompleted] → `executionFinished(scenarioDescriptor, result)`
      * - [onAutoTestStarting] → `dynamicTestRegistered`, `executionStarted`
@@ -443,7 +443,7 @@ class ScenarioTestExecutor(
     private inner class JUnitExecutionListenerAdapter(
         private val scenarioDescriptor: IndividualScenarioDescriptor,
         private val listener: EngineExecutionListener,
-    ) : ExecutionListener {
+    ) : BerryCrushExecutionListener {
         private var testIndex = 0
         private val descriptors = mutableMapOf<AutoTestCase, AutoTestDescriptor>()
         private var autoTestFailureCount = 0
@@ -602,7 +602,7 @@ private data class TestExecutionContext(
  * Holds the execution context for a scenario file.
  */
 private data class FileExecutionContext(
-    val executor: ScenarioExecutor,
+    val executor: BerryCrushScenarioExecutor,
     val sharedContext: ExecutionContext?,
     val scenarioPath: String,
 )

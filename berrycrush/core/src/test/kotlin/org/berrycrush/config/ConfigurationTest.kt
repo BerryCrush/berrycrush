@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 class ConfigurationTest {
     @Test
     fun `should apply baseUrl parameter`() {
-        val config = Configuration()
+        val config = BerryCrushConfiguration()
         val modified = config.withParameters(mapOf("baseUrl" to "http://localhost:8080"))
 
         assertEquals("http://localhost:8080", modified.baseUrl)
@@ -17,7 +17,7 @@ class ConfigurationTest {
 
     @Test
     fun `should apply timeout parameter as number`() {
-        val config = Configuration()
+        val config = BerryCrushConfiguration()
         val modified = config.withParameters(mapOf("timeout" to 60))
 
         assertEquals(Duration.ofSeconds(60), modified.timeout)
@@ -25,7 +25,7 @@ class ConfigurationTest {
 
     @Test
     fun `should apply timeout parameter as string`() {
-        val config = Configuration()
+        val config = BerryCrushConfiguration()
         val modified = config.withParameters(mapOf("timeout" to "120"))
 
         assertEquals(Duration.ofSeconds(120), modified.timeout)
@@ -33,7 +33,7 @@ class ConfigurationTest {
 
     @Test
     fun `should apply environment parameter`() {
-        val config = Configuration()
+        val config = BerryCrushConfiguration()
         val modified = config.withParameters(mapOf("environment" to "staging"))
 
         assertEquals("staging", modified.environment)
@@ -41,7 +41,7 @@ class ConfigurationTest {
 
     @Test
     fun `should apply boolean parameters`() {
-        val config = Configuration()
+        val config = BerryCrushConfiguration()
         val modified =
             config.withParameters(
                 mapOf(
@@ -62,7 +62,7 @@ class ConfigurationTest {
 
     @Test
     fun `should apply boolean parameters from strings`() {
-        val config = Configuration()
+        val config = BerryCrushConfiguration()
         val modified =
             config.withParameters(
                 mapOf(
@@ -77,7 +77,7 @@ class ConfigurationTest {
 
     @Test
     fun `should apply header parameters`() {
-        val config = Configuration()
+        val config = BerryCrushConfiguration()
         val modified =
             config.withParameters(
                 mapOf(
@@ -92,7 +92,7 @@ class ConfigurationTest {
 
     @Test
     fun `should apply auto assertion parameters`() {
-        val config = Configuration()
+        val config = BerryCrushConfiguration()
         val modified =
             config.withParameters(
                 mapOf(
@@ -112,7 +112,7 @@ class ConfigurationTest {
     @Test
     fun `should not modify original configuration`() {
         val config =
-            Configuration(
+            BerryCrushConfiguration(
                 baseUrl = "http://original.com",
                 timeout = Duration.ofSeconds(10),
             )
@@ -143,7 +143,7 @@ class ConfigurationTest {
 
     @Test
     fun `should preserve existing headers when adding new ones`() {
-        val config = Configuration()
+        val config = BerryCrushConfiguration()
         config.defaultHeaders["Existing"] = "existing-value"
 
         val modified =
@@ -157,7 +157,7 @@ class ConfigurationTest {
 
     @Test
     fun `should ignore unknown parameters`() {
-        val config = Configuration(baseUrl = "http://original.com")
+        val config = BerryCrushConfiguration(baseUrl = "http://original.com")
         val modified =
             config.withParameters(
                 mapOf(
@@ -171,7 +171,7 @@ class ConfigurationTest {
 
     @Test
     fun `should handle empty parameters map`() {
-        val config = Configuration(baseUrl = "http://original.com")
+        val config = BerryCrushConfiguration(baseUrl = "http://original.com")
         val modified = config.withParameters(emptyMap())
 
         assertEquals("http://original.com", modified.baseUrl)

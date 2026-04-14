@@ -1,15 +1,14 @@
 package org.berrycrush.junit
 
+import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.dsl.BerryCrushSuite
 import org.berrycrush.dsl.ScenarioScope
-import org.berrycrush.executor.ScenarioExecutor
+import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Scenario
 import org.berrycrush.model.ScenarioResult
-import org.berrycrush.report.ConsoleReporter
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
-import org.junit.jupiter.api.extension.ExtendWith
 
 /**
  * Base class for BerryCrush scenario tests.
@@ -18,8 +17,11 @@ import org.junit.jupiter.api.extension.ExtendWith
  *
  * Example:
  * ```kotlin
- * @BerryCrushSpec("petstore.yaml")
  * class PetstoreTest : ScenarioTest() {
+ *     override fun configureSuite() {
+ *         spec("petstore.yaml")
+ *     }
+ *
  *     override fun defineScenarios() {
  *         scenario("List all pets") {
  *             `when`("I request the list of pets") {
@@ -34,10 +36,8 @@ import org.junit.jupiter.api.extension.ExtendWith
  * }
  * ```
  */
-@ExtendWith(BerryCrushExtension::class)
 abstract class ScenarioTest {
     private val suite: BerryCrushSuite = BerryCrushSuite.create()
-    private val reporter = ConsoleReporter()
 
     /**
      * Override this method to define your scenarios.
@@ -75,7 +75,7 @@ abstract class ScenarioTest {
     /**
      * Configure the test suite.
      */
-    protected fun configure(block: org.berrycrush.config.Configuration.() -> Unit) {
+    protected fun configure(block: BerryCrushConfiguration.() -> Unit) {
         suite.configure(block)
     }
 
@@ -115,12 +115,11 @@ abstract class ScenarioTest {
         configureSuite()
         defineScenarios()
 
-        val executor = ScenarioExecutor(suite.specRegistry, suite.configuration)
+        val executor = BerryCrushScenarioExecutor(suite.specRegistry, suite.configuration)
 
         return suite.allScenarios().map { scenario ->
             DynamicTest.dynamicTest(scenario.name) {
                 val result = executor.execute(scenario)
-                reporter.onScenarioComplete(result)
 
                 if (result.status == ResultStatus.FAILED) {
                     val failedSteps =
@@ -144,7 +143,7 @@ abstract class ScenarioTest {
      * Execute a single scenario and return the result.
      */
     protected fun executeScenario(scenario: Scenario): ScenarioResult {
-        val executor = ScenarioExecutor(suite.specRegistry, suite.configuration)
+        val executor = BerryCrushScenarioExecutor(suite.specRegistry, suite.configuration)
         return executor.execute(scenario)
     }
 

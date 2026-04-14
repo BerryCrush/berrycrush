@@ -1,7 +1,7 @@
 package org.berrycrush.plugin
 
-import org.berrycrush.config.Configuration
-import org.berrycrush.executor.ScenarioExecutor
+import org.berrycrush.config.BerryCrushConfiguration
+import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.model.Scenario
 import org.berrycrush.openapi.SpecRegistry
 import org.junit.jupiter.api.BeforeEach
@@ -34,7 +34,7 @@ class PluginExceptionTest {
 
         // When executing a scenario
         val scenario = Scenario(name = "Test")
-        val executor = ScenarioExecutor(SpecRegistry(), Configuration(), registry)
+        val executor = BerryCrushScenarioExecutor(SpecRegistry(), BerryCrushConfiguration(), registry)
 
         // Then exception should propagate
         val exception =
@@ -59,7 +59,7 @@ class PluginExceptionTest {
         registry.register(errorPlugin)
 
         val scenario = Scenario(name = "Test")
-        val executor = ScenarioExecutor(SpecRegistry(), Configuration(), registry)
+        val executor = BerryCrushScenarioExecutor(SpecRegistry(), BerryCrushConfiguration(), registry)
 
         val exception =
             assertThrows<RuntimeException> {

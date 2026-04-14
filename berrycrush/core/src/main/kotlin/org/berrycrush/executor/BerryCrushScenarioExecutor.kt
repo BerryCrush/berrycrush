@@ -2,7 +2,7 @@ package org.berrycrush.executor
 
 import com.jayway.jsonpath.JsonPath
 import org.berrycrush.assertion.SchemaValidator
-import org.berrycrush.config.Configuration
+import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.exception.ConfigurationException
 import org.berrycrush.model.Assertion
@@ -45,9 +45,9 @@ private val schemaValidator = SchemaValidator(objectMapper)
  * @property pluginRegistry Optional plugin registry for lifecycle hooks
  * @property fragmentRegistry Optional registry for reusable fragments
  */
-class ScenarioExecutor(
+class BerryCrushScenarioExecutor(
     private val specRegistry: SpecRegistry,
-    private val configuration: Configuration,
+    private val configuration: BerryCrushConfiguration,
     private val pluginRegistry: PluginRegistry? = null,
     private val fragmentRegistry: FragmentRegistry? = null,
 ) {
@@ -55,7 +55,7 @@ class ScenarioExecutor(
 
     // Current execution listener for the executing scenario
     // Thread-local to support concurrent execution
-    private val currentExecutionListener = ThreadLocal<ExecutionListener>()
+    private val currentExecutionListener = ThreadLocal<BerryCrushExecutionListener>()
 
     // Lazy-initialized auto-test executor - created on first use to avoid circular dependencies
     private val autoTestExecutor: AutoTestExecutor by lazy {
@@ -88,10 +88,10 @@ class ScenarioExecutor(
         scenario: Scenario,
         sharedContext: ExecutionContext? = null,
         sourceFile: java.io.File? = null,
-        executionListener: ExecutionListener? = null,
+        executionListener: BerryCrushExecutionListener? = null,
     ): ScenarioResult {
         // Set the listener for this execution (thread-local for concurrent safety)
-        val listener = executionListener ?: ExecutionListener.NOOP
+        val listener = executionListener ?: BerryCrushExecutionListener.NOOP
         currentExecutionListener.set(listener)
 
         try {
@@ -237,7 +237,7 @@ class ScenarioExecutor(
         stepIndex: Int,
     ): StepResult {
         // Get current execution listener
-        val listener = currentExecutionListener.get() ?: ExecutionListener.NOOP
+        val listener = currentExecutionListener.get() ?: BerryCrushExecutionListener.NOOP
 
         // Create step context
         val stepContext = StepContextAdapter(step, stepIndex, scenarioContext)
@@ -333,7 +333,7 @@ class ScenarioExecutor(
         runCatching {
             // Check if this step has auto-test configuration
             if (step.autoTestConfig != null) {
-                val listener = currentExecutionListener.get() ?: ExecutionListener.NOOP
+                val listener = currentExecutionListener.get() ?: BerryCrushExecutionListener.NOOP
                 autoTestExecutor.executeAutoTests(step, context, stepStartTime, listener)
             } else {
                 executeHttpRequest(step, context, stepStartTime)

@@ -1,6 +1,6 @@
 package org.berrycrush.junit
 
-import org.berrycrush.config.Configuration
+import org.berrycrush.config.BerryCrushConfiguration
 
 /**
  * Interface for providing runtime bindings to scenario execution.
@@ -98,5 +98,5 @@ interface BerryCrushBindings {
      *
      * @param config The configuration to modify
      */
-    fun configure(config: Configuration) {}
+    fun configure(config: BerryCrushConfiguration) {}
 }

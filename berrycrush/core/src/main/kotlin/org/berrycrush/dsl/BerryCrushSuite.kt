@@ -1,6 +1,6 @@
 package org.berrycrush.dsl
 
-import org.berrycrush.config.Configuration
+import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.config.SpecConfiguration
 import org.berrycrush.model.Fragment
 import org.berrycrush.model.Scenario
@@ -14,7 +14,7 @@ import org.berrycrush.openapi.SpecRegistry
 @BerryCrushDsl
 class BerryCrushSuite internal constructor() {
     val specRegistry = SpecRegistry()
-    val configuration = Configuration()
+    val configuration = BerryCrushConfiguration()
     internal val scenarios = mutableListOf<Scenario>()
     internal val fragments = mutableMapOf<String, Fragment>()
 
@@ -49,7 +49,7 @@ class BerryCrushSuite internal constructor() {
     /**
      * Configure the test suite.
      */
-    fun configure(block: Configuration.() -> Unit) {
+    fun configure(block: BerryCrushConfiguration.() -> Unit) {
         configuration.apply(block)
     }
 
@@ -113,7 +113,7 @@ class BerryCrushSuite internal constructor() {
  */
 fun berrycrush(
     openApiSpec: String,
-    config: Configuration.() -> Unit = {},
+    config: BerryCrushConfiguration.() -> Unit = {},
 ): BerryCrushSuite =
     BerryCrushSuite().apply {
         spec(openApiSpec)

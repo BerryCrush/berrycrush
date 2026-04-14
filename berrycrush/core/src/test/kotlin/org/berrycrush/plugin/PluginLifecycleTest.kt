@@ -1,7 +1,7 @@
 package org.berrycrush.plugin
 
-import org.berrycrush.config.Configuration
-import org.berrycrush.executor.ScenarioExecutor
+import org.berrycrush.config.BerryCrushConfiguration
+import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.model.Scenario
 import org.berrycrush.openapi.SpecRegistry
 import org.junit.jupiter.api.BeforeEach
@@ -29,8 +29,8 @@ class PluginLifecycleTest {
 
         // When executing the scenario with plugins
         val specRegistry = SpecRegistry()
-        val config = Configuration()
-        val executor = ScenarioExecutor(specRegistry, config, registry)
+        val config = BerryCrushConfiguration()
+        val executor = BerryCrushScenarioExecutor(specRegistry, config, registry)
 
         executor.execute(scenario)
 
@@ -47,8 +47,8 @@ class PluginLifecycleTest {
         val scenario = Scenario(name = "My Test Scenario", tags = setOf("api", "integration"))
 
         val specRegistry = SpecRegistry()
-        val config = Configuration()
-        val executor = ScenarioExecutor(specRegistry, config, registry)
+        val config = BerryCrushConfiguration()
+        val executor = BerryCrushScenarioExecutor(specRegistry, config, registry)
 
         executor.execute(scenario)
 

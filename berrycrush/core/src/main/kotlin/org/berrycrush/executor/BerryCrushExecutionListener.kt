@@ -50,9 +50,9 @@ import org.berrycrush.model.StepResult
  * scenarioExecutor.execute(scenario, executionListener = listener)
  * ```
  *
- * @see ScenarioExecutor
+ * @see BerryCrushScenarioExecutor
  */
-interface ExecutionListener {
+interface BerryCrushExecutionListener {
     /**
      * Called just before a scenario starts execution.
      *
@@ -124,7 +124,7 @@ interface ExecutionListener {
          * A no-op listener that does nothing.
          * Use this when execution events are not needed.
          */
-        val NOOP: ExecutionListener =
-            object : ExecutionListener {}
+        val NOOP: BerryCrushExecutionListener =
+            object : BerryCrushExecutionListener {}
     }
 }

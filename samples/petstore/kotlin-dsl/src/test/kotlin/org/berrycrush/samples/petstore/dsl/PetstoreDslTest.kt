@@ -1,8 +1,13 @@
 package org.berrycrush.samples.petstore.dsl
 
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.dsl.BerryCrushSuite
 import org.berrycrush.dsl.berrycrush
-import org.berrycrush.executor.ScenarioExecutor
+import org.berrycrush.executor.BerryCrushScenarioExecutor
+import org.berrycrush.junit.BerryCrushExtension
+import org.berrycrush.junit.BerryCrushSpec
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.samples.petstore.PetstoreApplication
 import org.junit.jupiter.api.BeforeEach
@@ -10,28 +15,28 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 /**
  * Comprehensive Kotlin DSL tests for the BerryCrush library.
  *
  * This test suite exercises all DSL features against the petstore application.
+ * Uses BerryCrushExtension with dynamic port configuration from Spring Boot.
  */
 @SpringBootTest(
     classes = [PetstoreApplication::class],
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
 )
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@ExtendWith(BerryCrushExtension::class)
+@BerryCrushSpec("classpath:/petstore.yaml")
 class PetstoreDslTest {
     @LocalServerPort
     private var port: Int = 0
 
-    private lateinit var suite: BerryCrushSuite
-    private lateinit var executor: ScenarioExecutor
-
+    // For tests that use the DSL builder directly
     private val specPath: String by lazy {
         javaClass.getResource("/petstore.yaml")?.path
             ?: error("petstore.yaml not found on classpath")
@@ -43,12 +48,9 @@ class PetstoreDslTest {
     }
 
     @BeforeEach
-    fun setup() {
-        suite =
-            berrycrush(specPath) {
-                baseUrl = "http://localhost:$port/api/v1"
-            }
-        executor = ScenarioExecutor(suite.specRegistry, suite.configuration)
+    fun setup(config: BerryCrushConfiguration) {
+        // Configure dynamic port - must be set before executor is used
+        config.baseUrl = "http://localhost:$port/api/v1"
     }
 
     // ========== Basic Scenario Tests ==========
@@ -58,7 +60,7 @@ class PetstoreDslTest {
     inner class BasicScenarioDsl {
         @Test
         @DisplayName("scenario with given-when-then")
-        fun `scenario with given-when-then`() {
+        fun `scenario with given-when-then`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             val scenario =
                 suite.scenario("List all pets") {
                     given("a request is prepared") {}
@@ -76,7 +78,7 @@ class PetstoreDslTest {
 
         @Test
         @DisplayName("scenario with and step")
-        fun `scenario with and step`() {
+        fun `scenario with and step`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             val scenario =
                 suite.scenario("Get pet and verify") {
                     `when`("I get a pet") {
@@ -98,7 +100,7 @@ class PetstoreDslTest {
 
         @Test
         @DisplayName("scenario with but step")
-        fun `scenario with but step`() {
+        fun `scenario with but step`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             val scenario =
                 suite.scenario("Get pet but not error") {
                     `when`("I get a pet") {
@@ -120,7 +122,7 @@ class PetstoreDslTest {
 
         @Test
         @DisplayName("scenario with tags")
-        fun `scenario with tags`() {
+        fun `scenario with tags`(suite: BerryCrushSuite) {
             val scenario =
                 suite.scenario("Tagged scenario", tags = setOf("smoke", "api")) {
                     `when`("I list pets") {
@@ -142,7 +144,7 @@ class PetstoreDslTest {
     inner class CallConfigurationDsl {
         @Test
         @DisplayName("call with path parameters")
-        fun `call with path parameters`() {
+        fun `call with path parameters`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             val scenario =
                 suite.scenario("Get pet by ID") {
                     `when`("I get pet by ID") {
@@ -162,7 +164,7 @@ class PetstoreDslTest {
 
         @Test
         @DisplayName("call with query parameters")
-        fun `call with query parameters`() {
+        fun `call with query parameters`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             val scenario =
                 suite.scenario("List pets with limit") {
                     `when`("I list pets with limit") {
@@ -181,7 +183,7 @@ class PetstoreDslTest {
 
         @Test
         @DisplayName("call with custom headers")
-        fun `call with custom headers`() {
+        fun `call with custom headers`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             val scenario =
                 suite.scenario("Request with custom header") {
                     `when`("I make a request with headers") {
@@ -201,7 +203,7 @@ class PetstoreDslTest {
 
         @Test
         @DisplayName("call with JSON string body")
-        fun `call with JSON string body`() {
+        fun `call with JSON string body`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             val scenario =
                 suite.scenario("Create pet with string body") {
                     `when`("I create a pet") {
@@ -220,7 +222,7 @@ class PetstoreDslTest {
 
         @Test
         @DisplayName("call with map body")
-        fun `call with map body`() {
+        fun `call with map body`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             val scenario =
                 suite.scenario("Create pet with map body") {
                     `when`("I create a pet") {
@@ -244,7 +246,7 @@ class PetstoreDslTest {
 
         @Test
         @DisplayName("call with bearer token")
-        fun `call with bearer token`() {
+        fun `call with bearer token`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             val scenario =
                 suite.scenario("Request with bearer token") {
                     `when`("I make an authenticated request") {
@@ -263,7 +265,7 @@ class PetstoreDslTest {
 
         @Test
         @DisplayName("call with basic auth")
-        fun `call with basic auth`() {
+        fun `call with basic auth`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             val scenario =
                 suite.scenario("Request with basic auth") {
                     `when`("I make a basic auth request") {
@@ -282,7 +284,7 @@ class PetstoreDslTest {
 
         @Test
         @DisplayName("call with API key")
-        fun `call with API key`() {
+        fun `call with API key`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             val scenario =
                 suite.scenario("Request with API key") {
                     `when`("I make an API key request") {
@@ -301,7 +303,7 @@ class PetstoreDslTest {
 
         @Test
         @DisplayName("call with custom API key header")
-        fun `call with custom API key header`() {
+        fun `call with custom API key header`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             val scenario =
                 suite.scenario("Request with custom API key header") {
                     `when`("I make a request with custom API key header") {
@@ -326,7 +328,7 @@ class PetstoreDslTest {
     inner class AssertionDsl {
         @Test
         @DisplayName("statusCode exact match")
-        fun `statusCode exact match`() {
+        fun `statusCode exact match`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             val scenario =
                 suite.scenario("Status code exact") {
                     `when`("I list pets") {
@@ -343,7 +345,7 @@ class PetstoreDslTest {
 
         @Test
         @DisplayName("statusCode range match")
-        fun `statusCode range match`() {
+        fun `statusCode range match`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             val scenario =
                 suite.scenario("Status code range") {
                     `when`("I list pets") {
@@ -360,7 +362,7 @@ class PetstoreDslTest {
 
         @Test
         @DisplayName("bodyEquals assertion")
-        fun `bodyEquals assertion`() {
+        fun `bodyEquals assertion`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             val scenario =
                 suite.scenario("Body equals") {
                     `when`("I get pet") {
@@ -379,7 +381,7 @@ class PetstoreDslTest {
 
         @Test
         @DisplayName("bodyArrayNotEmpty assertion")
-        fun `bodyArrayNotEmpty assertion`() {
+        fun `bodyArrayNotEmpty assertion`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             val scenario =
                 suite.scenario("Array not empty") {
                     `when`("I list pets") {
@@ -396,7 +398,7 @@ class PetstoreDslTest {
 
         @Test
         @DisplayName("headerExists assertion")
-        fun `headerExists assertion`() {
+        fun `headerExists assertion`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             val scenario =
                 suite.scenario("Header exists") {
                     `when`("I list pets") {
@@ -413,7 +415,7 @@ class PetstoreDslTest {
 
         @Test
         @DisplayName("headerEquals assertion")
-        fun `headerEquals assertion`() {
+        fun `headerEquals assertion`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             val scenario =
                 suite.scenario("Header equals") {
                     `when`("I list pets") {
@@ -436,7 +438,7 @@ class PetstoreDslTest {
     inner class ExtractionDsl {
         @Test
         @DisplayName("extract value from response")
-        fun `extract value from response`() {
+        fun `extract value from response`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             // Create a pet first
             val createScenario =
                 suite.scenario("Create and extract ID") {
@@ -464,7 +466,7 @@ class PetstoreDslTest {
     inner class FragmentDsl {
         @Test
         @DisplayName("include fragment in scenario")
-        fun `include fragment in scenario`() {
+        fun `include fragment in scenario`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             // Define the fragment
             val authFragment =
                 suite.fragment("setup_pet") {
@@ -491,7 +493,7 @@ class PetstoreDslTest {
 
         @Test
         @DisplayName("include fragment by name")
-        fun `include fragment by name`() {
+        fun `include fragment by name`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             // Define the fragment first
             suite.fragment("create_pet_fragment") {
                 `when`("creating a pet") {
@@ -522,7 +524,7 @@ class PetstoreDslTest {
     inner class ScenarioOutlineDsl {
         @Test
         @DisplayName("scenario outline with examples")
-        fun `scenario outline with examples`() {
+        fun `scenario outline with examples`(suite: BerryCrushSuite, executor: BerryCrushScenarioExecutor) {
             val scenarios =
                 suite.scenarioOutline("Get pets by ID") {
                     `when`("I get pet with ID <petId>") {
@@ -626,7 +628,7 @@ class PetstoreDslTest {
                         baseUrl = "http://localhost:$port/api/v1"
                     }
                 }
-            val multiSpecExecutor = ScenarioExecutor(multiSpecSuite.specRegistry, multiSpecSuite.configuration)
+            val multiSpecExecutor = BerryCrushScenarioExecutor(multiSpecSuite.specRegistry, multiSpecSuite.configuration)
 
             val scenario =
                 multiSpecSuite.scenario("Use specific spec") {
@@ -651,7 +653,7 @@ class PetstoreDslTest {
     inner class EdgeCases {
         @Test
         @DisplayName("empty scenario steps")
-        fun `empty scenario with only name`() {
+        fun `empty scenario with only name`(suite: BerryCrushSuite) {
             val scenario =
                 suite.scenario("Empty scenario") {
                     given("nothing to do") {}
@@ -663,7 +665,7 @@ class PetstoreDslTest {
 
         @Test
         @DisplayName("scenario with many steps")
-        fun `scenario with many steps`() {
+        fun `scenario with many steps`(suite: BerryCrushSuite) {
             val scenario =
                 suite.scenario("Multi-step scenario") {
                     given("step 1") {}

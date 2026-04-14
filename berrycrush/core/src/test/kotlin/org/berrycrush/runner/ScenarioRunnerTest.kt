@@ -1,6 +1,6 @@
 package org.berrycrush.runner
 
-import org.berrycrush.config.Configuration
+import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Scenario
 import org.berrycrush.openapi.SpecRegistry
@@ -17,7 +17,7 @@ class ScenarioRunnerTest {
     @Test
     fun `returns passed status for empty scenario list`() {
         val specRegistry = SpecRegistry()
-        val configuration = Configuration()
+        val configuration = BerryCrushConfiguration()
         val runner = ScenarioRunner(specRegistry, configuration)
 
         val result = runner.run(emptyList())
@@ -33,7 +33,7 @@ class ScenarioRunnerTest {
     @Test
     fun `invokes plugin lifecycle hooks in correct order`() {
         val specRegistry = SpecRegistry()
-        val configuration = Configuration()
+        val configuration = BerryCrushConfiguration()
         val pluginRegistry = PluginRegistry()
 
         val events = mutableListOf<String>()
@@ -62,7 +62,7 @@ class ScenarioRunnerTest {
     @Test
     fun `runs single scenario and returns result`() {
         val specRegistry = SpecRegistry()
-        val configuration = Configuration()
+        val configuration = BerryCrushConfiguration()
         val runner = ScenarioRunner(specRegistry, configuration)
 
         val scenario =
@@ -82,7 +82,7 @@ class ScenarioRunnerTest {
     @Test
     fun `aggregates results from multiple scenarios`() {
         val specRegistry = SpecRegistry()
-        val configuration = Configuration()
+        val configuration = BerryCrushConfiguration()
         val runner = ScenarioRunner(specRegistry, configuration)
 
         val scenarios =
@@ -114,7 +114,7 @@ class ScenarioRunnerTest {
     fun `initializes shared context when shareVariablesAcrossScenarios is enabled`() {
         val specRegistry = SpecRegistry()
         val configuration =
-            Configuration().apply {
+            BerryCrushConfiguration().apply {
                 shareVariablesAcrossScenarios = true
             }
         val pluginRegistry = PluginRegistry()
@@ -147,7 +147,7 @@ class ScenarioRunnerTest {
     fun `shares variables across scenarios when enabled`() {
         val specRegistry = SpecRegistry()
         val configuration =
-            Configuration().apply {
+            BerryCrushConfiguration().apply {
                 shareVariablesAcrossScenarios = true
             }
 

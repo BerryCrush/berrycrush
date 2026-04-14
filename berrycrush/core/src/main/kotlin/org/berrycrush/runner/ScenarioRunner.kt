@@ -1,8 +1,8 @@
 package org.berrycrush.runner
 
-import org.berrycrush.config.Configuration
+import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
-import org.berrycrush.executor.ScenarioExecutor
+import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.model.FragmentRegistry
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Scenario
@@ -95,17 +95,17 @@ data class RunResult(
  */
 class ScenarioRunner(
     private val specRegistry: SpecRegistry,
-    private val configuration: Configuration,
+    private val configuration: BerryCrushConfiguration,
     private val pluginRegistry: PluginRegistry? = null,
     private val fragmentRegistry: FragmentRegistry? = null,
 ) {
     private val executor by lazy {
-        ScenarioExecutor(specRegistry, configuration, pluginRegistry, fragmentRegistry)
+        BerryCrushScenarioExecutor(specRegistry, configuration, pluginRegistry, fragmentRegistry)
     }
 
     /**
      * Shared execution context for cross-scenario variable sharing.
-     * Only used when [Configuration.shareVariablesAcrossScenarios] is true.
+     * Only used when [BerryCrushConfiguration.shareVariablesAcrossScenarios] is true.
      */
     private var sharedContext: ExecutionContext? = null
 
@@ -159,7 +159,7 @@ class ScenarioRunner(
      * Note: This does NOT invoke lifecycle start/end hooks. Use [beginExecution]
      * before first scenario and [endExecution] after last scenario.
      *
-     * When cross-scenario variable sharing is enabled via [Configuration.shareVariablesAcrossScenarios],
+     * When cross-scenario variable sharing is enabled via [BerryCrushConfiguration.shareVariablesAcrossScenarios],
      * variables extracted in this scenario will be available to subsequent scenarios.
      *
      * @param scenario Scenario to execute
@@ -272,7 +272,7 @@ class ScenarioRunner(
 
         // Create a modified configuration with parameters applied
         val modifiedConfig = configuration.withParameters(parameters)
-        val modifiedExecutor = ScenarioExecutor(specRegistry, modifiedConfig, pluginRegistry, fragmentRegistry)
+        val modifiedExecutor = BerryCrushScenarioExecutor(specRegistry, modifiedConfig, pluginRegistry, fragmentRegistry)
 
         // Initialize shared context for modified config if needed
         val localSharedContext =

@@ -9,6 +9,9 @@ dependencies {
     // BerryCrush core with Kotlin DSL
     testImplementation(project(":berrycrush:core"))
 
+    // BerryCrush JUnit extension
+    testImplementation(project(":berrycrush:junit"))
+
     // JUnit
     testImplementation(libs.bundles.junit)
     testImplementation(libs.junit.platform.launcher)

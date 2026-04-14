@@ -136,6 +136,82 @@ public class PetBindings implements BerryCrushBindings {
 ./gradlew test
 ```
 
+### Using Kotlin DSL with BerryCrushExtension
+
+For Kotlin-based tests, you can use `BerryCrushExtension` with the Kotlin DSL to programmatically define scenarios:
+
+#### Basic Usage
+
+```kotlin
+@ExtendWith(BerryCrushExtension::class)
+@BerryCrushSpec("petstore.yaml", baseUrl = "http://localhost:8080/api")
+class PetApiTest {
+    @Test
+    fun `list all pets`(
+        suite: BerryCrushSuite,
+        executor: BerryCrushScenarioExecutor,
+    ) {
+        val scenario = suite.scenario("List all pets") {
+            `when`("I request all pets") {
+                call("listPets")
+            }
+            then("I get a successful response") {
+                statusCode(200)
+            }
+        }
+        
+        val result = executor.execute(scenario)
+        assertEquals(ResultStatus.PASSED, result.status)
+    }
+}
+```
+
+#### With Spring Boot (Dynamic Port)
+
+When using Spring Boot's random port, inject `BerryCrushConfiguration` in `@BeforeEach` to set the baseUrl dynamically:
+
+```kotlin
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@ExtendWith(BerryCrushExtension::class)
+@BerryCrushSpec("classpath:/petstore.yaml")
+class PetApiTest {
+    @LocalServerPort
+    private var port: Int = 0
+
+    @BeforeEach
+    fun setup(config: BerryCrushConfiguration) {
+        // Set dynamic port - Configuration is shared, so this affects executor
+        config.baseUrl = "http://localhost:$port/api"
+    }
+
+    @Test
+    fun `list all pets`(
+        suite: BerryCrushSuite,
+        executor: BerryCrushScenarioExecutor,
+    ) {
+        val scenario = suite.scenario("List all pets") {
+            `when`("I request all pets") {
+                call("listPets")
+            }
+            then("I get a successful response") {
+                statusCode(200)
+            }
+        }
+        
+        val result = executor.execute(scenario)
+        assertEquals(ResultStatus.PASSED, result.status)
+    }
+}
+```
+
+**Key Points:**
+- Use `@BerryCrushSpec` to specify the OpenAPI spec path (supports `classpath:` prefix)
+- Inject `BerryCrushConfiguration` in `@BeforeEach` to set dynamic configuration
+- Inject `BerryCrushSuite` and `BerryCrushScenarioExecutor` directly in `@Test` methods
+- The shared `Configuration` object means changes affect the executor's behavior
+- Supports `@Nested` test classes - the suite is automatically shared with nested classes
+
 ## Scenario File Syntax
 
 ### Basic Structure

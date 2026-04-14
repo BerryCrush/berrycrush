@@ -1,6 +1,6 @@
 package org.berrycrush.samples.petstore;
 
-import org.berrycrush.config.Configuration;
+import org.berrycrush.config.BerryCrushConfiguration;
 import org.berrycrush.junit.BerryCrushBindings;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Lazy;
@@ -70,7 +70,7 @@ public class PetstoreBindings implements BerryCrushBindings {
     }
 
     @Override
-    public void configure(Configuration config) {
+    public void configure(BerryCrushConfiguration config) {
         // Don't set a global baseUrl - use per-spec base URLs instead
         // This enables true multi-host API testing
         config.setLogRequests(true);

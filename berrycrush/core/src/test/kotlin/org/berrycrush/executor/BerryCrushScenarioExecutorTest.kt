@@ -1,6 +1,6 @@
 package org.berrycrush.executor
 
-import org.berrycrush.config.Configuration
+import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Scenario
 import org.berrycrush.model.Step
@@ -10,8 +10,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class ScenarioExecutorTest {
-    private fun createExecutor(): ScenarioExecutor {
+class BerryCrushScenarioExecutorTest {
+    private fun createExecutor(): BerryCrushScenarioExecutor {
         val specPath =
             javaClass.getResource("/petstore.yaml")?.path
                 ?: error("petstore.yaml not found")
@@ -20,11 +20,11 @@ class ScenarioExecutorTest {
         registry.registerDefault(specPath)
 
         val config =
-            Configuration().apply {
+            BerryCrushConfiguration().apply {
                 baseUrl = "https://httpbin.org" // Use httpbin for testing
             }
 
-        return ScenarioExecutor(registry, config)
+        return BerryCrushScenarioExecutor(registry, config)
     }
 
     @Test
@@ -35,7 +35,7 @@ class ScenarioExecutorTest {
 
         val registry = SpecRegistry()
         registry.registerDefault(specPath)
-        val executor = ScenarioExecutor(registry, Configuration())
+        val executor = BerryCrushScenarioExecutor(registry, BerryCrushConfiguration())
 
         val scenario =
             Scenario(
@@ -69,10 +69,10 @@ class ScenarioExecutorTest {
         val registry = SpecRegistry()
         registry.registerDefault(specPath)
         val config =
-            Configuration().apply {
+            BerryCrushConfiguration().apply {
                 baseUrl = "http://nonexistent.invalid"
             }
-        val executor = ScenarioExecutor(registry, config)
+        val executor = BerryCrushScenarioExecutor(registry, config)
 
         val scenario =
             Scenario(
@@ -107,7 +107,7 @@ class ScenarioExecutorTest {
 
         val registry = SpecRegistry()
         registry.registerDefault(specPath)
-        val executor = ScenarioExecutor(registry, Configuration())
+        val executor = BerryCrushScenarioExecutor(registry, BerryCrushConfiguration())
 
         val scenario =
             Scenario(
@@ -136,10 +136,10 @@ class ScenarioExecutorTest {
         val registry = SpecRegistry()
         registry.registerDefault(specPath)
         val config =
-            Configuration().apply {
+            BerryCrushConfiguration().apply {
                 baseUrl = "https://httpbin.org"
             }
-        val executor = ScenarioExecutor(registry, config)
+        val executor = BerryCrushScenarioExecutor(registry, config)
 
         // This will fail because httpbin won't match petstore schema,
         // but we can test that assertion mechanics work

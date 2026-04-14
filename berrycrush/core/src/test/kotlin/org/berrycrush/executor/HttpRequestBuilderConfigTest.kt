@@ -1,6 +1,6 @@
 package org.berrycrush.executor
 
-import org.berrycrush.config.Configuration
+import org.berrycrush.config.BerryCrushConfiguration
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
@@ -9,7 +9,7 @@ import java.time.Duration
 class HttpRequestBuilderConfigTest {
     @Test
     fun `constructor accepts configuration timeout`() {
-        val config = Configuration(timeout = Duration.ofSeconds(45))
+        val config = BerryCrushConfiguration(timeout = Duration.ofSeconds(45))
         val builder = HttpRequestBuilder(config)
 
         // The builder is created without errors
@@ -19,7 +19,7 @@ class HttpRequestBuilderConfigTest {
     @Test
     fun `constructor respects followRedirects false`() {
         val config =
-            Configuration(
+            BerryCrushConfiguration(
                 timeout = Duration.ofSeconds(30),
                 followRedirects = false,
             )
@@ -39,13 +39,13 @@ class HttpRequestBuilderConfigTest {
 
     @Test
     fun `default configuration uses 30 second timeout`() {
-        val config = Configuration()
+        val config = BerryCrushConfiguration()
         assertEquals(Duration.ofSeconds(30), config.timeout)
     }
 
     @Test
     fun `default configuration enables followRedirects`() {
-        val config = Configuration()
+        val config = BerryCrushConfiguration()
         assertEquals(true, config.followRedirects)
     }
 }

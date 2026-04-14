@@ -1,6 +1,6 @@
 package org.berrycrush.spring
 
-import org.berrycrush.config.Configuration
+import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.exception.ConfigurationException
 import org.berrycrush.junit.BerryCrushBindings
 import org.junit.jupiter.api.Test
@@ -105,7 +105,7 @@ class SpringBindingsProviderTest {
 
         override fun getBindings(): Map<String, Any> = mapOf("baseUrl" to "http://localhost:$port/api")
 
-        override fun configure(config: Configuration) {
+        override fun configure(config: BerryCrushConfiguration) {
             config.baseUrl = "http://localhost:$port/api"
         }
     }

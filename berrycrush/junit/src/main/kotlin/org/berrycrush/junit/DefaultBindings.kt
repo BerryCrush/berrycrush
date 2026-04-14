@@ -1,6 +1,6 @@
 package org.berrycrush.junit
 
-import org.berrycrush.config.Configuration
+import org.berrycrush.config.BerryCrushConfiguration
 
 /**
  * Default implementation of [BerryCrushBindings] that provides no bindings.
@@ -24,7 +24,7 @@ class DefaultBindings : BerryCrushBindings {
     /**
      * Does nothing - uses default configuration.
      */
-    override fun configure(config: Configuration) {
+    override fun configure(config: BerryCrushConfiguration) {
         // No-op: use default configuration
     }
 }

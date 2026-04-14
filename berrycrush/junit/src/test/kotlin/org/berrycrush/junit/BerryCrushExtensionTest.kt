@@ -1,7 +1,7 @@
 package org.berrycrush.junit
 
 import org.berrycrush.dsl.BerryCrushSuite
-import org.berrycrush.executor.ScenarioExecutor
+import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.test.assertNotNull
@@ -16,7 +16,7 @@ class BerryCrushExtensionTest {
     }
 
     @Test
-    fun `extension should inject ScenarioExecutor`(executor: ScenarioExecutor) {
+    fun `extension should inject ScenarioExecutor`(executor: BerryCrushScenarioExecutor) {
         assertNotNull(executor)
     }
 

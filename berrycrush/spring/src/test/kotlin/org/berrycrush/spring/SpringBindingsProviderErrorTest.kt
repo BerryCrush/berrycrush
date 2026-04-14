@@ -1,6 +1,6 @@
 package org.berrycrush.spring
 
-import org.berrycrush.config.Configuration
+import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.exception.ConfigurationException
 import org.berrycrush.junit.BerryCrushBindings
 import org.junit.jupiter.api.Test
@@ -103,6 +103,6 @@ class SpringBindingsProviderErrorTest {
     class NonExistentBindings : BerryCrushBindings {
         override fun getBindings(): Map<String, Any> = emptyMap()
 
-        override fun configure(config: Configuration) {}
+        override fun configure(config: BerryCrushConfiguration) {}
     }
 }

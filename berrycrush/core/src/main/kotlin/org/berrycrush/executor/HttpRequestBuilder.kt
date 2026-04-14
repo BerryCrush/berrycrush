@@ -1,6 +1,6 @@
 package org.berrycrush.executor
 
-import org.berrycrush.config.Configuration
+import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.exception.HttpExecutionException
 import org.berrycrush.openapi.HttpMethod
 import java.net.URI
@@ -24,7 +24,7 @@ class HttpRequestBuilder(
      *
      * @param configuration The test configuration
      */
-    constructor(configuration: Configuration) : this(
+    constructor(configuration: BerryCrushConfiguration) : this(
         client = createClient(configuration.followRedirects),
         timeout = configuration.timeout,
     )

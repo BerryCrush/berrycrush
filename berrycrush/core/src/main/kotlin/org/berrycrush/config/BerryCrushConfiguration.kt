@@ -20,7 +20,7 @@ import java.time.Duration
  * @property httpLogger Custom HTTP logger (default: JUL-based logger)
  * @property logFormatter Custom log formatter (default: multi-line human-readable format)
  */
-data class Configuration(
+data class BerryCrushConfiguration(
     var baseUrl: String? = null,
     var timeout: Duration = Duration.ofSeconds(30),
     val defaultHeaders: MutableMap<String, String> = mutableMapOf(),
@@ -92,7 +92,7 @@ data class Configuration(
      * @param parameters Map of parameter names to values
      * @return A new Configuration with parameters applied
      */
-    fun withParameters(parameters: Map<String, Any>): Configuration {
+    fun withParameters(parameters: Map<String, Any>): BerryCrushConfiguration {
         val copy =
             this.copy(
                 defaultHeaders = this.defaultHeaders.toMutableMap(),
