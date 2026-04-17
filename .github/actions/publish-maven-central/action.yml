@@ -5,6 +5,10 @@ inputs:
   namespace:
     description: 'Maven namespace (e.g., org.berrycrush)'
     required: true
+  is-snapshot:
+    description: 'Whether this is a SNAPSHOT release (skips finalization)'
+    required: false
+    default: 'false'
   publishing-type:
     description: 'Publishing type: automatic, user_managed, or portal_api'
     required: false
@@ -35,9 +39,11 @@ runs:
         SIGNING_PASSWORD: ${{ inputs.signing-password }}
         
     - name: Complete deployment on Central Portal
+      if: ${{ inputs.is-snapshot != 'true' }}
       shell: bash
       run: |
         # The Central Portal requires an explicit call to finalize Maven-API deployments
+        # Note: This is only needed for release versions, not SNAPSHOTs
         # See: https://central.sonatype.org/publish/publish-portal-ossrh-staging-api/
         TOKEN=$(echo -n "${{ inputs.maven-username }}:${{ inputs.maven-password }}" | base64)
         

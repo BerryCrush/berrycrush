@@ -29,6 +29,7 @@ jobs:
         uses: ./.github/actions/publish-maven-central
         with:
           namespace: org.berrycrush
+          is-snapshot: 'true'
           maven-username: ${{ secrets.MAVEN_USERNAME }}
           maven-password: ${{ secrets.MAVEN_PASSWORD }}
           signing-key: ${{ secrets.SIGNING_KEY }}
