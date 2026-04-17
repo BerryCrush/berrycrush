@@ -1,0 +1,59 @@
+name: 'Publish to Maven Central'
+description: 'Publish artifacts to Maven Central via the Sonatype Central Portal'
+
+inputs:
+  namespace:
+    description: 'Maven namespace (e.g., org.berrycrush)'
+    required: true
+  publishing-type:
+    description: 'Publishing type: automatic, user_managed, or portal_api'
+    required: false
+    default: 'automatic'
+  maven-username:
+    description: 'Sonatype Central Portal username'
+    required: true
+  maven-password:
+    description: 'Sonatype Central Portal password'
+    required: true
+  signing-key:
+    description: 'GPG signing key (ASCII-armored)'
+    required: true
+  signing-password:
+    description: 'GPG signing key passphrase'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Publish artifacts to Central
+      shell: bash
+      run: ./gradlew publishAllPublicationsToCentralRepository
+      env:
+        MAVEN_USERNAME: ${{ inputs.maven-username }}
+        MAVEN_PASSWORD: ${{ inputs.maven-password }}
+        SIGNING_KEY: ${{ inputs.signing-key }}
+        SIGNING_PASSWORD: ${{ inputs.signing-password }}
+        
+    - name: Complete deployment on Central Portal
+      shell: bash
+      run: |
+        # The Central Portal requires an explicit call to finalize Maven-API deployments
+        # See: https://central.sonatype.org/publish/publish-portal-ossrh-staging-api/
+        TOKEN=$(echo -n "${{ inputs.maven-username }}:${{ inputs.maven-password }}" | base64)
+        
+        response=$(curl -s -w "\n%{http_code}" -X POST \
+          -H "Authorization: Bearer ${TOKEN}" \
+          "https://ossrh-staging-api.central.sonatype.com/manual/upload/defaultRepository/${{ inputs.namespace }}?publishing_type=${{ inputs.publishing-type }}")
+        
+        http_code=$(echo "$response" | tail -n1)
+        body=$(echo "$response" | sed '$d')
+        
+        echo "Response: $body"
+        echo "HTTP Status: $http_code"
+        
+        if [[ "$http_code" -ge 200 && "$http_code" -lt 300 ]]; then
+          echo "✅ Deployment finalized successfully"
+        else
+          echo "❌ Failed to finalize deployment"
+          exit 1
+        fi

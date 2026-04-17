@@ -1,0 +1,33 @@
+name: 'Setup Gradle Build'
+description: 'Setup JDK and Gradle for BerryCrush builds'
+
+inputs:
+  java-version:
+    description: 'Java version to use'
+    required: false
+    default: '21'
+  java-distribution:
+    description: 'Java distribution to use'
+    required: false
+    default: 'temurin'
+  ref:
+    description: 'Git ref to checkout (branch, tag, SHA)'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.ref || github.ref }}
+        
+    - name: Setup JDK ${{ inputs.java-version }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ inputs.java-version }}
+        distribution: ${{ inputs.java-distribution }}
+        
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
