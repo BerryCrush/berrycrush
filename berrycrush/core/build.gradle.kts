@@ -2,8 +2,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     id("org.jetbrains.dokka")
     id("org.jetbrains.dokka-javadoc")
-    `maven-publish`
-    signing
+    id("berrycrush.maven-publish")
 }
 
 dependencies {
@@ -77,17 +76,4 @@ publishing {
             }
         }
     }
-
-    repositories {
-        maven {
-            name = "local"
-            url = uri(layout.buildDirectory.dir("repo"))
-        }
-    }
-}
-
-signing {
-    // Only sign if signing key is configured and we're publishing to a real repository
-    setRequired { false }
-    sign(publishing.publications["mavenJava"])
 }
