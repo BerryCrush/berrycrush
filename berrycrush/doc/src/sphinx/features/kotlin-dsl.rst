@@ -416,6 +416,48 @@ The ``conditional`` block:
 - Can be used multiple times in the same step
 - Supports nested standard assertions (``statusCode``, ``bodyEquals``, etc.)
 
+Scenario File Compatibility
+---------------------------
+
+For consistency with ``.scenario`` file keywords, the DSL provides aliases:
+
++-------------+------------------+------------------------------------------------+
+| Alias       | Primary Method   | Description                                    |
++=============+==================+================================================+
+| ``when``    | ``whenever``     | Matches ``when`` keyword in scenario files     |
++-------------+------------------+------------------------------------------------+
+| ``then``    | ``afterwards``   | Matches ``then`` keyword in scenario files     |
++-------------+------------------+------------------------------------------------+
+| ``but``     | ``otherwise``    | Matches ``but`` keyword in scenario files      |
++-------------+------------------+------------------------------------------------+
+
+These aliases allow you to use the same keywords in Kotlin DSL that you would use
+in ``.scenario`` files:
+
+.. code-block:: kotlin
+
+    suite.scenario("Using scenario file keywords") {
+        `when`("I request a pet") {       // Same as whenever
+            call("getPetById") {
+                pathParam("petId", 1)
+            }
+        }
+
+        then("I receive the pet") {       // Same as afterwards
+            statusCode(200)
+            bodyEquals("$.name", "Fluffy")
+        }
+
+        but("no error is returned") {     // Same as otherwise
+            bodyEquals("$.error", null)
+        }
+    }
+
+.. note::
+    The ``when`` keyword requires backticks (``` `when` ```) because it's a Kotlin
+    reserved word. The primary methods (``whenever``, ``afterwards``, ``otherwise``)
+    don't have this limitation.
+
 Scenario Outlines
 -----------------
 

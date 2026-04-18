@@ -112,6 +112,32 @@ class EnhancedDslTest {
         }
 
         @Test
+        @DisplayName("scenario file compatible aliases")
+        fun `scenario file compatible aliases`(
+            suite: BerryCrushSuite,
+            executor: BerryCrushScenarioExecutor,
+        ) {
+            val scenario =
+                suite.scenario("Using scenario file aliases") {
+                    // These aliases match scenario file keywords
+                    `when`("I get a pet") {
+                        call("getPetById") {
+                            pathParam("petId", 1)
+                        }
+                    }
+                    then("I receive a response") {
+                        statusCode(200)
+                    }
+                    but("no error in response") {
+                        bodyEquals("$.name", "Max")
+                    }
+                }
+
+            val result = executor.execute(scenario)
+            assertEquals(ResultStatus.PASSED, result.status, "Scenario with aliases should pass")
+        }
+
+        @Test
         @DisplayName("fragment with new keywords")
         fun `fragment with new keywords`(
             suite: BerryCrushSuite,

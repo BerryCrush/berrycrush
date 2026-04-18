@@ -67,6 +67,32 @@ class ScenarioScope internal constructor(
         addStep(StepType.BUT, description, block)
     }
 
+    // ========== Scenario File Compatibility Aliases ==========
+
+    /**
+     * Alias for [whenever] - matches scenario file `when` keyword.
+     */
+    fun `when`(
+        description: String,
+        block: StepScope.() -> Unit = {},
+    ) = whenever(description, block)
+
+    /**
+     * Alias for [afterwards] - matches scenario file `then` keyword.
+     */
+    fun then(
+        description: String,
+        block: StepScope.() -> Unit = {},
+    ) = afterwards(description, block)
+
+    /**
+     * Alias for [otherwise] - matches scenario file `but` keyword.
+     */
+    fun but(
+        description: String,
+        block: StepScope.() -> Unit = {},
+    ) = otherwise(description, block)
+
     /**
      * Include a fragment's steps in this scenario.
      */
