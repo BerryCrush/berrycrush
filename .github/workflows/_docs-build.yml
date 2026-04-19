@@ -50,7 +50,12 @@ jobs:
         run: |
           cd berrycrush/doc
           sphinx-build -b html src/sphinx build/manual
-          
+
+      - name: Build Developer Guide (Sphinx)
+        run: |
+          cd developer
+          sphinx-build -b html . build/html
+
       - name: Build KDoc
         run: ./gradlew dokkaGenerateHtml
         
@@ -58,8 +63,8 @@ jobs:
         run: |
           mkdir -p _docs/{developer,manual,kdoc/core,kdoc/junit,kdoc/spring,assets}
           
-          # Copy Developer's Guide
-          cp -r developer/*.md _docs/developer/
+          # Copy Developer's Guide (Sphinx HTML output)
+          cp -r developer/build/html/* _docs/developer/
           
           # Copy Sphinx output
           cp -r berrycrush/doc/build/manual/* _docs/manual/
