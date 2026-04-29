@@ -680,6 +680,14 @@ CallScope
 +--------------------------------+------------------------------------------------+
 | ``autoAssert(enabled)``        | Enable/disable auto-assertions                 |
 +--------------------------------+------------------------------------------------+
+| ``autoTest(vararg types)``     | Enable auto-test generation (INVALID,          |
+|                                | SECURITY, MULTI)                               |
++--------------------------------+------------------------------------------------+
+| ``autoTest(invalid, security,  | Enable auto-tests using boolean flags          |
+| multi)``                       |                                                |
++--------------------------------+------------------------------------------------+
+| ``excludes(vararg categories)``| Exclude specific test categories               |
++--------------------------------+------------------------------------------------+
 
 JUnit 5 Integration with BerryCrushExtension
 --------------------------------------------
@@ -927,6 +935,102 @@ The method name is converted to a display name in the JUnit test tree:
     - Return ``Scenario`` or a subtype
     - Have no parameters (or only ``BerryCrushSuite`` if needed)
     - Be public
+
+Auto-Test Generation
+--------------------
+
+The Kotlin DSL supports automatic generation of invalid, security, and multi (idempotency) tests
+directly in code.
+
+Enabling Auto-Tests
+^^^^^^^^^^^^^^^^^^^
+
+Use the ``autoTest()`` method in a ``call`` block to enable auto-test generation:
+
+.. code-block:: kotlin
+
+    import org.berrycrush.scenario.AutoTestType
+
+    scenario("Create pet with auto-tests") {
+        whenever("I create a pet") {
+            call("createPet") {
+                body("""{"name": "Fluffy", "category": "cat"}""")
+                // Enable specific auto-test types
+                autoTest(AutoTestType.INVALID, AutoTestType.SECURITY)
+            }
+        }
+    }
+
+You can also use the boolean-based API:
+
+.. code-block:: kotlin
+
+    call("createPet") {
+        autoTest(invalid = true, security = true, multi = false)
+    }
+
+Auto-Test Types
+^^^^^^^^^^^^^^^
+
++----------------+--------------------------------------------------+
+| Type           | Description                                      |
++================+==================================================+
+| ``INVALID``    | Tests that violate OpenAPI schema constraints    |
+|                | (minLength, maxLength, pattern, required, etc.)  |
++----------------+--------------------------------------------------+
+| ``SECURITY``   | Security vulnerability tests (SQL injection,     |
+|                | XSS, path traversal, command injection, etc.)    |
++----------------+--------------------------------------------------+
+| ``MULTI``      | Idempotency tests that send multiple requests    |
+|                | (sequential and concurrent)                      |
++----------------+--------------------------------------------------+
+
+Multi (Idempotency) Tests
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Multi-tests verify API consistency by sending multiple requests:
+
+.. code-block:: kotlin
+
+    scenario("List pets - Idempotency test") {
+        whenever("I send multiple requests") {
+            call("listPets") {
+                autoTest(AutoTestType.MULTI)
+            }
+        }
+        afterwards("The requests complete successfully") {
+            statusCode(200..599)
+        }
+    }
+
+Configure request counts at the suite level:
+
+.. code-block:: kotlin
+
+    suite.configuration.multiTestSequentialCount = 5
+    suite.configuration.multiTestConcurrentCount = 10
+
+Excluding Test Categories
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Exclude specific test categories from auto-generation:
+
+.. code-block:: kotlin
+
+    call("createPet") {
+        autoTest(AutoTestType.INVALID, AutoTestType.SECURITY)
+        excludes("XSS", "minLength")
+    }
+
+Test Display Names
+^^^^^^^^^^^^^^^^^^
+
+Auto-tests appear in reports with these formats:
+
+- ``[invalid - minLength]`` - Invalid request tests
+- ``[security - SQL Injection]`` - Security tests
+- ``[multi:sequential] 3 requests`` - Sequential idempotency tests
+- ``[multi:concurrent] 5 requests`` - Concurrent idempotency tests
 
 See Also
 --------

@@ -355,3 +355,84 @@ when: I stress test with custom counts
 ```
 
 Step-level parameters take precedence over file-level and feature-level parameters.
+
+## Kotlin DSL Auto-Test API
+
+Auto-tests can also be configured using the Kotlin DSL. The DSL provides a type-safe way to enable auto-test generation.
+
+### Basic Usage
+
+```kotlin
+scenario("Create pet with auto-tests") {
+    whenever("I create a pet") {
+        call("createPet") {
+            body("""{"name": "Fluffy", "category": "cat"}""")
+            // Enable specific auto-test types
+            autoTest(AutoTestType.INVALID, AutoTestType.SECURITY)
+        }
+    }
+}
+```
+
+### Using Boolean Parameters
+
+```kotlin
+call("createPet") {
+    // Alternative API using booleans
+    autoTest(invalid = true, security = true, multi = false)
+}
+```
+
+### Multi-Request Idempotency Tests
+
+```kotlin
+scenario("Idempotency test") {
+    whenever("I send multiple requests") {
+        call("listPets") {
+            // Enable multi-request testing
+            autoTest(AutoTestType.MULTI)
+        }
+    }
+}
+```
+
+### Custom Multi-Test Parameters
+
+Configure request counts at the suite/configuration level:
+
+```kotlin
+val suite = BerryCrushSuite.create()
+suite.configuration.multiTestSequentialCount = 5
+suite.configuration.multiTestConcurrentCount = 10
+
+suite.scenario("Custom counts") {
+    whenever("I stress test the API") {
+        call("listPets") {
+            autoTest(AutoTestType.MULTI)
+        }
+    }
+}
+```
+
+### Excluding Test Categories
+
+Exclude specific test categories from auto-generation:
+
+```kotlin
+call("createPet") {
+    autoTest(AutoTestType.INVALID, AutoTestType.SECURITY)
+    // Exclude specific categories
+    excludes("XSS", "minLength")
+}
+```
+
+### Test Display Names
+
+DSL auto-tests use the same display name format as scenario files:
+
+| Test Type | Display Name Format |
+|-----------|---------------------|
+| Invalid | `[invalid - minLength]`, `[invalid - pattern]` |
+| Security | `[security - SQL Injection]`, `[security - XSS]` |
+| Multi (Sequential) | `[multi:sequential] N requests` |
+| Multi (Concurrent) | `[multi:concurrent] N requests` |

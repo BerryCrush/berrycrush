@@ -483,9 +483,20 @@ class AutoTestExecutor(
         val failedCount = multiTestResults.count { !it.passed }
         val totalModes = multiTestResults.size
 
+        // Extract reference response from first successful result for assertions
+        val firstResult = multiTestResults.firstOrNull()
+        val firstResponse = firstResult?.results?.firstOrNull()
+        val referenceStatusCode = firstResponse?.statusCode
+        val referenceBody = firstResponse?.body?.toString()
+        val referenceHeaders =
+            firstResponse?.headers?.mapValues { listOf(it.value) } ?: emptyMap()
+
         return StepResult(
             step = step,
             status = if (allPassed) ResultStatus.PASSED else ResultStatus.FAILED,
+            statusCode = referenceStatusCode,
+            responseBody = referenceBody,
+            responseHeaders = referenceHeaders,
             duration = Duration.between(stepStartTime, Instant.now()),
             message = "Multi-tests: $totalModes modes executed, $failedCount failed",
             multiTestResults = multiTestResults,
@@ -551,6 +562,9 @@ class AutoTestExecutor(
 
             // Log response if enabled
             responseLogger(resolvedOp.method.name, url, response, requestStartTime)
+
+            // Update context with response for subsequent assertions
+            context.updateLastResponse(response)
 
             val durationMs = System.currentTimeMillis() - requestStartTime
 
