@@ -600,8 +600,8 @@ class ParserTest {
         val feature = result.ast.features[0]
         assertEquals("Pet CRUD Operations", feature.name)
         assertNotNull(feature.parameters, "Feature should have parameters")
-        assertEquals(true, feature.parameters!!.values["shareVariablesAcrossScenarios"])
-        assertEquals(60L, feature.parameters!!.values["timeout"])
+        assertEquals(true, feature.parameters.values["shareVariablesAcrossScenarios"])
+        assertEquals(60L, feature.parameters.values["timeout"])
         assertNotNull(feature.background)
         assertEquals(2, feature.scenarios.size)
     }
@@ -627,7 +627,7 @@ class ParserTest {
         val feature = result.ast.features[0]
         assertEquals("Simple Feature", feature.name)
         assertNotNull(feature.parameters)
-        assertEquals(true, feature.parameters!!.values["shareVariablesAcrossScenarios"])
+        assertEquals(true, feature.parameters.values["shareVariablesAcrossScenarios"])
         assertEquals(null, feature.background)
         assertEquals(1, feature.scenarios.size)
     }
