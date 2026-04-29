@@ -1,5 +1,7 @@
 package org.berrycrush.dsl
 
+import org.berrycrush.model.AutoTestConfig
+import org.berrycrush.scenario.AutoTestType
 import java.util.Base64
 
 /**
@@ -12,6 +14,8 @@ class CallScope internal constructor() {
     internal val headers = mutableMapOf<String, String>()
     internal var body: String? = null
     internal var autoAssert: Boolean = true
+    internal var autoTestConfig: AutoTestConfig? = null
+    private val autoTestExcludes = mutableSetOf<String>()
 
     /**
      * Set a path parameter.
@@ -139,4 +143,59 @@ class CallScope internal constructor() {
             .replace("\n", "\\n")
             .replace("\r", "\\r")
             .replace("\t", "\\t")
+
+    // ========== Auto-Test Configuration ==========
+
+    /**
+     * Enable auto-test generation for this API call with the specified test types.
+     *
+     * @param types Test types to generate (INVALID, SECURITY, MULTI)
+     */
+    fun autoTest(vararg types: AutoTestType) {
+        autoTestConfig =
+            AutoTestConfig(
+                types = types.toSet(),
+                excludes = autoTestExcludes,
+            )
+    }
+
+    /**
+     * Enable auto-test generation for this API call.
+     *
+     * @param invalid Generate invalid request tests (violate OpenAPI constraints)
+     * @param security Generate security attack payload tests
+     * @param multi Generate idempotency tests (sequential and concurrent requests)
+     */
+    fun autoTest(
+        invalid: Boolean = false,
+        security: Boolean = false,
+        multi: Boolean = false,
+    ) {
+        val types =
+            buildSet {
+                if (invalid) add(AutoTestType.INVALID)
+                if (security) add(AutoTestType.SECURITY)
+                if (multi) add(AutoTestType.MULTI)
+            }
+        if (types.isNotEmpty()) {
+            autoTestConfig =
+                AutoTestConfig(
+                    types = types,
+                    excludes = autoTestExcludes,
+                )
+        }
+    }
+
+    /**
+     * Exclude specific test categories from auto-test generation.
+     *
+     * @param categories Categories to exclude (e.g., "SQLInjection", "maxLength", "sequential", "concurrent")
+     */
+    fun excludes(vararg categories: String) {
+        autoTestExcludes.addAll(categories)
+        // Update autoTestConfig if already set
+        autoTestConfig?.let {
+            autoTestConfig = it.copy(excludes = autoTestExcludes)
+        }
+    }
 }

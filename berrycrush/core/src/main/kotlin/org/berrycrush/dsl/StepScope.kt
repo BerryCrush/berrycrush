@@ -3,6 +3,7 @@ package org.berrycrush.dsl
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.context.TestExecutionContext
 import org.berrycrush.model.Assertion
+import org.berrycrush.model.AutoTestConfig
 import org.berrycrush.model.Condition
 import org.berrycrush.model.ConditionOperator
 import org.berrycrush.model.CustomAssertionDefinition
@@ -31,6 +32,9 @@ class StepScope internal constructor(
     private val customAssertions = mutableListOf<CustomAssertionDefinition>()
     private val conditionals = mutableListOf<org.berrycrush.model.ConditionalAssertion>()
     private var autoAssert: Boolean = true
+    private var autoTestConfig: AutoTestConfig? = null
+    internal var autoTestHandler: ((AutoTestContext) -> Unit)? = null
+    internal var multiTestHandler: ((MultiTestContext) -> Unit)? = null
 
     /**
      * Access to the execution context for variable substitution.
@@ -62,6 +66,53 @@ class StepScope internal constructor(
         if (!callScope.autoAssert) {
             autoAssert = false
         }
+        autoTestConfig = callScope.autoTestConfig
+    }
+
+    /**
+     * Register a handler for auto-test (invalid/security) execution.
+     *
+     * The handler is invoked for each auto-generated test case, providing
+     * context about the current test being executed.
+     *
+     * ```kotlin
+     * when_("Create pet") {
+     *     call("createPet") {
+     *         autoTest(AutoTestType.INVALID)
+     *     }
+     *     onAutoTest { ctx ->
+     *         println("Testing ${ctx.field} with ${ctx.value}")
+     *     }
+     * }
+     * ```
+     *
+     * @param block Handler to invoke for each auto-test
+     */
+    fun onAutoTest(block: (AutoTestContext) -> Unit) {
+        autoTestHandler = block
+    }
+
+    /**
+     * Register a handler for multi-request idempotency test execution.
+     *
+     * The handler is invoked after multi-test completion, providing
+     * results including all responses and timing data.
+     *
+     * ```kotlin
+     * when_("Create pet") {
+     *     call("createPet") {
+     *         autoTest(AutoTestType.MULTI)
+     *     }
+     *     onMultiTest { ctx ->
+     *         println("${ctx.successCount} of ${ctx.responses.size} requests succeeded")
+     *     }
+     * }
+     * ```
+     *
+     * @param block Handler to invoke after multi-test completion
+     */
+    fun onMultiTest(block: (MultiTestContext) -> Unit) {
+        multiTestHandler = block
     }
 
     /**
@@ -330,6 +381,7 @@ class StepScope internal constructor(
             customAssertions = customAssertions.toList(),
             conditionals = conditionals + conditionalBuilders.map { it.build() },
             autoAssert = autoAssert,
+            autoTestConfig = autoTestConfig,
         )
 
     // Internal constructor for conditional scopes

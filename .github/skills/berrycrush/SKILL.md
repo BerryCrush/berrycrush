@@ -430,6 +430,42 @@ Auto-tests appear in reports as:
 [multi:concurrent] 5 requests
 ```
 
+### Kotlin DSL Auto-Tests
+
+Auto-tests can also be configured using the Kotlin DSL:
+
+```kotlin
+scenario("Create pet with auto-tests") {
+    whenever("I create a pet") {
+        call("createPet") {
+            body("""{"name": "Fluffy", "category": "cat"}""")
+            // Enable auto-test types
+            autoTest(AutoTestType.INVALID, AutoTestType.SECURITY)
+        }
+    }
+}
+```
+
+Boolean API:
+```kotlin
+autoTest(invalid = true, security = true, multi = false)
+```
+
+Multi-request idempotency tests:
+```kotlin
+call("listPets") {
+    autoTest(AutoTestType.MULTI)
+}
+```
+
+Exclude specific categories:
+```kotlin
+call("createPet") {
+    autoTest(AutoTestType.INVALID, AutoTestType.SECURITY)
+    excludes("XSS", "minLength")
+}
+```
+
 ## Best Practices
 
 1. **Keep scenarios focused** - One behavior per scenario
