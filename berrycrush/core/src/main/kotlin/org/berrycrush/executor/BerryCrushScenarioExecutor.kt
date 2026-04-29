@@ -21,6 +21,7 @@ import org.berrycrush.model.Step
 import org.berrycrush.model.StepResult
 import org.berrycrush.openapi.HttpMethod
 import org.berrycrush.openapi.ResolvedOperation
+import org.berrycrush.openapi.SchemaSpec
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.openapi.findResponse
 import org.berrycrush.plugin.PluginRegistry
@@ -38,6 +39,7 @@ import tools.jackson.databind.ObjectMapper
 import java.net.http.HttpResponse
 import java.time.Duration
 import java.time.Instant
+import io.swagger.v3.oas.models.media.Schema as SwaggerSchema
 
 private const val BODY_PREVIEW_LENGTH = 200
 
@@ -448,71 +450,7 @@ class BerryCrushScenarioExecutor(
             // Check if this step has auto-test configuration
             val autoTestConfig = step.autoTestConfig
             if (autoTestConfig != null) {
-                val listener = currentExecutionListener.get() ?: BerryCrushExecutionListener.NOOP
-                val hasMulti = AutoTestType.MULTI in autoTestConfig.types
-                val hasInvalidOrSecurity =
-                    autoTestConfig.types.any {
-                        it == AutoTestType.INVALID || it == AutoTestType.SECURITY
-                    }
-
-                // Extract step-level multi-test parameters from pathParams
-                val stepMultiTestParams =
-                    step.pathParams.filterKeys {
-                        it.startsWith("multiTest")
-                    }
-
-                // Merge configuration defaults -> context params -> step params (step wins)
-                val multiTestParams =
-                    configuration.getMultiTestParameters() +
-                        context.allVariables() +
-                        stepMultiTestParams
-
-                when {
-                    // Both MULTI and INVALID/SECURITY - run both
-                    hasMulti && hasInvalidOrSecurity -> {
-                        val multiResult =
-                            autoTestExecutor.executeMultiTests(
-                                step = step,
-                                context = context,
-                                stepStartTime = stepStartTime,
-                                parameters = multiTestParams,
-                                listener = listener,
-                            )
-                        val autoResult =
-                            autoTestExecutor.executeAutoTests(
-                                step = step,
-                                context = context,
-                                stepStartTime = stepStartTime,
-                                listener = listener,
-                            )
-                        // Combine results
-                        val passed =
-                            multiResult.status == ResultStatus.PASSED &&
-                                autoResult.status == ResultStatus.PASSED
-                        StepResult(
-                            step = step,
-                            status = if (passed) ResultStatus.PASSED else ResultStatus.FAILED,
-                            duration = Duration.between(stepStartTime, Instant.now()),
-                            message = "${multiResult.message}; ${autoResult.message}",
-                            multiTestResults = multiResult.multiTestResults,
-                            autoTestResults = autoResult.autoTestResults,
-                        )
-                    }
-                    // Only MULTI
-                    hasMulti -> {
-                        autoTestExecutor.executeMultiTests(
-                            step = step,
-                            context = context,
-                            stepStartTime = stepStartTime,
-                            parameters = multiTestParams,
-                            listener = listener,
-                        )
-                    }
-                    // Only INVALID/SECURITY
-                    else -> {
-                        autoTestExecutor.executeAutoTests(step, context, stepStartTime, listener)
-                    }
-                }
+                executeAutoTestStep(step, context, stepStartTime, autoTestConfig)
             } else {
                 executeHttpRequest(step, context, stepStartTime)
             }
@@ -524,6 +462,87 @@ class BerryCrushScenarioExecutor(
                 error = e as? Exception ?: RuntimeException(e),
             )
         }
+
+    /**
+     * Execute auto-test step with configured test types.
+     */
+    private fun executeAutoTestStep(
+        step: Step,
+        context: ExecutionContext,
+        stepStartTime: Instant,
+        autoTestConfig: org.berrycrush.model.AutoTestConfig,
+    ): StepResult {
+        val listener = currentExecutionListener.get() ?: BerryCrushExecutionListener.NOOP
+        val hasMulti = AutoTestType.MULTI in autoTestConfig.types
+        val hasInvalidOrSecurity =
+            autoTestConfig.types.any {
+                it == AutoTestType.INVALID || it == AutoTestType.SECURITY
+            }
+
+        // Extract step-level multi-test parameters from pathParams
+        val stepMultiTestParams = step.pathParams.filterKeys { it.startsWith("multiTest") }
+
+        // Merge configuration defaults -> context params -> step params (step wins)
+        val multiTestParams =
+            configuration.getMultiTestParameters() +
+                context.allVariables() +
+                stepMultiTestParams
+
+        return when {
+            // Both MULTI and INVALID/SECURITY - run both
+            hasMulti && hasInvalidOrSecurity -> {
+                val multiResult =
+                    autoTestExecutor.executeMultiTests(
+                        step,
+                        context,
+                        stepStartTime,
+                        multiTestParams,
+                        listener,
+                    )
+                val autoResult =
+                    autoTestExecutor.executeAutoTests(
+                        step,
+                        context,
+                        stepStartTime,
+                        listener,
+                    )
+                combineAutoTestResults(step, stepStartTime, multiResult, autoResult)
+            }
+            // Only MULTI
+            hasMulti ->
+                autoTestExecutor.executeMultiTests(
+                    step,
+                    context,
+                    stepStartTime,
+                    multiTestParams,
+                    listener,
+                )
+            // Only INVALID/SECURITY
+            else -> autoTestExecutor.executeAutoTests(step, context, stepStartTime, listener)
+        }
+    }
+
+    /**
+     * Combine multi-test and auto-test results into a single StepResult.
+     */
+    private fun combineAutoTestResults(
+        step: Step,
+        stepStartTime: Instant,
+        multiResult: StepResult,
+        autoResult: StepResult,
+    ): StepResult {
+        val passed =
+            multiResult.status == ResultStatus.PASSED &&
+                autoResult.status == ResultStatus.PASSED
+        return StepResult(
+            step = step,
+            status = if (passed) ResultStatus.PASSED else ResultStatus.FAILED,
+            duration = Duration.between(stepStartTime, Instant.now()),
+            message = "${multiResult.message}; ${autoResult.message}",
+            multiTestResults = multiResult.multiTestResults,
+            autoTestResults = autoResult.autoTestResults,
+        )
+    }
 
     /**
      * Build request context and execute HTTP request.
@@ -1077,6 +1096,7 @@ class BerryCrushScenarioExecutor(
     /**
      * Evaluate a condition against the response.
      */
+    @Suppress("CyclomaticComplexMethod") // Dispatcher pattern - complexity from many condition types
     private fun evaluateCondition(
         response: HttpResponse<String>,
         condition: Condition,
@@ -1088,19 +1108,28 @@ class BerryCrushScenarioExecutor(
             is Condition.Header -> evaluateHeaderCondition(response, condition, context)
             is Condition.Variable -> evaluateVariableCondition(condition, context)
             is Condition.Negated -> !evaluateCondition(response, condition.condition, context)
-            is Condition.Compound -> {
-                val leftResult = evaluateCondition(response, condition.left, context)
-                when (condition.operator) {
-                    LogicalOperator.AND -> leftResult && evaluateCondition(response, condition.right, context)
-                    LogicalOperator.OR -> leftResult || evaluateCondition(response, condition.right, context)
-                }
-            }
+            is Condition.Compound -> evaluateCompoundCondition(response, condition, context)
             is Condition.BodyContains -> evaluateBodyContainsCondition(response, condition, context)
             is Condition.Schema -> evaluateSchemaCondition(response, context)
             is Condition.ResponseTime -> evaluateResponseTimeCondition(response, condition, context)
             is Condition.CustomAssertion -> evaluateCustomAssertionCondition(response, condition, context)
             is Condition.Custom -> evaluateCustomPredicateCondition(response, condition, context)
         }
+
+    /**
+     * Evaluate a compound condition (AND/OR).
+     */
+    private fun evaluateCompoundCondition(
+        response: HttpResponse<String>,
+        condition: Condition.Compound,
+        context: ExecutionContext,
+    ): Boolean {
+        val leftResult = evaluateCondition(response, condition.left, context)
+        return when (condition.operator) {
+            LogicalOperator.AND -> leftResult && evaluateCondition(response, condition.right, context)
+            LogicalOperator.OR -> leftResult || evaluateCondition(response, condition.right, context)
+        }
+    }
 
     /**
      * Evaluate a custom assertion by invoking the matching assertion from the registry.
@@ -1203,7 +1232,7 @@ class BerryCrushScenarioExecutor(
 
         // Get raw swagger schema for validation
         @Suppress("UNCHECKED_CAST")
-        val rawSchema = schemaSpec.rawSchema as? io.swagger.v3.oas.models.media.Schema<*> ?: return true
+        val rawSchema = schemaSpec.rawSchema as? SwaggerSchema<*> ?: return true
 
         // Validate the response body against the schema
         val errors = schemaValidator.validate(responseBody, rawSchema)
@@ -1216,7 +1245,7 @@ class BerryCrushScenarioExecutor(
     private fun findResponseSchema(
         operation: ResolvedOperation,
         statusCode: Int,
-    ): org.berrycrush.openapi.SchemaSpec? {
+    ): SchemaSpec? {
         val response = operation.findResponse(statusCode) ?: return null
         return response.content
             .values
@@ -1444,6 +1473,7 @@ class BerryCrushScenarioExecutor(
     /**
      * Generate a human-readable message for an assertion result.
      */
+    @Suppress("CyclomaticComplexMethod") // Dispatcher pattern - one branch per condition type
     private fun generateAssertionMessage(
         response: HttpResponse<String>,
         condition: Condition,
@@ -1451,65 +1481,100 @@ class BerryCrushScenarioExecutor(
         context: ExecutionContext,
     ): String =
         when (condition) {
-            is Condition.Status -> {
-                val actual = response.statusCode()
-                if (passed) "Status code is $actual" else "Expected status ${condition.expected} but got $actual"
-            }
-            is Condition.JsonPath -> {
-                val body = response.body() ?: ""
-                val actualValue = runCatching { JsonPath.read<Any>(body, condition.path) }.getOrNull()
-                val expectedValue = condition.expected?.let { resolveConditionValue(it, context) }
-                if (passed) {
-                    "${condition.path} ${condition.operator.name.lowercase()} ${expectedValue ?: ""}"
-                } else {
-                    buildString {
-                        append("Assertion failed at ${condition.path}\n")
-                        append("  Operator: ${condition.operator.name.lowercase()}\n")
-                        append("  Expected: ${expectedValue ?: "(none)"}\n")
-                        append("  Actual:   $actualValue")
-                    }
-                }
-            }
-            is Condition.Header -> {
-                val actualValue = response.headers().allValues(condition.name).firstOrNull()
-                if (passed) {
-                    "Header ${condition.name} ${condition.operator.name.lowercase()} ${condition.expected ?: ""}"
-                } else {
-                    "Header assertion failed: ${condition.name} ${condition.operator.name.lowercase()}, actual: $actualValue"
-                }
-            }
-            is Condition.BodyContains -> {
-                val text = condition.text.toString()
-                if (passed) "Body contains '$text'" else "Body does not contain '$text'"
-            }
-            is Condition.Schema -> {
-                if (passed) "Response matches schema" else "Response does not match schema"
-            }
-            is Condition.ResponseTime -> {
-                if (passed) "Response time is under ${condition.maxMs}ms" else "Response time exceeded ${condition.maxMs}ms"
-            }
-            is Condition.Variable -> {
-                val actual = context.get<Any>(condition.name)
-                if (passed) {
-                    "${condition.name} ${condition.operator.name.lowercase()} ${condition.expected}"
-                } else {
-                    "Variable ${condition.name}: expected ${condition.expected}, got $actual"
-                }
-            }
-            is Condition.Negated -> {
-                val innerMessage = generateAssertionMessage(response, condition.condition, !passed, context)
-                if (passed) "NOT: condition was false (assertion passed)" else "Negated assertion failed: $innerMessage"
-            }
-            is Condition.Compound -> {
-                if (passed) "Compound condition passed" else "Compound condition failed"
-            }
-            is Condition.CustomAssertion -> {
-                if (passed) "Custom assertion passed: ${condition.pattern}" else "Custom assertion failed: ${condition.pattern}"
-            }
-            is Condition.Custom -> {
-                if (passed) "Custom predicate passed" else "Custom predicate failed"
-            }
+            is Condition.Status -> statusMessage(response, condition, passed)
+            is Condition.JsonPath -> jsonPathMessage(response, condition, passed, context)
+            is Condition.Header -> headerMessage(response, condition, passed)
+            is Condition.BodyContains -> bodyContainsMessage(condition, passed)
+            is Condition.Schema -> if (passed) "Response matches schema" else "Response does not match schema"
+            is Condition.ResponseTime -> responseTimeMessage(condition, passed)
+            is Condition.Variable -> variableMessage(condition, passed, context)
+            is Condition.Negated -> negatedMessage(response, condition, passed, context)
+            is Condition.Compound -> if (passed) "Compound condition passed" else "Compound condition failed"
+            is Condition.CustomAssertion -> customAssertionMessage(condition, passed)
+            is Condition.Custom -> if (passed) "Custom predicate passed" else "Custom predicate failed"
         }
+
+    private fun statusMessage(
+        response: HttpResponse<String>,
+        condition: Condition.Status,
+        passed: Boolean,
+    ): String {
+        val actual = response.statusCode()
+        return if (passed) "Status code is $actual" else "Expected status ${condition.expected} but got $actual"
+    }
+
+    private fun jsonPathMessage(
+        response: HttpResponse<String>,
+        condition: Condition.JsonPath,
+        passed: Boolean,
+        context: ExecutionContext,
+    ): String {
+        val body = response.body() ?: ""
+        val actualValue = runCatching { JsonPath.read<Any>(body, condition.path) }.getOrNull()
+        val expectedValue = condition.expected?.let { resolveConditionValue(it, context) }
+        return if (passed) {
+            "${condition.path} ${condition.operator.name.lowercase()} ${expectedValue ?: ""}"
+        } else {
+            "Assertion failed at ${condition.path}\n" +
+                "  Operator: ${condition.operator.name.lowercase()}\n" +
+                "  Expected: ${expectedValue ?: "(none)"}\n" +
+                "  Actual:   $actualValue"
+        }
+    }
+
+    private fun headerMessage(
+        response: HttpResponse<String>,
+        condition: Condition.Header,
+        passed: Boolean,
+    ): String {
+        val actualValue = response.headers().allValues(condition.name).firstOrNull()
+        return if (passed) {
+            "Header ${condition.name} ${condition.operator.name.lowercase()} ${condition.expected ?: ""}"
+        } else {
+            "Header assertion failed: ${condition.name} ${condition.operator.name.lowercase()}, actual: $actualValue"
+        }
+    }
+
+    private fun bodyContainsMessage(
+        condition: Condition.BodyContains,
+        passed: Boolean,
+    ): String {
+        val text = condition.text.toString()
+        return if (passed) "Body contains '$text'" else "Body does not contain '$text'"
+    }
+
+    private fun responseTimeMessage(
+        condition: Condition.ResponseTime,
+        passed: Boolean,
+    ): String = if (passed) "Response time is under ${condition.maxMs}ms" else "Response time exceeded ${condition.maxMs}ms"
+
+    private fun variableMessage(
+        condition: Condition.Variable,
+        passed: Boolean,
+        context: ExecutionContext,
+    ): String {
+        val actual = context.get<Any>(condition.name)
+        return if (passed) {
+            "${condition.name} ${condition.operator.name.lowercase()} ${condition.expected}"
+        } else {
+            "Variable ${condition.name}: expected ${condition.expected}, got $actual"
+        }
+    }
+
+    private fun negatedMessage(
+        response: HttpResponse<String>,
+        condition: Condition.Negated,
+        passed: Boolean,
+        context: ExecutionContext,
+    ): String {
+        val innerMessage = generateAssertionMessage(response, condition.condition, !passed, context)
+        return if (passed) "NOT: condition was false (assertion passed)" else "Negated assertion failed: $innerMessage"
+    }
+
+    private fun customAssertionMessage(
+        condition: Condition.CustomAssertion,
+        passed: Boolean,
+    ): String = if (passed) "Custom assertion passed: ${condition.pattern}" else "Custom assertion failed: ${condition.pattern}"
 
     /**
      * Get the actual value from the response for a given condition type.

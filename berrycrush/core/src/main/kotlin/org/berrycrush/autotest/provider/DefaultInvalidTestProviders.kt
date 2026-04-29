@@ -40,16 +40,11 @@ class MinLengthProvider : InvalidTestProvider {
     override fun generateInvalidValues(
         fieldName: String,
         schema: Schema<*>,
-    ): List<InvalidTestValue> {
-        val minLen = schema.minLength ?: return emptyList()
-        val invalidValue = "x".repeat((minLen - 1).coerceAtLeast(0))
-        return listOf(
-            InvalidTestValue(
-                value = invalidValue,
-                description = "String shorter than minLength ($minLen)",
-            ),
-        )
-    }
+    ): List<InvalidTestValue> =
+        schema.minLength?.let { minLen ->
+            val invalidValue = "x".repeat((minLen - 1).coerceAtLeast(0))
+            listOf(InvalidTestValue(value = invalidValue, description = "String shorter than minLength ($minLen)"))
+        } ?: emptyList()
 }
 
 /**
@@ -63,16 +58,11 @@ class MaxLengthProvider : InvalidTestProvider {
     override fun generateInvalidValues(
         fieldName: String,
         schema: Schema<*>,
-    ): List<InvalidTestValue> {
-        val maxLen = schema.maxLength ?: return emptyList()
-        val invalidValue = "x".repeat(maxLen + EXTRA_LENGTH_CHARS)
-        return listOf(
-            InvalidTestValue(
-                value = invalidValue,
-                description = "String longer than maxLength ($maxLen)",
-            ),
-        )
-    }
+    ): List<InvalidTestValue> =
+        schema.maxLength?.let { maxLen ->
+            val invalidValue = "x".repeat(maxLen + EXTRA_LENGTH_CHARS)
+            listOf(InvalidTestValue(value = invalidValue, description = "String longer than maxLength ($maxLen)"))
+        } ?: emptyList()
 }
 
 /**
@@ -86,15 +76,10 @@ class PatternProvider : InvalidTestProvider {
     override fun generateInvalidValues(
         fieldName: String,
         schema: Schema<*>,
-    ): List<InvalidTestValue> {
-        val pattern = schema.pattern ?: return emptyList()
-        return listOf(
-            InvalidTestValue(
-                value = "!!!invalid_pattern!!!",
-                description = "String not matching pattern ($pattern)",
-            ),
-        )
-    }
+    ): List<InvalidTestValue> =
+        schema.pattern?.let { pattern ->
+            listOf(InvalidTestValue(value = "!!!invalid_pattern!!!", description = "String not matching pattern ($pattern)"))
+        } ?: emptyList()
 }
 
 /**
@@ -108,16 +93,12 @@ class FormatProvider : InvalidTestProvider {
     override fun generateInvalidValues(
         fieldName: String,
         schema: Schema<*>,
-    ): List<InvalidTestValue> {
-        val format = schema.format ?: return emptyList()
-        val invalidValue = getInvalidValueForFormat(format) ?: return emptyList()
-        return listOf(
-            InvalidTestValue(
-                value = invalidValue,
-                description = "Invalid format ($format)",
-            ),
-        )
-    }
+    ): List<InvalidTestValue> =
+        schema.format?.let { format ->
+            getInvalidValueForFormat(format)?.let { invalidValue ->
+                listOf(InvalidTestValue(value = invalidValue, description = "Invalid format ($format)"))
+            }
+        } ?: emptyList()
 
     private fun getInvalidValueForFormat(format: String): String? =
         when (format) {
@@ -143,16 +124,10 @@ class EnumProvider : InvalidTestProvider {
     override fun generateInvalidValues(
         fieldName: String,
         schema: Schema<*>,
-    ): List<InvalidTestValue> {
-        @Suppress("UNUSED_VARIABLE")
-        val enumValues = schema.enum ?: return emptyList()
-        return listOf(
-            InvalidTestValue(
-                value = "INVALID_ENUM_VALUE_${UUID.randomUUID()}",
-                description = "Value not in enum",
-            ),
-        )
-    }
+    ): List<InvalidTestValue> =
+        schema.enum?.let {
+            listOf(InvalidTestValue(value = "INVALID_ENUM_VALUE_${UUID.randomUUID()}", description = "Value not in enum"))
+        } ?: emptyList()
 }
 
 /**
@@ -166,16 +141,11 @@ class MinimumProvider : InvalidTestProvider {
     override fun generateInvalidValues(
         fieldName: String,
         schema: Schema<*>,
-    ): List<InvalidTestValue> {
-        val min = schema.minimum ?: return emptyList()
-        val invalidValue = min.subtract(java.math.BigDecimal.ONE)
-        return listOf(
-            InvalidTestValue(
-                value = invalidValue,
-                description = "Value below minimum ($min)",
-            ),
-        )
-    }
+    ): List<InvalidTestValue> =
+        schema.minimum?.let { min ->
+            val invalidValue = min.subtract(java.math.BigDecimal.ONE)
+            listOf(InvalidTestValue(value = invalidValue, description = "Value below minimum ($min)"))
+        } ?: emptyList()
 }
 
 /**
@@ -189,16 +159,11 @@ class MaximumProvider : InvalidTestProvider {
     override fun generateInvalidValues(
         fieldName: String,
         schema: Schema<*>,
-    ): List<InvalidTestValue> {
-        val max = schema.maximum ?: return emptyList()
-        val invalidValue = max.add(java.math.BigDecimal.ONE)
-        return listOf(
-            InvalidTestValue(
-                value = invalidValue,
-                description = "Value above maximum ($max)",
-            ),
-        )
-    }
+    ): List<InvalidTestValue> =
+        schema.maximum?.let { max ->
+            val invalidValue = max.add(java.math.BigDecimal.ONE)
+            listOf(InvalidTestValue(value = invalidValue, description = "Value above maximum ($max)"))
+        } ?: emptyList()
 }
 
 /**
@@ -260,15 +225,10 @@ class MinItemsProvider : InvalidTestProvider {
     override fun generateInvalidValues(
         fieldName: String,
         schema: Schema<*>,
-    ): List<InvalidTestValue> {
-        val minItems = schema.minItems ?: return emptyList()
-        return listOf(
-            InvalidTestValue(
-                value = emptyList<Any>(),
-                description = "Array with fewer items than minItems ($minItems)",
-            ),
-        )
-    }
+    ): List<InvalidTestValue> =
+        schema.minItems?.let { minItems ->
+            listOf(InvalidTestValue(value = emptyList<Any>(), description = "Array with fewer items than minItems ($minItems)"))
+        } ?: emptyList()
 }
 
 /**
@@ -282,14 +242,9 @@ class MaxItemsProvider : InvalidTestProvider {
     override fun generateInvalidValues(
         fieldName: String,
         schema: Schema<*>,
-    ): List<InvalidTestValue> {
-        val maxItems = schema.maxItems ?: return emptyList()
-        val tooManyItems = (0..maxItems + EXTRA_ARRAY_ITEMS).map { "item$it" }
-        return listOf(
-            InvalidTestValue(
-                value = tooManyItems,
-                description = "Array with more items than maxItems ($maxItems)",
-            ),
-        )
-    }
+    ): List<InvalidTestValue> =
+        schema.maxItems?.let { maxItems ->
+            val tooManyItems = (0..maxItems + EXTRA_ARRAY_ITEMS).map { "item$it" }
+            listOf(InvalidTestValue(value = tooManyItems, description = "Array with more items than maxItems ($maxItems)"))
+        } ?: emptyList()
 }

@@ -26,6 +26,26 @@ internal sealed class BodyParseResult {
 }
 
 /**
+ * State holder for parsing call parameters.
+ */
+private class CallParseState {
+    val parameters = mutableMapOf<String, ValueNode>()
+    val headers = mutableMapOf<String, ValueNode>()
+    var body: ValueNode? = null
+    var bodyProperties: Map<String, BodyPropertyValue>? = null
+    var bodyFile: String? = null
+    var autoTestConfig: AutoTestConfig? = null
+    var autoTestExcludes: Set<String>? = null
+
+    fun finalAutoTestConfig(): AutoTestConfig? =
+        if (autoTestConfig != null && autoTestExcludes != null) {
+            AutoTestConfig(autoTestConfig!!.types, autoTestExcludes!!, autoTestConfig!!.location)
+        } else {
+            autoTestConfig
+        }
+}
+
+/**
  * Parse a call action.
  */
 internal fun ParserState.parseCallAction(): CallNode? {
@@ -33,18 +53,7 @@ internal fun ParserState.parseCallAction(): CallNode? {
     advance() // consume 'call'
     skipWhitespace()
 
-    var specName: String? = null
-
-    // Check for "using spec_name"
-    if (current().type == TokenType.USING) {
-        advance()
-        skipWhitespace()
-        if (current().type == TokenType.IDENTIFIER || current().type == TokenType.STRING) {
-            specName = current().value
-            advance()
-        }
-        skipWhitespace()
-    }
+    val specName = parseUsingClause()
 
     // Get operation ID
     if (current().type != TokenType.OPERATION_ID && current().type != TokenType.IDENTIFIER) {
@@ -55,84 +64,89 @@ internal fun ParserState.parseCallAction(): CallNode? {
     val operationId = current().value
     advance()
 
-    val parameters = mutableMapOf<String, ValueNode>()
-    val headers = mutableMapOf<String, ValueNode>()
-    var body: ValueNode? = null
-    var bodyProperties: Map<String, BodyPropertyValue>? = null
-    var bodyFile: String? = null
-    var autoTestConfig: AutoTestConfig? = null
-    var autoTestExcludes: Set<String>? = null
-
-    // Parse optional parameters block
-    skipNewlines()
-    if (current().type == TokenType.INDENT) {
-        advance()
-
-        while (!isAtEnd() && current().type != TokenType.DEDENT) {
-            when (current().type) {
-                TokenType.IDENTIFIER, TokenType.OPERATION_ID -> {
-                    val paramName = current().value
-                    advance()
-                    skipWhitespace()
-
-                    if (current().type == TokenType.COLON || current().type == TokenType.EQUALS) {
-                        advance()
-                        skipWhitespace()
-                    }
-
-                    when {
-                        paramName.startsWith("header_") || paramName.startsWith("Header_") -> {
-                            val value = parseValue()
-                            if (value != null) {
-                                headers[paramName.removePrefix("header_").removePrefix("Header_")] = value
-                            }
-                        }
-                        paramName == "body" -> {
-                            when (val bodyResult = parseBodyContent()) {
-                                is BodyParseResult.Raw -> body = bodyResult.value
-                                is BodyParseResult.Properties -> bodyProperties = bodyResult.properties
-                            }
-                        }
-                        paramName == "bodyFile" -> bodyFile = parseBodyFilePath()
-                        paramName == "auto" -> autoTestConfig = parseAutoTestConfig()
-                        paramName == "excludes" -> autoTestExcludes = parseAutoTestExcludes()
-                        else -> {
-                            val value = parseValue()
-                            if (value != null) {
-                                parameters[paramName] = value
-                            }
-                        }
-                    }
-                }
-                TokenType.NEWLINE -> advance()
-                else -> advance()
-            }
-        }
-
-        if (current().type == TokenType.DEDENT) {
-            advance()
-        }
-    }
-
-    // Merge auto test config with excludes
-    val finalAutoTestConfig =
-        if (autoTestConfig != null && autoTestExcludes != null) {
-            AutoTestConfig(autoTestConfig.types, autoTestExcludes, autoTestConfig.location)
-        } else {
-            autoTestConfig
-        }
+    val state = CallParseState()
+    parseCallParametersBlock(state)
 
     return CallNode(
         operationId = operationId,
         specName = specName,
-        parameters = parameters,
-        headers = headers,
-        body = body,
-        bodyProperties = bodyProperties,
-        bodyFile = bodyFile,
-        autoTestConfig = finalAutoTestConfig,
+        parameters = state.parameters,
+        headers = state.headers,
+        body = state.body,
+        bodyProperties = state.bodyProperties,
+        bodyFile = state.bodyFile,
+        autoTestConfig = state.finalAutoTestConfig(),
         location = loc,
     )
+}
+
+/**
+ * Parse optional "using spec_name" clause.
+ */
+private fun ParserState.parseUsingClause(): String? {
+    if (current().type != TokenType.USING) return null
+    advance()
+    skipWhitespace()
+    return if (current().type == TokenType.IDENTIFIER || current().type == TokenType.STRING) {
+        val specName = current().value
+        advance()
+        skipWhitespace()
+        specName
+    } else {
+        null
+    }
+}
+
+/**
+ * Parse optional parameters block for a call.
+ */
+private fun ParserState.parseCallParametersBlock(state: CallParseState) {
+    skipNewlines()
+    if (current().type != TokenType.INDENT) return
+
+    advance()
+    while (!isAtEnd() && current().type != TokenType.DEDENT) {
+        when (current().type) {
+            TokenType.IDENTIFIER, TokenType.OPERATION_ID -> parseCallParameter(state)
+            TokenType.NEWLINE -> advance()
+            else -> advance()
+        }
+    }
+
+    if (current().type == TokenType.DEDENT) {
+        advance()
+    }
+}
+
+/**
+ * Parse a single call parameter and update state.
+ */
+private fun ParserState.parseCallParameter(state: CallParseState) {
+    val paramName = current().value
+    advance()
+    skipWhitespace()
+
+    if (current().type == TokenType.COLON || current().type == TokenType.EQUALS) {
+        advance()
+        skipWhitespace()
+    }
+
+    when {
+        paramName.startsWith("header_") || paramName.startsWith("Header_") -> {
+            val headerName = paramName.removePrefix("header_").removePrefix("Header_")
+            parseValue()?.let { state.headers[headerName] = it }
+        }
+        paramName == "body" -> {
+            when (val bodyResult = parseBodyContent()) {
+                is BodyParseResult.Raw -> state.body = bodyResult.value
+                is BodyParseResult.Properties -> state.bodyProperties = bodyResult.properties
+            }
+        }
+        paramName == "bodyFile" -> state.bodyFile = parseBodyFilePath()
+        paramName == "auto" -> state.autoTestConfig = parseAutoTestConfig()
+        paramName == "excludes" -> state.autoTestExcludes = parseAutoTestExcludes()
+        else -> parseValue()?.let { state.parameters[paramName] = it }
+    }
 }
 
 /**

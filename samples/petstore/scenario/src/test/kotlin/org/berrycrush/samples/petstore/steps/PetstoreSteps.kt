@@ -35,32 +35,29 @@ class PetstoreSteps {
     }
 
     @Step("the pet data should contain {string}")
+    @Suppress("ThrowsCount") // Multiple validation checks in step assertion
     fun verifyPetDataContains(
         expectedValue: String,
         context: StepContext,
     ) {
-        val petName =
-            context.variable("currentPetName") as? String
-                ?: throw AssertionError("No pet data set")
+        val petName = context.variable("currentPetName") as? String
+        checkNotNull(petName) { "No pet data set" }
 
-        val pet =
-            petDataStore[petName]
-                ?: throw AssertionError("Pet '$petName' not found in data store")
+        val pet = petDataStore[petName]
+        checkNotNull(pet) { "Pet '$petName' not found in data store" }
 
         val containsValue =
             pet.name.contains(expectedValue) ||
                 pet.status.contains(expectedValue)
 
-        if (!containsValue) {
-            throw AssertionError("Pet data does not contain '$expectedValue'. Pet: $pet")
-        }
+        check(containsValue) { "Pet data does not contain '$expectedValue'. Pet: $pet" }
     }
 
     @Step("I should have {int} pets with status {word}")
     fun verifyPetCount(
         expectedCount: Int,
         expectedStatus: String,
-        context: StepContext,
+        @Suppress("UNUSED_PARAMETER") context: StepContext,
     ) {
         val matchingPets = petDataStore.values.filter { it.status == expectedStatus }
 
@@ -73,31 +70,31 @@ class PetstoreSteps {
     }
 
     @Step("the pet price should be {float}")
+    @Suppress("ThrowsCount") // Multiple validation checks in step assertion
     fun verifyPetPrice(
         expectedPrice: Double,
         context: StepContext,
     ) {
-        val petName =
-            context.variable("currentPetName") as? String
-                ?: throw AssertionError("No pet data set")
+        val petName = context.variable("currentPetName") as? String
+        checkNotNull(petName) { "No pet data set" }
 
         // For demo, we update price when checking
-        val pet =
-            petDataStore[petName]
-                ?: throw AssertionError("Pet '$petName' not found")
+        val pet = petDataStore[petName]
+        checkNotNull(pet) { "Pet '$petName' not found" }
 
         petDataStore[petName] = pet.copy(price = 199.99)
 
         // Verify against expected
-        if (petDataStore[petName]?.price != expectedPrice) {
-            throw AssertionError(
-                "Expected price $expectedPrice, but got ${petDataStore[petName]?.price}",
-            )
+        val actualPrice = petDataStore[petName]?.price
+        check(actualPrice == expectedPrice) {
+            "Expected price $expectedPrice, but got $actualPrice"
         }
     }
 
     @Step("I reset the pet data")
-    fun resetPetData(context: StepContext) {
+    fun resetPetData(
+        @Suppress("UNUSED_PARAMETER") context: StepContext,
+    ) {
         petDataStore.clear()
     }
 

@@ -4,7 +4,6 @@
   <CurrentIssues>
     <ID>ComplexCondition:ExamplesParser.kt:!isAtEnd() &amp;&amp; current().type != TokenType.DEDENT &amp;&amp; current().type != TokenType.SCENARIO &amp;&amp; current().type != TokenType.OUTLINE &amp;&amp; current().type != TokenType.FRAGMENT</ID>
     <ID>ComplexCondition:Lexer.kt:Lexer$c.isLetterOrDigit() || c == '.' || c == '[' || c == ']' || c == '*' || c == '?' || c == '@' || c == '_'</ID>
-    <ID>ComplexCondition:ScenarioLoader.kt:ScenarioLoader$pendingCall == null &amp;&amp; ( currentExtractions.isNotEmpty() || currentAssertions.isNotEmpty() || currentConditionals.isNotEmpty() || currentFailMessage != null )</ID>
     <ID>ComplexCondition:ScenarioParser.kt:!isAtEnd() &amp;&amp; current().type != TokenType.DEDENT &amp;&amp; current().type != TokenType.SCENARIO &amp;&amp; current().type != TokenType.OUTLINE &amp;&amp; current().type != TokenType.FRAGMENT &amp;&amp; current().type != TokenType.PARAMETERS &amp;&amp; current().type != TokenType.BACKGROUND &amp;&amp; current().type != TokenType.FEATURE</ID>
     <ID>CyclomaticComplexMethod:ActionParser.kt:internal fun ParserState.parseAutoTestConfig: AutoTestConfig?</ID>
     <ID>CyclomaticComplexMethod:ActionParser.kt:internal fun ParserState.parseCallAction: CallNode?</ID>
@@ -13,10 +12,8 @@
     <ID>CyclomaticComplexMethod:BerryCrushConfiguration.kt:BerryCrushConfiguration$fun withParameters: BerryCrushConfiguration</ID>
     <ID>CyclomaticComplexMethod:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$private fun evaluateHeaderCondition: Boolean</ID>
     <ID>CyclomaticComplexMethod:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$private fun evaluateOperator: Boolean</ID>
-    <ID>CyclomaticComplexMethod:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$private fun generateAssertionMessage: String</ID>
     <ID>CyclomaticComplexMethod:ConditionParser.kt:internal fun ParserState.parseCondition: ConditionNode?</ID>
     <ID>CyclomaticComplexMethod:ExamplesParser.kt:internal fun ParserState.parseExamples: List&lt;ExampleRowNode>?</ID>
-    <ID>CyclomaticComplexMethod:JunitReportPlugin.kt:JunitReportPlugin$override fun formatReport: String</ID>
     <ID>CyclomaticComplexMethod:Lexer.kt:Lexer$fun nextToken: Token</ID>
     <ID>CyclomaticComplexMethod:Lexer.kt:Lexer$private fun handleIndentation: Token?</ID>
     <ID>CyclomaticComplexMethod:Lexer.kt:Lexer$private fun scanString: Token</ID>
@@ -24,7 +21,6 @@
     <ID>CyclomaticComplexMethod:Lexer.kt:Lexer$private fun scanTripleQuote: Token</ID>
     <ID>CyclomaticComplexMethod:Parser.kt:Parser$fun parse: ParserResult</ID>
     <ID>CyclomaticComplexMethod:ScenarioLoader.kt:ScenarioLoader$private fun transformCondition: Condition</ID>
-    <ID>CyclomaticComplexMethod:ScenarioLoader.kt:ScenarioLoader$private fun transformStep: List&lt;Step></ID>
     <ID>CyclomaticComplexMethod:ScenarioParser.kt:internal fun ParserState.parseFeature: FeatureNode?</ID>
     <ID>CyclomaticComplexMethod:ScenarioParser.kt:internal fun ParserState.parseParameters: ParametersNode?</ID>
     <ID>CyclomaticComplexMethod:SchemaValidator.kt:SchemaValidator$private fun buildJsonSchemaMap: Map&lt;String, Any?></ID>
@@ -36,11 +32,8 @@
     <ID>LargeClass:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor</ID>
     <ID>LargeClass:ParserTest.kt:ParserTest</ID>
     <ID>LongMethod:ActionParser.kt:internal fun ParserState.parseCallAction: CallNode?</ID>
-    <ID>LongMethod:AutoTestExecutor.kt:AutoTestExecutor$private fun executeAutoTestCase: AutoTestResult</ID>
     <ID>LongMethod:AutoTestGenerator.kt:AutoTestGenerator$private fun createInvalidTestCase: AutoTestCase</ID>
-    <ID>LongMethod:JunitReportPlugin.kt:JunitReportPlugin$override fun formatReport: String</ID>
     <ID>LongMethod:Lexer.kt:Lexer$private fun scanTripleQuote: Token</ID>
-    <ID>LongMethod:ScenarioLoader.kt:ScenarioLoader$private fun transformStep: List&lt;Step></ID>
     <ID>LongMethod:ScenarioParser.kt:internal fun ParserState.parseFeature: FeatureNode?</ID>
     <ID>LoopWithTooManyJumpStatements:ScenarioParser.kt:while</ID>
     <ID>LoopWithTooManyJumpStatements:StepParser.kt:while</ID>
@@ -65,7 +58,6 @@
     <ID>ReturnCount:ConditionalParser.kt:internal fun ParserState.buildVariablePath: String</ID>
     <ID>ReturnCount:ConditionalParser.kt:internal fun ParserState.parseConditionWithLogicalOps: ConditionNode?</ID>
     <ID>ReturnCount:ConditionalParser.kt:internal fun ParserState.parseConditional: ConditionalNode?</ID>
-    <ID>ReturnCount:DefaultInvalidTestProviders.kt:FormatProvider$override fun generateInvalidValues: List&lt;InvalidTestValue></ID>
     <ID>ReturnCount:Lexer.kt:Lexer$fun nextToken: Token</ID>
     <ID>ReturnCount:Lexer.kt:Lexer$private fun handleIndentation: Token?</ID>
     <ID>ReturnCount:Lexer.kt:Lexer$private fun removeCommonIndentation: String</ID>

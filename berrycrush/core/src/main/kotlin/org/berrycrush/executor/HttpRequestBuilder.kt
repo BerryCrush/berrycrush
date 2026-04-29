@@ -46,8 +46,8 @@ class HttpRequestBuilder(
         url: String,
         headers: Map<String, String> = emptyMap(),
         body: String? = null,
-    ): HttpResponse<String> {
-        try {
+    ): HttpResponse<String> =
+        runCatching {
             val requestBuilder =
                 HttpRequest
                     .newBuilder()
@@ -65,11 +65,10 @@ class HttpRequestBuilder(
             }
 
             val request = requestBuilder.build()
-            return client.send(request, HttpResponse.BodyHandlers.ofString())
-        } catch (e: Exception) {
+            client.send(request, HttpResponse.BodyHandlers.ofString())
+        }.getOrElse { e ->
             throw HttpExecutionException(url, method.name, e)
         }
-    }
 
     /**
      * Build a full URL with path parameters and query parameters.

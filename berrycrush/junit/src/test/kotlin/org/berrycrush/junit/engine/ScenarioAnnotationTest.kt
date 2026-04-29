@@ -130,5 +130,6 @@ class TestClassWithScenarios {
 
     // This method should NOT be discovered (wrong return type)
     @ScenarioTest
+    @Suppress("FunctionOnlyReturningConstant") // Intentional for testing annotation discovery
     fun wrongReturnType(): String = "not a scenario"
 }

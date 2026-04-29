@@ -1,6 +1,11 @@
 # Detekt Configuration for BerryCrush
 # https://detekt.dev/docs/rules/
 # Updated for detekt 2.0.0-alpha.3
+#
+# Code Style Guidelines (manual review):
+# - Use runCatching {} instead of try-catch blocks
+# - Prefer foo?.let { ... } over "val x = foo ?: return"
+# - Use import aliases for conflicting classes instead of FQN
 
 complexity:
   active: true
@@ -71,6 +76,12 @@ potential-bugs:
 
 style:
   active: true
+  ReturnCount:
+    active: true
+    max: 3
+    excludeLabeled: false
+    excludeReturnFromLambda: true
+    excludeGuardClauses: false
   ThrowsCount:
     active: true
     max: 2

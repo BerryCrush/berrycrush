@@ -164,11 +164,10 @@ class AutoTestExecutor(
         // From inline body JSON
         step.body?.let { bodyStr ->
             val interpolated = context.interpolate(bodyStr)
-            return try {
+            return runCatching {
+                @Suppress("UNCHECKED_CAST")
                 objectMapper.readValue(interpolated, Map::class.java) as Map<String, Any>
-            } catch (_: Exception) {
-                null
-            }
+            }.getOrNull()
         }
 
         // From structured body properties
@@ -210,6 +209,60 @@ class AutoTestExecutor(
     }
 
     /**
+     * Parameters prepared for a test case execution.
+     */
+    private data class TestCaseParams(
+        val body: String?,
+        val pathParams: Map<String, Any>,
+        val headers: Map<String, String>,
+    )
+
+    private fun buildTestCaseParams(
+        step: Step,
+        testCase: AutoTestCase,
+    ): TestCaseParams {
+        val testBody =
+            if (testCase.body.isNotEmpty()) {
+                objectMapper.writeValueAsString(testCase.body)
+            } else {
+                step.body
+            }
+
+        val testPathParams = mutableMapOf<String, Any>()
+        testPathParams.putAll(step.pathParams)
+        testCase.pathParams.forEach { (k, v) -> testPathParams[k] = v ?: "" }
+
+        val testHeaders =
+            step.headers.toMutableMap().apply {
+                putAll(testCase.headers)
+            }
+
+        return TestCaseParams(testBody, testPathParams, testHeaders)
+    }
+
+    private fun setupTestCaseContext(
+        testCase: AutoTestCase,
+        context: ExecutionContext,
+    ) {
+        context["test.type"] = testCase.type.name.lowercase()
+        context["test.field"] = testCase.fieldName
+        context["test.description"] = testCase.description
+        context["test.value"] = testCase.invalidValue?.toString() ?: "null"
+        context["test.location"] = testCase.location.name.lowercase()
+    }
+
+    private fun isSecurityTestBlocked(
+        testCase: AutoTestCase,
+        error: Exception,
+    ): Boolean {
+        val isSecurityTest = testCase.type == AutoTestType.SECURITY
+        val isUrlError =
+            error.message?.contains("Illegal character") == true ||
+                error.message?.contains("Invalid URL") == true
+        return isSecurityTest && isUrlError
+    }
+
+    /**
      * Execute a single auto-test case.
      *
      * Sets up context variables for conditional assertions, builds the request with
@@ -225,90 +278,63 @@ class AutoTestExecutor(
         testCase: AutoTestCase,
         context: ExecutionContext,
     ): AutoTestResult {
-        // Set context variables for conditional assertions
-        context["test.type"] = testCase.type.name.lowercase()
-        context["test.field"] = testCase.fieldName
-        context["test.description"] = testCase.description
-        context["test.value"] = testCase.invalidValue?.toString() ?: "null"
-        context["test.location"] = testCase.location.name.lowercase()
-
+        setupTestCaseContext(testCase, context)
         val testStartTime = Instant.now()
+        val params = buildTestCaseParams(step, testCase)
 
-        return try {
-            // Determine body, path params, and headers for this test case
-            val testBody =
-                if (testCase.body.isNotEmpty()) {
-                    objectMapper.writeValueAsString(testCase.body)
-                } else {
-                    step.body
-                }
-
-            // Merge test case path params with step's path params
-            val testPathParams = step.pathParams.toMutableMap()
-            testCase.pathParams.forEach { (k, v) -> testPathParams[k] = v ?: "" }
-
-            // Merge test case headers with step's headers
-            val testHeaders = step.headers.toMutableMap()
-            testCase.headers.forEach { (k, v) -> testHeaders[k] = v }
-
-            // Execute the HTTP request
-            val (spec, resolvedOp) = specRegistry.resolve(step.operationId!!, step.specName)
-            val baseUrl = configuration.baseUrl ?: spec.baseUrl
-            val url =
-                httpBuilder.buildUrl(
-                    baseUrl = baseUrl,
-                    path = resolvedOp.path,
-                    pathParams = paramResolver(testPathParams, context),
-                    queryParams = paramResolver(step.queryParams, context),
-                )
-
-            val headers = configuration.defaultHeaders + spec.defaultHeaders + testHeaders
-
-            // Log request if enabled
-            requestLogger(resolvedOp.method.name, url, headers, testBody)
-
-            val requestStartTime = System.currentTimeMillis()
-            val response =
-                httpBuilder.execute(
-                    method = resolvedOp.method,
-                    url = url,
-                    headers = headers,
-                    body = testBody,
-                )
-
-            // Log response if enabled
-            responseLogger(resolvedOp.method.name, url, response, requestStartTime)
-
-            // Update context with response for conditional assertions
-            context.updateLastResponse(response)
-
-            // Run assertions (which may include conditionals checking test.type)
-            val assertionResults = assertionRunner(response, step.assertions, context)
-            val allPassed = assertionResults.all { it.passed }
-
+        return runCatching {
+            executeAndAssert(step, testCase, params, context, testStartTime)
+        }.getOrElse { e ->
             AutoTestResult(
                 testCase = testCase,
-                passed = allPassed,
-                statusCode = response.statusCode(),
-                responseBody = response.body()?.take(RESPONSE_BODY_PREVIEW_LENGTH),
-                assertionResults = assertionResults,
-                duration = Duration.between(testStartTime, Instant.now()),
-            )
-        } catch (e: Exception) {
-            // For security tests, an exception (e.g., invalid URL) means the attack was blocked
-            // at the infrastructure level, which is a good thing
-            val isSecurityTest = testCase.type == AutoTestType.SECURITY
-            val isUrlError =
-                e.message?.contains("Illegal character") == true ||
-                    e.message?.contains("Invalid URL") == true
-
-            AutoTestResult(
-                testCase = testCase,
-                passed = isSecurityTest && isUrlError, // Security test blocked at URL level = pass
+                passed = isSecurityTestBlocked(testCase, e as Exception),
                 error = e.message ?: e.javaClass.simpleName,
                 duration = Duration.between(testStartTime, Instant.now()),
             )
         }
+    }
+
+    private fun executeAndAssert(
+        step: Step,
+        testCase: AutoTestCase,
+        params: TestCaseParams,
+        context: ExecutionContext,
+        testStartTime: Instant,
+    ): AutoTestResult {
+        val (spec, resolvedOp) = specRegistry.resolve(step.operationId!!, step.specName)
+        val baseUrl = configuration.baseUrl ?: spec.baseUrl
+        val url =
+            httpBuilder.buildUrl(
+                baseUrl = baseUrl,
+                path = resolvedOp.path,
+                pathParams = paramResolver(params.pathParams, context),
+                queryParams = paramResolver(step.queryParams, context),
+            )
+
+        val headers = configuration.defaultHeaders + spec.defaultHeaders + params.headers
+        requestLogger(resolvedOp.method.name, url, headers, params.body)
+
+        val requestStartTime = System.currentTimeMillis()
+        val response =
+            httpBuilder.execute(
+                method = resolvedOp.method,
+                url = url,
+                headers = headers,
+                body = params.body,
+            )
+        responseLogger(resolvedOp.method.name, url, response, requestStartTime)
+
+        context.updateLastResponse(response)
+        val assertionResults = assertionRunner(response, step.assertions, context)
+
+        return AutoTestResult(
+            testCase = testCase,
+            passed = assertionResults.all { it.passed },
+            statusCode = response.statusCode(),
+            responseBody = response.body()?.take(RESPONSE_BODY_PREVIEW_LENGTH),
+            assertionResults = assertionResults,
+            duration = Duration.between(testStartTime, Instant.now()),
+        )
     }
 
     /**
@@ -444,41 +470,65 @@ class AutoTestExecutor(
 
         // Execute sequential tests if not excluded
         if (runSequential) {
-            val provider = registry.getMultiTestProvider("sequential")
-            if (provider != null) {
-                listener.onMultiTestStarting(MultiMode.SEQUENTIAL, sequentialCount)
-                val result =
-                    executeMultiTestMode(
-                        step = step,
-                        context = context,
-                        provider = provider,
-                        count = sequentialCount,
-                    )
-                multiTestResults.add(result)
-                listener.onMultiTestCompleted(result)
-                logMultiTest(result)
-            }
+            executeIfProviderExists(
+                registry,
+                "sequential",
+                MultiMode.SEQUENTIAL,
+                sequentialCount,
+                step,
+                context,
+                listener,
+                multiTestResults,
+            )
         }
 
         // Execute concurrent tests if not excluded
         if (runConcurrent) {
-            val provider = registry.getMultiTestProvider("concurrent")
-            if (provider != null) {
-                listener.onMultiTestStarting(MultiMode.CONCURRENT, concurrentCount)
-                val result =
-                    executeMultiTestMode(
-                        step = step,
-                        context = context,
-                        provider = provider,
-                        count = concurrentCount,
-                    )
-                multiTestResults.add(result)
-                listener.onMultiTestCompleted(result)
-                logMultiTest(result)
-            }
+            executeIfProviderExists(
+                registry,
+                "concurrent",
+                MultiMode.CONCURRENT,
+                concurrentCount,
+                step,
+                context,
+                listener,
+                multiTestResults,
+            )
         }
 
-        // Aggregate results
+        // Aggregate and return results
+        return buildMultiTestResult(step, stepStartTime, multiTestResults)
+    }
+
+    /**
+     * Execute a multi-test mode if the provider exists, adding results to the list.
+     */
+    private fun executeIfProviderExists(
+        registry: AutoTestProviderRegistry,
+        providerName: String,
+        mode: MultiMode,
+        count: Int,
+        step: Step,
+        context: ExecutionContext,
+        listener: BerryCrushExecutionListener,
+        results: MutableList<MultiTestResult>,
+    ) {
+        val provider = registry.getMultiTestProvider(providerName) ?: return
+        listener.onMultiTestStarting(mode, count)
+        val result = executeMultiTestMode(step, context, provider, count)
+        results.add(result)
+        listener.onMultiTestCompleted(result)
+        logMultiTest(result)
+    }
+
+    /**
+     * Build the final StepResult from multi-test results.
+     */
+    private fun buildMultiTestResult(
+        step: Step,
+        stepStartTime: Instant,
+        multiTestResults: List<MultiTestResult>,
+    ): StepResult {
         val allPassed = multiTestResults.all { it.passed }
         val failedCount = multiTestResults.count { !it.passed }
         val totalModes = multiTestResults.size
@@ -526,7 +576,7 @@ class AutoTestExecutor(
     ): RequestResult {
         val requestStartTime = System.currentTimeMillis()
 
-        return try {
+        return runCatching {
             // Resolve the operation
             val (spec, resolvedOp) = specRegistry.resolve(step.operationId!!, step.specName)
 
@@ -575,7 +625,7 @@ class AutoTestExecutor(
                 headers = response.headers().map().mapValues { it.value.firstOrNull() ?: "" },
                 durationMs = durationMs,
             )
-        } catch (e: Exception) {
+        }.getOrElse { e ->
             val durationMs = System.currentTimeMillis() - requestStartTime
             RequestResult.create(
                 requestIndex = requestIndex,

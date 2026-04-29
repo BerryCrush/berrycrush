@@ -8,6 +8,7 @@ import java.util.Base64
  * DSL scope for configuring an API call.
  */
 @BerryCrushDsl
+@Suppress("TooManyFunctions") // DSL class designed to provide many configuration functions
 class CallScope internal constructor() {
     internal val pathParams = mutableMapOf<String, Any>()
     internal val queryParams = mutableMapOf<String, Any>()

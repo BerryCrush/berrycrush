@@ -7,6 +7,7 @@ import org.berrycrush.autotest.provider.AutoTestProviderRegistry
 import org.berrycrush.openapi.LoadedSpec
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.scenario.AutoTestType
+import io.swagger.v3.oas.models.parameters.Parameter as SwaggerParameter
 
 private const val PATH_PATTERN_LIMIT = 3
 
@@ -379,7 +380,7 @@ class AutoTestGenerator(
      * Generate invalid tests for path parameters using providers.
      */
     private fun generatePathParamInvalidTests(
-        pathParams: List<io.swagger.v3.oas.models.parameters.Parameter>,
+        pathParams: List<SwaggerParameter>,
         baseBody: Map<String, Any>,
         basePathParams: Map<String, Any?>,
     ): List<AutoTestCase> =
@@ -409,7 +410,7 @@ class AutoTestGenerator(
      * Generate security tests for path parameters using providers.
      */
     private fun generatePathParamSecurityTests(
-        pathParams: List<io.swagger.v3.oas.models.parameters.Parameter>,
+        pathParams: List<SwaggerParameter>,
         baseBody: Map<String, Any>,
         basePathParams: Map<String, Any?>,
     ): List<AutoTestCase> =
@@ -437,7 +438,7 @@ class AutoTestGenerator(
      * Generate invalid tests for header parameters using providers.
      */
     private fun generateHeaderInvalidTests(
-        headerParams: List<io.swagger.v3.oas.models.parameters.Parameter>,
+        headerParams: List<SwaggerParameter>,
         baseBody: Map<String, Any>,
         baseHeaders: Map<String, String>,
     ): List<AutoTestCase> =
@@ -467,7 +468,7 @@ class AutoTestGenerator(
      * Generate security tests for header parameters using providers.
      */
     private fun generateHeaderSecurityTests(
-        headerParams: List<io.swagger.v3.oas.models.parameters.Parameter>,
+        headerParams: List<SwaggerParameter>,
         baseBody: Map<String, Any>,
         baseHeaders: Map<String, String>,
     ): List<AutoTestCase> =

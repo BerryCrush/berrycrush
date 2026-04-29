@@ -85,14 +85,13 @@ object ScenarioTestDiscoverer {
                 scenarioSource = file.url,
             )
 
-        return try {
-            val fileContent = loadScenarioFromUrl(loader, file.url)
-            populateFileDescriptor(fileDescriptor, fileContent)
-            fileDescriptor
-        } catch (e: Exception) {
-            System.err.println("Warning: Failed to parse ${file.path} during discovery: ${e.message}")
-            fileDescriptor
-        }
+        runCatching { loadScenarioFromUrl(loader, file.url) }
+            .onSuccess { populateFileDescriptor(fileDescriptor, it) }
+            .onFailure { e ->
+                System.err.println("Warning: Failed to parse ${file.path} during discovery: ${e.message}")
+            }
+
+        return fileDescriptor
     }
 
     private fun populateFileDescriptor(

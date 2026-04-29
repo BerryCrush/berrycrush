@@ -130,11 +130,10 @@ class ScenarioRunner(
             }
         }
 
-        try {
-            pluginRegistry?.dispatchTestExecutionStart()
-        } catch (e: Exception) {
-            System.err.println("Warning: Plugin test execution start hook failed: ${e.message}")
-        }
+        runCatching { pluginRegistry?.dispatchTestExecutionStart() }
+            .onFailure { e ->
+                System.err.println("Warning: Plugin test execution start hook failed: ${e.message}")
+            }
     }
 
     /**
@@ -144,11 +143,10 @@ class ScenarioRunner(
      * on all plugins, which triggers report generation for report plugins.
      */
     fun endExecution() {
-        try {
-            pluginRegistry?.dispatchTestExecutionEnd()
-        } catch (e: Exception) {
-            System.err.println("Warning: Plugin test execution end hook failed: ${e.message}")
-        }
+        runCatching { pluginRegistry?.dispatchTestExecutionEnd() }
+            .onFailure { e ->
+                System.err.println("Warning: Plugin test execution end hook failed: ${e.message}")
+            }
         // Clear shared context
         sharedContext = null
     }
@@ -282,11 +280,10 @@ class ScenarioRunner(
                 null
             }
 
-        try {
-            pluginRegistry?.dispatchTestExecutionStart()
-        } catch (e: Exception) {
-            System.err.println("Warning: Plugin test execution start hook failed: ${e.message}")
-        }
+        runCatching { pluginRegistry?.dispatchTestExecutionStart() }
+            .onFailure { e ->
+                System.err.println("Warning: Plugin test execution start hook failed: ${e.message}")
+            }
 
         // Execute all scenarios with modified executor
         for (scenario in scenarios) {
@@ -294,11 +291,10 @@ class ScenarioRunner(
             results.add(scenario to result)
         }
 
-        try {
-            pluginRegistry?.dispatchTestExecutionEnd()
-        } catch (e: Exception) {
-            System.err.println("Warning: Plugin test execution end hook failed: ${e.message}")
-        }
+        runCatching { pluginRegistry?.dispatchTestExecutionEnd() }
+            .onFailure { e ->
+                System.err.println("Warning: Plugin test execution end hook failed: ${e.message}")
+            }
 
         return buildRunResult(startTime, results)
     }

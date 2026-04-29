@@ -120,7 +120,7 @@ object RegistryFactory {
             }
         }
 
-        // TODO: Implement package scanning for assertions if needed
+        // Note: Package scanning for assertions could be implemented in the future
         // For now, only class-based registration is supported
 
         return if (registry.allDefinitions().isEmpty()) null else registry

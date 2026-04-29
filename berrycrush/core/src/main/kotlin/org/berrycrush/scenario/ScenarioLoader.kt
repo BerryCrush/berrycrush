@@ -259,6 +259,126 @@ class ScenarioLoader {
         )
     }
 
+    /**
+     * Builder for accumulating step components before finalizing.
+     */
+    private inner class StepBuilder(
+        private val stepType: StepType,
+        private val description: String,
+        private val defaultLocation: SourceLocation?,
+    ) {
+        private val steps = mutableListOf<Step>()
+        private var pendingCall: CallNode? = null
+        private val extractions = mutableListOf<Extraction>()
+        private val assertions = mutableListOf<Assertion>()
+        private val conditionals = mutableListOf<ConditionalAssertion>()
+        private var failMessage: String? = null
+
+        fun processAction(action: ActionNode) {
+            when (action) {
+                is CallNode -> processCallNode(action)
+                is ExtractNode -> extractions.add(Extraction(action.variableName, action.jsonPath))
+                is AssertNode -> assertions.add(transformAssertion(action))
+                is IncludeNode -> processIncludeNode(action)
+                is ConditionalNode -> conditionals.add(transformConditional(action))
+                is FailNode -> failMessage = action.message
+            }
+        }
+
+        private fun processCallNode(call: CallNode) {
+            finalizePendingCall()
+            pendingCall = call
+        }
+
+        private fun processIncludeNode(include: IncludeNode) {
+            finalizePendingCall()
+            pendingCall = null
+            steps.add(
+                Step(
+                    type = stepType,
+                    description = "include ${include.fragmentName}",
+                    fragmentName = include.fragmentName,
+                    sourceLocation = include.location,
+                ),
+            )
+        }
+
+        private fun finalizePendingCall() {
+            val call = pendingCall ?: return
+            steps.add(buildStepFromCall(call))
+            resetAccumulators()
+        }
+
+        private fun buildStepFromCall(call: CallNode): Step {
+            val pathParams =
+                call.parameters
+                    .filterKeys { !it.startsWith("query_") }
+                    .mapValues { extractValue(it.value) }
+            val queryParams =
+                call.parameters
+                    .filterKeys { it.startsWith("query_") }
+                    .mapKeys { it.key.removePrefix("query_") }
+                    .mapValues { extractValue(it.value) }
+
+            return Step(
+                type = stepType,
+                description = description,
+                operationId = call.operationId,
+                specName = call.specName,
+                pathParams = pathParams,
+                queryParams = queryParams,
+                headers = call.headers.mapValues { extractValue(it.value).toString() },
+                body = call.body?.let { extractStringValue(it) },
+                bodyProperties = call.bodyProperties?.let { transformBodyProperties(it) },
+                bodyFile = call.bodyFile,
+                extractions = extractions.toList(),
+                assertions = assertions.toList(),
+                conditionals = conditionals.toList(),
+                failMessage = failMessage,
+                autoTestConfig = call.autoTestConfig?.let { transformAutoTestConfig(it) },
+                sourceLocation = call.location,
+            )
+        }
+
+        private fun resetAccumulators() {
+            extractions.clear()
+            assertions.clear()
+            conditionals.clear()
+            failMessage = null
+        }
+
+        private fun hasOrphanedComponents(): Boolean =
+            pendingCall == null &&
+                (
+                    extractions.isNotEmpty() ||
+                        assertions.isNotEmpty() ||
+                        conditionals.isNotEmpty() ||
+                        failMessage != null
+                )
+
+        fun build(): List<Step> {
+            finalizePendingCall()
+
+            if (hasOrphanedComponents()) {
+                steps.add(
+                    Step(
+                        type = stepType,
+                        description = description,
+                        extractions = extractions.toList(),
+                        assertions = assertions.toList(),
+                        conditionals = conditionals.toList(),
+                        failMessage = failMessage,
+                        sourceLocation = defaultLocation,
+                    ),
+                )
+            }
+
+            return steps.ifEmpty {
+                listOf(Step(type = stepType, description = description, sourceLocation = defaultLocation))
+            }
+        }
+    }
+
     private fun transformStep(node: StepNode): List<Step> {
         val stepType =
             when (node.keyword) {
@@ -269,145 +389,13 @@ class ScenarioLoader {
                 StepKeyword.BUT -> StepType.BUT
             }
 
-        // Each action becomes a separate step (or combine into one step)
         if (node.actions.isEmpty()) {
-            return listOf(
-                Step(
-                    type = stepType,
-                    description = node.description,
-                    sourceLocation = node.location,
-                ),
-            )
+            return listOf(Step(type = stepType, description = node.description, sourceLocation = node.location))
         }
 
-        // For call actions, create steps with the call details
-        // Extractions and assertions that follow a call are attached to that call
-        val steps = mutableListOf<Step>()
-        var pendingCall: CallNode? = null
-        var currentExtractions = mutableListOf<Extraction>()
-        var currentAssertions = mutableListOf<Assertion>()
-        var currentConditionals = mutableListOf<ConditionalAssertion>()
-        var currentFailMessage: String? = null
-
-        fun finalizeCall(call: CallNode) {
-            val pathParams =
-                call.parameters
-                    .filterKeys { !it.startsWith("query_") }
-                    .mapValues { extractValue(it.value) }
-
-            val queryParams =
-                call.parameters
-                    .filterKeys { it.startsWith("query_") }
-                    .mapKeys { it.key.removePrefix("query_") }
-                    .mapValues { extractValue(it.value) }
-
-            val headers = call.headers.mapValues { extractValue(it.value).toString() }
-            val body = call.body?.let { extractStringValue(it) }
-            val bodyProperties = call.bodyProperties?.let { transformBodyProperties(it) }
-            val autoTestConfig = call.autoTestConfig?.let { transformAutoTestConfig(it) }
-
-            steps.add(
-                Step(
-                    type = stepType,
-                    description = node.description,
-                    operationId = call.operationId,
-                    specName = call.specName,
-                    pathParams = pathParams,
-                    queryParams = queryParams,
-                    headers = headers,
-                    body = body,
-                    bodyProperties = bodyProperties,
-                    bodyFile = call.bodyFile,
-                    extractions = currentExtractions.toList(),
-                    assertions = currentAssertions.toList(),
-                    conditionals = currentConditionals.toList(),
-                    failMessage = currentFailMessage,
-                    autoTestConfig = autoTestConfig,
-                    sourceLocation = call.location,
-                ),
-            )
-            currentExtractions = mutableListOf()
-            currentAssertions = mutableListOf()
-            currentConditionals = mutableListOf()
-            currentFailMessage = null
-        }
-
-        for (action in node.actions) {
-            when (action) {
-                is CallNode -> {
-                    // Finalize any pending call with accumulated extractions/assertions
-                    pendingCall?.let { finalizeCall(it) }
-                    pendingCall = action
-                }
-                is ExtractNode -> {
-                    currentExtractions.add(
-                        Extraction(
-                            variableName = action.variableName,
-                            jsonPath = action.jsonPath,
-                        ),
-                    )
-                }
-                is AssertNode -> {
-                    currentAssertions.add(transformAssertion(action))
-                }
-                is IncludeNode -> {
-                    // Finalize any pending call first
-                    pendingCall?.let { finalizeCall(it) }
-                    pendingCall = null
-
-                    // Include actions are handled at runtime by the executor
-                    steps.add(
-                        Step(
-                            type = stepType,
-                            description = "include ${action.fragmentName}",
-                            fragmentName = action.fragmentName,
-                            sourceLocation = action.location,
-                        ),
-                    )
-                }
-                is ConditionalNode -> {
-                    currentConditionals.add(transformConditional(action))
-                }
-                is FailNode -> {
-                    currentFailMessage = action.message
-                }
-            }
-        }
-
-        // Finalize any remaining pending call with extractions/assertions
-        pendingCall?.let { finalizeCall(it) }
-
-        // If there are orphan extractions/assertions/conditionals without a call, add them as a separate step
-        if (pendingCall == null &&
-            (
-                currentExtractions.isNotEmpty() ||
-                    currentAssertions.isNotEmpty() ||
-                    currentConditionals.isNotEmpty() ||
-                    currentFailMessage != null
-            )
-        ) {
-            steps.add(
-                Step(
-                    type = stepType,
-                    description = node.description,
-                    extractions = currentExtractions.toList(),
-                    assertions = currentAssertions.toList(),
-                    conditionals = currentConditionals.toList(),
-                    failMessage = currentFailMessage,
-                    sourceLocation = node.location,
-                ),
-            )
-        }
-
-        return steps.ifEmpty {
-            listOf(
-                Step(
-                    type = stepType,
-                    description = node.description,
-                    sourceLocation = node.location,
-                ),
-            )
-        }
+        val builder = StepBuilder(stepType, node.description, node.location)
+        node.actions.forEach { builder.processAction(it) }
+        return builder.build()
     }
 
     /**

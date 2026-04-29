@@ -15,6 +15,7 @@ import org.berrycrush.model.StepType
  * DSL scope for defining a single step.
  */
 @BerryCrushDsl
+@Suppress("TooManyFunctions") // DSL class designed to provide many step configuration functions
 class StepScope internal constructor(
     private val type: StepType,
     private val description: String,

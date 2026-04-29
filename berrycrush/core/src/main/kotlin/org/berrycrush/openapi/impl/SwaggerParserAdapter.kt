@@ -49,6 +49,7 @@ import org.berrycrush.openapi.ServerVariable
 import org.berrycrush.openapi.SpecInfo
 import org.berrycrush.openapi.XmlSpec
 import java.nio.file.Path
+import io.swagger.v3.oas.models.Components as SwaggerComponents
 
 /**
  * OpenAPI parser implementation using swagger-parser library.
@@ -614,7 +615,7 @@ internal class SwaggerSchemaSpec(
  * ComponentsSpec implementation.
  */
 internal class SwaggerComponentsSpec(
-    private val components: io.swagger.v3.oas.models.Components,
+    private val components: SwaggerComponents,
 ) : ComponentsSpec {
     override val schemas: Map<String, SchemaSpec> by lazy {
         components.schemas?.mapValues { (_, s) ->
