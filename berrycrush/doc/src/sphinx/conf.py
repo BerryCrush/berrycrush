@@ -3,6 +3,11 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+# -- Path setup for custom extensions ----------------------------------------
+import os
+import sys
+sys.path.insert(0, os.path.abspath('../../../../sphinx/_extensions'))
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -20,6 +25,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
+    'berrycrush_lexer',
 ]
 
 # Optional: sphinx_copybutton for code copy button (install with pip if desired)

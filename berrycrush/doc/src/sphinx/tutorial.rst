@@ -63,7 +63,7 @@ Basic Scenario
 
 Create ``src/test/resources/scenarios/pets.scenario``:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: List all pets
       when: I request all pets
@@ -89,7 +89,7 @@ Scenario Outline with Examples
 
 Use ``outline:`` and ``examples:`` for parameterized tests:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     outline: Create pets of different categories
       when: I create a pet named {{name}} in category {{category}}
@@ -110,7 +110,7 @@ Use ``outline:`` and ``examples:`` for parameterized tests:
 Advanced Scenarios
 ^^^^^^^^^^^^^^^^^^
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Get pet by ID
       given: a pet exists
@@ -147,7 +147,7 @@ Conditional Assertions
 
 When APIs can return different valid responses, use if/else:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Upsert a pet
       when: I upsert pet 999
@@ -176,7 +176,7 @@ Basic Usage
 
 Use the ``auto:`` directive in a call to generate tests:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Auto-generated tests for createPet
       when: I create a pet with invalid data
@@ -231,7 +231,7 @@ Path Parameter Tests
 
 Auto-tests also work with path parameters:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Auto-generated tests for getPetById
       when: I get a pet with invalid ID

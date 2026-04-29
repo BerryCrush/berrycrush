@@ -24,7 +24,7 @@ Cucumber:
 
 BerryCrush:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     # scenarios/pets.scenario
     scenario: List pets
@@ -116,7 +116,7 @@ REST Assured:
 
 BerryCrush:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: List pets
       when: I request pets
@@ -155,7 +155,7 @@ Karate:
 
 BerryCrush:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     feature: Pet API
       background:

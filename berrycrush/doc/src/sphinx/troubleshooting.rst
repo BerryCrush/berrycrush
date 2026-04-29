@@ -178,7 +178,7 @@ JSONPath Not Matching
 2. Verify the JSONPath expression
 3. Check data types (string vs number)
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Debug response
       when: I request pets
