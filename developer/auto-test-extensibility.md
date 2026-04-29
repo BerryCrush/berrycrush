@@ -326,14 +326,14 @@ Multi-test execution can be configured via parameters:
 | `multiTestConcurrentCount` | 5 | Number of concurrent requests |
 
 Set in scenario files (file-level):
-```
+```berrycrush
 parameters:
   multiTestSequentialCount: 5
   multiTestConcurrentCount: 10
 ```
 
 At the feature level:
-```
+```berrycrush
 feature: Idempotency Tests
   parameters:
     multiTestSequentialCount: 10

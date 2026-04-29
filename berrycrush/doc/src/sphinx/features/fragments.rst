@@ -12,7 +12,7 @@ Fragment files use the ``.fragment`` extension and are placed in the
 
 **berrycrush/fragments/auth.fragment:**
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     # Authentication Fragment
     # Reusable authentication steps for protected endpoints
@@ -36,7 +36,7 @@ Fragment Structure
 
 Each fragment starts with ``fragment: <name>`` followed by indented steps:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     fragment: <fragment-name>
       <step-type> <description>
@@ -51,7 +51,7 @@ Include fragments in your scenarios using the ``include`` directive:
 
 **scenarios/list-pets.scenario:**
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Authenticated list pets
       given I authenticate first
@@ -148,7 +148,7 @@ Variables in Fragments
 
 Fragments can extract values that become available in the calling scenario:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     fragment: authenticate
       given I have valid credentials
@@ -158,7 +158,7 @@ Fragments can extract values that become available in the calling scenario:
 
 The ``authToken`` variable is now available in the scenario that included this fragment:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Access protected resource
       given I am authenticated
@@ -174,7 +174,7 @@ Multi-Spec in Fragments
 
 Fragments can use the ``using`` keyword to call operations from named specs:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     fragment: admin-login
       given I have admin credentials
@@ -203,7 +203,7 @@ Example: Complete Test Suite
 
 **fragments/auth.fragment:**
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     fragment: authenticate
       given I have valid credentials
@@ -223,7 +223,7 @@ Example: Complete Test Suite
 
 **scenarios/pet-crud.scenario:**
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Create pet as authenticated user
       given I am authenticated

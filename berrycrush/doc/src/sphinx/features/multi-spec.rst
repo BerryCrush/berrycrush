@@ -62,7 +62,7 @@ Default Operations
 
 Operations from the default spec can be called directly:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: List all pets
       when I request pets
@@ -75,7 +75,7 @@ Named Spec Operations
 
 To call operations from a named spec, use the ``using`` keyword:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Authenticate and list pets
       given I have valid credentials
@@ -153,7 +153,7 @@ Example: Separating Auth from Main API
 
 **auth.scenario:**
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     # Authentication tests using the 'auth' spec
     
@@ -236,7 +236,7 @@ Cross-Service Scenarios
 
 With multi-host configuration, you can test scenarios that span multiple services:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Cross-service order flow
       given I am authenticated
@@ -268,7 +268,7 @@ File-Level Base URL Overrides
 You can also override per-spec base URLs using file-level parameters for testing
 against different environments:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     parameters:
       baseUrl.auth: "http://staging-auth.example.com"

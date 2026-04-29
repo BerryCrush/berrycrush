@@ -15,7 +15,7 @@ You can enable logging via:
 File-Level Parameters
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: text
+.. code-block:: berrycrush
 
    # In your .scenario file
    parameters:

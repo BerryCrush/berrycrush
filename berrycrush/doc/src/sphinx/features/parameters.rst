@@ -11,7 +11,7 @@ Syntax
 Place the ``parameters:`` block at the top of your scenario file, before any
 scenarios or fragments:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
    parameters:
      baseUrl: "http://localhost:8080"
@@ -65,7 +65,7 @@ Header Overrides
 
 Use the ``header.`` prefix to add or override default headers:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
    parameters:
      header.Authorization: "Bearer test-token"
@@ -94,7 +94,7 @@ Control automatic assertion generation:
 
 Example:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
    parameters:
      autoAssertions.enabled: false
@@ -107,7 +107,7 @@ Environment-Specific Settings
 
 Configure different base URLs or authentication for different environments:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
    # production-tests.scenario
    parameters:
@@ -126,7 +126,7 @@ Cross-Scenario Variable Sharing
 
 Enable variable sharing for integration test flows:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
    # crud-workflow.scenario
    parameters:
@@ -158,7 +158,7 @@ Testing with Debug Logging
 
 Enable verbose logging for troubleshooting:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
    parameters:
      logRequests: true

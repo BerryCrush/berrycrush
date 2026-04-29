@@ -449,7 +449,7 @@ Custom assertions can be used in scenario files using the ``assert`` keyword:
 
 **Basic Usage**
 
-.. code-block:: yaml
+.. code-block:: berrycrush
 
     scenario: Verify item availability
       when I get the product details
@@ -471,7 +471,7 @@ pattern in the ``AssertionRegistry``:
     @Assertion("the {word} should have status {string}")
     fun assertStatus(entityType: String, expectedStatus: String, context: AssertionContext): AssertionResult
 
-.. code-block:: yaml
+.. code-block:: berrycrush
 
     # Usage in scenario file
     assert the product should have status "available"
@@ -482,7 +482,7 @@ pattern in the ``AssertionRegistry``:
 
 Custom assertions can be used alongside built-in assertions in the same step:
 
-.. code-block:: yaml
+.. code-block:: berrycrush
 
     scenario: Complete verification
       when I get the product

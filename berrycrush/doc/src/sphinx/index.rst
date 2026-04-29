@@ -71,7 +71,7 @@ Quick Example
 
 Scenario file (``pet-api.scenario``):
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: List all pets
       when: I request all pets

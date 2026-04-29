@@ -143,7 +143,7 @@ Features provide logical grouping for related scenarios with shared setup via ba
 
 ### Basic Feature
 
-```
+```berrycrush
 feature: Pet Store API
   scenario: list all pets
     when I list pets
@@ -163,7 +163,7 @@ feature: Pet Store API
 
 Background steps run before **each** scenario in the feature:
 
-```
+```berrycrush
 feature: Pet Operations
   background:
     given: setup test data
@@ -222,7 +222,7 @@ In this example:
 
 ### Basic Scenario
 
-```
+```berrycrush
 scenario: My test scenario
   given some precondition
   when I perform an action
@@ -233,7 +233,7 @@ scenario: My test scenario
 
 ### With Parameters Block
 
-```
+```berrycrush
 parameters:
   baseUrl: "http://localhost:8080"
   timeout: 60
@@ -262,13 +262,13 @@ scenario: Test with custom configuration
 
 Syntax: `call [using <spec-name>] ^<operationId>`
 
-```
+```berrycrush
 when I request pets
   call ^listPets
 ```
 
 With named spec (multi-spec):
-```
+```berrycrush
 when I authenticate
   call using auth ^login
 ```
@@ -284,7 +284,7 @@ when I authenticate
 | Body (structured) | Set body with properties | `body:` newline + indented properties |
 
 Example with inline body:
-```
+```berrycrush
 when I create a pet
   call ^createPet
     petId: 123
@@ -294,7 +294,7 @@ when I create a pet
 ```
 
 Example with structured body:
-```
+```berrycrush
 when I create a pet
   call ^createPet
     body:
@@ -382,14 +382,14 @@ Both positions are supported to allow natural reading: "assert body does not con
 
 Syntax: `extract <jsonPath> => <variableName>`
 
-```
+```berrycrush
 then I capture the ID
   assert status 201
   extract $.id => petId
 ```
 
 Use extracted variables with `{{variableName}}`:
-```
+```berrycrush
 when I get the pet
   call ^getPetById
     petId: {{petId}}
@@ -404,7 +404,7 @@ Conditional assertions allow branching logic based on response status, JSON path
 
 #### Basic Syntax
 
-```
+```berrycrush
 when I make a request
   call ^operation
   
@@ -476,7 +476,7 @@ else
 
 ### Fragment Inclusion (`include`)
 
-```
+```berrycrush
 scenario: Use authentication
   given I am authenticated
     include authenticate
@@ -492,7 +492,7 @@ The `body:` keyword supports two modes:
 
 Specify JSON directly on the same line:
 
-```
+```berrycrush
 when I create a pet
   call ^createPet
     body: {"name": "Fluffy", "status": "available"}
@@ -502,7 +502,7 @@ when I create a pet
 
 Use indented properties to generate JSON with OpenAPI schema defaults:
 
-```
+```berrycrush
 when I create a pet
   call ^createPet
     body:
@@ -525,7 +525,7 @@ when I create a pet
 ```
 
 **Example with nested objects:**
-```
+```berrycrush
 when I create a pet
   call ^createPet
     body:
@@ -539,7 +539,7 @@ when I create a pet
 
 Use triple quotes (`"""`) for multi-line raw body content. The common indentation is automatically removed:
 
-```
+```berrycrush
 when I create a pet
   call ^createPet
     body:
@@ -560,7 +560,7 @@ This sends the JSON exactly as written (with common indentation stripped). This 
 #### Multi-line JSON (Legacy)
 
 Use `>` for multi-line raw JSON:
-```
+```berrycrush
 when I create a pet
   call ^createPet
     body: >
@@ -590,7 +590,7 @@ Where `<test-types>` is a space-separated list of:
 
 ### Basic Example
 
-```
+```berrycrush
 scenario: Auto-generated tests for createPet
   when I create a pet with invalid request
     call ^createPet
@@ -655,7 +655,7 @@ Multi tests verify:
 - **State consistency** - API maintains correct state under load
 
 Example:
-```
+```berrycrush
 scenario: Idempotency test for getPet
   when I get a pet multiple times
     call ^getPetById
@@ -667,7 +667,7 @@ scenario: Idempotency test for getPet
 ```
 
 Configure request counts:
-```
+```berrycrush
 parameters:
   multiTestSequentialCount: 5    # Run 5 sequential requests
   multiTestConcurrentCount: 10   # Run 10 concurrent requests
@@ -707,7 +707,7 @@ For multi-tests, additional variables are available:
 
 ### Complete Example
 
-```
+```berrycrush
 scenario: Auto-generated path parameter tests for getPetById
   when I get a pet with invalid ID
     call ^getPetById
@@ -775,7 +775,7 @@ Parameters can be specified at two levels:
 
 Place at the top of the file to configure all scenarios:
 
-```
+```berrycrush
 parameters:
   baseUrl: "http://localhost:8080"
   timeout: 60
@@ -795,7 +795,7 @@ parameters:
 
 Place inside a feature block to configure only scenarios in that feature:
 
-```
+```berrycrush
 feature: Pet CRUD Operations
   parameters:
     shareVariablesAcrossScenarios: true
@@ -855,7 +855,7 @@ Variables are referenced using double curly braces: `{{variableName}}`
 
 ### Example
 
-```
+```berrycrush
 parameters:
   shareVariablesAcrossScenarios: true
 
@@ -893,7 +893,7 @@ The escape sequences:
 
 ## Parameterized Scenarios (Scenario Outline)
 
-```
+```berrycrush
 scenario: Create different pets
   when I create a pet
     call ^createPet
@@ -933,7 +933,7 @@ fragment: logout
 ```
 
 Usage in scenario:
-```
+```berrycrush
 scenario: Authenticated API access
   given I am authenticated
     include authenticate
@@ -948,7 +948,7 @@ scenario: Authenticated API access
 
 Lines starting with `#` are comments:
 
-```
+```berrycrush
 # This is a comment
 scenario: My test
   # This describes the step
@@ -1001,7 +1001,7 @@ Step patterns use `{string}`, `{int}`, `{float}` placeholders:
 
 ### Using Custom Steps in Scenarios
 
-```
+```berrycrush
 scenario: Create and verify pet
   given: create a test pet named "Fluffy"
   then: the pet should have status "available"
@@ -1075,7 +1075,7 @@ Assertion patterns use the same placeholders as custom steps:
 
 ### Using Custom Assertions in Scenarios
 
-```
+```berrycrush
 scenario: Verify pet response
   when: I get the pet
     call ^getPetById
@@ -1118,7 +1118,7 @@ public class PetstoreScenarioTest {}
 ## Best Practices
 
 ### 1. Use Descriptive Names
-```
+```berrycrush
 # Good
 scenario: Create pet with valid data returns 201
 
@@ -1127,7 +1127,7 @@ scenario: Test1
 ```
 
 ### 2. Group Related Assertions
-```
+```berrycrush
 then the pet is created correctly
   assert status 201
   assert $.id exists
@@ -1136,7 +1136,7 @@ then the pet is created correctly
 ```
 
 ### 3. Extract Values for Data Flow
-```
+```berrycrush
 when I create a pet
   call ^createPet
     body: {"name": "Test"}
@@ -1148,7 +1148,7 @@ when I retrieve the pet
 ```
 
 ### 4. Use Fragments for Common Setup
-```
+```berrycrush
 # fragments/auth.fragment
 fragment: authenticate
   given I log in
@@ -1159,7 +1159,7 @@ fragment: authenticate
 ```
 
 ### 5. Enable Variable Sharing for Workflows
-```
+```berrycrush
 parameters:
   shareVariablesAcrossScenarios: true
 

@@ -129,7 +129,7 @@ For APIs with multiple OpenAPI specs:
 
 Use named specs in scenarios:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Authenticate and access pets
       given I authenticate

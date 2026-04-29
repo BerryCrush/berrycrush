@@ -17,7 +17,7 @@ Basic Scenario
 
 A minimal scenario consists of a name and steps:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: List all pets
       when: I request all pets
@@ -38,7 +38,7 @@ Steps begin with keywords that describe their purpose:
 
 Example:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Create and verify pet
       given: API is ready
@@ -60,13 +60,13 @@ API Calls
 
 Use ``call`` to invoke an OpenAPI operation:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     call ^operationId
 
 For multi-spec projects, specify the spec name:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     call using auth ^login
 
@@ -91,7 +91,7 @@ The ``body:`` keyword supports two modes:
 
 **Inline JSON** - Specify JSON directly on the same line:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     when: I create a pet
       call ^createPet
@@ -99,7 +99,7 @@ The ``body:`` keyword supports two modes:
 
 **Structured properties** - Use indented properties with OpenAPI schema defaults:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     when: I create a pet
       call ^createPet
@@ -117,7 +117,7 @@ This allows partial data specification - unspecified fields use schema defaults.
 
 **Triple-quoted multi-line body** - Use ``"""`` for multi-line raw content:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     when: I create a pet
       call ^createPet
@@ -137,7 +137,7 @@ External Body Files
 
 For large or reusable request bodies, use ``bodyFile`` to load content from external files:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     when: I create a pet with template
       call ^createPet
@@ -173,7 +173,7 @@ Assertions
 Status Code Assertions
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     assert status 200
     assert statusCode 201
@@ -183,7 +183,7 @@ Body-Level Assertions
 
 Check the response body for content:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     # Body contains substring
     assert contains "expected text"
@@ -196,28 +196,28 @@ JSONPath Assertions
 
 **Equality:**
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     assert $.name equals "Max"
     assert $.id = 123
 
 **Pattern Matching (regex):**
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     assert $.email matches ".*@.*\\.com"
     assert $.total matches "\\d+"
 
 **Array Assertions:**
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     assert $.pets notEmpty
     assert $.items size 5
 
 **Header Assertions:**
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     # Check header exists
     assert header Content-Type
@@ -228,14 +228,14 @@ JSONPath Assertions
 
 **Response Time:**
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     # Response must complete within 5000ms
     assert responseTime 5000
 
 **Schema Validation:**
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     # Validate response against OpenAPI schema
     assert schema
@@ -247,13 +247,13 @@ The ``not`` keyword inverts any assertion, making it a negative check.
 
 **For body-level assertions** (``not`` at the beginning):
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     assert not contains "error"
 
 **For JSONPath assertions** (``not`` after the path):
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     assert $.status not equals "sold"
     assert $.items not hasSize 0
@@ -266,14 +266,14 @@ Variable Extraction
 
 Extract values from responses for use in subsequent steps:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     extract $.id => petId
     extract $.token => authToken
 
 Use extracted variables with double curly braces:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     call ^getPetById
       petId: {{petId}}
@@ -284,7 +284,7 @@ Escaping Variable Syntax
 To use literal ``{{`` or ``${`` in strings (without variable interpolation), 
 escape them with a backslash:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     # This asserts the literal text "{{petName}}" appears in the body
     assert not contains "\\{{petName}}"
@@ -306,7 +306,7 @@ This is useful when an API can return different success responses.
 Basic Syntax
 ^^^^^^^^^^^^
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     when: I upsert a resource
       call ^updatePet
@@ -329,14 +329,14 @@ Condition Types
 
 **Status code:**
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     if status 201
       assert $.id notEmpty
 
 **JSON path value:**
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     if $.count greaterThan 0
       assert $.items[0].id notEmpty
@@ -346,7 +346,7 @@ Condition Types
 
 **Header value:**
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     if header Content-Type equals "application/json"
       assert $.data notEmpty
@@ -358,7 +358,7 @@ Nested Conditionals
 
 Conditionals can be nested for complex logic:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     if status 200
       if $.status equals "available"
@@ -375,7 +375,7 @@ The ``fail`` Action
 
 Use ``fail`` to explicitly fail a scenario with a custom message:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     else
       fail "Expected status 200 or 201 but got something else"
@@ -385,7 +385,7 @@ Tags
 
 Tags categorize and filter scenarios. They begin with ``@`` and appear before the element they annotate:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     @smoke @critical
     scenario: Critical path test
@@ -423,7 +423,7 @@ Features group related scenarios with optional shared setup:
 Basic Feature
 ^^^^^^^^^^^^^
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     feature: Pet Store API
       scenario: list all pets
@@ -444,7 +444,7 @@ Feature with Background
 
 Background steps run before **each** scenario in the feature:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     feature: Pet Operations
       background:
@@ -472,7 +472,7 @@ Tagged Features
 
 Tags on a feature are inherited by all scenarios within:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     @api @regression
     feature: Authentication Tests
@@ -499,7 +499,7 @@ Parameterized Scenarios (Outline)
 
 Create data-driven tests with scenario outlines:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     outline: Create different pets
       when: I create a pet
@@ -520,7 +520,7 @@ Fragment Files
 
 Fragment files (``.fragment``) define reusable step sequences:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     # auth.fragment
     
@@ -533,7 +533,7 @@ Fragment files (``.fragment``) define reusable step sequences:
 
 Use fragments in scenarios with ``include``:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Access protected API
       given: I am authenticated
@@ -554,7 +554,7 @@ File-Level Parameters
 
 Override default configuration for all scenarios in the file:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     parameters:
       baseUrl: "http://localhost:8080"
@@ -572,7 +572,7 @@ Feature-Level Parameters
 
 Configure only scenarios within a specific feature:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     feature: Pet CRUD Operations
       parameters:
@@ -618,7 +618,7 @@ The ``auto:`` directive automatically generates invalid request and security tes
 Basic Syntax
 ^^^^^^^^^^^^
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     call ^operationId
       auto: [<test-types>]
@@ -632,7 +632,7 @@ Where ``<test-types>`` is a space-separated list of:
 Example
 ^^^^^^^
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Auto-generated tests for createPet
       when: I create a pet with invalid input
@@ -669,7 +669,7 @@ Comments
 
 Lines starting with ``#`` are comments:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     # This is a comment describing the test
     scenario: My test
@@ -718,7 +718,7 @@ Placeholder   Matches      Example
 Using Custom Steps
 ^^^^^^^^^^^^^^^^^^
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Create and verify pet
       given: create a test pet named "Fluffy"
@@ -768,7 +768,7 @@ Use the ``@Assertion`` annotation to define custom assertions:
 Using Custom Assertions
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Verify pet response
       when: I get the pet

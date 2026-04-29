@@ -93,7 +93,7 @@ Place your OpenAPI spec in ``src/test/resources/petstore.yaml``:
 
 Create ``src/test/resources/scenarios/pet-api.scenario``:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: List all pets
       when: I request the pets list

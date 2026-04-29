@@ -53,7 +53,7 @@ Scenarios can be defined in two ways:
 
 Human-readable BDD-style files parsed by the `ScenarioLoader`:
 
-```
+```berrycrush
 scenario: List all pets
   when I request the pet list
     call ^listPets

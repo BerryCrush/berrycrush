@@ -20,7 +20,7 @@ Basic Syntax
 
 Add the ``auto:`` directive to any API call:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     call ^operationId
       auto: [<test-types>]
@@ -34,7 +34,7 @@ Where ``<test-types>`` is a space-separated list of:
 
 You can use one or more types:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     auto: [invalid]          # Only invalid tests
     auto: [security]         # Only security tests
@@ -45,7 +45,7 @@ You can use one or more types:
 Example
 -------
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Auto-generated tests for createPet
       when: I create a pet with invalid input
@@ -159,7 +159,7 @@ Mode                  Description
 Basic Example
 ^^^^^^^^^^^^^
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Idempotency test for getPet
       when: I get a pet multiple times
@@ -177,7 +177,7 @@ Configuring Request Counts
 
 Override default counts using the parameters block at the file level:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     parameters:
       multiTestSequentialCount: 5    # Run 5 sequential requests (default: 3)
@@ -191,7 +191,7 @@ Override default counts using the parameters block at the file level:
 
 At the feature level:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     feature: Idempotency Tests
       parameters:
@@ -206,7 +206,7 @@ At the feature level:
 
 Or at the step level (in the call directive):
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     when: I stress test with custom counts
       call ^getPetById
@@ -253,7 +253,7 @@ Combining with Other Test Types
 
 Multi tests can be combined with invalid and security tests:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Comprehensive API test
       when: I test the API thoroughly
@@ -289,7 +289,7 @@ Header             HTTP headers                           ``header``
 Path Parameter Example
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Auto-generated tests for getPetById
       when: I get a pet with invalid ID
@@ -318,7 +318,7 @@ Variable           Description                                      Example Valu
 Using Context Variables in Assertions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     scenario: Auto-generated security tests
       when: I create a pet with attack payloads
@@ -359,7 +359,7 @@ Excluding Test Types
 
 Use the ``excludes:`` directive to skip specific test types:
 
-.. code-block:: text
+.. code-block:: berrycrush
 
     call ^createPet
       auto: [invalid security]
@@ -546,7 +546,7 @@ Best Practices
    
    Auto-tests modify one parameter at a time while keeping others valid:
 
-   .. code-block:: text
+   .. code-block:: berrycrush
 
        call ^createPet
          auto: [invalid security]
@@ -558,7 +558,7 @@ Best Practices
    
    Handle different test types appropriately:
 
-   .. code-block:: text
+   .. code-block:: berrycrush
 
        if status 4xx and test.type equals invalid
          # Invalid input correctly rejected
@@ -580,7 +580,7 @@ Best Practices
    
    Auto-tests supplement but don't replace targeted functional tests:
 
-   .. code-block:: text
+   .. code-block:: berrycrush
 
        # Regular functional test
        scenario: Create pet successfully
