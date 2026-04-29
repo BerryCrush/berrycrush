@@ -1,0 +1,104 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:ExamplesParser.kt:!isAtEnd() &amp;&amp; current().type != TokenType.DEDENT &amp;&amp; current().type != TokenType.SCENARIO &amp;&amp; current().type != TokenType.OUTLINE &amp;&amp; current().type != TokenType.FRAGMENT</ID>
+    <ID>ComplexCondition:Lexer.kt:Lexer$c.isLetterOrDigit() || c == '.' || c == '[' || c == ']' || c == '*' || c == '?' || c == '@' || c == '_'</ID>
+    <ID>ComplexCondition:ScenarioLoader.kt:ScenarioLoader$pendingCall == null &amp;&amp; ( currentExtractions.isNotEmpty() || currentAssertions.isNotEmpty() || currentConditionals.isNotEmpty() || currentFailMessage != null )</ID>
+    <ID>ComplexCondition:ScenarioParser.kt:!isAtEnd() &amp;&amp; current().type != TokenType.DEDENT &amp;&amp; current().type != TokenType.SCENARIO &amp;&amp; current().type != TokenType.OUTLINE &amp;&amp; current().type != TokenType.FRAGMENT &amp;&amp; current().type != TokenType.PARAMETERS &amp;&amp; current().type != TokenType.BACKGROUND &amp;&amp; current().type != TokenType.FEATURE</ID>
+    <ID>CyclomaticComplexMethod:ActionParser.kt:internal fun ParserState.parseAutoTestConfig: AutoTestConfig?</ID>
+    <ID>CyclomaticComplexMethod:ActionParser.kt:internal fun ParserState.parseCallAction: CallNode?</ID>
+    <ID>CyclomaticComplexMethod:AutoTestGenerator.kt:AutoTestGenerator$fun generateTestCases: List&lt;AutoTestCase></ID>
+    <ID>CyclomaticComplexMethod:AutoTestGenerator.kt:AutoTestGenerator$private fun deriveInvalidType: String</ID>
+    <ID>CyclomaticComplexMethod:BerryCrushConfiguration.kt:BerryCrushConfiguration$fun withParameters: BerryCrushConfiguration</ID>
+    <ID>CyclomaticComplexMethod:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$private fun evaluateHeaderCondition: Boolean</ID>
+    <ID>CyclomaticComplexMethod:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$private fun evaluateOperator: Boolean</ID>
+    <ID>CyclomaticComplexMethod:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$private fun generateAssertionMessage: String</ID>
+    <ID>CyclomaticComplexMethod:ConditionParser.kt:internal fun ParserState.parseCondition: ConditionNode?</ID>
+    <ID>CyclomaticComplexMethod:ExamplesParser.kt:internal fun ParserState.parseExamples: List&lt;ExampleRowNode>?</ID>
+    <ID>CyclomaticComplexMethod:JunitReportPlugin.kt:JunitReportPlugin$override fun formatReport: String</ID>
+    <ID>CyclomaticComplexMethod:Lexer.kt:Lexer$fun nextToken: Token</ID>
+    <ID>CyclomaticComplexMethod:Lexer.kt:Lexer$private fun handleIndentation: Token?</ID>
+    <ID>CyclomaticComplexMethod:Lexer.kt:Lexer$private fun scanString: Token</ID>
+    <ID>CyclomaticComplexMethod:Lexer.kt:Lexer$private fun scanSymbol: Token</ID>
+    <ID>CyclomaticComplexMethod:Lexer.kt:Lexer$private fun scanTripleQuote: Token</ID>
+    <ID>CyclomaticComplexMethod:Parser.kt:Parser$fun parse: ParserResult</ID>
+    <ID>CyclomaticComplexMethod:ScenarioLoader.kt:ScenarioLoader$private fun transformCondition: Condition</ID>
+    <ID>CyclomaticComplexMethod:ScenarioLoader.kt:ScenarioLoader$private fun transformStep: List&lt;Step></ID>
+    <ID>CyclomaticComplexMethod:ScenarioParser.kt:internal fun ParserState.parseFeature: FeatureNode?</ID>
+    <ID>CyclomaticComplexMethod:ScenarioParser.kt:internal fun ParserState.parseParameters: ParametersNode?</ID>
+    <ID>CyclomaticComplexMethod:SchemaValidator.kt:SchemaValidator$private fun buildJsonSchemaMap: Map&lt;String, Any?></ID>
+    <ID>ForbiddenComment:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$// FIXME: Add shared variables support</ID>
+    <ID>ForbiddenComment:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$// FIXME: Implement response time check</ID>
+    <ID>FunctionNaming:FragmentScope.kt:FragmentScope$fun `when`</ID>
+    <ID>FunctionNaming:ScenarioOutlineScope.kt:ScenarioOutlineScope$fun `when`</ID>
+    <ID>FunctionNaming:ScenarioScope.kt:ScenarioScope$fun `when`</ID>
+    <ID>LargeClass:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor</ID>
+    <ID>LargeClass:ParserTest.kt:ParserTest</ID>
+    <ID>LongMethod:ActionParser.kt:internal fun ParserState.parseCallAction: CallNode?</ID>
+    <ID>LongMethod:AutoTestExecutor.kt:AutoTestExecutor$private fun executeAutoTestCase: AutoTestResult</ID>
+    <ID>LongMethod:AutoTestGenerator.kt:AutoTestGenerator$private fun createInvalidTestCase: AutoTestCase</ID>
+    <ID>LongMethod:JunitReportPlugin.kt:JunitReportPlugin$override fun formatReport: String</ID>
+    <ID>LongMethod:Lexer.kt:Lexer$private fun scanTripleQuote: Token</ID>
+    <ID>LongMethod:ScenarioLoader.kt:ScenarioLoader$private fun transformStep: List&lt;Step></ID>
+    <ID>LongMethod:ScenarioParser.kt:internal fun ParserState.parseFeature: FeatureNode?</ID>
+    <ID>LoopWithTooManyJumpStatements:ScenarioParser.kt:while</ID>
+    <ID>LoopWithTooManyJumpStatements:StepParser.kt:while</ID>
+    <ID>NestedBlockDepth:ActionParser.kt:internal fun ParserState.parseBodyProperties: Map&lt;String, BodyPropertyValue></ID>
+    <ID>NestedBlockDepth:ActionParser.kt:internal fun ParserState.parseCallAction: CallNode?</ID>
+    <ID>ReturnCount:ActionParser.kt:internal fun ParserState.parseBodyContent: BodyParseResult</ID>
+    <ID>ReturnCount:ActionParser.kt:internal fun ParserState.parseExtractAction: ExtractNode?</ID>
+    <ID>ReturnCount:AutoTestExecutor.kt:AutoTestExecutor$@Suppress("UNCHECKED_CAST") private fun extractBaseBody: Map&lt;String, Any>?</ID>
+    <ID>ReturnCount:AutoTestGenerator.kt:AutoTestGenerator$@Suppress("UNCHECKED_CAST") private fun extractRequestBodySchema: Schema&lt;*>?</ID>
+    <ID>ReturnCount:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$private fun buildResultFromResponse: StepResult</ID>
+    <ID>ReturnCount:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$private fun evaluateCustomAssertionCondition: Boolean</ID>
+    <ID>ReturnCount:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$private fun evaluateSchemaCondition: Boolean</ID>
+    <ID>ReturnCount:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$private fun getSchemaDefaults: Map&lt;String, BodyProperty></ID>
+    <ID>ReturnCount:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$private fun getSchemaSpecDefaultValue: BodyProperty?</ID>
+    <ID>ReturnCount:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$private fun hasCustomAssertionInConditional: Boolean</ID>
+    <ID>ReturnCount:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$private fun resolveBody: String?</ID>
+    <ID>ReturnCount:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$private fun runConditional: ConditionalRunResult</ID>
+    <ID>ReturnCount:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$private fun runConditionalActions: ConditionalRunResult</ID>
+    <ID>ReturnCount:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$private inline fun compareAsNumbers: Boolean</ID>
+    <ID>ReturnCount:ConditionParser.kt:internal fun ParserState.parseAssertCondition: ConditionNode?</ID>
+    <ID>ReturnCount:ConditionParser.kt:internal fun ParserState.parseConditionOperatorAndValue: Pair&lt;ConditionOperator, ValueNode?></ID>
+    <ID>ReturnCount:ConditionalParser.kt:internal fun ParserState.buildVariablePath: String</ID>
+    <ID>ReturnCount:ConditionalParser.kt:internal fun ParserState.parseConditionWithLogicalOps: ConditionNode?</ID>
+    <ID>ReturnCount:ConditionalParser.kt:internal fun ParserState.parseConditional: ConditionalNode?</ID>
+    <ID>ReturnCount:DefaultInvalidTestProviders.kt:FormatProvider$override fun generateInvalidValues: List&lt;InvalidTestValue></ID>
+    <ID>ReturnCount:Lexer.kt:Lexer$fun nextToken: Token</ID>
+    <ID>ReturnCount:Lexer.kt:Lexer$private fun handleIndentation: Token?</ID>
+    <ID>ReturnCount:Lexer.kt:Lexer$private fun removeCommonIndentation: String</ID>
+    <ID>ReturnCount:Lexer.kt:Lexer$private fun scanSymbol: Token</ID>
+    <ID>ReturnCount:PackageStepScanner.kt:PackageStepScanner$private fun findClassesInDirectory: List&lt;Class&lt;*>></ID>
+    <ID>ReturnCount:PluginNameResolver.kt:PluginNameResolver$private fun newPluginInstanceWithParam: BerryCrushPlugin</ID>
+    <ID>ReturnCount:ScenarioParser.kt:internal fun ParserState.parseBackground: BackgroundNode?</ID>
+    <ID>ReturnCount:ScenarioParser.kt:internal fun ParserState.parseFeature: FeatureNode?</ID>
+    <ID>ReturnCount:ScenarioParser.kt:internal fun ParserState.parseFragment: FragmentNode?</ID>
+    <ID>ReturnCount:ScenarioParser.kt:internal fun ParserState.parseParameters: ParametersNode?</ID>
+    <ID>ReturnCount:ScenarioParser.kt:internal fun ParserState.parseScenario: ScenarioNode?</ID>
+    <ID>ReturnCount:ScenarioParser.kt:internal fun ParserState.parseScenarioOutline: ScenarioNode?</ID>
+    <ID>ReturnCount:ValueParser.kt:internal fun ParserState.parseStatusValue: ValueNode?</ID>
+    <ID>TooManyFunctions:AnsiColors.kt:AnsiColors</ID>
+    <ID>TooManyFunctions:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor</ID>
+    <ID>TooManyFunctions:Lexer.kt:Lexer</ID>
+    <ID>TooManyFunctions:ScenarioLoader.kt:ScenarioLoader</ID>
+    <ID>UnusedParameter:AnnotationStepScannerTest.kt:AnnotationStepScannerTest.OtherSteps$status: String</ID>
+    <ID>UnusedParameter:AnnotationStepScannerTest.kt:AnnotationStepScannerTest.SampleSteps$count: Int</ID>
+    <ID>UnusedParameter:AnnotationStepScannerTest.kt:AnnotationStepScannerTest.SampleSteps$name: String</ID>
+    <ID>UnusedParameter:AssertionRegistryTest.kt:AssertionRegistryTest.RegistryTests.&lt;no name provided>$entity: String</ID>
+    <ID>UnusedParameter:AssertionRegistryTest.kt:AssertionRegistryTest.RegistryTests.&lt;no name provided>$id: Int</ID>
+    <ID>UnusedParameter:AssertionRegistryTest.kt:AssertionRegistryTest.RegistryTests.&lt;no name provided>$status: String</ID>
+    <ID>UnusedParameter:AssertionRegistryTest.kt:AssertionRegistryTest.SampleAssertions$min: Int</ID>
+    <ID>UnusedParameter:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$response: HttpResponse&lt;String></ID>
+    <ID>UnusedParameter:CustomAssertionExecutionTest.kt:CustomAssertionExecutionTest.AssertionInvocation.&lt;no name provided>$context: AssertionContext</ID>
+    <ID>UnusedParameter:CustomAssertionExecutionTest.kt:CustomAssertionExecutionTest.AssertionRegistration.&lt;no name provided>$context: AssertionContext</ID>
+    <ID>UnusedParameter:CustomAssertionExecutionTest.kt:CustomAssertionExecutionTest.AssertionRegistration.&lt;no name provided>$count: Int</ID>
+    <ID>UnusedParameter:CustomAssertionExecutionTest.kt:CustomAssertionExecutionTest.AssertionRegistration.&lt;no name provided>$name: String</ID>
+    <ID>UnusedParameter:CustomAssertionExecutionTest.kt:CustomAssertionExecutionTest.AssertionRegistration.&lt;no name provided>$size: Int</ID>
+    <ID>UnusedParameter:CustomAssertionExecutionTest.kt:CustomAssertionExecutionTest.MultipleAssertions.&lt;no name provided>$context: AssertionContext</ID>
+    <ID>UnusedParameter:MoreStepsForScanning.kt:MoreStepsForScanning$count: Int</ID>
+    <ID>UnusedParameter:SampleStepsForScanning.kt:SampleStepsForScanning$count: Int</ID>
+    <ID>UnusedParameter:SampleStepsForScanning.kt:SampleStepsForScanning$name: String</ID>
+  </CurrentIssues>
+</SmellBaseline>

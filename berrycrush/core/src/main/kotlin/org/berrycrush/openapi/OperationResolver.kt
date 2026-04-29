@@ -2,6 +2,8 @@ package org.berrycrush.openapi
 
 import org.berrycrush.exception.OperationNotFoundException
 
+private const val STATUS_CODE_RANGE_DIVISOR = 100
+
 /**
  * Resolves OpenAPI operation IDs to path and method information.
  *
@@ -72,13 +74,8 @@ fun ResolvedOperation.findResponse(statusCode: Int): ResponseSpec? {
     val responses = operation.responses
     if (responses.isEmpty()) return null
 
-    // Try exact match
-    responses[statusCode.toString()]?.let { return it }
-
-    // Try wildcard (2XX, 4XX, etc.)
-    val wildcard = "${statusCode / 100}XX"
-    responses[wildcard]?.let { return it }
-
-    // Try default
-    return responses["default"]
+    val wildcard = "${statusCode / STATUS_CODE_RANGE_DIVISOR}XX"
+    return responses[statusCode.toString()]
+        ?: responses[wildcard]
+        ?: responses["default"]
 }

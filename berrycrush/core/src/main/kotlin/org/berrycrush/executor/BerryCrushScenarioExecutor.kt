@@ -38,6 +38,8 @@ import java.net.http.HttpResponse
 import java.time.Duration
 import java.time.Instant
 
+private const val BODY_PREVIEW_LENGTH = 200
+
 private val objectMapper = ObjectMapper()
 private val schemaValidator = SchemaValidator(objectMapper)
 
@@ -360,7 +362,7 @@ class BerryCrushScenarioExecutor(
                 StepContextImpl(
                     executionContext = context,
                     configuration = configuration,
-                    sharedVariables = null, // TODO: Add shared variables support
+                    sharedVariables = null, // FIXME: Add shared variables support
                     sharingEnabled = false,
                 )
 
@@ -1161,12 +1163,13 @@ class BerryCrushScenarioExecutor(
      * Evaluate a response time condition.
      * Note: This requires tracking request start time, which may not be available in conditional context.
      */
+    @Suppress("FunctionOnlyReturningConstant", "UnusedParameter") // Placeholder for future implementation
     private fun evaluateResponseTimeCondition(
         response: HttpResponse<String>,
         condition: Condition.ResponseTime,
         context: ExecutionContext,
     ): Boolean {
-        // TODO: Implement response time check
+        // FIXME: Implement response time check
         return true
     }
 
@@ -1458,37 +1461,9 @@ class BerryCrushScenarioExecutor(
                 runCatching { JsonPath.read<Any>(body, condition.path) }.getOrNull()
             }
             is Condition.Header -> response.headers().allValues(condition.name).firstOrNull()
-            is Condition.BodyContains -> response.body()?.take(200)
+            is Condition.BodyContains -> response.body()?.take(BODY_PREVIEW_LENGTH)
             is Condition.Variable -> context.get<Any>(condition.name)
             is Condition.Negated -> getActualValueForCondition(response, condition.condition, context)
-            else -> null
-        }
-
-    /**
-     * Compare values handling type coercion (e.g., Int 1 == String "1", Double 1.0 == Int 1).
-     */
-    private fun valuesEqual(
-        actual: Any?,
-        expected: Any?,
-    ): Boolean {
-        if (actual == expected) return true
-        if (actual == null || expected == null) return false
-
-        // Try numeric comparison when both can be converted to numbers
-        val actualNum = toNumber(actual)
-        val expectedNum = toNumber(expected)
-        if (actualNum != null && expectedNum != null) {
-            return actualNum.toDouble() == expectedNum.toDouble()
-        }
-
-        // Fall back to string comparison
-        return actual.toString() == expected.toString()
-    }
-
-    private fun toNumber(value: Any?): Number? =
-        when (value) {
-            is Number -> value
-            is String -> value.toDoubleOrNull()
             else -> null
         }
 }

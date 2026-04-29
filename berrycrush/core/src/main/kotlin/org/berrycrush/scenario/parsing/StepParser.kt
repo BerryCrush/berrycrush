@@ -89,32 +89,4 @@ internal fun ParserState.parseStepDescription(): String {
 /**
  * Parse actions within a step.
  */
-internal fun ParserState.parseActions(): List<ActionNode> {
-    val actions = mutableListOf<ActionNode>()
-
-    // Check for indent
-    if (current().type == TokenType.INDENT) {
-        advance()
-
-        while (!isAtEnd()) {
-            when (current().type) {
-                TokenType.CALL -> parseCallAction()?.let { actions.add(it) }
-                TokenType.EXTRACT -> parseExtractAction()?.let { actions.add(it) }
-                TokenType.ASSERT -> parseAssertAction()?.let { actions.add(it) }
-                TokenType.INCLUDE -> parseIncludeAction()?.let { actions.add(it) }
-                TokenType.IF -> parseConditional()?.let { actions.add(it) }
-                TokenType.FAIL -> actions.add(parseFailAction())
-                TokenType.NEWLINE -> advance()
-                TokenType.DEDENT, TokenType.GIVEN, TokenType.WHEN, TokenType.THEN, TokenType.AND, TokenType.BUT, TokenType.EOF -> break
-                else -> advance()
-            }
-        }
-
-        // Consume dedent
-        if (current().type == TokenType.DEDENT) {
-            advance()
-        }
-    }
-
-    return actions
-}
+internal fun ParserState.parseActions(): List<ActionNode> = parseBlockActions(allowNestedConditionals = true)

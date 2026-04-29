@@ -469,8 +469,13 @@ data class StatusRangeNode(
     val base: Int,
     override val location: SourceLocation,
 ) : ValueNode() {
+    companion object {
+        private const val STATUS_RANGE_SIZE = 100
+        private const val STATUS_RANGE_MAX_OFFSET = 99
+    }
+
     /** Returns the IntRange for this status pattern (e.g., 4 -> 400..499) */
-    fun toRange(): IntRange = (base * 100)..(base * 100 + 99)
+    fun toRange(): IntRange = (base * STATUS_RANGE_SIZE)..(base * STATUS_RANGE_SIZE + STATUS_RANGE_MAX_OFFSET)
 }
 
 /**

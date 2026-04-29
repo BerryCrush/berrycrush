@@ -6,6 +6,8 @@ import org.berrycrush.model.ConditionOperator
 import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.openapi.findResponse
 
+private const val DEFAULT_SUCCESS_STATUS_CODE = 200
+
 /**
  * Generates assertions from OpenAPI specification.
  *
@@ -89,21 +91,14 @@ class AssertionGenerator {
      * @return Expected success status code (200, 201, 204, etc.)
      */
     fun determineSuccessStatusCode(operation: ResolvedOperation): Int {
-        val responses = operation.operation.responses ?: return 200
+        val responses = operation.operation.responses ?: return DEFAULT_SUCCESS_STATUS_CODE
 
-        // Check for explicit success codes
-        for (code in listOf("200", "201", "202", "204")) {
-            if (responses.containsKey(code)) {
-                return code.toInt()
-            }
-        }
+        // Find explicit success code or use default
+        val explicitCode =
+            listOf("200", "201", "202", "204")
+                .firstOrNull { responses.containsKey(it) }
+                ?.toInt()
 
-        // Check for 2xx pattern
-        if (responses.containsKey("2XX")) {
-            return 200
-        }
-
-        // Default to 200
-        return 200
+        return explicitCode ?: DEFAULT_SUCCESS_STATUS_CODE
     }
 }

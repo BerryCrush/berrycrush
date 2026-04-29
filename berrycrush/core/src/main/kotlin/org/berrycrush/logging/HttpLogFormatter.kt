@@ -146,6 +146,7 @@ class DefaultHttpLogFormatter(
             body
         }
 
+    @Suppress("MagicNumber", "CyclomaticComplexMethod")
     private fun getStatusText(statusCode: Int): String =
         when (statusCode) {
             200 -> "OK"

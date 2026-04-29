@@ -5,6 +5,8 @@ import org.berrycrush.logging.HttpLogger
 import org.berrycrush.logging.HttpLoggerFactory
 import java.time.Duration
 
+private const val DEFAULT_TIMEOUT_SECONDS = 30L
+
 /**
  * Configuration for BerryCrush test execution.
  *
@@ -22,7 +24,7 @@ import java.time.Duration
  */
 data class BerryCrushConfiguration(
     var baseUrl: String? = null,
-    var timeout: Duration = Duration.ofSeconds(30),
+    var timeout: Duration = Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS),
     val defaultHeaders: MutableMap<String, String> = mutableMapOf(),
     var environment: String? = null,
     var autoAssertions: AutoAssertionConfig = AutoAssertionConfig(),

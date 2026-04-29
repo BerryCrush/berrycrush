@@ -63,6 +63,7 @@ class ParserState(
     /**
      * Skip whitespace tokens (but not indent tokens as they're significant).
      */
+    @Suppress("UnconditionalJumpStatementInLoop")
     fun skipWhitespace() {
         while (!isAtEnd() && (current().type == TokenType.INDENT)) {
             // Don't skip indent tokens - they're significant

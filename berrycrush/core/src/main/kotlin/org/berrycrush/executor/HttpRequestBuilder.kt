@@ -9,6 +9,9 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 
+private const val DEFAULT_TIMEOUT_SECONDS = 30L
+private const val CONNECT_TIMEOUT_SECONDS = 10L
+
 /**
  * Builds and executes HTTP requests using java.net.http.HttpClient.
  *
@@ -17,7 +20,7 @@ import java.time.Duration
  */
 class HttpRequestBuilder(
     private val client: HttpClient = createDefaultClient(),
-    private val timeout: Duration = Duration.ofSeconds(30),
+    private val timeout: Duration = Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS),
 ) {
     /**
      * Create an HttpRequestBuilder with configuration settings.
@@ -130,7 +133,7 @@ class HttpRequestBuilder(
                 .version(HttpClient.Version.HTTP_2)
                 .followRedirects(
                     if (followRedirects) HttpClient.Redirect.NORMAL else HttpClient.Redirect.NEVER,
-                ).connectTimeout(Duration.ofSeconds(10))
+                ).connectTimeout(Duration.ofSeconds(CONNECT_TIMEOUT_SECONDS))
                 .build()
     }
 }

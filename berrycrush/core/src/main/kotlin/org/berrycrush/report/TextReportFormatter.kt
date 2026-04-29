@@ -39,6 +39,8 @@ class TextReportFormatter(
     companion object {
         private const val SEPARATOR = "═══════════════════════════════════════════════════════════════════════════════"
         private const val LINE_WIDTH = 60
+        private const val PERCENTAGE_MULTIPLIER = 100.0
+        private const val MILLIS_PER_SECOND = 1000.0
         private val TIMESTAMP_FORMAT = DateTimeFormatter.ISO_INSTANT
 
         /**
@@ -83,13 +85,13 @@ class TextReportFormatter(
             appendLine(colorScheme.headerStyle(SEPARATOR))
             val percentage =
                 if (report.summary.total > 0) {
-                    (report.summary.passed * 100.0 / report.summary.total)
+                    (report.summary.passed * PERCENTAGE_MULTIPLIER / report.summary.total)
                 } else {
                     0.0
                 }
             appendLine(
                 "Summary: ${report.summary.passed}/${report.summary.total} scenarios passed " +
-                    "(${String.format("%.1f", percentage)}%)",
+                    "(${String.format(java.util.Locale.US, "%.1f", percentage)}%)",
             )
             appendLine(
                 "  ${colorScheme.colorize("${report.summary.passed} passed", ResultStatus.PASSED)}, " +
@@ -176,5 +178,5 @@ class TextReportFormatter(
             ResultStatus.ERROR -> "ERROR"
         }
 
-    private fun formatDuration(millis: Long): String = String.format(java.util.Locale.US, "%.3f", millis / 1000.0)
+    private fun formatDuration(millis: Long): String = String.format(java.util.Locale.US, "%.3f", millis / MILLIS_PER_SECOND)
 }

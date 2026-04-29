@@ -28,6 +28,7 @@ class JunitReportPlugin(
 
     companion object {
         private val TIMESTAMP_FORMAT = DateTimeFormatter.ISO_INSTANT
+        private const val MILLIS_PER_SECOND = 1000.0
     }
 
     override fun formatReport(report: TestReport): String =
@@ -126,7 +127,7 @@ class JunitReportPlugin(
             appendLine("</testsuites>")
         }
 
-    private fun formatSeconds(millis: Long): String = String.format("%.3f", millis / 1000.0)
+    private fun formatSeconds(millis: Long): String = String.format(java.util.Locale.US, "%.3f", millis / MILLIS_PER_SECOND)
 
     private fun escapeXml(text: String): String =
         text

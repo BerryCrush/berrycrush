@@ -276,6 +276,7 @@ class CustomAssertionExecutionTest {
             val assertionInstance =
                 object {
                     @Assertion("this will throw")
+                    @Suppress("TooGenericExceptionThrown")
                     fun throwingAssertion(context: AssertionContext): AssertionResult = throw RuntimeException("Unexpected error")
                 }
 

@@ -160,41 +160,7 @@ internal fun ParserState.buildVariablePath(): String {
 /**
  * Parse actions within a conditional block.
  */
-internal fun ParserState.parseConditionalActions(): List<ActionNode> {
-    val actions = mutableListOf<ActionNode>()
-
-    if (current().type == TokenType.INDENT) {
-        advance()
-
-        while (!isAtEnd()) {
-            when (current().type) {
-                TokenType.CALL -> parseCallAction()?.let { actions.add(it) }
-                TokenType.EXTRACT -> parseExtractAction()?.let { actions.add(it) }
-                TokenType.ASSERT -> parseAssertAction()?.let { actions.add(it) }
-                TokenType.INCLUDE -> parseIncludeAction()?.let { actions.add(it) }
-                TokenType.FAIL -> actions.add(parseFailAction())
-                TokenType.NEWLINE -> advance()
-                TokenType.DEDENT,
-                TokenType.ELSE,
-                TokenType.IF,
-                TokenType.GIVEN,
-                TokenType.WHEN,
-                TokenType.THEN,
-                TokenType.AND,
-                TokenType.BUT,
-                TokenType.EOF,
-                -> break
-                else -> advance()
-            }
-        }
-
-        if (current().type == TokenType.DEDENT) {
-            advance()
-        }
-    }
-
-    return actions
-}
+internal fun ParserState.parseConditionalActions(): List<ActionNode> = parseBlockActions(allowNestedConditionals = false)
 
 /**
  * Parse a fail action.

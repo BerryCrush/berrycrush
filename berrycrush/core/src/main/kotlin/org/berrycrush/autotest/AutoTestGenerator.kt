@@ -8,6 +8,8 @@ import org.berrycrush.openapi.LoadedSpec
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.scenario.AutoTestType
 
+private const val PATH_PATTERN_LIMIT = 3
+
 /**
  * Generates auto-test cases based on OpenAPI schema constraints and security patterns.
  *
@@ -218,6 +220,7 @@ class AutoTestGenerator(
     /**
      * Generate constraint violation tests using registered providers.
      */
+    @Suppress("UnusedParameter") // requiredFields reserved for future use
     private fun generateConstraintViolations(
         fieldName: String,
         schema: Schema<*>,
@@ -592,7 +595,7 @@ object SecurityTestPatterns {
      * Get patterns suitable for path parameter testing.
      * Path traversal and some injection patterns are most relevant here.
      */
-    fun getPathTraversalPatterns(): List<SecurityPattern> = pathTraversalPatterns + commandInjectionPatterns.take(3)
+    fun getPathTraversalPatterns(): List<SecurityPattern> = pathTraversalPatterns + commandInjectionPatterns.take(PATH_PATTERN_LIMIT)
 
     /**
      * Get patterns suitable for header parameter testing.

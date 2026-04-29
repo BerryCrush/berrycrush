@@ -17,6 +17,7 @@ import org.berrycrush.model.StepType
 class StepScope internal constructor(
     private val type: StepType,
     private val description: String,
+    @Suppress("UnusedPrivateProperty") // Reserved for future DSL enhancements
     private val suite: BerryCrushSuite,
 ) {
     private var operationId: String? = null

@@ -56,31 +56,7 @@ class TextReportPluginTest {
         val outputPath = tempDir.resolve("report.txt")
         val plugin = TextReportPlugin(outputPath)
 
-        val report =
-            createTestReport(
-                ScenarioReportEntry(
-                    name = "Failing Scenario",
-                    status = ResultStatus.FAILED,
-                    duration = Duration.ofMillis(500),
-                    steps =
-                        listOf(
-                            StepReportEntry(
-                                description = "then status should be 201",
-                                status = ResultStatus.FAILED,
-                                duration = Duration.ofMillis(100),
-                                failure =
-                                    org.berrycrush.plugin.AssertionFailure(
-                                        message = "Status code mismatch",
-                                        expected = 201,
-                                        actual = 400,
-                                        diff = null,
-                                        stepDescription = "assert status 201",
-                                        assertionType = "STATUS_CODE",
-                                    ),
-                            ),
-                        ),
-                ),
-            )
+        val report = createTestReport(createFailingScenarioEntry())
 
         val content = plugin.formatReport(report)
 
@@ -126,26 +102,5 @@ class TextReportPluginTest {
         val content = plugin.formatReport(report)
 
         assertTrue(content.contains("200 OK")) // HTTP response status
-    }
-
-    private fun createTestReport(vararg scenarios: ScenarioReportEntry): TestReport {
-        val passed = scenarios.count { it.status == ResultStatus.PASSED }
-        val failed = scenarios.count { it.status == ResultStatus.FAILED }
-        val skipped = scenarios.count { it.status == ResultStatus.SKIPPED }
-        val errors = scenarios.count { it.status == ResultStatus.ERROR }
-
-        return TestReport(
-            timestamp = Instant.parse("2026-04-09T10:15:30Z"),
-            duration = scenarios.fold(Duration.ZERO) { acc, s -> acc.plus(s.duration) },
-            summary =
-                TestSummary(
-                    total = scenarios.size,
-                    passed = passed,
-                    failed = failed,
-                    skipped = skipped,
-                    errors = errors,
-                ),
-            scenarios = scenarios.toList(),
-        )
     }
 }

@@ -1,5 +1,8 @@
 package org.berrycrush.exception
 
+private const val SIMILAR_MATCHES_LIMIT = 3
+private const val RESPONSE_PREVIEW_LENGTH = 200
+
 /**
  * Base exception for all BerryCrush errors.
  */
@@ -38,7 +41,7 @@ class OperationNotFoundException(
             val targetLower = target.lowercase()
             return candidates
                 .filter { it.lowercase().contains(targetLower) || targetLower.contains(it.lowercase()) }
-                .take(3)
+                .take(SIMILAR_MATCHES_LIMIT)
         }
     }
 }
@@ -53,7 +56,7 @@ class ExtractionException(
     cause: Throwable? = null,
 ) : BerryCrushException(
         "Failed to extract '$variableName' using JSONPath '$jsonPath' from response: " +
-            (responseBody?.take(200) ?: "<empty>"),
+            (responseBody?.take(RESPONSE_PREVIEW_LENGTH) ?: "<empty>"),
         cause,
     )
 

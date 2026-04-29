@@ -9,6 +9,12 @@ jackson = "3.1.1"
 spring-boot = "4.0.5"
 h2 = "2.3.232"
 
+# SAST tool versions
+detekt = "2.0.0-alpha.3"
+spotbugs-gradle = "6.5.1"
+cpd = "3.5"
+findsecbugs = "1.14.0"
+
 [libraries]
 swagger-parser = { module = "io.swagger.parser.v3:swagger-parser", version.ref = "swagger-parser" }
 json-path = { module = "com.jayway.jsonpath:json-path", version.ref = "json-path" }

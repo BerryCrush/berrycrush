@@ -200,8 +200,8 @@ class ScenarioTestExecutor(
         fileContext: FileExecutionContext,
         listener: EngineExecutionListener,
     ): Boolean {
-        if (fileDescriptor.children.isEmpty()) {
-            throw IllegalStateException("No scenarios found in ${fileDescriptor.scenarioPath}")
+        check(fileDescriptor.children.isNotEmpty()) {
+            "No scenarios found in ${fileDescriptor.scenarioPath}"
         }
 
         return fileDescriptor.children
@@ -694,8 +694,9 @@ class ScenarioTestExecutor(
             result: AutoTestResult,
         ) {
             val descriptor =
-                descriptors[testCase]
-                    ?: throw IllegalStateException("onAutoTestCompleted called without matching onAutoTestStarting")
+                checkNotNull(descriptors[testCase]) {
+                    "onAutoTestCompleted called without matching onAutoTestStarting"
+                }
 
             if (result.passed) {
                 listener.executionFinished(descriptor, TestExecutionResult.successful())

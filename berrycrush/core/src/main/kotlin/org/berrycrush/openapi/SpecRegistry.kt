@@ -82,6 +82,7 @@ class SpecRegistry {
      * @throws OperationNotFoundException if not found
      * @throws AmbiguousOperationException if found in multiple specs without specName
      */
+    @Suppress("ThrowsCount")
     fun resolve(
         operationId: String,
         specName: String? = null,

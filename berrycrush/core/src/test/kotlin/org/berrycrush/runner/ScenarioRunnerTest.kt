@@ -14,6 +14,23 @@ import kotlin.test.assertTrue
  * Tests for [ScenarioRunner].
  */
 class ScenarioRunnerTest {
+    /**
+     * Create a tracking plugin that records lifecycle events.
+     */
+    private fun createTrackingPlugin(events: MutableList<String>): BerryCrushPlugin =
+        object : BerryCrushPlugin {
+            override val id = "test:tracking"
+            override val name = "Tracking Plugin"
+
+            override fun onTestExecutionStart() {
+                events.add("testStart")
+            }
+
+            override fun onTestExecutionEnd() {
+                events.add("testEnd")
+            }
+        }
+
     @Test
     fun `returns passed status for empty scenario list`() {
         val specRegistry = SpecRegistry()
@@ -37,21 +54,7 @@ class ScenarioRunnerTest {
         val pluginRegistry = PluginRegistry()
 
         val events = mutableListOf<String>()
-        val trackingPlugin =
-            object : BerryCrushPlugin {
-                override val id = "test:tracking"
-                override val name = "Tracking Plugin"
-
-                override fun onTestExecutionStart() {
-                    events.add("testStart")
-                }
-
-                override fun onTestExecutionEnd() {
-                    events.add("testEnd")
-                }
-            }
-
-        pluginRegistry.register(trackingPlugin)
+        pluginRegistry.register(createTrackingPlugin(events))
         val runner = ScenarioRunner(specRegistry, configuration, pluginRegistry)
 
         runner.run(emptyList())
@@ -120,21 +123,7 @@ class ScenarioRunnerTest {
         val pluginRegistry = PluginRegistry()
 
         val events = mutableListOf<String>()
-        val trackingPlugin =
-            object : BerryCrushPlugin {
-                override val id = "test:tracking"
-                override val name = "Tracking Plugin"
-
-                override fun onTestExecutionStart() {
-                    events.add("testStart")
-                }
-
-                override fun onTestExecutionEnd() {
-                    events.add("testEnd")
-                }
-            }
-
-        pluginRegistry.register(trackingPlugin)
+        pluginRegistry.register(createTrackingPlugin(events))
         val runner = ScenarioRunner(specRegistry, configuration, pluginRegistry)
 
         runner.run(emptyList())

@@ -400,6 +400,7 @@ class CustomStepExecutionTest {
             val stepInstance =
                 object {
                     @StepAnnotation("I fail")
+                    @Suppress("TooGenericExceptionThrown")
                     fun fail(): Unit = throw RuntimeException("Step failure")
                 }
 

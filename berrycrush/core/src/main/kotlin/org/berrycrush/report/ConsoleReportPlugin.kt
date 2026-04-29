@@ -156,53 +156,11 @@ class ConsoleReportPlugin(
             name = context.scenarioName,
             status = result.status,
             duration = result.duration,
-            steps =
-                result.stepResults.map { stepResult ->
-                    StepReportEntry(
-                        description = stepResult.stepDescription,
-                        status = stepResult.status,
-                        duration = stepResult.duration,
-                        request = null,
-                        response =
-                            if (stepResult.httpStatusCode != null) {
-                                org.berrycrush.plugin.HttpResponse(
-                                    statusCode = stepResult.httpStatusCode!!,
-                                    statusMessage = httpStatusMessage(stepResult.httpStatusCode!!),
-                                    headers = stepResult.responseHeaders,
-                                    body = stepResult.responseBody,
-                                    duration = stepResult.duration,
-                                    timestamp = Instant.now(),
-                                )
-                            } else {
-                                null
-                            },
-                        failure = stepResult.failure,
-                        isCustomStep = stepResult.isCustomStep,
-                    )
-                },
+            steps = result.stepResults.map { buildStepReportEntry(it) },
             tags = context.tags,
             metadata = context.metadata,
             sourceFile = context.scenarioFile.fileName?.toString(),
         )
-
-    /**
-     * Get HTTP status message for common status codes.
-     */
-    private fun httpStatusMessage(statusCode: Int): String =
-        when (statusCode) {
-            200 -> "OK"
-            201 -> "Created"
-            204 -> "No Content"
-            400 -> "Bad Request"
-            401 -> "Unauthorized"
-            403 -> "Forbidden"
-            404 -> "Not Found"
-            405 -> "Method Not Allowed"
-            500 -> "Internal Server Error"
-            502 -> "Bad Gateway"
-            503 -> "Service Unavailable"
-            else -> ""
-        }
 
     companion object {
         /**

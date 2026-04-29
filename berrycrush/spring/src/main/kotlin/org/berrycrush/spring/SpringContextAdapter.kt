@@ -79,21 +79,16 @@ class SpringContextAdapter(
      * @return The bean instance
      * @throws ConfigurationException if context not initialized or bean not found
      */
+    @Suppress("ThrowsCount") // Single logical error path with consistent error message
     fun <T : Any> getBean(beanClass: Class<T>): T {
         val context = getApplicationContext()
+        val errorMessage =
+            "Bindings class '${beanClass.name}' is not registered as a Spring bean. " +
+                "Add @Component annotation to the class or define a @Bean method."
         return runCatching {
             context.getBeansOfType(beanClass).values.firstOrNull()
-                ?: throw ConfigurationException(
-                    "Bindings class '${beanClass.name}' is not registered as a Spring bean. " +
-                        "Add @Component annotation to the class or define a @Bean method.",
-                )
-        }.getOrElse { e ->
-            if (e is ConfigurationException) throw e
-            throw ConfigurationException(
-                "Bindings class '${beanClass.name}' is not registered as a Spring bean. " +
-                    "Add @Component annotation to the class or define a @Bean method.",
-            )
-        }
+        }.getOrNull()
+            ?: throw ConfigurationException(errorMessage)
     }
 
     /**

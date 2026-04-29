@@ -18,6 +18,8 @@ import java.net.http.HttpResponse
 import java.time.Duration
 import java.time.Instant
 
+private const val RESPONSE_BODY_PREVIEW_LENGTH = 500
+
 /**
  * Executes auto-generated invalid and security tests for API endpoints.
  *
@@ -283,7 +285,7 @@ class AutoTestExecutor(
                 testCase = testCase,
                 passed = allPassed,
                 statusCode = response.statusCode(),
-                responseBody = response.body()?.take(500),
+                responseBody = response.body()?.take(RESPONSE_BODY_PREVIEW_LENGTH),
                 assertionResults = assertionResults,
                 duration = Duration.between(testStartTime, Instant.now()),
             )

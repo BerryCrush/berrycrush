@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>EmptyFunctionBlock:BindingsProviderTest.kt:BindingsProviderTest.TestBindings${}</ID>
+    <ID>ForbiddenComment:BerryCrushExtension.kt:BerryCrushExtension$// FIXME: Implement PackageAssertionScanner if needed</ID>
+    <ID>ReturnCount:BerryCrushExtension.kt:BerryCrushExtension$private fun getOrCreateAssertionRegistry: AssertionRegistry?</ID>
+    <ID>ReturnCount:BerryCrushExtension.kt:BerryCrushExtension$private fun getOrCreateStepRegistry: StepRegistry?</ID>
+    <ID>ReturnCount:ClassTestDescriptor.kt:ClassTestDescriptor$fun shouldExecuteScenario: Boolean</ID>
+    <ID>ReturnCount:ScenarioTestDiscoverer.kt:ScenarioTestDiscoverer$fun discoverScenariosForClass</ID>
+    <ID>ReturnCount:ScenarioTestExecutor.kt:ScenarioTestExecutor$private fun createAssertionRegistry: AssertionRegistry?</ID>
+    <ID>ReturnCount:ScenarioTestExecutor.kt:ScenarioTestExecutor$private fun createStepRegistry: StepRegistry?</ID>
+    <ID>ReturnCount:ScenarioTestExecutor.kt:ScenarioTestExecutor$private fun initializeContext</ID>
+    <ID>TooManyFunctions:ScenarioTestExecutor.kt:ScenarioTestExecutor</ID>
+  </CurrentIssues>
+</SmellBaseline>

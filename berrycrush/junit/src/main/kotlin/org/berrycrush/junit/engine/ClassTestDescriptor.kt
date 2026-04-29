@@ -23,6 +23,11 @@ class ClassTestDescriptor(
     uniqueId: UniqueId,
     val testClass: Class<*>,
 ) : AbstractTestDescriptor(uniqueId, testClass.simpleName, ClassSource.from(testClass)) {
+    companion object {
+        /** Default timeout in milliseconds for scenario execution. */
+        const val DEFAULT_TIMEOUT_MS = 30_000L
+    }
+
     /**
      * Scenario file location patterns from @BerryCrushScenarios annotation.
      */
@@ -69,7 +74,7 @@ class ClassTestDescriptor(
         val tagsAnnotation = testClass.getAnnotation(BerryCrushTags::class.java)
 
         bindingsClass = config?.bindings?.java
-        timeout = config?.timeout ?: 30_000L
+        timeout = config?.timeout ?: DEFAULT_TIMEOUT_MS
 
         // OpenAPI spec: prefer @BerryCrushConfiguration, fallback to @BerryCrushSpec
         openApiSpec = config?.openApiSpec?.takeIf { it.isNotBlank() }

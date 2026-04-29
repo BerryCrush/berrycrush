@@ -3,6 +3,9 @@ package org.berrycrush.autotest.provider
 import io.swagger.v3.oas.models.media.Schema
 import java.util.UUID
 
+private const val EXTRA_LENGTH_CHARS = 10
+private const val EXTRA_ARRAY_ITEMS = 5
+
 /**
  * Collection of default invalid test providers.
  */
@@ -62,7 +65,7 @@ class MaxLengthProvider : InvalidTestProvider {
         schema: Schema<*>,
     ): List<InvalidTestValue> {
         val maxLen = schema.maxLength ?: return emptyList()
-        val invalidValue = "x".repeat(maxLen + 10)
+        val invalidValue = "x".repeat(maxLen + EXTRA_LENGTH_CHARS)
         return listOf(
             InvalidTestValue(
                 value = invalidValue,
@@ -107,17 +110,7 @@ class FormatProvider : InvalidTestProvider {
         schema: Schema<*>,
     ): List<InvalidTestValue> {
         val format = schema.format ?: return emptyList()
-        val invalidValue =
-            when (format) {
-                "email" -> "not-an-email"
-                "uuid" -> "not-a-uuid"
-                "uri", "url" -> "not-a-url"
-                "date" -> "not-a-date"
-                "date-time" -> "not-a-datetime"
-                "ipv4" -> "not.an.ip"
-                "ipv6" -> "not:an:ipv6"
-                else -> return emptyList()
-            }
+        val invalidValue = getInvalidValueForFormat(format) ?: return emptyList()
         return listOf(
             InvalidTestValue(
                 value = invalidValue,
@@ -125,6 +118,18 @@ class FormatProvider : InvalidTestProvider {
             ),
         )
     }
+
+    private fun getInvalidValueForFormat(format: String): String? =
+        when (format) {
+            "email" -> "not-an-email"
+            "uuid" -> "not-a-uuid"
+            "uri", "url" -> "not-a-url"
+            "date" -> "not-a-date"
+            "date-time" -> "not-a-datetime"
+            "ipv4" -> "not.an.ip"
+            "ipv6" -> "not:an:ipv6"
+            else -> null
+        }
 }
 
 /**
@@ -279,7 +284,7 @@ class MaxItemsProvider : InvalidTestProvider {
         schema: Schema<*>,
     ): List<InvalidTestValue> {
         val maxItems = schema.maxItems ?: return emptyList()
-        val tooManyItems = (0..maxItems + 5).map { "item$it" }
+        val tooManyItems = (0..maxItems + EXTRA_ARRAY_ITEMS).map { "item$it" }
         return listOf(
             InvalidTestValue(
                 value = tooManyItems,

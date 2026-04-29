@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName")
+
 package org.berrycrush.scenario.parsing
 
 import org.berrycrush.scenario.AutoTestConfig

@@ -21,6 +21,9 @@ class AutoTestDescriptor(
     override fun getSource(): java.util.Optional<TestSource> = java.util.Optional.empty()
 
     companion object {
+        /** Maximum length for displaying invalid value in test name. */
+        private const val MAX_VALUE_DISPLAY_LENGTH = 30
+
         /**
          * Create a display name for an auto-test case.
          * Format: [{tag}] {location} {fieldName} with value {value}
@@ -34,8 +37,8 @@ class AutoTestDescriptor(
                     ParameterLocation.HEADER -> "header"
                     ParameterLocation.QUERY -> "query parameter"
                 }
-            val valueStr = testCase.invalidValue?.toString()?.take(30) ?: "null"
-            val valueSuffix = if (valueStr.length >= 30) "..." else ""
+            val valueStr = testCase.invalidValue?.toString()?.take(MAX_VALUE_DISPLAY_LENGTH) ?: "null"
+            val valueSuffix = if (valueStr.length >= MAX_VALUE_DISPLAY_LENGTH) "..." else ""
             return "$typeLabel $location ${testCase.fieldName} with value $valueStr$valueSuffix"
         }
     }

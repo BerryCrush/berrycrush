@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SpotBugs Exclusion Filter for BerryCrush
+  https://spotbugs.readthedocs.io/en/stable/filter.html
+-->
+<FindBugsFilter>
+    <!-- Exclude test classes from certain checks -->
+    <Match>
+        <Class name="~.*Test.*"/>
+        <Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"/>
+    </Match>
+    
+    <!-- Exclude Kotlin-generated code patterns -->
+    <Match>
+        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+        <Class name="~.*\$.*"/>
+    </Match>
+    
+    <!-- Exclude data classes auto-generated equals/hashCode -->
+    <Match>
+        <Bug pattern="EQ_UNUSUAL"/>
+        <Method name="equals"/>
+    </Match>
+    
+    <!-- Allow serialVersionUID in serializable classes -->
+    <Match>
+        <Bug pattern="SE_BAD_FIELD"/>
+        <Field name="serialVersionUID"/>
+    </Match>
+    
+    <!-- Exclude Spring configuration classes from unread field checks -->
+    <Match>
+        <Class name="~.*Config.*"/>
+        <Bug pattern="URF_UNREAD_FIELD"/>
+    </Match>
+    
+    <!-- Exclude DSL builders from naming conventions -->
+    <Match>
+        <Class name="~.*Scope.*"/>
+        <Bug pattern="NM_METHOD_NAMING_CONVENTION"/>
+    </Match>
+    
+    <!-- Exclude generated code -->
+    <Match>
+        <Package name="~.*\.generated\..*"/>
+    </Match>
+</FindBugsFilter>

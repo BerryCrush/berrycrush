@@ -28,6 +28,7 @@ class PluginExceptionTest {
                 override val name: String = "Error Plugin"
                 override val id: String = "error-plugin"
 
+                @Suppress("TooGenericExceptionThrown")
                 override fun onScenarioStart(context: ScenarioContext): Unit = throw RuntimeException("Plugin initialization failed")
             }
         registry.register(errorPlugin)
@@ -51,6 +52,7 @@ class PluginExceptionTest {
                 override val name: String = "Error Plugin"
                 override val id: String = "error-plugin"
 
+                @Suppress("TooGenericExceptionThrown")
                 override fun onScenarioEnd(
                     context: ScenarioContext,
                     result: ScenarioResult,
