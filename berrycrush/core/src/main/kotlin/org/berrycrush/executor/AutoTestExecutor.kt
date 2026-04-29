@@ -2,6 +2,11 @@ package org.berrycrush.executor
 
 import org.berrycrush.autotest.AutoTestCase
 import org.berrycrush.autotest.AutoTestGenerator
+import org.berrycrush.autotest.MultiMode
+import org.berrycrush.autotest.MultiTestParameters
+import org.berrycrush.autotest.MultiTestResult
+import org.berrycrush.autotest.RequestResult
+import org.berrycrush.autotest.provider.AutoTestProviderRegistry
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.model.Assertion
@@ -398,5 +403,204 @@ class AutoTestExecutor(
 
         val aliases = patternAliases[pattern] ?: return false
         return aliases.any { alias -> description.contains(alias) }
+    }
+
+    /**
+     * Execute multi-request idempotency tests for a step.
+     *
+     * This sends multiple identical requests either sequentially or concurrently
+     * to verify that the API operation is idempotent.
+     *
+     * @param step The step with auto-test configuration including MULTI type
+     * @param context The execution context for variable interpolation
+     * @param stepStartTime When the step started (for duration calculation)
+     * @param parameters Parameters map containing multi-test configuration
+     * @param listener Listener for execution events
+     * @return StepResult containing multi-test results
+     */
+    fun executeMultiTests(
+        step: Step,
+        context: ExecutionContext,
+        stepStartTime: Instant,
+        parameters: Map<String, Any?>,
+        listener: BerryCrushExecutionListener = BerryCrushExecutionListener.NOOP,
+    ): StepResult {
+        val autoTestConfig = step.autoTestConfig!!
+        val operationId = step.operationId!!
+
+        // Get the provider registry
+        val registry = AutoTestProviderRegistry.default
+
+        // Determine which modes to run based on excludes
+        val excludes = autoTestConfig.excludes.map { it.lowercase() }.toSet()
+        val runSequential = "sequential" !in excludes
+        val runConcurrent = "concurrent" !in excludes
+
+        // Get counts from parameters
+        val sequentialCount = MultiTestParameters.getSequentialCount(parameters)
+        val concurrentCount = MultiTestParameters.getConcurrentCount(parameters)
+
+        val multiTestResults = mutableListOf<MultiTestResult>()
+
+        // Execute sequential tests if not excluded
+        if (runSequential) {
+            val provider = registry.getMultiTestProvider("sequential")
+            if (provider != null) {
+                listener.onMultiTestStarting(MultiMode.SEQUENTIAL, sequentialCount)
+                val result =
+                    executeMultiTestMode(
+                        step = step,
+                        context = context,
+                        provider = provider,
+                        count = sequentialCount,
+                    )
+                multiTestResults.add(result)
+                listener.onMultiTestCompleted(result)
+                logMultiTest(result)
+            }
+        }
+
+        // Execute concurrent tests if not excluded
+        if (runConcurrent) {
+            val provider = registry.getMultiTestProvider("concurrent")
+            if (provider != null) {
+                listener.onMultiTestStarting(MultiMode.CONCURRENT, concurrentCount)
+                val result =
+                    executeMultiTestMode(
+                        step = step,
+                        context = context,
+                        provider = provider,
+                        count = concurrentCount,
+                    )
+                multiTestResults.add(result)
+                listener.onMultiTestCompleted(result)
+                logMultiTest(result)
+            }
+        }
+
+        // Aggregate results
+        val allPassed = multiTestResults.all { it.passed }
+        val failedCount = multiTestResults.count { !it.passed }
+        val totalModes = multiTestResults.size
+
+        return StepResult(
+            step = step,
+            status = if (allPassed) ResultStatus.PASSED else ResultStatus.FAILED,
+            duration = Duration.between(stepStartTime, Instant.now()),
+            message = "Multi-tests: $totalModes modes executed, $failedCount failed",
+            multiTestResults = multiTestResults,
+        )
+    }
+
+    /**
+     * Execute a single multi-test mode using the given provider.
+     */
+    private fun executeMultiTestMode(
+        step: Step,
+        context: ExecutionContext,
+        provider: org.berrycrush.autotest.provider.MultiTestProvider,
+        count: Int,
+    ): MultiTestResult =
+        provider.executeMultiTest(count) { requestIndex ->
+            executeRequestForMultiTest(step, context, requestIndex)
+        }
+
+    /**
+     * Execute a single HTTP request for multi-test.
+     */
+    private fun executeRequestForMultiTest(
+        step: Step,
+        context: ExecutionContext,
+        requestIndex: Int,
+    ): RequestResult {
+        val requestStartTime = System.currentTimeMillis()
+
+        return try {
+            // Resolve the operation
+            val (spec, resolvedOp) = specRegistry.resolve(step.operationId!!, step.specName)
+
+            // Build URL
+            val baseUrl = configuration.baseUrl ?: spec.baseUrl
+            val url =
+                httpBuilder.buildUrl(
+                    baseUrl = baseUrl,
+                    path = resolvedOp.path,
+                    pathParams = paramResolver(step.pathParams, context),
+                    queryParams = paramResolver(step.queryParams, context),
+                )
+
+            // Merge headers
+            val headers = configuration.defaultHeaders + spec.defaultHeaders + step.headers
+
+            // Resolve body
+            val body =
+                step.body?.let { context.interpolate(it) }
+                    ?: step.bodyProperties?.let { buildBodyFromProperties(it, context) }
+
+            // Log request if enabled
+            requestLogger(resolvedOp.method.name, url, headers, body)
+
+            // Execute the request
+            val response =
+                httpBuilder.execute(
+                    method = resolvedOp.method,
+                    url = url,
+                    headers = headers,
+                    body = body,
+                )
+
+            // Log response if enabled
+            responseLogger(resolvedOp.method.name, url, response, requestStartTime)
+
+            val durationMs = System.currentTimeMillis() - requestStartTime
+
+            RequestResult.create(
+                requestIndex = requestIndex,
+                statusCode = response.statusCode(),
+                body = response.body(),
+                headers = response.headers().map().mapValues { it.value.firstOrNull() ?: "" },
+                durationMs = durationMs,
+            )
+        } catch (e: Exception) {
+            val durationMs = System.currentTimeMillis() - requestStartTime
+            RequestResult.create(
+                requestIndex = requestIndex,
+                statusCode = -1,
+                body = e.message,
+                headers = emptyMap(),
+                durationMs = durationMs,
+            )
+        }
+    }
+
+    /**
+     * Build JSON body from structured body properties.
+     */
+    private fun buildBodyFromProperties(
+        props: Map<String, BodyProperty>,
+        context: ExecutionContext,
+    ): String {
+        val map = flattenBodyProperties(props, context)
+        return objectMapper.writeValueAsString(map)
+    }
+
+    /**
+     * Log multi-test execution details.
+     */
+    private fun logMultiTest(result: MultiTestResult) {
+        if (configuration.logRequests) {
+            val status = if (result.passed) "PASS" else "FAIL"
+            val message =
+                buildString {
+                    append("  [MULTI-TEST] [$status] ")
+                    append("[${result.mode.name.lowercase()}] ")
+                    append("${result.requestCount} requests ")
+                    append("(${result.totalDurationMs}ms total)")
+                    if (!result.passed) {
+                        append(" - ${result.failureReason}")
+                    }
+                }
+            println(message)
+        }
     }
 }

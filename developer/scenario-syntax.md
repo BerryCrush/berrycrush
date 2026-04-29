@@ -573,7 +573,7 @@ when I create a pet
 
 ## Auto-Generated Tests (`auto:`)
 
-The `auto:` directive enables automatic generation of invalid request and security tests based on OpenAPI schema constraints and common attack patterns.
+The `auto:` directive enables automatic generation of invalid request, security, and idempotency tests based on OpenAPI schema constraints and common patterns.
 
 ### Syntax
 
@@ -586,6 +586,7 @@ call ^operationId
 Where `<test-types>` is a space-separated list of:
 - `invalid` - Generate tests that violate OpenAPI schema constraints
 - `security` - Generate tests with common attack payloads
+- `multi` - Generate idempotency tests with sequential and concurrent requests
 
 ### Basic Example
 
@@ -639,6 +640,39 @@ Generate tests with common attack payloads:
 | LDAP Injection | `*)(uid=*))(|(uid=*`, `admin)(&)` |
 | XXE | `<!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>` |
 
+#### Multi Tests (`multi`)
+
+Generate idempotency tests that execute requests multiple times:
+
+| Mode | Description |
+|------|-------------|
+| Sequential | Execute requests one after another (default: 3 requests) |
+| Concurrent | Execute requests simultaneously (default: 5 requests) |
+
+Multi tests verify:
+- **Idempotency** - Same request returns consistent results
+- **Race conditions** - Concurrent requests don't cause data corruption
+- **State consistency** - API maintains correct state under load
+
+Example:
+```
+scenario: Idempotency test for getPet
+  when I get a pet multiple times
+    call ^getPetById
+      auto: [multi]
+      petId: 1
+  
+  then all requests succeed consistently
+    assert status 2xx
+```
+
+Configure request counts:
+```
+parameters:
+  multiTestSequentialCount: 5    # Run 5 sequential requests
+  multiTestConcurrentCount: 10   # Run 10 concurrent requests
+```
+
 ### Parameter Locations
 
 Auto-tests are generated for parameters in different locations:
@@ -656,11 +690,20 @@ During auto-test execution, these variables are set:
 
 | Variable | Description | Example Values |
 |----------|-------------|----------------|
-| `test.type` | Test category | `"invalid"`, `"security"` |
+| `test.type` | Test category | `"invalid"`, `"security"`, `"multi"` |
 | `test.field` | Field being tested | `"name"`, `"petId"` |
 | `test.description` | Test description | `"SQL Injection"`, `"minLength violation"` |
 | `test.value` | Attack/invalid value | `"' OR '1'='1"` |
 | `test.location` | Parameter location | `"request body"`, `"path variable"` |
+
+For multi-tests, additional variables are available:
+
+| Variable | Description | Example Values |
+|----------|-------------|----------------|
+| `multiTest.mode` | Execution mode | `"SEQUENTIAL"`, `"CONCURRENT"` |
+| `multiTest.count` | Number of requests | `3`, `5` |
+| `multiTest.passed` | Whether all passed | `true`, `false` |
+| `multiTest.duration` | Total time (ms) | `150` |
 
 ### Complete Example
 
@@ -697,11 +740,23 @@ scenario: Auto-generated create pet tests
 
 Auto-tests appear in test reports with descriptive names:
 
+**Invalid and Security Tests:**
 ```
 [Invalid request] request body name with value <empty string>
 [Invalid request] path variable petId with value not-a-number
 [Security SQL Injection] request body name with value ' OR '1'='1
 [Security Path Traversal] path variable petId with value ../../etc/passwd
+```
+
+**Multi Tests (Idempotency):**
+```
+[Multi SEQUENTIAL] 3 requests (150ms) - PASSED
+[Multi CONCURRENT] 5 requests (89ms) - PASSED
+```
+
+If a multi-test fails:
+```
+[Multi CONCURRENT] 5 requests (234ms) - FAILED: Response inconsistency detected
 ```
 
 ### Best Practices

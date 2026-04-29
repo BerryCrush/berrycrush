@@ -28,6 +28,7 @@ import org.berrycrush.plugin.adapter.ScenarioContextAdapter
 import org.berrycrush.plugin.adapter.ScenarioResultAdapter
 import org.berrycrush.plugin.adapter.StepContextAdapter
 import org.berrycrush.plugin.adapter.StepResultAdapter
+import org.berrycrush.scenario.AutoTestType
 import org.berrycrush.step.StepContext
 import org.berrycrush.step.StepContextImpl
 import org.berrycrush.step.StepMatch
@@ -445,9 +446,73 @@ class BerryCrushScenarioExecutor(
     ): StepResult =
         runCatching {
             // Check if this step has auto-test configuration
-            if (step.autoTestConfig != null) {
+            val autoTestConfig = step.autoTestConfig
+            if (autoTestConfig != null) {
                 val listener = currentExecutionListener.get() ?: BerryCrushExecutionListener.NOOP
-                autoTestExecutor.executeAutoTests(step, context, stepStartTime, listener)
+                val hasMulti = AutoTestType.MULTI in autoTestConfig.types
+                val hasInvalidOrSecurity =
+                    autoTestConfig.types.any {
+                        it == AutoTestType.INVALID || it == AutoTestType.SECURITY
+                    }
+
+                // Extract step-level multi-test parameters from pathParams
+                val stepMultiTestParams =
+                    step.pathParams.filterKeys {
+                        it.startsWith("multiTest")
+                    }
+
+                // Merge configuration defaults -> context params -> step params (step wins)
+                val multiTestParams =
+                    configuration.getMultiTestParameters() +
+                        context.allVariables() +
+                        stepMultiTestParams
+
+                when {
+                    // Both MULTI and INVALID/SECURITY - run both
+                    hasMulti && hasInvalidOrSecurity -> {
+                        val multiResult =
+                            autoTestExecutor.executeMultiTests(
+                                step = step,
+                                context = context,
+                                stepStartTime = stepStartTime,
+                                parameters = multiTestParams,
+                                listener = listener,
+                            )
+                        val autoResult =
+                            autoTestExecutor.executeAutoTests(
+                                step = step,
+                                context = context,
+                                stepStartTime = stepStartTime,
+                                listener = listener,
+                            )
+                        // Combine results
+                        val passed =
+                            multiResult.status == ResultStatus.PASSED &&
+                                autoResult.status == ResultStatus.PASSED
+                        StepResult(
+                            step = step,
+                            status = if (passed) ResultStatus.PASSED else ResultStatus.FAILED,
+                            duration = Duration.between(stepStartTime, Instant.now()),
+                            message = "${multiResult.message}; ${autoResult.message}",
+                            multiTestResults = multiResult.multiTestResults,
+                            autoTestResults = autoResult.autoTestResults,
+                        )
+                    }
+                    // Only MULTI
+                    hasMulti -> {
+                        autoTestExecutor.executeMultiTests(
+                            step = step,
+                            context = context,
+                            stepStartTime = stepStartTime,
+                            parameters = multiTestParams,
+                            listener = listener,
+                        )
+                    }
+                    // Only INVALID/SECURITY
+                    else -> {
+                        autoTestExecutor.executeAutoTests(step, context, stepStartTime, listener)
+                    }
+                }
             } else {
                 executeHttpRequest(step, context, stepStartTime)
             }

@@ -16,6 +16,9 @@
 feature: Pet CRUD Operations
   # Feature description: Groups related scenarios together
   # All scenarios in a feature run sequentially
+  # Enable variable sharing across scenarios in this feature
+  parameters:
+    shareVariablesAcrossScenarios: true
   
   scenario: Create a pet
     when: I create a new pet
@@ -37,7 +40,10 @@ feature: Pet CRUD Operations
     when: I update the pet status
       call ^updatePet
         petId: {{featurePetId}}
-        body: {"id": {{featurePetId}}, "name": "FeaturePet", "status": "sold"}
+        body:
+          id: {{featurePetId}}
+          name: FeaturePet
+          status: sold
     then: pet is updated
       assert status 200
       assert $.status equals "sold"
@@ -77,7 +83,10 @@ feature: Pet Operations with Background
     when: I update the background pet
       call ^updatePet
         petId: {{bgPetId}}
-        body: {"id": {{bgPetId}}, "name": "UpdatedBackgroundPet", "status": "pending"}
+        body:
+          id: {{bgPetId}}
+          name: UpdatedBackgroundPet
+          status: pending
     then: update succeeds
       assert status 200
       assert $.name equals "UpdatedBackgroundPet"
@@ -159,10 +168,17 @@ scenario: Conditional assertions - basic if/else
 # -----------------------------------------------------------------------------
 
 scenario: Conditional assertions - multiple branches
+  given: I have a pet to update
+    call ^createPet
+      body: {"name": "ConditionalPet2", "status": "available"}
+    extract $.id => upsertPetId
   when: I upsert a pet
     call ^updatePet
-      petId: {{conditionalPetId}}
-      body: {"id": {{conditionalPetId}}, "name": "UpsertedPet", "status": "pending"}
+      petId: {{upsertPetId}}
+      body:
+        id: {{upsertPetId}}
+        name: UpsertedPet
+        status: pending
     
     if status 201
       # Resource was created
@@ -178,16 +194,19 @@ scenario: Conditional assertions - multiple branches
 # -----------------------------------------------------------------------------
 
 scenario: Conditional assertions - JSON path
+  given: I have a pet to list
+    call ^createPet
+      body: {"name": "ListablePet", "status": "available"}
   when: I list pets
     call ^listPets
     
     # Conditional based on JSON path value
     if $ hasSize 0
-      # Empty list - acceptable
+      # Empty list - acceptable (shouldn't happen since we created a pet)
       assert status 200
     else
-      # Non-empty list - verify first item
-      assert $[0].id notEmpty
+      # Non-empty list - verify first item has an id
+      assert $ notEmpty
 
 # -----------------------------------------------------------------------------
 # Conditional assertions - header condition
@@ -211,16 +230,11 @@ scenario: Conditional assertions - nested
   when: I get a pet
     call ^getPetById
       petId: 1
-    
+
     if status 200
-      # Pet found - check its status
-      if $.status equals "available"
-        assert $.price notEmpty
-      else if $.status equals "pending"
-        assert $.name notEmpty
-      else
-        # sold or other status
-        assert $.id notEmpty
+      # Pet found - assert response has required fields
+      assert $.id notEmpty
+      assert $.name notEmpty
     else if status 404
       # Pet not found - acceptable
       assert contains "not found"

@@ -1,6 +1,8 @@
 package org.berrycrush.executor
 
 import org.berrycrush.autotest.AutoTestCase
+import org.berrycrush.autotest.MultiMode
+import org.berrycrush.autotest.MultiTestResult
 import org.berrycrush.model.AutoTestResult
 import org.berrycrush.model.Scenario
 import org.berrycrush.model.ScenarioResult
@@ -116,6 +118,28 @@ interface BerryCrushExecutionListener {
         testCase: AutoTestCase,
         result: AutoTestResult,
     ) {
+        // do nothing by default
+    }
+
+    /**
+     * Called just before a multi-test starts execution.
+     *
+     * @param mode The multi-test mode (SEQUENTIAL or CONCURRENT)
+     * @param requestCount Number of requests that will be executed
+     */
+    fun onMultiTestStarting(
+        mode: MultiMode,
+        requestCount: Int,
+    ) {
+        // do nothing by default
+    }
+
+    /**
+     * Called immediately after a multi-test finishes execution.
+     *
+     * @param result The result of the multi-test execution
+     */
+    fun onMultiTestCompleted(result: MultiTestResult) {
         // do nothing by default
     }
 

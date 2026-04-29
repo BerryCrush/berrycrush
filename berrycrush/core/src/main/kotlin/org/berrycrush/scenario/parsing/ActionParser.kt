@@ -258,6 +258,7 @@ internal fun ParserState.parseAutoTestConfig(): AutoTestConfig? {
                 when (typeName) {
                     "invalid" -> types.add(AutoTestType.INVALID)
                     "security" -> types.add(AutoTestType.SECURITY)
+                    "multi" -> types.add(AutoTestType.MULTI)
                 }
             }
             advance()
@@ -274,6 +275,7 @@ internal fun ParserState.parseAutoTestConfig(): AutoTestConfig? {
                 when (typeName) {
                     "invalid" -> types.add(AutoTestType.INVALID)
                     "security" -> types.add(AutoTestType.SECURITY)
+                    "multi" -> types.add(AutoTestType.MULTI)
                 }
                 advance()
             }

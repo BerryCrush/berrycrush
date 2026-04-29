@@ -1,5 +1,6 @@
 package org.berrycrush.config
 
+import org.berrycrush.autotest.MultiTestParameters
 import org.berrycrush.logging.HttpLogFormatter
 import org.berrycrush.logging.HttpLogger
 import org.berrycrush.logging.HttpLoggerFactory
@@ -21,6 +22,8 @@ private const val DEFAULT_TIMEOUT_SECONDS = 30L
  * @property logResponses Whether to log HTTP responses
  * @property httpLogger Custom HTTP logger (default: JUL-based logger)
  * @property logFormatter Custom log formatter (default: multi-line human-readable format)
+ * @property multiTestSequentialCount Number of sequential requests for multi-tests
+ * @property multiTestConcurrentCount Number of concurrent requests for multi-tests
  */
 data class BerryCrushConfiguration(
     var baseUrl: String? = null,
@@ -53,6 +56,16 @@ data class BerryCrushConfiguration(
      * Default is false (each scenario has isolated variable scope).
      */
     var shareVariablesAcrossScenarios: Boolean = false,
+    /**
+     * Number of sequential requests for multi-request idempotency tests.
+     * Default: 3
+     */
+    var multiTestSequentialCount: Int = MultiTestParameters.DEFAULTS.getValue(MultiTestParameters.SEQUENTIAL_COUNT),
+    /**
+     * Number of concurrent requests for multi-request idempotency tests.
+     * Default: 5
+     */
+    var multiTestConcurrentCount: Int = MultiTestParameters.DEFAULTS.getValue(MultiTestParameters.CONCURRENT_COUNT),
 ) {
     /**
      * Get the effective HTTP logger.
@@ -90,6 +103,8 @@ data class BerryCrushConfiguration(
      * - `logResponses` - true/false
      * - `shareVariablesAcrossScenarios` - true/false
      * - `header.<name>` - Add/override a default header
+     * - `multiTestSequentialCount` - Number of sequential requests for multi-tests
+     * - `multiTestConcurrentCount` - Number of concurrent requests for multi-tests
      *
      * @param parameters Map of parameter names to values
      * @return A new Configuration with parameters applied
@@ -117,6 +132,20 @@ data class BerryCrushConfiguration(
                 key == "logRequests" -> copy.logRequests = value.toString().toBoolean()
                 key == "logResponses" -> copy.logResponses = value.toString().toBoolean()
                 key == "shareVariablesAcrossScenarios" -> copy.shareVariablesAcrossScenarios = value.toString().toBoolean()
+                key == "multiTestSequentialCount" ->
+                    copy.multiTestSequentialCount =
+                        when (value) {
+                            is Number -> value.toInt()
+                            is String -> value.toIntOrNull() ?: copy.multiTestSequentialCount
+                            else -> copy.multiTestSequentialCount
+                        }
+                key == "multiTestConcurrentCount" ->
+                    copy.multiTestConcurrentCount =
+                        when (value) {
+                            is Number -> value.toInt()
+                            is String -> value.toIntOrNull() ?: copy.multiTestConcurrentCount
+                            else -> copy.multiTestConcurrentCount
+                        }
                 key.startsWith("header.") -> {
                     val headerName = key.removePrefix("header.")
                     copy.defaultHeaders[headerName] = value.toString()
@@ -131,6 +160,17 @@ data class BerryCrushConfiguration(
 
         return copy
     }
+
+    /**
+     * Get multi-test parameters as a map for executor use.
+     *
+     * @return Map containing multi-test configuration parameters
+     */
+    fun getMultiTestParameters(): Map<String, Int> =
+        mapOf(
+            MultiTestParameters.SEQUENTIAL_COUNT to multiTestSequentialCount,
+            MultiTestParameters.CONCURRENT_COUNT to multiTestConcurrentCount,
+        )
 }
 
 /**
