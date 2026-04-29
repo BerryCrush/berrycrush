@@ -1,15 +1,16 @@
 # Auto-Test Provider Extensibility
 
-BerryCrush's auto-test feature supports custom test providers through Java's ServiceLoader pattern. This allows users to add custom invalid request tests and security test payloads without modifying the core library.
+BerryCrush's auto-test feature supports custom test providers through Java's ServiceLoader pattern. This allows users to add custom invalid request tests, security test payloads, and multi-request idempotency tests without modifying the core library.
 
 ## Overview
 
-The auto-test system uses two types of providers:
+The auto-test system uses three types of providers:
 
 1. **InvalidTestProvider** - Generates invalid values for schema constraint testing
 2. **SecurityTestProvider** - Generates security attack payloads
+3. **MultiTestProvider** - Executes multi-request idempotency tests
 
-Both types are discovered automatically via ServiceLoader, allowing you to add custom providers by simply adding classes to your project.
+All types are discovered automatically via ServiceLoader, allowing you to add custom providers by simply adding classes to your project.
 
 ## Built-in Providers
 
@@ -40,6 +41,13 @@ Both types are discovered automatically via ServiceLoader, allowing you to add c
 | LDAPInjection | LDAP Injection | LDAP query injection payloads |
 | XXE | XXE | XML External Entity payloads |
 | HeaderInjection | Header Injection | HTTP header injection payloads |
+
+### Multi Test Providers
+
+| Test Type | Display Name | Description |
+|-----------|--------------|-------------|
+| sequential | Sequential Idempotency | Executes requests one after another |
+| concurrent | Concurrent Idempotency | Executes requests in parallel using a thread pool |
 
 ## Creating Custom Providers
 
@@ -189,14 +197,50 @@ registry.registerInvalid(MyOnlyProvider())
 
 ## Multi-Test Providers
 
-Multi-test providers support idempotency testing by executing requests multiple times in different modes.
+Multi-test providers support idempotency testing by executing requests multiple times in different modes. They are used with the `auto: [multi]` directive to verify API operations produce consistent results.
+
+### MultiTestProvider Interface
+
+```kotlin
+interface MultiTestProvider {
+    /**
+     * Unique identifier for this multi-test mode.
+     * Used for display names in test reports: [multi:{testType}]
+     * Used in excludes configuration: excludes: [{testType}]
+     */
+    val testType: String
+
+    /**
+     * Human-readable display name for test reports.
+     * Defaults to testType if not overridden.
+     */
+    val displayName: String get() = testType
+
+    /**
+     * Priority for provider override. Higher values = higher priority.
+     * User-provided providers default to 100, built-in default to 0.
+     */
+    val priority: Int get() = 0
+
+    /**
+     * Execute multi-request test.
+     * @param count Number of requests to execute
+     * @param executor Function that executes a single request
+     * @return Results of all requests and aggregate information
+     */
+    fun executeMultiTest(
+        count: Int,
+        executor: (requestIndex: Int) -> RequestResult,
+    ): MultiTestResult
+}
+```
 
 ### Built-in Multi-Test Providers
 
 | Test Type | Display Name | Description |
 |-----------|--------------|-------------|
-| `SEQUENTIAL` | Sequential | Execute requests one after another |
-| `CONCURRENT` | Concurrent | Execute requests simultaneously |
+| `sequential` | Sequential Idempotency | Executes requests one after another, verifying sequential idempotency |
+| `concurrent` | Concurrent Idempotency | Executes requests in parallel using a thread pool (max 20 threads), verifying concurrent access safety |
 
 ### Custom Multi-Test Provider
 

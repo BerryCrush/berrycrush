@@ -49,7 +49,7 @@ class AssertionGenerator {
 
         // Content-Type assertion
         if (includeContentType && response != null) {
-            val contentType = response.content?.keys?.firstOrNull()
+            val contentType = response.content.keys.firstOrNull()
             if (contentType != null) {
                 assertions.add(
                     Assertion(
@@ -91,7 +91,7 @@ class AssertionGenerator {
      * @return Expected success status code (200, 201, 204, etc.)
      */
     fun determineSuccessStatusCode(operation: ResolvedOperation): Int {
-        val responses = operation.operation.responses ?: return DEFAULT_SUCCESS_STATUS_CODE
+        val responses = operation.operation.responses
 
         // Find explicit success code or use default
         val explicitCode =

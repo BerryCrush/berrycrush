@@ -1220,8 +1220,8 @@ class BerryCrushScenarioExecutor(
         val response = operation.findResponse(statusCode) ?: return null
         return response.content
             .values
-            ?.firstOrNull()
-            ?.schema
+            .first()
+            .schema
     }
 
     /**

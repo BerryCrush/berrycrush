@@ -238,14 +238,15 @@ Multi-tests appear in test reports with descriptive names:
 
 .. code-block:: text
 
-    [Multi SEQUENTIAL] 3 requests (150ms) - PASSED
-    [Multi CONCURRENT] 5 requests (89ms) - PASSED
+    [multi:sequential] 3 requests
+    [multi:concurrent] 5 requests
 
-If a multi-test fails:
+With custom counts:
 
 .. code-block:: text
 
-    [Multi CONCURRENT] 5 requests (234ms) - FAILED: Response inconsistency detected
+    [multi:sequential] 10 requests
+    [multi:concurrent] 20 requests
 
 Combining with Other Test Types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -338,12 +339,14 @@ Auto-tests appear in test reports with descriptive names:
 
 .. code-block:: text
 
-    [Invalid request] request body name with value <empty string>
-    [Invalid request] request body status with value INVALID_ENUM_VALUE
-    [Invalid request] path variable petId with value not-a-number
-    [Security SQL Injection] request body name with value ' OR '1'='1
-    [Security XSS] request body name with value <script>alert('XSS')</script>
-    [Security Path Traversal] path variable petId with value ../../etc/passwd
+    [Invalid request - minLength] request body name with value <empty string>
+    [Invalid request - enum] request body status with value INVALID_ENUM_VALUE
+    [Invalid request - type] path variable petId with value not-a-number
+    [security - SQL Injection] request body name with value ' OR '1'='1
+    [security - XSS] request body name with value <script>alert('XSS')</script>
+    [security - Path Traversal] path variable petId with value ../../etc/passwd
+    [multi:sequential] 3 requests
+    [multi:concurrent] 5 requests
 
 This format allows you to:
 
