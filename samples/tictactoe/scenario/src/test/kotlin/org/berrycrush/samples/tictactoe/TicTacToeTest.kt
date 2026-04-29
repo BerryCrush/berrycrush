@@ -20,14 +20,14 @@ import org.springframework.boot.test.context.SpringBootTest
 @IncludeEngines("berrycrush")
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    classes = [TicTacToeApplication::class]
+    classes = [TicTacToeApplication::class],
 )
 @BerryCrushContextConfiguration
 @BerryCrushScenarios(locations = ["scenarios/*.scenario"])
 @BerryCrushConfiguration(
     bindings = TicTacToeBindings::class,
     openApiSpec = "openapi/tictactoe.yaml",
-    plugins = ["report:console"]
+    plugins = ["report:console"],
 )
 @BerryCrushSpec(paths = ["openapi/tictactoe.yaml"])
 class TicTacToeTest

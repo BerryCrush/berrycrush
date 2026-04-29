@@ -17,13 +17,13 @@ import org.springframework.stereotype.Component
 @Component
 @Lazy
 class TicTacToeBindings : BerryCrushBindings {
-
     @LocalServerPort
     var port: Int = 0
 
-    override fun getBindings(): Map<String, Any> = mapOf(
-        "baseUrl" to "http://localhost:$port"
-    )
+    override fun getBindings(): Map<String, Any> =
+        mapOf(
+            "baseUrl" to "http://localhost:$port",
+        )
 
     override fun getOpenApiSpec(): String = "openapi/tictactoe.yaml"
 }

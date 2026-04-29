@@ -5,5 +5,5 @@ package org.berrycrush.samples.tictactoe.model
  */
 data class GameStatus(
     val winner: String,
-    val board: List<List<String>>
+    val board: List<List<String>>,
 )

@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController
  */
 @RestController
 class BoardController(
-    private val gameService: GameService
+    private val gameService: GameService,
 ) {
     /**
      * GET /board - Get the whole board and winner.
@@ -36,12 +36,13 @@ class BoardController(
     @GetMapping("/board/{row}/{column}")
     fun getSquare(
         @PathVariable row: Int,
-        @PathVariable column: Int
-    ): ResponseEntity<Any> = try {
-        ResponseEntity.ok(gameService.getSquare(row, column).symbol)
-    } catch (e: IllegalArgumentException) {
-        ResponseEntity.badRequest().body(e.message)
-    }
+        @PathVariable column: Int,
+    ): ResponseEntity<Any> =
+        try {
+            ResponseEntity.ok(gameService.getSquare(row, column).symbol)
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(e.message)
+        }
 
     /**
      * PUT /board/{row}/{column} - Place a mark on a square.
@@ -50,12 +51,13 @@ class BoardController(
     fun putSquare(
         @PathVariable row: Int,
         @PathVariable column: Int,
-        @RequestBody request: MarkRequest
-    ): ResponseEntity<Any> = try {
-        ResponseEntity.ok(gameService.placeMark(row, column, request.mark))
-    } catch (e: IllegalArgumentException) {
-        ResponseEntity.badRequest().body(e.message)
-    } catch (e: IllegalStateException) {
-        ResponseEntity.badRequest().body(e.message)
-    }
+        @RequestBody request: MarkRequest,
+    ): ResponseEntity<Any> =
+        try {
+            ResponseEntity.ok(gameService.placeMark(row, column, request.mark))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(e.message)
+        } catch (e: IllegalStateException) {
+            ResponseEntity.badRequest().body(e.message)
+        }
 }

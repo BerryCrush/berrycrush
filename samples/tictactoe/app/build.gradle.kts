@@ -15,7 +15,7 @@ dependencies {
     // Spring Boot Web only (no JPA/database)
     implementation(libs.spring.boot.starter.web)
     implementation(libs.spring.boot.starter.validation)
-    
+
     // Kotlin support
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 }

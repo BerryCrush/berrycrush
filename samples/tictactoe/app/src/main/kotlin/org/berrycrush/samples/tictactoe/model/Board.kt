@@ -6,7 +6,7 @@ package org.berrycrush.samples.tictactoe.model
  * Coordinates are 1-based (1-3) following the OpenAPI spec.
  */
 class Board {
-    private val grid: Array<Array<Mark>> = Array(3) { Array(3) { Mark.EMPTY } }
+    private val grid: Array<Array<Mark>> = Array(SIZE) { Array(SIZE) { Mark.EMPTY } }
 
     /**
      * Gets the mark at the specified position.
@@ -16,7 +16,10 @@ class Board {
      * @return The mark at the position
      * @throws IllegalArgumentException if coordinates are invalid
      */
-    fun get(row: Int, column: Int): Mark {
+    fun get(
+        row: Int,
+        column: Int,
+    ): Mark {
         validateCoordinates(row, column)
         return grid[row - 1][column - 1]
     }
@@ -30,7 +33,11 @@ class Board {
      * @throws IllegalArgumentException if coordinates are invalid
      * @throws IllegalStateException if the square is already occupied
      */
-    fun set(row: Int, column: Int, mark: Mark) {
+    fun set(
+        row: Int,
+        column: Int,
+        mark: Mark,
+    ) {
         validateCoordinates(row, column)
         require(mark != Mark.EMPTY) { "Cannot place empty mark" }
         check(grid[row - 1][column - 1] == Mark.EMPTY) { "Square is not empty." }
@@ -42,17 +49,17 @@ class Board {
      *
      * @return 3x3 list of mark symbols
      */
-    fun toList(): List<List<String>> =
-        grid.map { row -> row.map { it.symbol } }
+    fun toList(): List<List<String>> = grid.map { row -> row.map { it.symbol } }
 
     /**
      * Checks for a winner.
      *
      * @return The winning mark, or EMPTY if no winner yet
      */
+    @Suppress("ReturnCount")
     fun checkWinner(): Mark {
         // Check rows
-        for (row in 0..2) {
+        for (row in INDICES) {
             if (grid[row][0] != Mark.EMPTY &&
                 grid[row][0] == grid[row][1] &&
                 grid[row][1] == grid[row][2]
@@ -62,7 +69,7 @@ class Board {
         }
 
         // Check columns
-        for (col in 0..2) {
+        for (col in INDICES) {
             if (grid[0][col] != Mark.EMPTY &&
                 grid[0][col] == grid[1][col] &&
                 grid[1][col] == grid[2][col]
@@ -93,15 +100,29 @@ class Board {
      * Resets the board to empty state.
      */
     fun reset() {
-        for (row in 0..2) {
-            for (col in 0..2) {
+        for (row in INDICES) {
+            for (col in INDICES) {
                 grid[row][col] = Mark.EMPTY
             }
         }
     }
 
-    private fun validateCoordinates(row: Int, column: Int) {
-        require(row in 1..3) { "Illegal coordinates." }
-        require(column in 1..3) { "Illegal coordinates." }
+    private fun validateCoordinates(
+        row: Int,
+        column: Int,
+    ) {
+        require(row in COORDINATE_RANGE) { "Illegal coordinates." }
+        require(column in COORDINATE_RANGE) { "Illegal coordinates." }
+    }
+
+    companion object {
+        /** Board size (3x3). */
+        private const val SIZE = 3
+
+        /** Valid coordinate range (1-3). */
+        private val COORDINATE_RANGE = 1..SIZE
+
+        /** Grid indices (0-2). */
+        private val INDICES = 0 until SIZE
     }
 }

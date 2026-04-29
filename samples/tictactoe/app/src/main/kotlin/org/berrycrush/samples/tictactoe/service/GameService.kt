@@ -15,10 +15,11 @@ class GameService {
     /**
      * Gets the current game status.
      */
-    fun getStatus(): GameStatus = GameStatus(
-        winner = board.checkWinner().symbol,
-        board = board.toList()
-    )
+    fun getStatus(): GameStatus =
+        GameStatus(
+            winner = board.checkWinner().symbol,
+            board = board.toList(),
+        )
 
     /**
      * Gets the mark at the specified square.
@@ -27,8 +28,10 @@ class GameService {
      * @param column Column number (1-3)
      * @return The mark at the position
      */
-    fun getSquare(row: Int, column: Int): Mark =
-        board.get(row, column)
+    fun getSquare(
+        row: Int,
+        column: Int,
+    ): Mark = board.get(row, column)
 
     /**
      * Places a mark on the board.
@@ -40,9 +43,14 @@ class GameService {
      * @throws IllegalArgumentException for invalid mark or coordinates
      * @throws IllegalStateException if square is not empty
      */
-    fun placeMark(row: Int, column: Int, markSymbol: String): GameStatus {
-        val mark = Mark.fromSymbol(markSymbol)
-            ?: throw IllegalArgumentException("Invalid Mark (X or O).")
+    fun placeMark(
+        row: Int,
+        column: Int,
+        markSymbol: String,
+    ): GameStatus {
+        val mark =
+            Mark.fromSymbol(markSymbol)
+                ?: throw IllegalArgumentException("Invalid Mark (X or O).")
 
         require(mark != Mark.EMPTY) { "Invalid Mark (X or O)." }
 

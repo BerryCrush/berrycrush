@@ -152,7 +152,7 @@ Using Conditional Assertions
 
 When an API can return different valid responses, use conditional assertions:
 
-.. code-block:: text
+.. code-block:: scenario
 
     scenario: Create or update a pet
       when: I upsert a pet

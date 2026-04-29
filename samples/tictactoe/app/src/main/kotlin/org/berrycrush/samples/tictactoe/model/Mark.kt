@@ -10,14 +10,14 @@ import com.fasterxml.jackson.annotation.JsonValue
  * - O ("O") - Player O's mark
  */
 enum class Mark(
-    @get:JsonValue val symbol: String
+    @get:JsonValue val symbol: String,
 ) {
     EMPTY("."),
     X("X"),
-    O("O");
+    O("O"),
+    ;
 
     companion object {
-        fun fromSymbol(symbol: String): Mark? =
-            entries.find { it.symbol == symbol }
+        fun fromSymbol(symbol: String): Mark? = entries.find { it.symbol == symbol }
     }
 }
