@@ -17,14 +17,29 @@ permissions:
   id-token: write
 
 jobs:
+  read-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Read version from gradle.properties
+        id: get-version
+        run: |
+          VERSION=$(grep '^version=' gradle.properties | cut -d'=' -f2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
   build:
+    needs: read-version
     uses: ./.github/workflows/_docs-build.yml
     with:
-      version: nightly
+      version: ${{ needs.read-version.outputs.version }}
       ref: ${{ github.sha }}
       
   publish:
-    needs: build
+    needs: [read-version, build]
     uses: ./.github/workflows/_docs-publish.yml
     with:
       version: nightly

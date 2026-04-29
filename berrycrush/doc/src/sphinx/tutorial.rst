@@ -22,6 +22,13 @@ By the end, you'll understand how to:
 * Configure plugins for reporting
 * Integrate with Spring Boot
 
+Prerequisites
+-------------
+
+* Java 21 or later
+* JUnit 6+ (JUnit Platform)
+* Gradle 8.0+ or Maven 3.9+
+
 Project Setup
 -------------
 
@@ -52,7 +59,6 @@ Project Setup
           dependencies {
               testImplementation("org.berrycrush.berrycrush:core:{{VERSION}}")
               testImplementation("org.berrycrush.berrycrush:junit:{{VERSION}}")
-              testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
           }
 
           tasks.test {
@@ -84,7 +90,6 @@ Project Setup
           dependencies {
               testImplementation 'org.berrycrush.berrycrush:core:{{VERSION}}'
               testImplementation 'org.berrycrush.berrycrush:junit:{{VERSION}}'
-              testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
           }
 
           test {
@@ -130,12 +135,6 @@ Project Setup
                       <groupId>org.berrycrush.berrycrush</groupId>
                       <artifactId>junit</artifactId>
                       <version>{{VERSION}}</version>
-                      <scope>test</scope>
-                  </dependency>
-                  <dependency>
-                      <groupId>org.junit.jupiter</groupId>
-                      <artifactId>junit-jupiter</artifactId>
-                      <version>5.10.0</version>
                       <scope>test</scope>
                   </dependency>
               </dependencies>

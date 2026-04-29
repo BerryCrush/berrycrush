@@ -49,7 +49,7 @@ Key Features
 * **OpenAPI-driven**: Automatically validate requests and responses against your OpenAPI spec
 * **BDD-style scenarios**: Write readable tests using a Gherkin-like DSL
 * **Auto-generated tests**: Automatically generate invalid request and security tests from OpenAPI schemas
-* **JUnit 5 integration**: Seamless integration with your existing test infrastructure
+* **JUnit 6 integration**: Seamless integration with your existing test infrastructure
 * **Spring Boot support**: Auto-discover bindings and configuration from Spring context
 * **Plugin system**: Extend functionality with custom plugins for reporting, logging, and more
 * **Custom steps**: Define reusable step definitions with annotations, DSL, or registration API
@@ -83,16 +83,61 @@ Scenario file (``pet-api.scenario``):
 Installation
 ------------
 
-Add to your ``build.gradle.kts``:
+.. tabs::
 
-.. code-block:: kotlin
+   .. tab:: Gradle (Kotlin DSL)
 
-    dependencies {
-        testImplementation("org.berrycrush.berrycrush:core:0.1.0")
-        testImplementation("org.berrycrush.berrycrush:junit:0.1.0")
-        // For Spring Boot projects
-        testImplementation("org.berrycrush.berrycrush:spring:0.1.0")
-    }
+      Add to your ``build.gradle.kts``:
+
+      .. code-block:: kotlin
+
+          dependencies {
+              testImplementation("org.berrycrush.berrycrush:core:{{VERSION}}")
+              testImplementation("org.berrycrush.berrycrush:junit:{{VERSION}}")
+              // For Spring Boot projects
+              testImplementation("org.berrycrush.berrycrush:spring:{{VERSION}}")
+          }
+
+   .. tab:: Gradle (Groovy)
+
+      Add to your ``build.gradle``:
+
+      .. code-block:: groovy
+
+          dependencies {
+              testImplementation 'org.berrycrush.berrycrush:core:{{VERSION}}'
+              testImplementation 'org.berrycrush.berrycrush:junit:{{VERSION}}'
+              // For Spring Boot projects
+              testImplementation 'org.berrycrush.berrycrush:spring:{{VERSION}}'
+          }
+
+   .. tab:: Maven
+
+      Add to your ``pom.xml``:
+
+      .. code-block:: xml
+
+          <dependencies>
+              <dependency>
+                  <groupId>org.berrycrush.berrycrush</groupId>
+                  <artifactId>core</artifactId>
+                  <version>{{VERSION}}</version>
+                  <scope>test</scope>
+              </dependency>
+              <dependency>
+                  <groupId>org.berrycrush.berrycrush</groupId>
+                  <artifactId>junit</artifactId>
+                  <version>{{VERSION}}</version>
+                  <scope>test</scope>
+              </dependency>
+              <!-- For Spring Boot projects -->
+              <dependency>
+                  <groupId>org.berrycrush.berrycrush</groupId>
+                  <artifactId>spring</artifactId>
+                  <version>{{VERSION}}</version>
+                  <scope>test</scope>
+              </dependency>
+          </dependencies>
 
 Indices and tables
 ==================

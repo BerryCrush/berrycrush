@@ -50,7 +50,7 @@ jobs:
         env:
           DOC_VERSION: ${{ inputs.version }}
           DOC_RELEASE: ${{ inputs.version }}
-          DOC_TAG: ${{ inputs.version == 'nightly' && 'nightly' || format('v{0}', inputs.version) }}
+          DOC_TAG: ${{ contains(inputs.version, '-SNAPSHOT') && 'nightly' || format('v{0}', inputs.version) }}
         run: |
           cd berrycrush/doc
           # Replace {{VERSION}} placeholder in RST files

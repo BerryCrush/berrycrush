@@ -8,6 +8,7 @@ Prerequisites
 
 * Java 21 or later
 * Kotlin 2.0+ (for Kotlin DSL)
+* JUnit 6+ (JUnit Platform)
 * Gradle 8.0+ or Maven 3.9+
 * An OpenAPI specification for your API
 
