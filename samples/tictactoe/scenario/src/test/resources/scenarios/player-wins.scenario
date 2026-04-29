@@ -1,0 +1,93 @@
+# Scenarios for testing game win conditions
+
+scenario: Player X wins with horizontal row 1
+  given: Reset the game
+    call ^resetBoard
+    assert status 200
+  when: X marks (1,1)
+    call ^putSquare
+      row: 1
+      column: 1
+      body: {"mark": "X"}
+  then: Move accepted, no winner yet
+    assert status 200
+    assert $.winner equals "."
+  when: O marks (2,2)
+    call ^putSquare
+      row: 2
+      column: 2
+      body: {"mark": "O"}
+  then: Move accepted
+    assert status 200
+    assert $.winner equals "."
+  when: X marks (1,2)
+    call ^putSquare
+      row: 1
+      column: 2
+      body: {"mark": "X"}
+  then: Move accepted
+    assert status 200
+    assert $.winner equals "."
+  when: O marks (3,1)
+    call ^putSquare
+      row: 3
+      column: 1
+      body: {"mark": "O"}
+  then: Move accepted
+    assert status 200
+    assert $.winner equals "."
+  when: X marks (1,3) to complete row 1
+    call ^putSquare
+      row: 1
+      column: 3
+      body: {"mark": "X"}
+  then: X wins the game
+    assert status 200
+    assert $.winner equals "X"
+    assert $.board[0][0] equals "X"
+    assert $.board[0][1] equals "X"
+    assert $.board[0][2] equals "X"
+
+scenario: Player O wins with diagonal
+  given: Reset the game
+    call ^resetBoard
+    assert status 200
+  # X marks first, O will win diagonal
+  when: X marks (1,1)
+    call ^putSquare
+      row: 1
+      column: 1
+      body: {"mark": "X"}
+    assert status 200
+  when: O marks (1,3)
+    call ^putSquare
+      row: 1
+      column: 3
+      body: {"mark": "O"}
+    assert status 200
+  when: X marks (3,3)
+    call ^putSquare
+      row: 3
+      column: 3
+      body: {"mark": "X"}
+    assert status 200
+  when: O marks (2,2)
+    call ^putSquare
+      row: 2
+      column: 2
+      body: {"mark": "O"}
+    assert status 200
+  when: X marks (2,1)
+    call ^putSquare
+      row: 2
+      column: 1
+      body: {"mark": "X"}
+    assert status 200
+  when: O marks (3,1) to complete diagonal
+    call ^putSquare
+      row: 3
+      column: 1
+      body: {"mark": "O"}
+  then: O wins the game
+    assert status 200
+    assert $.winner equals "O"

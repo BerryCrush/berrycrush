@@ -1,0 +1,26 @@
+# Scenarios for testing input validation
+
+scenario: Invalid row coordinate returns 400
+  when: I request square with row 0
+    call ^getSquare
+      row: 0
+      column: 1
+  then: Error is returned
+    assert status 400
+
+scenario: Invalid column coordinate returns 400
+  when: I request square with column 4
+    call ^getSquare
+      row: 1
+      column: 4
+  then: Error is returned
+    assert status 400
+
+scenario: Invalid mark returns 400
+  when: Try to place invalid mark
+    call ^putSquare
+      row: 1
+      column: 1
+      body: {"mark": "Z"}
+  then: Error is returned
+    assert status 400

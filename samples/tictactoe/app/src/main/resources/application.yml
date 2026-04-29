@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: tictactoe-sample
+
+server:
+  port: 0  # Random port for testing
