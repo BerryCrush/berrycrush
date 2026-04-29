@@ -6,9 +6,9 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Registry for auto-test providers using the ServiceLoader pattern.
  *
- * This registry discovers and manages [InvalidTestProvider] and [SecurityTestProvider]
- * implementations. User-provided implementations with the same `testType` as built-in
- * ones will override the built-in providers (based on priority).
+ * This registry discovers and manages [InvalidTestProvider], [SecurityTestProvider],
+ * and [MultiTestProvider] implementations. User-provided implementations with the
+ * same `testType` as built-in ones will override the built-in providers (based on priority).
  *
  * ## Usage
  *
@@ -21,6 +21,9 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * // Get a specific provider
  * val minLengthProvider = registry.getInvalidTestProvider("minLength")
+ *
+ * // Get all multi-test providers
+ * val multiProviders = registry.getMultiTestProviders()
  * ```
  *
  * ## Custom Registry
@@ -29,14 +32,17 @@ import java.util.concurrent.ConcurrentHashMap
  * val registry = AutoTestProviderRegistry()
  * registry.registerInvalid(MyCustomProvider())
  * registry.registerSecurity(MySecurityProvider())
+ * registry.registerMulti(MyMultiProvider())
  * ```
  *
  * @see InvalidTestProvider
  * @see SecurityTestProvider
+ * @see MultiTestProvider
  */
 class AutoTestProviderRegistry {
     private val invalidProviders = ConcurrentHashMap<String, InvalidTestProvider>()
     private val securityProviders = ConcurrentHashMap<String, SecurityTestProvider>()
+    private val multiProviders = ConcurrentHashMap<String, MultiTestProvider>()
 
     /**
      * Register an invalid test provider.
@@ -71,6 +77,22 @@ class AutoTestProviderRegistry {
     }
 
     /**
+     * Register a multi-test provider.
+     *
+     * If a provider with the same testType already exists, the one with
+     * higher priority wins. Equal priority means later registration wins.
+     */
+    fun registerMulti(provider: MultiTestProvider) {
+        multiProviders.compute(provider.testType) { _, existing ->
+            if (existing == null || provider.priority >= existing.priority) {
+                provider
+            } else {
+                existing
+            }
+        }
+    }
+
+    /**
      * Get all registered invalid test providers.
      */
     fun getInvalidTestProviders(): Collection<InvalidTestProvider> = invalidProviders.values
@@ -79,6 +101,11 @@ class AutoTestProviderRegistry {
      * Get all registered security test providers.
      */
     fun getSecurityTestProviders(): Collection<SecurityTestProvider> = securityProviders.values
+
+    /**
+     * Get all registered multi-test providers.
+     */
+    fun getMultiTestProviders(): Collection<MultiTestProvider> = multiProviders.values
 
     /**
      * Get an invalid test provider by test type.
@@ -91,6 +118,11 @@ class AutoTestProviderRegistry {
     fun getSecurityTestProvider(testType: String): SecurityTestProvider? = securityProviders[testType]
 
     /**
+     * Get a multi-test provider by test type.
+     */
+    fun getMultiTestProvider(testType: String): MultiTestProvider? = multiProviders[testType]
+
+    /**
      * Check if an invalid test type is registered.
      */
     fun hasInvalidTestType(testType: String): Boolean = invalidProviders.containsKey(testType)
@@ -101,9 +133,14 @@ class AutoTestProviderRegistry {
     fun hasSecurityTestType(testType: String): Boolean = securityProviders.containsKey(testType)
 
     /**
-     * Get all registered test types (both invalid and security).
+     * Check if a multi-test type is registered.
      */
-    fun getAllTestTypes(): Set<String> = invalidProviders.keys + securityProviders.keys
+    fun hasMultiTestType(testType: String): Boolean = multiProviders.containsKey(testType)
+
+    /**
+     * Get all registered test types (invalid, security, and multi).
+     */
+    fun getAllTestTypes(): Set<String> = invalidProviders.keys + securityProviders.keys + multiProviders.keys
 
     companion object {
         /**
@@ -114,10 +151,12 @@ class AutoTestProviderRegistry {
                 // Register built-in providers first (priority 0)
                 DefaultInvalidTestProviders.all.forEach { registerInvalid(it) }
                 DefaultSecurityTestProviders.all.forEach { registerSecurity(it) }
+                DefaultMultiTestProviders.all.forEach { registerMulti(it) }
 
                 // Discover user-provided providers via ServiceLoader (higher priority wins)
                 ServiceLoader.load(InvalidTestProvider::class.java).forEach { registerInvalid(it) }
                 ServiceLoader.load(SecurityTestProvider::class.java).forEach { registerSecurity(it) }
+                ServiceLoader.load(MultiTestProvider::class.java).forEach { registerMulti(it) }
             }
         }
 
@@ -128,6 +167,7 @@ class AutoTestProviderRegistry {
             AutoTestProviderRegistry().apply {
                 DefaultInvalidTestProviders.all.forEach { registerInvalid(it) }
                 DefaultSecurityTestProviders.all.forEach { registerSecurity(it) }
+                DefaultMultiTestProviders.all.forEach { registerMulti(it) }
             }
 
         /**

@@ -1,5 +1,6 @@
 package org.berrycrush.model
 
+import org.berrycrush.autotest.MultiTestResult
 import java.time.Duration
 
 /**
@@ -16,6 +17,7 @@ import java.time.Duration
  * @property error Exception if an error occurred
  * @property message Optional message providing additional context
  * @property autoTestResults Results from auto-generated tests (if autoTestConfig was used)
+ * @property multiTestResults Results from multi-request idempotency tests
  * @property isCustomStep True if this step was executed via a custom @Step or @Assertion annotation
  */
 data class StepResult(
@@ -30,6 +32,7 @@ data class StepResult(
     val error: Throwable? = null,
     val message: String? = null,
     val autoTestResults: List<AutoTestResult> = emptyList(),
+    val multiTestResults: List<MultiTestResult> = emptyList(),
     val isCustomStep: Boolean = false,
 )
 

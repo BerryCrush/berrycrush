@@ -2,6 +2,8 @@ package org.berrycrush.junit.engine
 
 import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.autotest.AutoTestCase
+import org.berrycrush.autotest.MultiMode
+import org.berrycrush.autotest.MultiTestResult
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.dsl.BerryCrushSuite
 import org.berrycrush.executor.BerryCrushExecutionListener
@@ -228,20 +230,37 @@ class ScenarioTestExecutor(
         val featureShareVariables =
             featureDescriptor.parameters["shareVariablesAcrossScenarios"] as? Boolean ?: false
 
+        // Create context with feature parameters pre-loaded
+        fun createFeatureContext(): ExecutionContext {
+            val ctx = ExecutionContext()
+            // Inject feature-level parameters into the context
+            // This makes them available via context.allVariables() for multi-test config etc.
+            featureDescriptor.parameters.forEach { (key, value) ->
+                ctx[key] = value
+            }
+            return ctx
+        }
+
         // Use feature-level shared context if enabled, otherwise fall back to file-level
         val effectiveContext =
             if (featureShareVariables && fileContext.sharedContext == null) {
                 // Feature enables sharing, but file doesn't - create feature-level context
-                fileContext.copy(sharedContext = ExecutionContext())
+                fileContext.copy(sharedContext = createFeatureContext())
             } else if (!featureShareVariables && fileContext.sharedContext != null) {
                 // Feature disables sharing while file enables it - use isolated context
-                fileContext.copy(sharedContext = null)
+                // Still inject feature parameters into a fresh context for the feature
+                fileContext.copy(sharedContext = createFeatureContext())
             } else if (featureShareVariables) {
                 // Feature enables sharing, create separate context to isolate from other features
-                fileContext.copy(sharedContext = ExecutionContext())
+                fileContext.copy(sharedContext = createFeatureContext())
             } else {
-                // Use file-level context (includes file-level sharing if enabled)
-                fileContext
+                // Use file-level context but with feature parameters
+                // Create a new shared context with feature params if feature has any
+                if (featureDescriptor.parameters.isNotEmpty()) {
+                    fileContext.copy(sharedContext = createFeatureContext())
+                } else {
+                    fileContext
+                }
             }
 
         val hasFailure =
@@ -601,7 +620,9 @@ class ScenarioTestExecutor(
     ) : BerryCrushExecutionListener {
         private var testIndex = 0
         private val descriptors = mutableMapOf<AutoTestCase, AutoTestDescriptor>()
+        private val multiDescriptors = mutableMapOf<MultiMode, MultiTestDescriptor>()
         private var autoTestFailureCount = 0
+        private var multiTestFailureCount = 0
         private var lastScenarioResult: ScenarioResult? = null
 
         /**
@@ -611,9 +632,12 @@ class ScenarioTestExecutor(
             private set
 
         /**
-         * Returns true if there were any failures (auto-test or scenario).
+         * Returns true if there were any failures (auto-test, multi-test, or scenario).
          */
-        fun hasFailure(): Boolean = autoTestFailureCount > 0 || lastScenarioResult?.status != ResultStatus.PASSED
+        fun hasFailure(): Boolean =
+            autoTestFailureCount > 0 ||
+                multiTestFailureCount > 0 ||
+                lastScenarioResult?.status != ResultStatus.PASSED
 
         override fun onScenarioStarting(scenario: Scenario) {
             scenarioStarted = true
@@ -628,13 +652,16 @@ class ScenarioTestExecutor(
 
             // Determine the appropriate result to report
             val autoTestResults = result.stepResults.flatMap { it.autoTestResults }
+            val multiTestResults = result.stepResults.flatMap { it.multiTestResults }
+            val totalFailures = autoTestFailureCount + multiTestFailureCount
 
             val testResult =
                 when {
-                    // Auto-test failures
-                    autoTestFailureCount > 0 -> {
+                    // Auto-test or multi-test failures
+                    totalFailures > 0 -> {
+                        val totalTests = autoTestResults.size + multiTestResults.size
                         TestExecutionResult.failed(
-                            AssertionError("$autoTestFailureCount/${autoTestResults.size} auto-tests failed"),
+                            AssertionError("$totalFailures/$totalTests auto/multi-tests failed"),
                         )
                     }
                     // Scenario passed
@@ -703,6 +730,49 @@ class ScenarioTestExecutor(
             } else {
                 autoTestFailureCount++
                 val errorMessage = buildAutoTestFailureMessage(result)
+                listener.executionFinished(
+                    descriptor,
+                    TestExecutionResult.failed(AssertionError(errorMessage)),
+                )
+            }
+        }
+
+        override fun onMultiTestStarting(
+            mode: MultiMode,
+            requestCount: Int,
+        ) {
+            val displayName = MultiTestDescriptor.createDisplayName(mode, requestCount)
+            val testId = scenarioDescriptor.uniqueId.append("multi-test", "${++testIndex}")
+
+            val descriptor =
+                MultiTestDescriptor(
+                    uniqueId = testId,
+                    displayName = displayName,
+                    mode = mode,
+                    requestCount = requestCount,
+                )
+
+            // Register the dynamic test with JUnit
+            scenarioDescriptor.addChild(descriptor)
+            listener.dynamicTestRegistered(descriptor)
+
+            // Start execution immediately for real-time output
+            listener.executionStarted(descriptor)
+
+            multiDescriptors[mode] = descriptor
+        }
+
+        override fun onMultiTestCompleted(result: MultiTestResult) {
+            val descriptor =
+                checkNotNull(multiDescriptors[result.mode]) {
+                    "onMultiTestCompleted called without matching onMultiTestStarting"
+                }
+
+            if (result.passed) {
+                listener.executionFinished(descriptor, TestExecutionResult.successful())
+            } else {
+                multiTestFailureCount++
+                val errorMessage = MultiTestDescriptor.buildFailureMessage(result)
                 listener.executionFinished(
                     descriptor,
                     TestExecutionResult.failed(AssertionError(errorMessage)),

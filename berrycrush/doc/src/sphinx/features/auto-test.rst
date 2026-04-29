@@ -30,14 +30,17 @@ Where ``<test-types>`` is a space-separated list of:
 
 * ``invalid`` - Generate tests that violate OpenAPI schema constraints
 * ``security`` - Generate tests with common attack payloads
+* ``multi`` - Generate idempotency tests with sequential and concurrent requests
 
-You can use one or both types:
+You can use one or more types:
 
 .. code-block:: text
 
     auto: [invalid]          # Only invalid tests
     auto: [security]         # Only security tests
-    auto: [invalid security] # Both types
+    auto: [multi]            # Only multi/idempotency tests
+    auto: [invalid security] # Both invalid and security
+    auto: [invalid security multi] # All three types
 
 Example
 -------
@@ -131,6 +134,144 @@ LDAP Injection
     *)(uid=*))(|(uid=*
     admin)(&)
 
+Multi Tests (Idempotency)
+-------------------------
+
+Multi tests verify API idempotency by executing the same request multiple times and 
+checking that responses are consistent. This is crucial for:
+
+* **Idempotent operations** - Ensuring GET, PUT, DELETE return the same result when repeated
+* **Race condition detection** - Identifying concurrency issues
+* **State consistency** - Verifying the API maintains consistent state under load
+
+Execution Modes
+^^^^^^^^^^^^^^^
+
+Multi tests execute in two modes:
+
+===================== ============================================================
+Mode                  Description
+===================== ============================================================
+``SEQUENTIAL``        Requests executed one after another (default: 3 requests)
+``CONCURRENT``        Requests executed simultaneously (default: 5 requests)
+===================== ============================================================
+
+Basic Example
+^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    scenario: Idempotency test for getPet
+      when: I get a pet multiple times
+        call ^getPetById
+          auto: [multi]
+          petId: 1
+      
+      if status 2xx
+        # Multi-test results are automatically verified
+      else
+        fail "Expected 2xx status"
+
+Configuring Request Counts
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Override default counts using the parameters block at the file level:
+
+.. code-block:: text
+
+    parameters:
+      multiTestSequentialCount: 5    # Run 5 sequential requests (default: 3)
+      multiTestConcurrentCount: 10   # Run 10 concurrent requests (default: 5)
+
+    scenario: Heavy idempotency test
+      when: I stress test getPet
+        call ^getPetById
+          auto: [multi]
+          petId: 1
+
+At the feature level:
+
+.. code-block:: text
+
+    feature: Idempotency Tests
+      parameters:
+        multiTestSequentialCount: 10
+        multiTestConcurrentCount: 20
+      
+      scenario: Custom count test
+        when: I test idempotency
+          call ^getPetById
+            auto: [multi]
+            petId: 1
+
+Or at the step level (in the call directive):
+
+.. code-block:: text
+
+    when: I stress test with custom counts
+      call ^getPetById
+        auto: [multi]
+        petId: 1
+        multiTestSequentialCount: 5
+        multiTestConcurrentCount: 10
+
+Step-level parameters override file-level and feature-level parameters.
+
+Multi Test Context Variables
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+During multi-test execution, these additional variables are available:
+
+======================= ================================================ ========================
+Variable                Description                                      Example Values
+======================= ================================================ ========================
+``multiTest.mode``      Execution mode                                   ``"SEQUENTIAL"``, ``"CONCURRENT"``
+``multiTest.count``     Number of requests in current mode               ``3``, ``5``
+``multiTest.passed``    Whether all requests passed                      ``true``, ``false``
+``multiTest.duration``  Total execution time in milliseconds             ``150``
+======================= ================================================ ========================
+
+Multi Test Display Names
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Multi-tests appear in test reports with descriptive names:
+
+.. code-block:: text
+
+    [multi:sequential] 3 requests
+    [multi:concurrent] 5 requests
+
+With custom counts:
+
+.. code-block:: text
+
+    [multi:sequential] 10 requests
+    [multi:concurrent] 20 requests
+
+Combining with Other Test Types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Multi tests can be combined with invalid and security tests:
+
+.. code-block:: text
+
+    scenario: Comprehensive API test
+      when: I test the API thoroughly
+        call ^createPet
+          auto: [invalid security multi]
+          body:
+            name: "TestPet"
+            status: "available"
+      
+      if test.type equals invalid and status 4xx
+        # Invalid request rejected
+      else if test.type equals security and status 4xx
+        # Security attack blocked
+      else if test.type equals multi and status 2xx
+        # Multi-test passed
+      else
+        fail "Test failed: {{test.type}} - {{test.description}}"
+
 Parameter Locations
 -------------------
 
@@ -198,12 +339,14 @@ Auto-tests appear in test reports with descriptive names:
 
 .. code-block:: text
 
-    [Invalid request] request body name with value <empty string>
-    [Invalid request] request body status with value INVALID_ENUM_VALUE
-    [Invalid request] path variable petId with value not-a-number
-    [Security SQL Injection] request body name with value ' OR '1'='1
-    [Security XSS] request body name with value <script>alert('XSS')</script>
-    [Security Path Traversal] path variable petId with value ../../etc/passwd
+    [Invalid request - minLength] request body name with value <empty string>
+    [Invalid request - enum] request body status with value INVALID_ENUM_VALUE
+    [Invalid request - type] path variable petId with value not-a-number
+    [security - SQL Injection] request body name with value ' OR '1'='1
+    [security - XSS] request body name with value <script>alert('XSS')</script>
+    [security - Path Traversal] path variable petId with value ../../etc/passwd
+    [multi:sequential] 3 requests
+    [multi:concurrent] 5 requests
 
 This format allows you to:
 

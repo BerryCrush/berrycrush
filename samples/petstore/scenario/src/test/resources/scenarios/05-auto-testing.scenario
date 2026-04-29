@@ -6,6 +6,20 @@
 # - excludes: to filter test types
 # - Context variables: test.type, test.field, test.description, test.value
 # - Custom test providers (InvalidTestProvider, SecurityTestProvider)
+# - Multi-test parameters at different levels
+
+# -----------------------------------------------------------------------------
+# File-level parameters
+# -----------------------------------------------------------------------------
+# These parameters apply to ALL scenarios in this file as defaults.
+# Feature-level and step-level parameters override these.
+parameters:
+  # Default counts for multi-tests (same as built-in defaults for clarity)
+  multiTestSequentialCount: 3
+  multiTestConcurrentCount: 5
+  # You can add other file-level settings here, like:
+  # timeout: 30
+  # shareVariablesAcrossScenarios: false
 
 # -----------------------------------------------------------------------------
 # Auto-generated invalid tests
@@ -180,6 +194,119 @@ scenario: Custom test providers - using custom security tests
       # Security payload rejected
     else
       fail "Custom security test failed: {{test.description}}"
+
+# -----------------------------------------------------------------------------
+# Multi/Idempotency tests
+# -----------------------------------------------------------------------------
+
+# Multi tests verify API idempotency by executing the same request multiple times.
+# They run in two modes:
+# - SEQUENTIAL: requests one after another (default: 3)
+# - CONCURRENT: requests simultaneously (default: 5)
+
+scenario: Multi test - idempotency for GET endpoint
+  # First create a pet to test idempotency on
+  given: I have a pet to test idempotency
+    call ^createPet
+      body: {"name": "IdempotencyTestPet", "status": "available"}
+    extract $.id => idempotentPetId
+  when: I get the pet multiple times
+    call ^getPetById
+      # Generate idempotency tests - sequential and concurrent
+      auto: [multi]
+      petId: {{idempotentPetId}}
+    
+    # All multi-test requests should succeed consistently
+    if status 2xx
+      # Idempotency test passed - all requests returned consistent results
+    else
+      fail "Multi test failed: expected 2xx for idempotent GET operation"
+
+scenario: Multi test - with custom counts
+  # Step-level parameters: multiTestSequentialCount and multiTestConcurrentCount
+  # can be specified directly in the call directive
+  given: I have a pet for heavy testing
+    call ^createPet
+      body: {"name": "HeavyTestPet", "status": "available"}
+    extract $.id => heavyPetId
+  when: I stress test the GET endpoint
+    call ^getPetById
+      auto: [multi]
+      petId: {{heavyPetId}}
+      # Override default counts at step level
+      multiTestSequentialCount: 5
+      multiTestConcurrentCount: 10
+    
+    if status 2xx
+      # All requests passed
+    else
+      fail "Heavy multi test failed"
+
+scenario: Multi test - combined with other auto tests
+  given: I have a pet for comprehensive testing
+    call ^createPet
+      body: {"name": "ComprehensiveMultiPet", "status": "available"}
+    extract $.id => comprehensivePetId
+  when: I run all auto tests including multi
+    call ^getPetById
+      # Combine multi with invalid and security tests
+      auto: [invalid security multi]
+      petId: {{comprehensivePetId}}
+    
+    if test.type equals invalid and status 4xx
+      # Invalid request correctly rejected
+    else if test.type equals security and status 4xx
+      # Security attack blocked
+    else if test.type equals multi and status 2xx
+      # Multi/idempotency test passed
+    else if status 2xx
+      # Some edge case passed - review
+    else
+      fail "Test failed: {{test.type}} - {{test.description}}"
+
+scenario: Multi test - with excludes
+  # You can exclude specific multi test modes
+  # Available modes: SEQUENTIAL, CONCURRENT
+  given: I have a pet for sequential-only testing
+    call ^createPet
+      body: {"name": "SequentialOnlyPet", "status": "available"}
+    extract $.id => sequentialPetId
+  when: I run only sequential multi tests
+    call ^getPetById
+      auto: [multi]
+      # Exclude concurrent tests - only run sequential
+      excludes: [CONCURRENT]
+      petId: {{sequentialPetId}}
+    
+    if status 2xx
+      # Sequential multi test passed
+    else
+      fail "Sequential multi test failed"
+
+# -----------------------------------------------------------------------------
+# Feature-level parameters for multi-tests
+# -----------------------------------------------------------------------------
+
+feature: Multi Tests with Feature Parameters
+  # Feature-level parameters apply to all scenarios in this feature
+  parameters:
+    multiTestSequentialCount: 4
+    multiTestConcurrentCount: 8
+  
+  scenario: Feature parameter multi test
+    given: I have a pet for feature-level testing
+      call ^createPet
+        body: {"name": "FeatureParamPet", "status": "available"}
+      extract $.id => featureParamPetId
+    when: I run multi tests with feature-level counts
+      call ^getPetById
+        auto: [multi]
+        petId: {{featureParamPetId}}
+      
+      if status 2xx
+        # Uses 4 sequential and 8 concurrent from feature parameters
+      else
+        fail "Feature parameter multi test failed"
 
 # -----------------------------------------------------------------------------
 # Comprehensive auto test scenario

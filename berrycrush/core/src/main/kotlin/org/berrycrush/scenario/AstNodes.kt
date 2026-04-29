@@ -181,6 +181,9 @@ enum class AutoTestType {
 
     /** Security tests - injection and attack patterns */
     SECURITY,
+
+    /** Multi-request idempotency tests - sequential and concurrent */
+    MULTI,
 }
 
 /**
