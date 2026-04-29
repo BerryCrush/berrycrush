@@ -4,7 +4,7 @@ This document describes the high-level architecture of BerryCrush and how its co
 
 ## System Overview
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              BerryCrush System                               │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -78,7 +78,7 @@ suite.scenario("List all pets") {
 
 ### 2. Parsing and Loading
 
-```
+```text
 ┌────────────────┐     ┌────────────────┐     ┌────────────────┐
 │     Lexer      │────▶│     Parser     │────▶│ ScenarioLoader │
 │                │     │                │     │                │
@@ -95,7 +95,7 @@ suite.scenario("List all pets") {
 
 BerryCrush uses an abstraction layer to support multiple OpenAPI versions (3.0.x, 3.1.x, and future versions).
 
-```
+```text
 ┌─────────────────┐     ┌───────────────────┐     ┌─────────────────┐
 │   OpenAPI Spec  │────▶│   OpenApiParser   │────▶│   OpenApiSpec   │
 │  (YAML/JSON)    │     │                   │     │   (interface)   │
@@ -131,7 +131,7 @@ For detailed documentation, see [OpenAPI Version Support](openapi-versioning.md)
 
 ### 4. Execution Engine
 
-```
+```text
 ┌─────────────────┐
 │ ScenarioExecutor│
 └────────┬────────┘
@@ -177,7 +177,7 @@ For detailed documentation, see [OpenAPI Version Support](openapi-versioning.md)
 
 ### 5. Plugin System
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Plugin System                             │
 ├─────────────────────────────────────────────────────────────────┤
@@ -213,7 +213,7 @@ For detailed documentation, see [OpenAPI Version Support](openapi-versioning.md)
 
 ### 6. JUnit Integration
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                     JUnit Platform                               │
 ├─────────────────────────────────────────────────────────────────┤
@@ -253,7 +253,7 @@ For detailed documentation, see [OpenAPI Version Support](openapi-versioning.md)
 
 ### 7. Spring Context Integration
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                   Spring Integration                             │
 ├─────────────────────────────────────────────────────────────────┤
@@ -284,7 +284,7 @@ For detailed documentation, see [OpenAPI Version Support](openapi-versioning.md)
 
 ### Scenario Execution Flow
 
-```
+```text
 1. Load OpenAPI spec(s)
    │
    ▼

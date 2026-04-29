@@ -14,42 +14,63 @@ Prerequisites
 Installation
 ------------
 
-Gradle (Kotlin DSL)
-^^^^^^^^^^^^^^^^^^^
+.. tabs::
 
-Add the following to your ``build.gradle.kts``:
+   .. tab:: Gradle (Kotlin DSL)
 
-.. code-block:: kotlin
+      Add the following to your ``build.gradle.kts``:
 
-    dependencies {
-        testImplementation("org.berrycrush.berrycrush:core:0.1.0")
-        testImplementation("org.berrycrush.berrycrush:junit:0.1.0")
-        
-        // For Spring Boot projects
-        testImplementation("org.berrycrush.berrycrush:spring:0.1.0")
-    }
+      .. code-block:: kotlin
 
-Maven
-^^^^^
+          dependencies {
+              testImplementation("org.berrycrush.berrycrush:core:{{VERSION}}")
+              testImplementation("org.berrycrush.berrycrush:junit:{{VERSION}}")
+              
+              // For Spring Boot projects
+              testImplementation("org.berrycrush.berrycrush:spring:{{VERSION}}")
+          }
 
-Add the following to your ``pom.xml``:
+   .. tab:: Gradle (Groovy)
 
-.. code-block:: xml
+      Add the following to your ``build.gradle``:
 
-    <dependencies>
-        <dependency>
-            <groupId>org.berrycrush.berrycrush</groupId>
-            <artifactId>core</artifactId>
-            <version>0.1.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.berrycrush.berrycrush</groupId>
-            <artifactId>junit</artifactId>
-            <version>0.1.0</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+      .. code-block:: groovy
+
+          dependencies {
+              testImplementation 'org.berrycrush.berrycrush:core:{{VERSION}}'
+              testImplementation 'org.berrycrush.berrycrush:junit:{{VERSION}}'
+              
+              // For Spring Boot projects
+              testImplementation 'org.berrycrush.berrycrush:spring:{{VERSION}}'
+          }
+
+   .. tab:: Maven
+
+      Add to your ``pom.xml``:
+
+      .. code-block:: xml
+
+          <dependencies>
+              <dependency>
+                  <groupId>org.berrycrush.berrycrush</groupId>
+                  <artifactId>core</artifactId>
+                  <version>{{VERSION}}</version>
+                  <scope>test</scope>
+              </dependency>
+              <dependency>
+                  <groupId>org.berrycrush.berrycrush</groupId>
+                  <artifactId>junit</artifactId>
+                  <version>{{VERSION}}</version>
+                  <scope>test</scope>
+              </dependency>
+              <!-- For Spring Boot projects -->
+              <dependency>
+                  <groupId>org.berrycrush.berrycrush</groupId>
+                  <artifactId>spring</artifactId>
+                  <version>{{VERSION}}</version>
+                  <scope>test</scope>
+              </dependency>
+          </dependencies>
 
 Creating Your First Test
 ------------------------

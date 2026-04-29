@@ -4,7 +4,7 @@ BerryCrush is organized as a multi-module Gradle project with clear separation o
 
 ## Project Layout
 
-```
+```text
 berrycrush/
 ├── build.gradle.kts          # Root build configuration
 ├── settings.gradle.kts       # Module declarations
@@ -23,7 +23,7 @@ berrycrush/
 
 ## Module Dependencies
 
-```
+```text
                      ┌─────────────┐
                      │   spring    │
                      │             │
@@ -172,7 +172,7 @@ dependencies {
 **Purpose:** Demonstrates BerryCrush usage with a complete Spring Boot application.
 
 **Structure:**
-```
+```text
 samples/petstore/
 ├── src/
 │   ├── main/
@@ -198,7 +198,7 @@ samples/petstore/
 **Purpose:** Sphinx documentation source.
 
 **Structure:**
-```
+```text
 doc/src/sphinx/
 ├── conf.py                # Sphinx configuration
 ├── index.rst              # Documentation index

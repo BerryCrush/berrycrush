@@ -14,8 +14,35 @@ sys.path.insert(0, os.path.abspath('../../../../sphinx/_extensions'))
 project = 'BerryCrush'
 copyright = '2026, Takashi Kato'
 author = 'Takashi Kato'
-version = '0.1.0'
-release = '0.1.0-SNAPSHOT'
+
+# -- Dynamic version configuration -------------------------------------------
+# Read version from gradle.properties or environment variable
+_default_version = '0.1.0'
+_default_release = '0.1.0-SNAPSHOT'
+
+# Try to read from gradle.properties
+_gradle_props_path = os.path.join(os.path.dirname(__file__), '../../../gradle.properties')
+try:
+    with open(_gradle_props_path, 'r') as f:
+        for line in f:
+            if line.startswith('version='):
+                _full_version = line.split('=')[1].strip()
+                _default_release = _full_version
+                # Extract base version (remove -SNAPSHOT etc.)
+                _default_version = _full_version.split('-')[0]
+                break
+except FileNotFoundError:
+    pass
+
+# Environment variables override gradle.properties (for CI builds)
+version = os.environ.get('DOC_VERSION', _default_version)
+release = os.environ.get('DOC_RELEASE', _default_release)
+
+# -- Dynamic API documentation URL -------------------------------------------
+# Configure API doc URL based on build context
+_api_doc_base = 'https://doc.berrycrush.org'
+_doc_tag = os.environ.get('DOC_TAG', 'current')
+api_doc_url = f"{_api_doc_base}/{_doc_tag}/kdoc"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -28,12 +55,27 @@ extensions = [
     'berrycrush_lexer',
 ]
 
-# Optional: sphinx_copybutton for code copy button (install with pip if desired)
+# Optional: sphinx_tabs for tabbed content (build system options)
+try:
+    import sphinx_tabs  # noqa: F401
+    extensions.append('sphinx_tabs.tabs')
+except ImportError:
+    pass
+
+# Optional: sphinx_copybutton for code copy button
 try:
     import sphinx_copybutton  # noqa: F401
     extensions.append('sphinx_copybutton')
 except ImportError:
     pass
+
+# -- RST prolog for substitutions --------------------------------------------
+# Define substitutions available in all RST files
+rst_prolog = f"""
+.. |version| replace:: {version}
+.. |release| replace:: {release}
+.. |api_doc_url| replace:: {api_doc_url}
+"""
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']

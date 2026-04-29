@@ -154,7 +154,7 @@ Each provider has a `priority` property (default: 0 for built-in, 100 for user p
 
 Use the `excludes` option in your scenario to skip certain test types:
 
-```
+```scenario
 auto-test:
   operations: [createPet]
   types: [invalid, security]
@@ -346,7 +346,7 @@ feature: Idempotency Tests
 ```
 
 Or at the step level (in the call directive):
-```
+```berrycrush
 when: I stress test with custom counts
   call ^operation
     auto: [multi]

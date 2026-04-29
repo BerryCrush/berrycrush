@@ -25,35 +25,121 @@ By the end, you'll understand how to:
 Project Setup
 -------------
 
-1. Create a new Gradle project with Kotlin DSL:
+.. tabs::
 
-.. code-block:: bash
+   .. tab:: Gradle (Kotlin DSL)
 
-    mkdir petstore-tests
-    cd petstore-tests
-    gradle init --type kotlin-application
+      1. Create a new Gradle project:
 
-2. Update ``build.gradle.kts``:
+      .. code-block:: bash
 
-.. code-block:: kotlin
+          mkdir petstore-tests
+          cd petstore-tests
+          gradle init --type kotlin-application
 
-    plugins {
-        kotlin("jvm") version "2.0.0"
-    }
+      2. Update ``build.gradle.kts``:
 
-    repositories {
-        mavenCentral()
-    }
+      .. code-block:: kotlin
 
-    dependencies {
-        testImplementation("org.berrycrush.berrycrush:core:0.1.0")
-        testImplementation("org.berrycrush.berrycrush:junit:0.1.0")
-        testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
-    }
+          plugins {
+              kotlin("jvm") version "2.0.0"
+          }
 
-    tasks.test {
-        useJUnitPlatform()
-    }
+          repositories {
+              mavenCentral()
+          }
+
+          dependencies {
+              testImplementation("org.berrycrush.berrycrush:core:{{VERSION}}")
+              testImplementation("org.berrycrush.berrycrush:junit:{{VERSION}}")
+              testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
+          }
+
+          tasks.test {
+              useJUnitPlatform()
+          }
+
+   .. tab:: Gradle (Groovy)
+
+      1. Create a new Gradle project:
+
+      .. code-block:: bash
+
+          mkdir petstore-tests
+          cd petstore-tests
+          gradle init --type java-application
+
+      2. Update ``build.gradle``:
+
+      .. code-block:: groovy
+
+          plugins {
+              id 'java'
+          }
+
+          repositories {
+              mavenCentral()
+          }
+
+          dependencies {
+              testImplementation 'org.berrycrush.berrycrush:core:{{VERSION}}'
+              testImplementation 'org.berrycrush.berrycrush:junit:{{VERSION}}'
+              testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
+          }
+
+          test {
+              useJUnitPlatform()
+          }
+
+   .. tab:: Maven
+
+      1. Create a new Maven project:
+
+      .. code-block:: bash
+
+          mkdir petstore-tests
+          cd petstore-tests
+          mvn archetype:generate -DgroupId=com.example \
+            -DartifactId=petstore-tests \
+            -DarchetypeArtifactId=maven-archetype-quickstart
+
+      2. Update ``pom.xml``:
+
+      .. code-block:: xml
+
+          <?xml version="1.0" encoding="UTF-8"?>
+          <project>
+              <modelVersion>4.0.0</modelVersion>
+              <groupId>com.example</groupId>
+              <artifactId>petstore-tests</artifactId>
+              <version>1.0-SNAPSHOT</version>
+              
+              <properties>
+                  <maven.compiler.source>21</maven.compiler.source>
+                  <maven.compiler.target>21</maven.compiler.target>
+              </properties>
+              
+              <dependencies>
+                  <dependency>
+                      <groupId>org.berrycrush.berrycrush</groupId>
+                      <artifactId>core</artifactId>
+                      <version>{{VERSION}}</version>
+                      <scope>test</scope>
+                  </dependency>
+                  <dependency>
+                      <groupId>org.berrycrush.berrycrush</groupId>
+                      <artifactId>junit</artifactId>
+                      <version>{{VERSION}}</version>
+                      <scope>test</scope>
+                  </dependency>
+                  <dependency>
+                      <groupId>org.junit.jupiter</groupId>
+                      <artifactId>junit-jupiter</artifactId>
+                      <version>5.10.0</version>
+                      <scope>test</scope>
+                  </dependency>
+              </dependencies>
+          </project>
 
 Writing Scenarios
 -----------------

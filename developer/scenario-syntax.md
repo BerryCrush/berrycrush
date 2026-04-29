@@ -99,7 +99,7 @@ NEWLINE           = "\n" | "\r\n" ;
 
 Tags are used to categorize and filter scenarios. They begin with `@` and must appear before the element they annotate.
 
-```
+```berrycrush
 # Tag a single scenario
 @smoke @critical
 scenario: Critical path test
@@ -192,7 +192,7 @@ feature: Pet Operations
 
 Tags on a feature are inherited by all scenarios within:
 
-```
+```berrycrush
 @api @regression
 feature: Authentication Tests
   background:
@@ -308,26 +308,26 @@ when I create a pet
 > The same operators and syntax work identically in both contexts.
 
 #### Status Code
-```
+```berrycrush
 assert status 200
 assert status 2xx         # Range: 200-299
 assert status 201-204     # Range: 201-204
 ```
 
 #### Body-Level Assertions
-```
+```berrycrush
 assert contains "expected text"         # Body contains substring
 assert not contains "unexpected text"   # Body does not contain substring
 assert schema                            # Validate against OpenAPI schema
 ```
 
 #### Response Time Assertions
-```
+```berrycrush
 assert responseTime 1000       # Response must complete within 1000ms
 ```
 
 #### JSONPath Assertions
-```
+```berrycrush
 assert $.name equals "Fluffy"
 assert $.id exists
 assert $.pets notEmpty
@@ -338,7 +338,7 @@ assert $.items hasSize 5
 ```
 
 #### Header Assertions
-```
+```berrycrush
 assert header Content-Type equals "application/json"
 assert header X-Request-Id exists
 assert header Cache-Control contains "no-cache"
@@ -349,12 +349,12 @@ assert header Cache-Control contains "no-cache"
 The `not` keyword inverts any assertion, making it a negative check. It can be placed in two positions:
 
 **At the beginning (for body-level assertions):**
-```
+```berrycrush
 assert not contains "error"              # Body does NOT contain "error"
 ```
 
 **After the JSONPath (for JSONPath assertions):**
-```
+```berrycrush
 assert $.status not equals "sold"        # Field does NOT equal "sold"
 assert $.items not hasSize 0             # Array does NOT have size 0
 assert $.deleted not exists              # Field does NOT exist
@@ -441,7 +441,7 @@ Both `if` conditions and `assert` statements share a unified condition syntax:
 
 Same operators work in both `if` and `assert` contexts: `equals`, `exists`, `notEmpty`, `greaterThan`, `lessThan`, `contains`, `in`, `hasSize`, `matches`.
 
-```
+```berrycrush
 if $.items greaterThan 0
   assert $.items[0].id notEmpty
 else
@@ -453,7 +453,7 @@ else
 
 Conditionals can be nested for complex logic:
 
-```
+```berrycrush
 if status 200
   if $.status equals "available"
     assert $.price notEmpty
@@ -469,7 +469,7 @@ else
 
 Use `fail` to explicitly fail a scenario with a custom message:
 
-```
+```berrycrush
 else
   fail "Expected status 200 or 201 but got something else"
 ```
@@ -516,7 +516,7 @@ This generates a JSON body by:
 3. Generating the final JSON
 
 **Example with partial data:**
-```
+```berrycrush
 # Only specify name, other fields use schema defaults
 when I create a pet
   call ^createPet
@@ -577,7 +577,7 @@ The `auto:` directive enables automatic generation of invalid request, security,
 
 ### Syntax
 
-```
+```berrycrush
 call ^operationId
   auto: [<test-types>]
   <base-parameters>

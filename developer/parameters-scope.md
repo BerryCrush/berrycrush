@@ -8,7 +8,7 @@ BerryCrush supports the `parameters:` block to configure scenario execution beha
 
 ## Scope Hierarchy
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                    Scenario File (.scenario)                │
 │  ┌───────────────────────────────────────────────────────┐  │

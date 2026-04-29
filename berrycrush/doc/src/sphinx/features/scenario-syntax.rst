@@ -392,12 +392,23 @@ Tags categorize and filter scenarios. They begin with ``@`` and appear before th
       when: I test
         call ^test
 
-Built-in Tags
-^^^^^^^^^^^^^
+Conventional Tags
+^^^^^^^^^^^^^^^^^
 
-* ``@ignore`` - Skip this scenario during execution
-* ``@wip`` - Work in progress
-* ``@slow`` - Marks slow-running tests
+BerryCrush doesn't have built-in tag behavior - all tags are user-defined and 
+filtered via ``@BerryCrushTags``. However, these conventional tags are commonly used:
+
+* ``@ignore`` - Convention for scenarios to skip
+* ``@wip`` - Convention for work-in-progress scenarios  
+* ``@slow`` - Convention for slow-running tests
+
+To actually skip these scenarios, configure exclusion in your test class:
+
+.. code-block:: java
+
+    @BerryCrushTags(exclude = {"ignore", "wip"})
+    @BerryCrushScenarios(locations = "scenarios/*.scenario")
+    class MyTests
 
 Tag Filtering
 ^^^^^^^^^^^^^

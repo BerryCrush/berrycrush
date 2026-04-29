@@ -13,7 +13,7 @@ BerryCrush supports multiple OpenAPI specification versions through a flexible a
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                      OpenAPI Abstraction                         │
 ├─────────────────────────────────────────────────────────────────┤

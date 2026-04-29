@@ -44,11 +44,17 @@ jobs:
           python-version: '3.12'
           
       - name: Install Sphinx
-        run: pip install sphinx sphinx-rtd-theme myst-parser
+        run: pip install sphinx sphinx-rtd-theme myst-parser sphinx-tabs
         
       - name: Build User Reference (Sphinx)
+        env:
+          DOC_VERSION: ${{ inputs.version }}
+          DOC_RELEASE: ${{ inputs.version }}
+          DOC_TAG: ${{ inputs.version == 'nightly' && 'nightly' || format('v{0}', inputs.version) }}
         run: |
           cd berrycrush/doc
+          # Replace {{VERSION}} placeholder in RST files
+          find src/sphinx -name "*.rst" -exec sed -i "s/{{VERSION}}/$DOC_VERSION/g" {} \;
           sphinx-build -b html src/sphinx build/manual
 
       - name: Build Developer Guide (Sphinx)

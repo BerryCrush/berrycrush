@@ -6,7 +6,7 @@ This document provides a comprehensive view of the key classes and interfaces in
 
 ### Domain Model
 
-```
+```text
 org.berrycrush.model
 ├── Scenario                    # Test scenario with steps
 ├── Step                        # Single step in a scenario
@@ -26,7 +26,7 @@ org.berrycrush.model
 
 ### DSL Classes
 
-```
+```text
 org.berrycrush.dsl
 ├── @BerryCrushDsl              # DSL marker annotation
 ├── BerryCrushSuite             # Main entry point for DSL
@@ -65,7 +65,7 @@ org.berrycrush.dsl
 
 ### Scenario Parsing
 
-```
+```text
 org.berrycrush.scenario
 ├── Lexer                       # Tokenizes scenario files
 │   └── tokenize(source): List<Token>
@@ -88,7 +88,7 @@ org.berrycrush.scenario
 
 ### Execution Engine
 
-```
+```text
 org.berrycrush.executor
 ├── ScenarioExecutor            # Main executor
 │   ├── execute(scenario, context)
@@ -103,7 +103,7 @@ org.berrycrush.executor
 
 ### OpenAPI Integration
 
-```
+```text
 org.berrycrush.openapi
 ├── SpecRegistry                # Manages OpenAPI specs
 │   ├── registerDefault(path, config)
@@ -124,7 +124,7 @@ org.berrycrush.openapi
 
 ### Step Definitions
 
-```
+```text
 org.berrycrush.step
 ├── @Step                       # Annotation for step methods
 │   ├── pattern: String         # Step pattern with placeholders
@@ -152,7 +152,7 @@ org.berrycrush.step
 
 ### Plugin System
 
-```
+```text
 org.berrycrush.plugin
 ├── BerryCrushPlugin            # Plugin interface
 │   ├── id: String
@@ -185,7 +185,7 @@ org.berrycrush.plugin
 
 ### Reporting
 
-```
+```text
 org.berrycrush.report
 ├── ReportPlugin (abstract)     # Base class for report plugins
 │   ├── outputPath: Path
@@ -204,7 +204,7 @@ org.berrycrush.report
 
 ### Configuration
 
-```
+```text
 org.berrycrush.config
 ├── Configuration               # Main configuration
 │   ├── baseUrl: String?
@@ -231,7 +231,7 @@ org.berrycrush.config
 
 ### Context and Variables
 
-```
+```text
 org.berrycrush.context
 ├── ExecutionContext            # Runtime variable storage
 │   ├── get(name): Any?
@@ -246,7 +246,7 @@ org.berrycrush.context
 
 ### Logging
 
-```
+```text
 org.berrycrush.logging
 ├── HttpLogger                  # Interface for HTTP logging
 │   ├── logRequest(method, url, headers, body)
@@ -261,7 +261,7 @@ org.berrycrush.logging
 
 ### Exceptions
 
-```
+```text
 org.berrycrush.exception
 ├── BerryCrushException         # Base exception
 ├── ConfigurationException      # Configuration errors
@@ -274,7 +274,7 @@ org.berrycrush.exception
 
 ### Annotations
 
-```
+```text
 org.berrycrush.junit
 ├── @BerryCrushScenarios        # Specify scenario locations
 │   ├── locations: Array<String>
