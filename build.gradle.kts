@@ -1,10 +1,10 @@
 plugins {
-    kotlin("jvm") version "2.3.20" apply false
+    kotlin("jvm") version "2.3.21" apply false
     id("org.jlleitschuh.gradle.ktlint") version "14.0.1" apply false
     id("org.jetbrains.dokka") version "2.2.0"
     id("org.jetbrains.dokka-javadoc") version "2.2.0"
     id("org.owasp.dependencycheck") version "12.1.1"
-    kotlin("plugin.spring") version "2.3.20"
+    kotlin("plugin.spring") version "2.3.21"
     // SAST plugins
     id("dev.detekt") version "2.0.0-alpha.3" apply false
     id("com.github.spotbugs") version "6.5.1" apply false
