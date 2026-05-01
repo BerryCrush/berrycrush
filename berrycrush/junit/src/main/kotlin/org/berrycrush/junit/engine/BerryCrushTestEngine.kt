@@ -48,6 +48,13 @@ class BerryCrushTestEngine : TestEngine {
         ScenarioTestExecutor(bindingsProviders)
     }
 
+    /**
+     * Get scenario filters from system properties.
+     */
+    private val filters: ScenarioFilters by lazy {
+        ScenarioFilters.fromSystemProperties()
+    }
+
     override fun getId(): String = ENGINE_ID
 
     override fun discover(
@@ -65,7 +72,7 @@ class BerryCrushTestEngine : TestEngine {
         testClasses
             .distinct()
             .filter { it.isAnnotationPresent(BerryCrushScenarios::class.java) }
-            .forEach { ScenarioTestDiscoverer.discoverScenariosForClass(engineDescriptor, it) }
+            .forEach { ScenarioTestDiscoverer.discoverScenariosForClass(engineDescriptor, it, filters) }
 
         // Discover @ScenarioTest methods for classes with @BerryCrushSpec
         testClasses
@@ -123,7 +130,7 @@ class BerryCrushTestEngine : TestEngine {
 
         val result =
             runCatching {
-                executor.executeClassTests(classDescriptor, listener)
+                executor.executeClassTests(classDescriptor, listener, filters)
             }
 
         result.fold(

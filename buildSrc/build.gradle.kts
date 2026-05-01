@@ -13,5 +13,9 @@ gradlePlugin {
             id = "berrycrush.maven-publish"
             implementationClass = "MavenPublishConventionPlugin"
         }
+        register("test-config-convention") {
+            id = "berrycrush.test-config"
+            implementationClass = "BerryCrushTestConventionPlugin"
+        }
     }
 }

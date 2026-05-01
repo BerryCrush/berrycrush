@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm")
+    id("berrycrush.test-config")
 }
 
 dependencies {

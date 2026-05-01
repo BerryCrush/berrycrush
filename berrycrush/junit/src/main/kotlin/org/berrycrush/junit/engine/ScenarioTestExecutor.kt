@@ -42,10 +42,20 @@ class ScenarioTestExecutor(
 ) {
     /**
      * Execute all tests for a class descriptor.
+     *
+     * Note: Scenario filtering is applied during discovery phase.
+     * The filters parameter is accepted for API consistency but filtering
+     * has already been applied to the class descriptor's children.
+     *
+     * @param classDescriptor The test class descriptor containing scenarios to execute
+     * @param listener The JUnit execution listener for result reporting
+     * @param filters The active scenario filters (applied at discovery, not here)
      */
+    @Suppress("UnusedParameter")
     fun executeClassTests(
         classDescriptor: ClassTestDescriptor,
         listener: EngineExecutionListener,
+        filters: ScenarioFilters = ScenarioFilters.EMPTY,
     ) {
         val provider = findBindingsProvider(classDescriptor.testClass)
 
