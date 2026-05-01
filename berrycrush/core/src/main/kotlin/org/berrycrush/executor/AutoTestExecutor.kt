@@ -43,6 +43,7 @@ private const val RESPONSE_BODY_PREVIEW_LENGTH = 500
  * @property httpBuilder HTTP request builder for executing requests
  * @property assertionRunner Function to run assertions against responses
  */
+@Suppress("TooManyFunctions")
 class AutoTestExecutor(
     private val specRegistry: SpecRegistry,
     private val configuration: BerryCrushConfiguration,

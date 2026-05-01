@@ -68,12 +68,12 @@ subprojects {
         config.setFrom(files("${rootProject.projectDir}/config/detekt/detekt.yml"))
         baseline = file("${projectDir}/config/detekt/baseline.xml")
         parallel = true
-        ignoreFailures = true  // TODO: Set to false after addressing existing issues
+        ignoreFailures = false
     }
 
     // SpotBugs configuration
     configure<com.github.spotbugs.snom.SpotBugsExtension> {
-        ignoreFailures.set(true)  // TODO: Set to false after addressing existing issues
+        ignoreFailures.set(false)
         showStackTraces.set(true)
         showProgress.set(true)
         effort.set(com.github.spotbugs.snom.Effort.DEFAULT)
