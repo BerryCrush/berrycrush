@@ -19,14 +19,20 @@ import java.net.URL
  * - Finding classes annotated with @BerryCrushScenarios
  * - Loading .scenario files from specified locations
  * - Building the test descriptor hierarchy (Class -> File -> Feature -> Scenario)
+ * - Applying filters from system properties
  */
 object ScenarioTestDiscoverer {
     /**
      * Discovers scenarios for a test class and adds them to the engine descriptor.
+     *
+     * @param engineDescriptor The parent engine descriptor to add class descriptors to
+     * @param testClass The test class annotated with @BerryCrushScenarios
+     * @param filters Optional filters to apply during discovery
      */
     fun discoverScenariosForClass(
         engineDescriptor: EngineDescriptor,
         testClass: Class<*>,
+        filters: ScenarioFilters = ScenarioFilters.EMPTY,
     ) {
         val annotation = testClass.getAnnotation(BerryCrushScenarios::class.java) ?: return
 
@@ -34,8 +40,10 @@ object ScenarioTestDiscoverer {
         if (alreadyDiscovered(engineDescriptor, testClass)) return
         if (annotation.locations.isEmpty()) return
 
-        val discoveredFiles = discoverScenarioFiles(testClass.classLoader, annotation.locations)
-        val classDescriptor = createClassDescriptor(engineDescriptor.uniqueId, testClass, discoveredFiles)
+        val discoveredFiles =
+            discoverScenarioFiles(testClass.classLoader, annotation.locations)
+                .filter { filters.matchesFile(it.path, it.name) }
+        val classDescriptor = createClassDescriptor(engineDescriptor.uniqueId, testClass, discoveredFiles, filters)
 
         if (classDescriptor.children.isNotEmpty() || discoveredFiles.isEmpty()) {
             engineDescriptor.addChild(classDescriptor)
@@ -59,13 +67,14 @@ object ScenarioTestDiscoverer {
         parentId: UniqueId,
         testClass: Class<*>,
         files: List<DiscoveredScenario>,
+        filters: ScenarioFilters,
     ): ClassTestDescriptor {
         val classUniqueId = parentId.append("class", testClass.name)
         val classDescriptor = ClassTestDescriptor(classUniqueId, testClass)
         val scenarioLoader = ScenarioLoader()
 
         files
-            .mapNotNull { file -> createFileDescriptor(classUniqueId, file, scenarioLoader) }
+            .mapNotNull { file -> createFileDescriptor(classUniqueId, file, scenarioLoader, filters) }
             .forEach { classDescriptor.addChild(it) }
 
         return classDescriptor
@@ -75,6 +84,7 @@ object ScenarioTestDiscoverer {
         parentId: UniqueId,
         file: DiscoveredScenario,
         loader: ScenarioLoader,
+        filters: ScenarioFilters,
     ): ScenarioFileDescriptor? {
         val fileId = parentId.append("file", file.name.removeSuffix(".scenario"))
         val fileDescriptor =
@@ -86,7 +96,7 @@ object ScenarioTestDiscoverer {
             )
 
         runCatching { loadScenarioFromUrl(loader, file.url) }
-            .onSuccess { populateFileDescriptor(fileDescriptor, it) }
+            .onSuccess { populateFileDescriptor(fileDescriptor, it, filters) }
             .onFailure { e ->
                 System.err.println("Warning: Failed to parse ${file.path} during discovery: ${e.message}")
             }
@@ -97,16 +107,19 @@ object ScenarioTestDiscoverer {
     private fun populateFileDescriptor(
         fileDescriptor: ScenarioFileDescriptor,
         content: ScenarioFileContent,
+        filters: ScenarioFilters,
     ) {
-        // Add standalone scenarios (expanding outlines)
+        // Add standalone scenarios (expanding outlines), filtered by scenario name
         content.standaloneScenarios
             .flatMap { scenario -> expandScenarioIfOutline(scenario) }
+            .filter { scenario -> filters.matchesScenarioName(scenario.name) }
             .map { scenario -> createScenarioDescriptor(fileDescriptor.uniqueId, scenario) }
             .forEach { fileDescriptor.addChild(it) }
 
-        // Add feature groups
+        // Add feature groups, filtered by feature name
         content.features
-            .map { feature -> createFeatureDescriptor(fileDescriptor.uniqueId, feature) }
+            .filter { feature -> filters.matchesFeatureName(feature.name) }
+            .map { feature -> createFeatureDescriptor(fileDescriptor.uniqueId, feature, filters) }
             .forEach { fileDescriptor.addChild(it) }
     }
 
@@ -149,6 +162,7 @@ object ScenarioTestDiscoverer {
     private fun createFeatureDescriptor(
         parentId: UniqueId,
         feature: FeatureGroup,
+        filters: ScenarioFilters,
     ): FeatureDescriptor {
         val featureId = parentId.append("feature", feature.name)
         val featureDescriptor =
@@ -160,6 +174,7 @@ object ScenarioTestDiscoverer {
             )
 
         feature.scenarios
+            .filter { scenario -> filters.matchesScenarioName(scenario.name) }
             .map { scenario -> createScenarioDescriptor(featureId, scenario) }
             .forEach { featureDescriptor.addChild(it) }
 
