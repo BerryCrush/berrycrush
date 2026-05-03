@@ -52,14 +52,14 @@ jobs:
           DOC_RELEASE: ${{ inputs.version }}
           DOC_TAG: ${{ contains(inputs.version, '-SNAPSHOT') && 'nightly' || format('v{0}', inputs.version) }}
         run: |
-          cd berrycrush/doc
+          cd doc/reference
           # Replace {{VERSION}} placeholder in RST files
-          find src/sphinx -name "*.rst" -exec sed -i "s/{{VERSION}}/$DOC_VERSION/g" {} \;
-          sphinx-build -b html src/sphinx build/manual
+          find . -name "*.rst" -exec sed -i "s/{{VERSION}}/$DOC_VERSION/g" {} \;
+          sphinx-build -b html . build/manual
 
       - name: Build Developer Guide (Sphinx)
         run: |
-          cd developer
+          cd doc/developer
           sphinx-build -b html . build/html
 
       - name: Build KDoc
@@ -70,10 +70,10 @@ jobs:
           mkdir -p _docs/{developer,manual,kdoc/core,kdoc/junit,kdoc/spring,assets}
           
           # Copy Developer's Guide (Sphinx HTML output)
-          cp -r developer/build/html/* _docs/developer/
+          cp -r doc/developer/build/html/* _docs/developer/
           
           # Copy Sphinx output
-          cp -r berrycrush/doc/build/manual/* _docs/manual/
+          cp -r doc/reference/build/manual/* _docs/manual/
           
           # Copy Dokka outputs from each module
           cp -r berrycrush/core/build/dokka/html/* _docs/kdoc/core/

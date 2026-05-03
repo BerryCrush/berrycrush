@@ -20,4 +20,3 @@ fragment: logout
     call using auth ^logout
   then the session is terminated
     assert status 200
-

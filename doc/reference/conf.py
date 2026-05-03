@@ -6,7 +6,7 @@
 # -- Path setup for custom extensions ----------------------------------------
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../../../sphinx/_extensions'))
+sys.path.insert(0, os.path.abspath('../sphinx/_extensions'))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -21,7 +21,7 @@ _default_version = '0.1.0'
 _default_release = '0.1.0-SNAPSHOT'
 
 # Try to read from gradle.properties
-_gradle_props_path = os.path.join(os.path.dirname(__file__), '../../../gradle.properties')
+_gradle_props_path = os.path.join(os.path.dirname(__file__), '../../gradle.properties')
 try:
     with open(_gradle_props_path, 'r') as f:
         for line in f:
