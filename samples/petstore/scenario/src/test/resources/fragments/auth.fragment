@@ -20,3 +20,37 @@ fragment: logout
     call using auth ^logout
   then the session is terminated
     assert status 200
+
+# =============================================================================
+# Parameterized Fragments
+# =============================================================================
+# Fragments can accept parameters to make them more flexible and reusable.
+# Parameters are passed when including the fragment and become available
+# as variables within the fragment's scope.
+
+# Parameterized authentication with custom credentials
+fragment: authenticate_with_credentials
+  given I have provided credentials
+    call using auth ^login
+      body: {"username": "{{username}}", "password": "{{password}}"}
+    extract $.token => authToken
+  then authentication is successful
+    assert status 200
+
+# Parameterized pet creation
+fragment: create_pet_with_params
+  when creating the pet
+    call ^createPet
+      body: {"name": "{{petName}}", "status": "{{petStatus}}"}
+    extract $.id => createdPetId
+  then pet is created
+    assert status 2xx
+
+# Parameterized pet verification - uses variables passed as parameters
+fragment: verify_pet_by_id
+  when verifying the pet
+    call ^getPetById
+      petId: {{petId}}
+  then pet matches expected values
+    assert status 200
+    assert $.name equals {{expectedName}}

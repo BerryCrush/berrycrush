@@ -169,6 +169,112 @@ The ``authToken`` variable is now available in the scenario that included this f
       then I get the data
         assert status 200
 
+Parameterized Fragments
+-----------------------
+
+Fragments can accept parameters to make them more flexible and reusable.
+Parameters are passed when including the fragment and become available as
+variables within the fragment's scope.
+
+Defining Parameterized Fragments
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A fragment can use variables that will be provided by the calling scenario:
+
+.. code-block:: berrycrush
+
+    fragment: create_user
+      when creating the user
+        call ^createUser
+          body: {"name": "{{name}}", "email": "{{email}}", "age": {{age}}}
+        extract $.id => userId
+      then user is created
+        assert status 201
+
+Passing Parameters
+^^^^^^^^^^^^^^^^^^
+
+Use indented key-value pairs after the ``include`` directive to pass parameters:
+
+.. code-block:: berrycrush
+
+    scenario: Create a specific user
+      given I create a user
+        include create_user
+          name: "John Doe"
+          email: "john@example.com"
+          age: 30
+      then the user exists
+        assert $.name equals "John Doe"
+
+Parameter Types
+^^^^^^^^^^^^^^^
+
+Parameters support various value types:
+
+.. code-block:: berrycrush
+
+    include configure_pet
+      name: "Fluffy"           # String (must be quoted if spaces/special chars)
+      petId: 123               # Number
+      active: true             # Boolean
+      tags: ["cute", "small"]  # JSON array
+      metadata: {"key": "val"} # JSON object
+
+Using Variable References
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Parameters can reference existing variables using ``{{variableName}}`` syntax:
+
+.. code-block:: berrycrush
+
+    scenario: Create user from context
+      given I have user data
+        set userName => "Alice"
+        set userEmail => "alice@example.com"
+      when I create the user
+        include create_user
+          name: {{userName}}
+          email: {{userEmail}}
+          age: 25
+      then the user exists in the system
+
+Complete Example
+^^^^^^^^^^^^^^^^
+
+**fragments/crud.fragment:**
+
+.. code-block:: berrycrush
+
+    fragment: create_entity
+      when creating the entity
+        call ^createEntity
+          body: {"type": "{{entityType}}", "name": "{{name}}", "owner": "{{owner}}"}
+        extract $.id => entityId
+      then entity is created
+        assert status 201
+    
+    fragment: delete_entity
+      when deleting the entity
+        call ^deleteEntity
+          id: {{entityId}}
+      then entity is removed
+        assert status 204
+
+**scenarios/entity-test.scenario:**
+
+.. code-block:: berrycrush
+
+    scenario: Full entity lifecycle
+      given I create a pet entity
+        include create_entity
+          entityType: "pet"
+          name: "Buddy"
+          owner: "john@example.com"
+      then I clean up
+        include delete_entity
+          entityId: {{entityId}}
+
 Multi-Spec in Fragments
 -----------------------
 

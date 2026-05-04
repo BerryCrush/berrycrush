@@ -216,9 +216,21 @@ data class AssertNode(
 
 /**
  * Fragment include action.
+ *
+ * Includes a fragment by name, optionally with parameters.
+ *
+ * Example:
+ * ```
+ * include authenticate
+ *
+ * include create_user
+ *   name: John Doe
+ *   email: john@example.com
+ * ```
  */
 data class IncludeNode(
     val fragmentName: String,
+    val parameters: Map<String, ValueNode> = emptyMap(),
     override val location: SourceLocation,
 ) : ActionNode()
 

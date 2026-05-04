@@ -293,11 +293,13 @@ class ScenarioLoader {
         private fun processIncludeNode(include: IncludeNode) {
             finalizePendingCall()
             pendingCall = null
+            val parameters = include.parameters.mapValues { extractValue(it.value) }
             steps.add(
                 Step(
                     type = stepType,
                     description = "include ${include.fragmentName}",
                     fragmentName = include.fragmentName,
+                    includeParameters = parameters,
                     sourceLocation = include.location,
                 ),
             )

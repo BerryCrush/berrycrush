@@ -1,0 +1,3 @@
+scenario: test file for copilot
+ include verify_pet_by_id
+  petId: 1

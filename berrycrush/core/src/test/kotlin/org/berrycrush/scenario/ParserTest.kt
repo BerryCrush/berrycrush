@@ -245,6 +245,61 @@ class ParserTest {
     }
 
     @Test
+    fun `should parse scenario with parameterized fragment include`() {
+        val source =
+            """
+            scenario: Create user with parameters
+              given creating a user
+                include create_user
+                  name: John Doe
+                  email: john@example.com
+                  age: 30
+              then user exists
+                assert status 201
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val scenario = result.ast!!.scenarios[0]
+        val step = scenario.steps[0]
+        val include = step.actions.filterIsInstance<IncludeNode>().first()
+        assertEquals("create_user", include.fragmentName)
+        assertEquals(3, include.parameters.size)
+        assertTrue(include.parameters.containsKey("name"))
+        assertTrue(include.parameters.containsKey("email"))
+        assertTrue(include.parameters.containsKey("age"))
+    }
+
+    @Test
+    fun `should parse include with variable parameters`() {
+        val source =
+            """
+            scenario: Create user with variables
+              given creating a user
+                include create_user
+                  name: {{userName}}
+                  email: {{userEmail}}
+              then user exists
+                assert status 201
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val scenario = result.ast!!.scenarios[0]
+        val step = scenario.steps[0]
+        val include = step.actions.filterIsInstance<IncludeNode>().first()
+        assertEquals("create_user", include.fragmentName)
+        assertEquals(2, include.parameters.size)
+
+        // Check that variable references are preserved
+        val nameParam = include.parameters["name"] as? VariableValueNode
+        assertNotNull(nameParam, "Expected VariableValueNode")
+        assertEquals("userName", nameParam.name)
+    }
+
+    @Test
     fun `should parse scenario outline with examples`() {
         val source =
             """

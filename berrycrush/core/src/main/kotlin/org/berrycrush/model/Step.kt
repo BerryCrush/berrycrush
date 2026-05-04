@@ -40,6 +40,7 @@ sealed class BodyProperty {
  * @property autoAssert Whether to generate assertions from OpenAPI spec
  * @property autoTestConfig Configuration for auto-generating invalid/security tests
  * @property fragmentName Name of fragment to include (for fragment steps)
+ * @property includeParameters Parameters to pass to the included fragment
  * @property sourceLocation Optional source location for error reporting
  */
 data class Step(
@@ -61,5 +62,6 @@ data class Step(
     val autoAssert: Boolean = true,
     val autoTestConfig: AutoTestConfig? = null,
     val fragmentName: String? = null,
+    val includeParameters: Map<String, Any> = emptyMap(),
     val sourceLocation: SourceLocation? = null,
 )

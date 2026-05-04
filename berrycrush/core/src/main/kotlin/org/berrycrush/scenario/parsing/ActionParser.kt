@@ -396,8 +396,54 @@ internal fun ParserState.parseIncludeAction(): IncludeNode? {
     val fragmentName = current().value
     advance()
 
+    val parameters = parseIncludeParameters()
+
     return IncludeNode(
         fragmentName = fragmentName,
+        parameters = parameters,
         location = loc,
     )
+}
+
+/**
+ * Parse optional parameters block for an include directive.
+ *
+ * Example:
+ * ```
+ * include create_user
+ *   name: John Doe
+ *   email: john@example.com
+ * ```
+ */
+private fun ParserState.parseIncludeParameters(): Map<String, ValueNode> {
+    skipNewlines()
+    if (current().type != TokenType.INDENT) return emptyMap()
+
+    val parameters = mutableMapOf<String, ValueNode>()
+    advance() // consume INDENT
+
+    while (!isAtEnd() && current().type != TokenType.DEDENT) {
+        when (current().type) {
+            TokenType.IDENTIFIER, TokenType.OPERATION_ID -> {
+                val paramName = current().value
+                advance()
+                skipWhitespace()
+
+                if (current().type == TokenType.COLON || current().type == TokenType.EQUALS) {
+                    advance()
+                    skipWhitespace()
+                }
+
+                parseValue()?.let { parameters[paramName] = it }
+            }
+            TokenType.NEWLINE -> advance()
+            else -> advance()
+        }
+    }
+
+    if (current().type == TokenType.DEDENT) {
+        advance()
+    }
+
+    return parameters
 }

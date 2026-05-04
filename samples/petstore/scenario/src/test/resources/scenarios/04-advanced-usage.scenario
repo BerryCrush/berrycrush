@@ -146,6 +146,71 @@ scenario: Fragment inclusion - reusable steps
     assert status 200
 
 # -----------------------------------------------------------------------------
+# Parameterized Fragment inclusion
+# -----------------------------------------------------------------------------
+
+# Parameterized fragments allow passing values when including:
+# include fragment_name
+#   param1: "value1"
+#   param2: 123
+#   param3: {{variable}}
+
+scenario: Parameterized fragment - custom credentials
+  # Include authenticate fragment with custom credentials as parameters
+  # Note: uses test/test which are valid credentials for the demo auth service
+  given: I am authenticated with custom credentials
+    include authenticate_with_credentials
+      username: "test"
+      password: "test"
+  # Now use the extracted token
+  when: I access protected endpoint
+    call ^listPets
+      header_Authorization: "Bearer {{authToken}}"
+  then: access is granted
+    assert status 200
+
+scenario: Parameterized fragment - create pet with params
+  # Create a pet using parameterized fragment
+  given: I create a specific pet
+    include create_pet_with_params
+      petName: "ParamPet"
+      petStatus: "available"
+  # Verify the pet was created with correct details
+  when: I get the created pet
+    call ^getPetById
+      petId: {{createdPetId}}
+  then: pet has correct details
+    assert status 200
+    assert $.name equals "ParamPet"
+    assert $.status equals "available"
+
+scenario: Parameterized fragment - different pet types
+  # Demonstrates creating different pets with the same fragment
+  given: I create a sold pet
+    include create_pet_with_params
+      petName: "SoldPet"
+      petStatus: "sold"
+  then: pet status is sold
+    call ^getPetById
+      petId: {{createdPetId}}
+    assert $.status equals "sold"
+
+scenario: Parameterized fragment - variable reference as parameter
+  # First create a pet to get an ID
+  given: I create a test pet
+    call ^createPet
+      body: {"name": "SourcePet", "status": "available"}
+    extract $.id => sourcePetId
+    extract $.name => sourcePetName
+  # Use extracted variables as parameters to a fragment
+  when: I verify the pet using parameterized fragment
+    include verify_pet_by_id
+      petId: {{sourcePetId}}
+      expectedName: {{sourcePetName}}
+  then: verification passed
+    # verification is done inside the fragment
+
+# -----------------------------------------------------------------------------
 # Conditional assertions - basic if/else
 # -----------------------------------------------------------------------------
 

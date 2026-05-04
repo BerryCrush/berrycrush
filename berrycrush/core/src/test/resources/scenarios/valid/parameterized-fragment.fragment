@@ -1,0 +1,10 @@
+# Parameterized fragment for testing parameter passing
+fragment: create_user
+  when creating the user
+    call ^createUser
+      body: {"name": "{{name}}", "email": "{{email}}", "age": {{age}}}
+
+fragment: greet_user
+  given greeting is prepared
+    call ^greet
+      message: "Hello {{userName}}, welcome to {{appName}}!"

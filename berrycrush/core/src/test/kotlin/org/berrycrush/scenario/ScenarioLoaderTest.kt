@@ -166,6 +166,29 @@ class ScenarioLoaderTest {
     }
 
     @Test
+    fun `should handle fragment includes with parameters`() {
+        val source =
+            """
+            |scenario: Fragment with params
+            |  given I create a user
+            |    include createUser
+            |      name: "John Doe"
+            |      email: "john@example.com"
+            |      age: 25
+            |  when I verify the user
+            |    call ^getUser
+            """.trimMargin()
+
+        val scenarios = loader.loadScenariosFromString(source)
+        val step = scenarios[0].steps.first { it.fragmentName != null }
+
+        assertEquals("createUser", step.fragmentName)
+        assertEquals("John Doe", step.includeParameters["name"])
+        assertEquals("john@example.com", step.includeParameters["email"])
+        assertEquals(25L, step.includeParameters["age"])
+    }
+
+    @Test
     fun `should handle call with parameters`() {
         val source =
             """

@@ -52,6 +52,11 @@ step_keyword      = "given " | "when " | "then " | "and " | "but " ;
 step_directive    = INDENT , INDENT , directive_type , [ directive_value ] , NEWLINE ;
 directive_type    = "call" | "assert" | "extract" | "include" | "body:" | conditional ;
 
+(* Include directive with optional parameters *)
+include_directive = "include" , fragment_name , [ NEWLINE , include_params ] ;
+include_params    = { INDENT , INDENT , INDENT , param_name , ":" , param_value , NEWLINE } ;
+param_value       = quoted_string | number | boolean | variable | json_object | json_array ;
+
 (* Assertions *)
 assertion         = "assert" , [ "not" ] , condition ;
 
@@ -476,12 +481,65 @@ else
 
 ### Fragment Inclusion (`include`)
 
+Basic fragment inclusion:
+
 ```berrycrush
 scenario: Use authentication
   given I am authenticated
     include authenticate
   when I access protected resource
     call ^getProfile
+```
+
+#### Parameterized Fragments
+
+Fragments can accept parameters that become available as variables within the fragment's scope:
+
+```berrycrush
+# Fragment definition (create_user.fragment)
+fragment: create_user
+  when creating the user
+    call ^createUser
+      body: {"name": "{{name}}", "email": "{{email}}", "age": {{age}}}
+  then user is created
+    assert status 201
+
+# Scenario using parameterized fragment
+scenario: Create specific user
+  given I create a user
+    include create_user
+      name: "John Doe"
+      email: "john@example.com"
+      age: 30
+  then the user exists
+    assert $.name equals "John Doe"
+```
+
+**Parameter Types:**
+
+| Type | Example | Notes |
+|------|---------|-------|
+| String | `name: "John Doe"` | Use quotes for values with spaces |
+| Number | `age: 30` | Integer or decimal |
+| Boolean | `active: true` | true or false |
+| Variable | `name: {{userName}}` | Reference existing variables |
+| JSON Object | `data: {"key": "value"}` | Inline JSON |
+| JSON Array | `tags: ["a", "b"]` | Inline arrays |
+
+**Variable References in Parameters:**
+
+Parameters can reference variables defined earlier in the scenario:
+
+```berrycrush
+scenario: Create user from context
+  given I have user data
+    set userName => "Alice"
+    set userEmail => "alice@example.com"
+  when I create the user
+    include create_user
+      name: {{userName}}
+      email: {{userEmail}}
+      age: 25
 ```
 
 ### Request Body (`body:`)
