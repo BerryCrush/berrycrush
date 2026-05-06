@@ -26,12 +26,14 @@ import org.berrycrush.model.LogicalOperator as ModelLogicalOperator
  * @property scenarios List of scenarios belonging to this feature
  * @property tags Tags applied to the feature
  * @property parameters Feature-level parameters that override file-level parameters
+ * @property sourceLocation Source location of the feature for IDE navigation
  */
 data class FeatureGroup(
     val name: String,
     val scenarios: List<Scenario>,
     val tags: Set<String> = emptySet(),
     val parameters: Map<String, Any> = emptyMap(),
+    val sourceLocation: SourceLocation? = null,
 )
 
 /**
@@ -129,6 +131,7 @@ class ScenarioLoader {
                     scenarios = transformFeature(feature),
                     tags = feature.tags,
                     parameters = feature.parameters?.values ?: emptyMap(),
+                    sourceLocation = feature.location,
                 )
             }
 

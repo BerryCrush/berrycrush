@@ -9,6 +9,7 @@ import org.berrycrush.scenario.ScenarioLoader
 import org.junit.jupiter.api.Disabled
 import org.junit.platform.engine.UniqueId
 import org.junit.platform.engine.support.descriptor.EngineDescriptor
+import java.io.File
 import java.io.InputStreamReader
 import java.net.URL
 
@@ -74,7 +75,7 @@ object ScenarioTestDiscoverer {
         val scenarioLoader = ScenarioLoader()
 
         files
-            .mapNotNull { file -> createFileDescriptor(classUniqueId, file, scenarioLoader, filters) }
+            .map { file -> createFileDescriptor(classUniqueId, file, scenarioLoader, filters) }
             .forEach { classDescriptor.addChild(it) }
 
         return classDescriptor
@@ -85,7 +86,7 @@ object ScenarioTestDiscoverer {
         file: DiscoveredScenario,
         loader: ScenarioLoader,
         filters: ScenarioFilters,
-    ): ScenarioFileDescriptor? {
+    ): ScenarioFileDescriptor {
         val fileId = parentId.append("file", file.name.removeSuffix(".scenario"))
         val fileDescriptor =
             ScenarioFileDescriptor(
@@ -95,8 +96,12 @@ object ScenarioTestDiscoverer {
                 scenarioSource = file.url,
             )
 
+        // Try to get the source file for IDE navigation
+        // Build output files are mapped back to source files
+        val scenarioFile = file.url.toFileOrNull()
+
         runCatching { loadScenarioFromUrl(loader, file.url) }
-            .onSuccess { populateFileDescriptor(fileDescriptor, it, filters) }
+            .onSuccess { populateFileDescriptor(fileDescriptor, it, filters, scenarioFile) }
             .onFailure { e ->
                 System.err.println("Warning: Failed to parse ${file.path} during discovery: ${e.message}")
             }
@@ -108,18 +113,19 @@ object ScenarioTestDiscoverer {
         fileDescriptor: ScenarioFileDescriptor,
         content: ScenarioFileContent,
         filters: ScenarioFilters,
+        scenarioFile: File?,
     ) {
         // Add standalone scenarios (expanding outlines), filtered by scenario name
         content.standaloneScenarios
             .flatMap { scenario -> expandScenarioIfOutline(scenario) }
             .filter { scenario -> filters.matchesScenarioName(scenario.name) }
-            .map { scenario -> createScenarioDescriptor(fileDescriptor.uniqueId, scenario) }
+            .map { scenario -> createScenarioDescriptor(fileDescriptor.uniqueId, scenario, scenarioFile) }
             .forEach { fileDescriptor.addChild(it) }
 
         // Add feature groups, filtered by feature name
         content.features
             .filter { feature -> filters.matchesFeatureName(feature.name) }
-            .map { feature -> createFeatureDescriptor(fileDescriptor.uniqueId, feature, filters) }
+            .map { feature -> createFeatureDescriptor(fileDescriptor.uniqueId, feature, filters, scenarioFile) }
             .forEach { fileDescriptor.addChild(it) }
     }
 
@@ -145,15 +151,18 @@ object ScenarioTestDiscoverer {
     private fun createScenarioDescriptor(
         parentId: UniqueId,
         scenario: org.berrycrush.model.Scenario,
+        scenarioFile: File? = null,
     ): IndividualScenarioDescriptor {
         val scenarioId = parentId.append("scenario", scenario.name)
         val hasAutoTests = scenario.steps.any { it.autoTestConfig != null }
+        val testSource = IndividualScenarioDescriptor.createTestSource(scenarioFile, scenario.sourceLocation)
 
         return IndividualScenarioDescriptor(
             uniqueId = scenarioId,
             displayName = scenario.name,
             scenario = scenario,
             hasAutoTests = hasAutoTests,
+            testSource = testSource,
         )
         // Note: No placeholder children are added during discovery
         // Auto-tests are added dynamically during execution
@@ -163,19 +172,22 @@ object ScenarioTestDiscoverer {
         parentId: UniqueId,
         feature: FeatureGroup,
         filters: ScenarioFilters,
+        scenarioFile: File? = null,
     ): FeatureDescriptor {
         val featureId = parentId.append("feature", feature.name)
+        val testSource = FeatureDescriptor.createTestSource(scenarioFile, feature.sourceLocation)
         val featureDescriptor =
             FeatureDescriptor(
                 uniqueId = featureId,
                 displayName = feature.name,
                 featureName = feature.name,
                 parameters = feature.parameters,
+                testSource = testSource,
             )
 
         feature.scenarios
             .filter { scenario -> filters.matchesScenarioName(scenario.name) }
-            .map { scenario -> createScenarioDescriptor(featureId, scenario) }
+            .map { scenario -> createScenarioDescriptor(featureId, scenario, scenarioFile) }
             .forEach { featureDescriptor.addChild(it) }
 
         return featureDescriptor
@@ -191,3 +203,17 @@ object ScenarioTestDiscoverer {
             loader.loadFileContentFromString(content, fileName)
         }
 }
+
+/**
+ * Convert a URL to a File if the URL represents a file system resource.
+ *
+ * @return File if the URL is a file:// URL and the file exists, null otherwise
+ */
+private fun URL.toFileOrNull(): File? =
+    if (protocol == "file") {
+        runCatching { File(toURI()) }
+            .getOrNull()
+            ?.takeIf { it.exists() }
+    } else {
+        null
+    }

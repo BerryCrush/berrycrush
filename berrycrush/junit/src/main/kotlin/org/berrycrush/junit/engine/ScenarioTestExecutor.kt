@@ -313,9 +313,9 @@ class ScenarioTestExecutor(
         // This handles scenario start/end as well as auto-test events
         val executionListener = JUnitExecutionListenerAdapter(scenarioDescriptor, listener)
 
-        return runCatching {
-            val sourceFile = File(fileContext.scenarioPath)
+        val sourceFile = File(fileContext.scenarioPath)
 
+        return runCatching {
             // Create execution context - use shared context if available,
             // or create one for outline scenarios with examples
             val executionContext =

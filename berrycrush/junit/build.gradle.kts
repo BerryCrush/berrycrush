@@ -18,9 +18,11 @@ dependencies {
     api(libs.bundles.junit.platform)
     api(libs.junit.platform.suite.api)
 
+    // JUnit Platform Launcher API (for TestExecutionListener)
+    implementation(libs.junit.platform.launcher)
+
     // Testing
     testImplementation(libs.kotlin.test.junit5)
-    testImplementation(libs.junit.platform.launcher)
 }
 
 dokka {
