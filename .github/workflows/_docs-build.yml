@@ -121,7 +121,7 @@ jobs:
           
           # Copy logo asset
           if [ -f .github-assets/images/berrycrush.svg ]; then
-            cp .github-assets/images/berrycrush.svg _docs/assets/logo.png
+            cp .github-assets/images/berrycrush.svg _docs/assets/logo.svg
           fi
           
       - name: Create index page
@@ -145,7 +145,7 @@ jobs:
             </style>
           </head>
           <body>
-            <img src="assets/logo.png" alt="BerryCrush" class="logo" onerror="this.style.display='none'">
+            <img src="assets/logo.svg" alt="BerryCrush" class="logo" onerror="this.style.display='none'">
             <h1>BerryCrush Documentation</h1>
             <div class="docs-grid">
               <a href="developer/" class="doc-card">

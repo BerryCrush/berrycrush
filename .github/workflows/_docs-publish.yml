@@ -120,7 +120,7 @@ jobs:
             </style>
           </head>
           <body>
-            <img src="nightly/assets/logo.png" alt="BerryCrush" class="logo" onerror="this.style.display='none'">
+            <img src="nightly/assets/logo.svg" alt="BerryCrush" class="logo" onerror="this.style.display='none'">
             <h1>BerryCrush Documentation</h1>
             
             <div class="current-link">
