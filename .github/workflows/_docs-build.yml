@@ -120,8 +120,8 @@ jobs:
           EOF
           
           # Copy logo asset
-          if [ -f .github-assets/images/berrycrush-transparent.png ]; then
-            cp .github-assets/images/berrycrush-transparent.png _docs/assets/logo.png
+          if [ -f .github-assets/images/berrycrush.svg ]; then
+            cp .github-assets/images/berrycrush.svg _docs/assets/logo.png
           fi
           
       - name: Create index page

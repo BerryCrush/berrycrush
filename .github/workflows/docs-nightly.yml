@@ -4,8 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'berrycrush/doc/**'
-      - 'developer/*.md'
+      - 'doc/**'
       - 'berrycrush/**/*.kt'
       - '.github/workflows/_docs-*.yml'
       - '.github/workflows/docs-nightly.yml'
