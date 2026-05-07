@@ -1,5 +1,7 @@
 package org.berrycrush.step
 
+import org.berrycrush.scanner.AnnotationScanner
+import org.berrycrush.scanner.createInstance
 import java.lang.reflect.Modifier
 
 /**
@@ -7,7 +9,7 @@ import java.lang.reflect.Modifier
  *
  * Extracts step definitions from annotated methods in provided classes.
  */
-class AnnotationStepScanner {
+class AnnotationStepScanner : AnnotationScanner<StepDefinition> {
     /**
      * Scans a class for @Step annotated methods.
      *
@@ -15,9 +17,9 @@ class AnnotationStepScanner {
      * @param instance Optional instance for non-static methods (created if null)
      * @return List of step definitions found in the class
      */
-    fun scan(
+    override fun scan(
         clazz: Class<*>,
-        instance: Any? = null,
+        instance: Any?,
     ): List<StepDefinition> {
         val actualInstance = instance ?: createInstance(clazz)
 
@@ -43,7 +45,7 @@ class AnnotationStepScanner {
      * @param classes The classes to scan
      * @return List of all step definitions found
      */
-    fun scanAll(vararg classes: Class<*>): List<StepDefinition> = classes.flatMap { scan(it) }
+    override fun scanAll(vararg classes: Class<*>): List<StepDefinition> = classes.flatMap { scan(it) }
 
     /**
      * Scans multiple classes with their instances for @Step annotated methods.
@@ -51,14 +53,5 @@ class AnnotationStepScanner {
      * @param instances The class instances to scan
      * @return List of all step definitions found
      */
-    fun scanInstances(vararg instances: Any): List<StepDefinition> = instances.flatMap { scan(it.javaClass, it) }
-
-    private fun createInstance(clazz: Class<*>): Any? =
-        runCatching {
-            val constructor = clazz.getDeclaredConstructor()
-            if (!Modifier.isPublic(constructor.modifiers)) {
-                constructor.isAccessible = true
-            }
-            constructor.newInstance()
-        }.getOrNull()
+    override fun scanInstances(vararg instances: Any): List<StepDefinition> = instances.flatMap { scan(it.javaClass, it) }
 }

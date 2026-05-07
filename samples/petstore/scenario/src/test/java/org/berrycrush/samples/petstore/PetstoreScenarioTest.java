@@ -54,8 +54,10 @@ import org.berrycrush.samples.petstore.assertions.PetstoreAssertions;
     bindings = PetstoreBindings.class, 
     openApiSpec = "petstore.yaml",
     plugins = {"report:text", "report:console:high-contrast", "report:json:berrycrush/report.json", "sample:logging"},
-    stepClasses = {PetCustomSteps.class},
-    assertionClasses = {PetstoreAssertions.class}
+    //stepClasses = {PetCustomSteps.class},
+    stepPackages = {"org.berrycrush.samples.petstore"},
+    //assertionClasses = {PetstoreAssertions.class}
+    assertionPackages = {"org.berrycrush.samples.petstore.assertions"}
 )
 @BerryCrushSpec(paths = {"petstore.yaml"})
 @BerryCrushTags(exclude = {"ignore"})

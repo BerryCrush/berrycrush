@@ -3,6 +3,7 @@ package org.berrycrush.junit.engine
 import org.berrycrush.assertion.AnnotationAssertionScanner
 import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.assertion.DefaultAssertionRegistry
+import org.berrycrush.assertion.PackageAssertionScanner
 import org.berrycrush.junit.BerryCrushConfiguration
 import org.berrycrush.step.AnnotationStepScanner
 import org.berrycrush.step.DefaultStepRegistry
@@ -120,8 +121,21 @@ object RegistryFactory {
             }
         }
 
-        // Note: Package scanning for assertions could be implemented in the future
-        // For now, only class-based registration is supported
+        // Scan assertion packages
+        if (assertionPackages.isNotEmpty()) {
+            val packageScanner = PackageAssertionScanner()
+            assertionPackages.forEach { packageName ->
+                runCatching {
+                    packageScanner.scan(packageName).forEach { definition ->
+                        registry.register(definition)
+                    }
+                }.onFailure { e ->
+                    System.err.println(
+                        "Warning: Failed to scan assertion package $packageName: ${e.message}",
+                    )
+                }
+            }
+        }
 
         return if (registry.allDefinitions().isEmpty()) null else registry
     }
