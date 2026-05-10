@@ -397,6 +397,11 @@ Available Test Types to Exclude
 * ``XXE`` - XML External Entity attacks
 * ``HeaderInjection`` - HTTP header injection
 
+**Multi requests Tests:**
+
+* ``concurrent`` - Concurrent requests
+* ``sequential`` - Sequential requests
+
 Custom Providers
 ----------------
 
