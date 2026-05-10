@@ -17,8 +17,8 @@ author = 'Takashi Kato'
 
 # -- Dynamic version configuration -------------------------------------------
 # Read version from gradle.properties or environment variable
-_default_version = '0.1.0'
-_default_release = '0.1.0-SNAPSHOT'
+_default_version = '1.0.0'
+_default_release = '1.0.0-SNAPSHOT'
 
 # Try to read from gradle.properties
 _gradle_props_path = os.path.join(os.path.dirname(__file__), '../../gradle.properties')

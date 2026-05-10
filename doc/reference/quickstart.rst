@@ -169,32 +169,6 @@ Run your test using Gradle:
 
 You should see output indicating which scenarios passed or failed.
 
-Using Conditional Assertions
-----------------------------
-
-When an API can return different valid responses, use conditional assertions:
-
-.. code-block:: scenario
-
-    scenario: Create or update a pet
-      when: I upsert a pet
-        call ^updatePet
-          petId: 123
-          body:
-            name: "Max"
-        
-        if status 201
-          # Resource was created
-          assert $.id notEmpty
-        else if status 200
-          # Resource was updated
-          assert $.name equals "Max"
-        else
-          fail "Expected status 200 or 201"
-
-Conditionals support checking status codes, JSON path values, and headers.
-See :doc:`features/scenario-syntax` for full syntax.
-
 Next Steps
 ----------
 
