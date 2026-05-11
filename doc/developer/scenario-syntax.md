@@ -57,8 +57,13 @@ include_directive = "include" , fragment_name , [ NEWLINE , include_params ] ;
 include_params    = { INDENT , INDENT , INDENT , param_name , ":" , param_value , NEWLINE } ;
 param_value       = quoted_string | number | boolean | variable | json_object | json_array ;
 
-(* Assertions *)
-assertion         = "assert" , [ "not" ] , condition ;
+(* Assertions - supports both built-in conditions and custom assertion patterns *)
+assertion         = "assert" , [ "not" ] , ( condition | custom_assertion ) ;
+
+(* Custom assertions - any text pattern that doesn't match built-in conditions *)
+(* Used with custom assertion providers registered via AssertionRegistry *)
+custom_assertion  = assertion_pattern ;
+assertion_pattern = { text_token | quoted_string | number | variable | json_path } ;
 
 (* Conditional branching - if/else if/else *)
 conditional       = if_branch , { else_if_branch } , [ else_branch ] ;
@@ -68,18 +73,23 @@ else_branch       = "else" , NEWLINE , { conditional_action } ;
 conditional_action = assertion | extraction | fail_action | conditional ;
 fail_action       = "fail" , quoted_string ;
 
-(* Conditions - unified for both 'if' and 'assert' *)
+(* Built-in conditions - for both 'if' and 'assert' *)
 condition         = status_condition | jsonpath_condition | header_condition 
                   | body_contains | schema_condition | response_time
                   | variable_condition ;
 status_condition  = "status" , ( number | status_range ) ;
 status_range      = digit , "xx" | number , "-" , number ;
 jsonpath_condition = jsonpath , [ "not" ] , operator , [ value ] ;
-header_condition  = "header" , header_name , [ "not" ] , operator , [ value ] ;
+header_condition  = "header_" , header_name , [ "not" ] , operator , [ value ] ;
 body_contains     = "contains" , quoted_string ;
 schema_condition  = "schema" ;
 response_time     = "responseTime" , number ;
 variable_condition = variable_path , [ "not" ] , operator , [ value ] ;
+
+(* Operators for conditions *)
+operator          = "equals" | "=" | "contains" | "matches" | "exists" 
+                  | "greaterThan" | ">" | "lessThan" | "<" 
+                  | "hasSize" | "size" | "arraySize" | "notEmpty" | "in" ;
 
 (* Examples for parameterized scenarios *)
 examples          = INDENT , "examples:" , NEWLINE , example_header , { example_row } ;
@@ -95,7 +105,15 @@ parameter_name    = identifier , { "." , identifier } ;
 parameter_value   = quoted_string | number | boolean ;
 cell              = { character - "|" } ;
 text              = { character - NEWLINE } ;
+text_token        = identifier | keyword ;
 identifier        = letter , { letter | digit | "_" | "-" } ;
+json_path         = "$" , { "." , identifier | "[" , ( number | "*" ) , "]" } ;
+variable          = "{{" , variable_path , "}}" ;
+variable_path     = identifier , { "." , identifier } ;
+quoted_string     = '"' , { character - '"' } , '"' ;
+number            = [ "-" ] , digit , { digit } , [ "." , digit , { digit } ] ;
+boolean           = "true" | "false" ;
+header_name       = identifier , { "-" , identifier } ;
 INDENT            = "  " ;  (* 2 spaces *)
 NEWLINE           = "\n" | "\r\n" ;
 ```
