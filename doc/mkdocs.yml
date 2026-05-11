@@ -1,0 +1,49 @@
+site_name: BerryCrush Documentation
+site_description: OpenAPI-driven BDD testing framework for API testing
+site_url: https://doc.berrycrush.org
+docs_dir: pages
+site_dir: _site/pages
+
+extra:
+  homepage: https://berrycrush.org
+
+theme:
+  name: material
+  palette:
+    primary: deep-purple
+    accent: purple
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - content.code.copy
+  logo: assets/logo.svg
+  favicon: assets/favicon.ico
+  icon:
+    repo: fontawesome/solid/house
+
+nav:
+  - Home: index.md
+  - User Reference: https://doc.berrycrush.org/manual/
+  - Developer Guide: https://doc.berrycrush.org/developer/
+  - API Reference:
+    - Overview: kdoc/index.md
+    - Core Module: https://doc.berrycrush.org/kdoc/core/
+    - JUnit Module: https://doc.berrycrush.org/kdoc/junit/
+    - Spring Module: https://doc.berrycrush.org/kdoc/spring/
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - tables
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+      use_pygments: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg

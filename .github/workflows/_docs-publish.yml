@@ -35,6 +35,12 @@ jobs:
           name: ${{ inputs.artifact-name }}
           path: _docs
           
+      - name: Checkout for templates
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: doc/templates
+          path: _src
+          
       - name: Checkout gh-pages for existing versions
         uses: actions/checkout@v4
         with:
@@ -70,72 +76,44 @@ jobs:
         if: inputs.set-current
         run: |
           mkdir -p _site/current
-          cat > _site/current/index.html << EOF
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta http-equiv="refresh" content="0; url=../${{ inputs.version }}/">
-            <link rel="canonical" href="../${{ inputs.version }}/">
-            <title>Redirecting...</title>
-          </head>
-          <body>
-            <p>Redirecting to <a href="../${{ inputs.version }}/">version ${{ inputs.version }}</a>...</p>
-          </body>
-          </html>
-          EOF
+          sed "s|__VERSION__|${{ inputs.version }}|g" _src/doc/templates/redirect.html > _site/current/index.html
           
       - name: Create root index with version selector
         run: |
           # Find all versions
           VERSIONS=$(ls -d _site/*/ 2>/dev/null | xargs -n 1 basename | grep -v current | sort -rV || echo "")
           
-          # Build version list HTML
-          VERSION_LIST=""
+          # Build version list as Markdown table
+          VERSION_TABLE_FILE=$(mktemp)
+          echo "| Version | Status |" > "$VERSION_TABLE_FILE"
+          echo "|----|-------|" >> "$VERSION_TABLE_FILE"
           for v in $VERSIONS; do
             if [ "$v" = "nightly" ]; then
-              VERSION_LIST="$VERSION_LIST<li><a href=\"$v/\">nightly</a> <span class=\"badge\">latest</span></li>"
+              echo "| [:octicons-arrow-right-24: nightly]($v/) | :material-weather-night: Latest |" >> "$VERSION_TABLE_FILE"
             else
-              VERSION_LIST="$VERSION_LIST<li><a href=\"$v/\">$v</a></li>"
+              echo "| [:octicons-arrow-right-24: $v]($v/) | |" >> "$VERSION_TABLE_FILE"
             fi
           done
           
-          cat > _site/index.html << EOF
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>BerryCrush Documentation</title>
-            <style>
-              body { font-family: -apple-system, system-ui, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
-              .logo { display: block; margin: 0 auto 2rem; max-width: 200px; }
-              h1 { text-align: center; }
-              h2 { margin-top: 2rem; border-bottom: 1px solid #e1e4e8; padding-bottom: 0.5rem; }
-              ul { list-style: none; padding: 0; }
-              li { padding: 0.5rem 0; }
-              li a { font-size: 1.1rem; color: #0366d6; text-decoration: none; }
-              li a:hover { text-decoration: underline; }
-              .badge { background: #28a745; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; margin-left: 0.5rem; }
-              .current-link { margin-bottom: 2rem; padding: 1rem; background: #f6f8fa; border-radius: 8px; }
-            </style>
-          </head>
-          <body>
-            <img src="nightly/assets/logo.svg" alt="BerryCrush" class="logo" onerror="this.style.display='none'">
-            <h1>BerryCrush Documentation</h1>
-            
-            <div class="current-link">
-              <strong>Quick Links:</strong>
-              <a href="current/">Current Release</a> |
-              <a href="nightly/">Nightly (main branch)</a>
-            </div>
-            
-            <h2>Available Versions</h2>
-            <ul>
-              $VERSION_LIST
-            </ul>
-          </body>
-          </html>
-          EOF
+          # Inject version list into markdown template using awk
+          awk -v table="$(cat "$VERSION_TABLE_FILE")" '
+            /<!-- VERSION_LIST -->/ { print table; next }
+            { print }
+          ' _src/doc/templates/pages/index.md > _src/doc/templates/pages/index.md.tmp
+          mv _src/doc/templates/pages/index.md.tmp _src/doc/templates/pages/index.md
+          rm "$VERSION_TABLE_FILE"
+          
+      - name: Setup Python for MkDocs
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          
+      - name: Build root index with MkDocs
+        run: |
+          pip install mkdocs mkdocs-material
+          cd _src/doc/templates
+          mkdocs build
+          cp -r _site/* $GITHUB_WORKSPACE/_site/
           
       - name: Setup Pages
         uses: actions/configure-pages@v5

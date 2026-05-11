@@ -43,8 +43,8 @@ jobs:
         with:
           python-version: '3.12'
           
-      - name: Install Sphinx
-        run: pip install sphinx sphinx-rtd-theme myst-parser sphinx-tabs
+      - name: Install documentation tools
+        run: pip install sphinx sphinx-rtd-theme myst-parser sphinx-tabs mkdocs mkdocs-material
         
       - name: Build User Reference (Sphinx)
         env:
@@ -65,105 +65,35 @@ jobs:
       - name: Build KDoc
         run: ./gradlew dokkaGenerateHtml
         
+      - name: Prepare assets for landing page
+        run: |
+          mkdir -p doc/pages/assets
+          if [ -f .github-assets/images/berrycrush.svg ]; then
+            cp .github-assets/images/berrycrush.svg doc/pages/assets/logo.svg
+          fi
+          
+      - name: Build Landing Page (MkDocs)
+        run: |
+          cd doc
+          mkdocs build -f mkdocs.yml
+        
       - name: Assemble documentation
         run: |
-          mkdir -p _docs/{developer,manual,kdoc/core,kdoc/junit,kdoc/spring,assets}
+          mkdir -p _docs/{developer,manual,kdoc/core,kdoc/junit,kdoc/spring}
+          
+          # Copy Landing Page (MkDocs output)
+          cp -r doc/_site/pages/* _docs/
           
           # Copy Developer's Guide (Sphinx HTML output)
           cp -r doc/developer/build/html/* _docs/developer/
           
-          # Copy Sphinx output
+          # Copy User Reference (Sphinx output)
           cp -r doc/reference/build/manual/* _docs/manual/
           
           # Copy Dokka outputs from each module
           cp -r berrycrush/core/build/dokka/html/* _docs/kdoc/core/
           cp -r berrycrush/junit/build/dokka/html/* _docs/kdoc/junit/
           cp -r berrycrush/spring/build/dokka/html/* _docs/kdoc/spring/
-          
-          # Create KDoc index page
-          cat > _docs/kdoc/index.html << 'EOF'
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>BerryCrush KDoc API Reference</title>
-            <style>
-              body { font-family: -apple-system, system-ui, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
-              h1 { border-bottom: 1px solid #e1e4e8; padding-bottom: 0.5rem; }
-              .modules { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 2rem; }
-              .module { background: #f6f8fa; border-radius: 8px; padding: 1.5rem; text-decoration: none; color: inherit; }
-              .module:hover { background: #e1e4e8; }
-              .module h2 { margin: 0 0 0.5rem; font-size: 1.25rem; color: #0366d6; }
-              .module p { margin: 0; color: #586069; font-size: 0.9rem; }
-            </style>
-          </head>
-          <body>
-            <h1>BerryCrush KDoc API Reference</h1>
-            <p>Select a module to view its API documentation:</p>
-            <div class="modules">
-              <a href="core/" class="module">
-                <h2>Core</h2>
-                <p>Core BDD execution engine</p>
-              </a>
-              <a href="junit/" class="module">
-                <h2>JUnit</h2>
-                <p>JUnit 5 integration</p>
-              </a>
-              <a href="spring/" class="module">
-                <h2>Spring</h2>
-                <p>Spring Boot integration</p>
-              </a>
-            </div>
-          </body>
-          </html>
-          EOF
-          
-          # Copy logo asset
-          if [ -f .github-assets/images/berrycrush.svg ]; then
-            cp .github-assets/images/berrycrush.svg _docs/assets/logo.svg
-          fi
-          
-      - name: Create index page
-        run: |
-          cat > _docs/index.html << 'EOF'
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>BerryCrush Documentation</title>
-            <style>
-              body { font-family: -apple-system, system-ui, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
-              .logo { display: block; margin: 0 auto 2rem; max-width: 200px; }
-              h1 { text-align: center; }
-              .docs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
-              .doc-card { border: 1px solid #e1e4e8; border-radius: 8px; padding: 1.5rem; text-decoration: none; color: inherit; }
-              .doc-card:hover { border-color: #0366d6; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-              .doc-card h3 { margin: 0 0 0.5rem; color: #0366d6; }
-              .doc-card p { margin: 0; color: #586069; font-size: 0.9rem; }
-            </style>
-          </head>
-          <body>
-            <img src="assets/logo.svg" alt="BerryCrush" class="logo" onerror="this.style.display='none'">
-            <h1>BerryCrush Documentation</h1>
-            <div class="docs-grid">
-              <a href="developer/" class="doc-card">
-                <h3>Developer's Guide</h3>
-                <p>Architecture, contributing guidelines, and internals</p>
-              </a>
-              <a href="manual/" class="doc-card">
-                <h3>User Reference</h3>
-                <p>Complete user documentation and tutorials</p>
-              </a>
-              <a href="kdoc/" class="doc-card">
-                <h3>API Documentation</h3>
-                <p>Kotlin API reference (KDoc)</p>
-              </a>
-            </div>
-          </body>
-          </html>
-          EOF
           
       - name: Upload artifact
         uses: actions/upload-artifact@v4
