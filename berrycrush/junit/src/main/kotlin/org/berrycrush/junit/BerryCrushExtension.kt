@@ -111,22 +111,51 @@ class BerryCrushExtension :
         }
 
         val testClass = context.requiredTestClass
-        val specAnnotation = testClass.getAnnotation(BerryCrushSpec::class.java)
+        val specs = collectSpecs(testClass)
 
         val suite = BerryCrushSuite.create()
 
-        // Load spec from annotation
-        specAnnotation?.paths?.forEach { path ->
-            val resolvedPath = resolvePath(path, testClass)
-            suite.spec(resolvedPath)
+        // Load specs from annotations (supports multiple @BerryCrushSpec)
+        specs.forEach { spec ->
+            spec.paths.forEach { path ->
+                val resolvedPath = resolvePath(path, testClass)
+                if (spec.name == "default") {
+                    suite.spec(resolvedPath)
+                } else {
+                    suite.spec(spec.name, resolvedPath)
+                }
+            }
         }
 
-        // Apply initial configuration from annotation
-        specAnnotation?.baseUrl?.takeIf { it.isNotBlank() }?.let {
+        // Apply base URL from "default" spec or first spec
+        val defaultSpec = specs.find { it.name == "default" } ?: specs.firstOrNull()
+        defaultSpec?.baseUrl?.takeIf { it.isNotBlank() }?.let {
             suite.configuration.baseUrl = it
         }
 
         context.getStore(NAMESPACE).put(SUITE_KEY, suite)
+    }
+
+    /**
+     * Collects all @BerryCrushSpec annotations from the test class.
+     * Supports both single and repeatable annotations via @BerryCrushSpecs container.
+     */
+    private fun collectSpecs(testClass: Class<*>): List<BerryCrushSpec> {
+        val result = mutableListOf<BerryCrushSpec>()
+
+        // Check for container annotation (@BerryCrushSpecs)
+        testClass.getAnnotation(BerryCrushSpecs::class.java)?.value?.let { specs ->
+            result.addAll(specs)
+        }
+
+        // Check for single @BerryCrushSpec (if not already in container)
+        testClass.getAnnotation(BerryCrushSpec::class.java)?.let { spec ->
+            if (result.none { it.name == spec.name }) {
+                result.add(spec)
+            }
+        }
+
+        return result
     }
 
     /**

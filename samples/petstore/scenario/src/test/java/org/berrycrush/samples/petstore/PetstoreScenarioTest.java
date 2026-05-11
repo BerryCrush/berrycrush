@@ -52,7 +52,6 @@ import org.berrycrush.samples.petstore.assertions.PetstoreAssertions;
 @BerryCrushScenarios(locations = {"scenarios/*.scenario"}, fragments = {"fragments/*.fragment"})
 @BerryCrushConfiguration(
     bindings = PetstoreBindings.class, 
-    openApiSpec = "petstore.yaml",
     plugins = {"report:text", "report:console:high-contrast", "report:json:berrycrush/report.json", "sample:logging"},
     //stepClasses = {PetCustomSteps.class},
     stepPackages = {"org.berrycrush.samples.petstore"},

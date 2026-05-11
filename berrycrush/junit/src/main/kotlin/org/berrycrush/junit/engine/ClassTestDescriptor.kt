@@ -4,6 +4,7 @@ import org.berrycrush.junit.BerryCrushBindings
 import org.berrycrush.junit.BerryCrushConfiguration
 import org.berrycrush.junit.BerryCrushScenarios
 import org.berrycrush.junit.BerryCrushSpec
+import org.berrycrush.junit.BerryCrushSpecs
 import org.berrycrush.junit.BerryCrushTags
 import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.UniqueId
@@ -26,6 +27,9 @@ class ClassTestDescriptor(
     companion object {
         /** Default timeout in milliseconds for scenario execution. */
         const val DEFAULT_TIMEOUT_MS = 30_000L
+
+        /** Default spec name. */
+        const val DEFAULT_SPEC_NAME = BerryCrushBindings.DEFAULT_BINDING_NAME
     }
 
     /**
@@ -48,10 +52,18 @@ class ClassTestDescriptor(
     val bindingsClass: Class<out BerryCrushBindings>?
 
     /**
-     * OpenAPI spec path from configuration (if any).
-     * Priority: @BerryCrushConfiguration.openApiSpec > @BerryCrushSpec.paths[0]
+     * OpenAPI spec path from @BerryCrushSpec annotation (if any).
+     * Priority:
+     * 1. @BerryCrushSpec with name="default"
+     * 2. First @BerryCrushSpec
      */
     val openApiSpec: String?
+
+    /**
+     * All OpenAPI specs from @BerryCrushSpec annotations.
+     * Key is the spec name, value is the spec annotation.
+     */
+    val specs: Map<String, BerryCrushSpec>
 
     /**
      * Timeout in milliseconds for scenario execution.
@@ -70,19 +82,60 @@ class ClassTestDescriptor(
 
     init {
         val config = testClass.getAnnotation(BerryCrushConfiguration::class.java)
-        val spec = testClass.getAnnotation(BerryCrushSpec::class.java)
         val tagsAnnotation = testClass.getAnnotation(BerryCrushTags::class.java)
 
         bindingsClass = config?.bindings?.java
         timeout = config?.timeout ?: DEFAULT_TIMEOUT_MS
 
-        // OpenAPI spec: prefer @BerryCrushConfiguration, fallback to @BerryCrushSpec
-        openApiSpec = config?.openApiSpec?.takeIf { it.isNotBlank() }
-            ?: spec?.paths?.firstOrNull()
+        // Collect all @BerryCrushSpec annotations (supports repeatable)
+        specs = collectSpecs()
+
+        // OpenAPI spec resolution priority:
+        // 1. @BerryCrushSpec with name="default"
+        // 2. First @BerryCrushSpec
+        openApiSpec = resolveDefaultOpenApiSpec()
 
         // Tag filtering
         includeTags = tagsAnnotation?.include?.toSet() ?: emptySet()
         excludeTags = tagsAnnotation?.exclude?.toSet() ?: emptySet()
+    }
+
+    /**
+     * Collects all @BerryCrushSpec annotations from the test class.
+     * Supports both single and repeatable annotations via @BerryCrushSpecs container.
+     */
+    private fun collectSpecs(): Map<String, BerryCrushSpec> {
+        val result = mutableMapOf<String, BerryCrushSpec>()
+
+        // Check for container annotation (@BerryCrushSpecs)
+        testClass.getAnnotation(BerryCrushSpecs::class.java)?.value?.forEach { spec ->
+            result[spec.name] = spec
+        }
+
+        // Check for single @BerryCrushSpec (if not already in container)
+        testClass.getAnnotation(BerryCrushSpec::class.java)?.let { spec ->
+            if (spec.name !in result) {
+                result[spec.name] = spec
+            }
+        }
+
+        return result
+    }
+
+    /**
+     * Resolves the default OpenAPI spec path with the following priority:
+     * 1. @BerryCrushSpec with name="default"
+     * 2. First @BerryCrushSpec
+     */
+    private fun resolveDefaultOpenApiSpec(): String? {
+        // Priority 1: @BerryCrushSpec with name="default"
+        specs[DEFAULT_SPEC_NAME]?.paths?.firstOrNull()?.let { return it }
+
+        // Priority 2: First @BerryCrushSpec
+        return specs.values
+            .firstOrNull()
+            ?.paths
+            ?.firstOrNull()
     }
 
     /**

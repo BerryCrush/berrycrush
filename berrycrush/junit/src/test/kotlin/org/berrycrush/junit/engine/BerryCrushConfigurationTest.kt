@@ -2,6 +2,7 @@ package org.berrycrush.junit.engine
 
 import org.berrycrush.junit.BerryCrushBindings
 import org.berrycrush.junit.BerryCrushConfiguration
+import org.berrycrush.junit.BerryCrushSpec
 import org.junit.jupiter.api.Test
 import org.junit.platform.engine.UniqueId
 import kotlin.test.assertEquals
@@ -53,8 +54,6 @@ class TestBindings : BerryCrushBindings {
             "authToken" to "test-token",
         )
 
-    override fun getOpenApiSpec(): String = "custom-spec.yaml"
-
     override fun configure(config: Configuration) {
         config.baseUrl = "http://localhost:8080"
     }
@@ -64,9 +63,9 @@ class TestBindings : BerryCrushBindings {
  * Sample configured test class.
  * Used only for testing configuration parsing, not for actual test execution.
  */
+@BerryCrushSpec("test-api.yaml")
 @BerryCrushConfiguration(
     bindings = TestBindings::class,
-    openApiSpec = "test-api.yaml",
     timeout = 60_000L,
 )
 class ConfiguredTestStub

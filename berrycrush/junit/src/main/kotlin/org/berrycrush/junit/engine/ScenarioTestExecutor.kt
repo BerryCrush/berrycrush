@@ -4,13 +4,13 @@ import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.autotest.AutoTestCase
 import org.berrycrush.autotest.MultiMode
 import org.berrycrush.autotest.MultiTestResult
+import org.berrycrush.config.OpenApiSpecValue
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.dsl.BerryCrushSuite
 import org.berrycrush.executor.BerryCrushExecutionListener
 import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.junit.BerryCrushBindings
 import org.berrycrush.junit.BerryCrushConfiguration
-import org.berrycrush.junit.BerryCrushSpec
 import org.berrycrush.junit.DefaultBindings
 import org.berrycrush.junit.discovery.FragmentDiscovery
 import org.berrycrush.junit.spi.BindingsProvider
@@ -474,32 +474,78 @@ class ScenarioTestExecutor(
     ) {
         bindings.configure(suite.configuration)
 
-        bindings.getBindings()["baseUrl"]?.let {
-            suite.configuration.baseUrl = it.toString()
+        val allBindings = bindings.getBindings()
+
+        // Configure OpenAPI specs from bindings (OpenApiSpecValue instances)
+        val specsFromBindings = configureSpecsFromBindings(suite, allBindings, classDescriptor)
+
+        // Fall back to @BerryCrushSpec annotations if no specs from bindings
+        if (specsFromBindings.isEmpty()) {
+            configureSpecsFromAnnotations(suite, classDescriptor)
         }
 
-        val specBaseUrls = bindings.getSpecBaseUrls()
-        val rawSpecPath = bindings.getOpenApiSpec() ?: classDescriptor.openApiSpec
-        val specPath = rawSpecPath?.let { resolvePath(it, classDescriptor.testClass) }
-
-        if (!specPath.isNullOrBlank()) {
-            suite.spec(specPath) {
-                specBaseUrls["default"]?.let { baseUrl = it }
-            }
-        }
-
-        bindings.getAdditionalSpecs().forEach { (name, path) ->
-            val resolvedPath = resolvePath(path, classDescriptor.testClass)
-            suite.spec(name, resolvedPath) {
-                specBaseUrls[name]?.let { baseUrl = it }
+        // Set global baseUrl if specified as a string (not OpenApiSpecValue)
+        allBindings["baseUrl"]?.let { value ->
+            if (value !is org.berrycrush.config.OpenApiSpecValue) {
+                suite.configuration.baseUrl = value.toString()
             }
         }
 
         // Apply baseUrl from @BerryCrushSpec if set
-        val spec = classDescriptor.testClass.getAnnotation(BerryCrushSpec::class.java)
-        spec?.baseUrl?.takeIf { it.isNotBlank() }?.let {
+        classDescriptor.specs["default"]?.baseUrl?.takeIf { it.isNotBlank() }?.let {
             suite.configuration.baseUrl = it
         }
+    }
+
+    /**
+     * Configure specs from @BerryCrushSpec annotations on the test class.
+     */
+    private fun configureSpecsFromAnnotations(
+        suite: BerryCrushSuite,
+        classDescriptor: ClassTestDescriptor,
+    ) {
+        classDescriptor.specs.forEach { (name, spec) ->
+            spec.paths.forEach { path ->
+                val resolvedPath = resolvePath(path, classDescriptor.testClass)
+                if (name == "default") {
+                    suite.spec(resolvedPath) {
+                        spec.baseUrl.takeIf { it.isNotBlank() }?.let { baseUrl = it }
+                    }
+                } else {
+                    suite.spec(name, resolvedPath) {
+                        spec.baseUrl.takeIf { it.isNotBlank() }?.let { baseUrl = it }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Configure specs from bindings containing OpenApiSpecValue instances.
+     * Returns the set of spec names that were configured.
+     */
+    private fun configureSpecsFromBindings(
+        suite: BerryCrushSuite,
+        bindings: Map<String, Any>,
+        classDescriptor: ClassTestDescriptor,
+    ): Set<String> {
+        val configuredSpecs = mutableSetOf<String>()
+        bindings.forEach { (name, value) ->
+            if (value is OpenApiSpecValue) {
+                val resolvedPath = resolvePath(value.location, classDescriptor.testClass)
+                if (name == "default") {
+                    suite.spec(resolvedPath) {
+                        value.baseUrl?.let { baseUrl = it }
+                    }
+                } else {
+                    suite.spec(name, resolvedPath) {
+                        value.baseUrl?.let { baseUrl = it }
+                    }
+                }
+                configuredSpecs.add(name)
+            }
+        }
+        return configuredSpecs
     }
 
     /**

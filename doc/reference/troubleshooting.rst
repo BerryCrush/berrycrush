@@ -98,13 +98,12 @@ Ensure the spec file is on the classpath:
     src/test/resources/
     └── petstore.yaml
 
-And reference it correctly:
+And reference it correctly using ``@BerryCrushSpec``:
 
 .. code-block:: kotlin
 
-    @BerryCrushConfiguration(
-        openApiSpec = "petstore.yaml"  // Relative to resources root
-    )
+    @BerryCrushSpec(paths = ["petstore.yaml"])  // Relative to resources root
+    @BerryCrushConfiguration(bindings = MyBindings::class)
 
 HTTP Request Issues
 -------------------
@@ -117,14 +116,14 @@ Connection Refused
 **Solution**:
 
 1. Ensure the API server is running
-2. Verify the baseUrl in bindings is correct
+2. Verify the baseUrl in getBindings() is correct
 3. Check for firewall/network issues
 
 .. code-block:: kotlin
 
     class MyBindings : BerryCrushBindings {
         override fun getBindings() = mapOf(
-            "baseUrl" to "http://localhost:8080"  // Must match server port
+            "default" to OpenApiSpecValue("api.yaml", "http://localhost:8080")  // Must match server port
         )
     }
 

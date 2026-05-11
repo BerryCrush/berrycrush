@@ -281,7 +281,6 @@ org.berrycrush.junit
 │   └── fragments: Array<String>
 ├── @BerryCrushConfiguration    # Configure execution
 │   ├── bindings: KClass
-│   ├── openApiSpec: String
 │   ├── timeout: Long
 │   ├── plugins: Array<String>
 │   ├── pluginClasses: Array<KClass>
@@ -289,7 +288,8 @@ org.berrycrush.junit
 │   └── stepPackages: Array<String>
 ├── @BerryCrushSpec             # Specify OpenAPI specs
 │   ├── paths: Array<String>
-│   └── baseUrl: String
+│   ├── baseUrl: String
+│   └── name: String
 ├── @BerryCrushTags             # Filter by tags
 │   ├── include: Array<String>
 │   └── exclude: Array<String>
@@ -304,8 +304,6 @@ org.berrycrush.junit
 org.berrycrush.junit
 ├── BerryCrushBindings          # Interface for runtime bindings
 │   ├── getBindings(): Map<String, Any>
-│   ├── getOpenApiSpec(): String?
-│   ├── getAdditionalSpecs(): Map<String, String>
 │   ├── configure(config)
 │   ├── getPlugins(): List<BerryCrushPlugin>
 │   └── getStepClasses(): Array<Class<*>>
@@ -313,6 +311,15 @@ org.berrycrush.junit
 └── ScenarioTest (abstract)     # Base class for DSL tests
     ├── configureSuite()        # Override to configure
     └── defineScenarios()       # Override to define scenarios
+```
+
+### Configuration Values
+
+```
+org.berrycrush.config
+└── OpenApiSpecValue            # OpenAPI spec configuration
+    ├── location: String
+    └── baseUrl: String?
 ```
 
 ### Test Engine

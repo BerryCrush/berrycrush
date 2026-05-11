@@ -17,11 +17,6 @@ class DefaultBindings : BerryCrushBindings {
     override fun getBindings(): Map<String, Any> = emptyMap()
 
     /**
-     * Returns null to use the default OpenAPI spec path.
-     */
-    override fun getOpenApiSpec(): String? = null
-
-    /**
      * Does nothing - uses default configuration.
      */
     override fun configure(config: BerryCrushConfiguration) {

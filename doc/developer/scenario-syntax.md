@@ -1081,10 +1081,8 @@ The `StepContext` provides access to:
 Register step classes in `@BerryCrushConfiguration`:
 
 ```java
-@BerryCrushConfiguration(
-    openApiSpec = "petstore.yaml",
-    stepClasses = {PetstoreSteps.class, CommonSteps.class}
-)
+@BerryCrushSpec(paths = {"petstore.yaml"})
+@BerryCrushConfiguration(stepClasses = {PetstoreSteps.class, CommonSteps.class})
 public class PetstoreScenarioTest {}
 ```
 
@@ -1165,8 +1163,8 @@ Return from assertion methods:
 Register assertion classes in `@BerryCrushConfiguration`:
 
 ```java
+@BerryCrushSpec(paths = {"petstore.yaml"})
 @BerryCrushConfiguration(
-    openApiSpec = "petstore.yaml",
     stepClasses = {PetstoreSteps.class},
     assertionClasses = {PetstoreAssertions.class}
 )

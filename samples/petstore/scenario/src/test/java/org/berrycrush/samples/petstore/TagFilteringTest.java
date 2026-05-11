@@ -2,6 +2,7 @@ package org.berrycrush.samples.petstore;
 
 import org.berrycrush.junit.BerryCrushConfiguration;
 import org.berrycrush.junit.BerryCrushScenarios;
+import org.berrycrush.junit.BerryCrushSpec;
 import org.berrycrush.junit.BerryCrushTags;
 import org.berrycrush.spring.BerryCrushContextConfiguration;
 import org.junit.platform.suite.api.IncludeEngines;
@@ -38,10 +39,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @BerryCrushContextConfiguration
 @BerryCrushScenarios(locations = {"scenarios/85-feature-and-tags.scenario"})
-@BerryCrushConfiguration(
-    bindings = PetstoreBindings.class,
-    openApiSpec = "petstore.yaml"
-)
+@BerryCrushSpec(paths = {"petstore.yaml"})
+@BerryCrushConfiguration(bindings = PetstoreBindings.class)
 @BerryCrushTags(exclude = {"ignore"})
 public class TagFilteringTest {
     // Test class body is empty - scenarios are discovered and executed by the berrycrush engine

@@ -1,5 +1,6 @@
 package org.berrycrush.samples.tictactoe
 
+import org.berrycrush.config.OpenApiSpecValue
 import org.berrycrush.junit.BerryCrushBindings
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.context.annotation.Lazy
@@ -22,8 +23,6 @@ class TicTacToeBindings : BerryCrushBindings {
 
     override fun getBindings(): Map<String, Any> =
         mapOf(
-            "baseUrl" to "http://localhost:$port",
+            BerryCrushBindings.DEFAULT_BINDING_NAME to OpenApiSpecValue.of("openapi/tictactoe.yaml", "http://localhost:$port"),
         )
-
-    override fun getOpenApiSpec(): String = "openapi/tictactoe.yaml"
 }

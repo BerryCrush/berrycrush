@@ -742,10 +742,8 @@ Register step classes in ``@BerryCrushConfiguration``:
 
 .. code-block:: java
 
-    @BerryCrushConfiguration(
-        openApiSpec = "petstore.yaml",
-        stepClasses = {PetstoreSteps.class}
-    )
+    @BerryCrushSpec(paths = {"petstore.yaml"})
+    @BerryCrushConfiguration(stepClasses = {PetstoreSteps.class})
     public class PetstoreScenarioTest {}
 
 Custom Assertions
@@ -797,10 +795,8 @@ Register assertion classes in ``@BerryCrushConfiguration``:
 
 .. code-block:: java
 
-    @BerryCrushConfiguration(
-        openApiSpec = "petstore.yaml",
-        assertionClasses = {PetstoreAssertions.class}
-    )
+    @BerryCrushSpec(paths = {"petstore.yaml"})
+    @BerryCrushConfiguration(assertionClasses = {PetstoreAssertions.class})
     public class PetstoreScenarioTest {}
 
 Best Practices

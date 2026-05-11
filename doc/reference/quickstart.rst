@@ -131,15 +131,14 @@ Create a bindings class to provide configuration:
 
 .. code-block:: kotlin
 
+    import org.berrycrush.config.OpenApiSpecValue
+    import org.berrycrush.junit.BerryCrushBindings
+
     class PetStoreBindings : BerryCrushBindings {
         override fun getBindings(): Map<String, Any> {
             return mapOf(
-                "baseUrl" to "http://localhost:8080"
+                "default" to OpenApiSpecValue("petstore.yaml", "http://localhost:8080")
             )
-        }
-
-        override fun getOpenApiSpec(): String? {
-            return "petstore.yaml"
         }
     }
 
@@ -150,11 +149,12 @@ Create your JUnit 5 test class:
 
 .. code-block:: kotlin
 
-    import org.berrycrush.berrycrush.junit.*
+    import org.berrycrush.junit.*
     import org.junit.platform.suite.api.IncludeEngines
 
     @IncludeEngines("berrycrush")
-    @BerryCrushScenarios(locations = "scenarios/pet-api.scenario")
+    @BerryCrushScenarios(locations = ["scenarios/pet-api.scenario"])
+    @BerryCrushSpec(paths = ["petstore.yaml"])
     @BerryCrushConfiguration(bindings = PetStoreBindings::class)
     class PetApiTest
 

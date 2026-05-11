@@ -4,17 +4,52 @@ import kotlin.annotation.AnnotationRetention
 import kotlin.annotation.AnnotationTarget
 
 /**
- * Annotation to specify OpenAPI spec(s) for a BerryCrush test class.
+ * Container annotation for multiple [BerryCrushSpec] annotations.
  *
- * @property paths Paths to OpenAPI specification files
- * @property baseUrl Base URL override for API requests
+ * This is automatically used when multiple `@BerryCrushSpec` annotations
+ * are applied to a single class.
+ *
+ * @property value Array of BerryCrushSpec annotations
  */
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 @MustBeDocumented
+annotation class BerryCrushSpecs(
+    vararg val value: BerryCrushSpec,
+)
+
+/**
+ * Annotation to specify OpenAPI spec(s) for a BerryCrush test class.
+ *
+ * Multiple specs can be defined using repeatable annotations:
+ *
+ * ```kotlin
+ * @BerryCrushSpec(paths = ["petstore.yaml"], name = "default")
+ * @BerryCrushSpec(paths = ["auth.yaml"], name = "auth")
+ * class MyTest
+ * ```
+ *
+ * For simple cases with a single spec:
+ * ```kotlin
+ * @BerryCrushSpec("petstore.yaml")
+ * class MyTest
+ * ```
+ *
+ * The spec with `name = "default"` is treated as the primary spec.
+ * If no spec is explicitly named "default", the first spec is used as default.
+ *
+ * @property paths Paths to OpenAPI specification files
+ * @property baseUrl Base URL override for API requests
+ * @property name Unique name for this spec. Default is "default" for the primary spec.
+ */
+@Target(AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.RUNTIME)
+@MustBeDocumented
+@Repeatable
 annotation class BerryCrushSpec(
     vararg val paths: String = [],
     val baseUrl: String = "",
+    val name: String = "default",
 )
 
 /**

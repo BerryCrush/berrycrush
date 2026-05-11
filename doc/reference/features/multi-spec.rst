@@ -8,23 +8,30 @@ test different API versions.
 Configuring Multiple Specs
 --------------------------
 
-Default Spec
-^^^^^^^^^^^^
+Using @BerryCrushSpec Annotation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The primary spec is configured via ``getOpenApiSpec()`` in your bindings class:
+The simplest way to configure specs is using the ``@BerryCrushSpec`` annotation:
 
 .. code-block:: kotlin
 
-    class MyBindings : BerryCrushBindings {
-        override fun getOpenApiSpec(): String? {
-            return "petstore.yaml"  // Default spec
-        }
-    }
+    @BerryCrushSpec(paths = ["petstore.yaml"])
+    @BerryCrushConfiguration(bindings = MyBindings::class)
+    class MyTest
 
-Additional Named Specs
-^^^^^^^^^^^^^^^^^^^^^^
+For multiple specs, use repeatable annotations:
 
-To register additional specs, override the ``getAdditionalSpecs()`` method:
+.. code-block:: kotlin
+
+    @BerryCrushSpec(paths = ["petstore.yaml"], name = "default")
+    @BerryCrushSpec(paths = ["auth.yaml"], name = "auth")
+    @BerryCrushConfiguration(bindings = MyBindings::class)
+    class MyTest
+
+Using getBindings() Method
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For dynamic configuration (e.g., runtime ports), use ``OpenApiSpecValue`` in ``getBindings()``:
 
 .. code-block:: java
 
@@ -37,19 +44,10 @@ To register additional specs, override the ``getAdditionalSpecs()`` method:
         
         @Override
         public Map<String, Object> getBindings() {
-            return Map.of("baseUrl", "http://localhost:" + port + "/api/v1");
-        }
-        
-        @Override
-        public String getOpenApiSpec() {
-            return "petstore.yaml";  // Default spec for pet operations
-        }
-        
-        @Override
-        public Map<String, String> getAdditionalSpecs() {
+            String host = "http://localhost:" + port;
             return Map.of(
-                "auth", "auth.yaml",       // Authentication APIs
-                "admin", "admin.yaml"      // Admin APIs
+                "default", new OpenApiSpecValue("petstore.yaml", host + "/api/v1"),
+                "auth", new OpenApiSpecValue("auth.yaml", host + "/auth/api/v1")
             );
         }
     }
@@ -186,12 +184,12 @@ Multi-Host API Testing
 ----------------------
 
 In microservices environments, different APIs often run on different hosts or ports.
-BerryCrush supports this through per-spec base URL configuration.
+BerryCrush supports this through per-spec base URL configuration via ``getBindings()``.
 
 Configuring Per-Spec Base URLs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Override ``getSpecBaseUrls()`` in your bindings to provide different base URLs for each spec:
+Use ``OpenApiSpecValue`` in ``getBindings()`` to provide different base URLs for each spec:
 
 .. code-block:: java
 
@@ -209,24 +207,11 @@ Override ``getSpecBaseUrls()`` in your bindings to provide different base URLs f
         private String inventoryHost;
         
         @Override
-        public String getOpenApiSpec() {
-            return "petstore.yaml";
-        }
-        
-        @Override
-        public Map<String, String> getAdditionalSpecs() {
+        public Map<String, Object> getBindings() {
             return Map.of(
-                "auth", "auth.yaml",
-                "inventory", "inventory.yaml"
-            );
-        }
-        
-        @Override
-        public Map<String, String> getSpecBaseUrls() {
-            return Map.of(
-                "default", petstoreHost,
-                "auth", authHost,
-                "inventory", inventoryHost
+                "default", new OpenApiSpecValue("petstore.yaml", petstoreHost),
+                "auth", new OpenApiSpecValue("auth.yaml", authHost),
+                "inventory", new OpenApiSpecValue("inventory.yaml", inventoryHost)
             );
         }
     }

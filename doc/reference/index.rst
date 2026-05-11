@@ -59,11 +59,9 @@ Quick Example
 .. code-block:: kotlin
 
     @IncludeEngines("berrycrush")
-    @BerryCrushScenarios(locations = "scenarios/pet-api.scenario")
-    @BerryCrushConfiguration(
-        bindings = PetStoreBindings::class,
-        openApiSpec = "petstore.yaml"
-    )
+    @BerryCrushScenarios(locations = ["scenarios/pet-api.scenario"])
+    @BerryCrushSpec(paths = ["petstore.yaml"])
+    @BerryCrushConfiguration(bindings = PetStoreBindings::class)
     class PetApiTest
 
 Scenario file (``pet-api.scenario``):

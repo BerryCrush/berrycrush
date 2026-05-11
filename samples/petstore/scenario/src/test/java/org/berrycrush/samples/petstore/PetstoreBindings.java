@@ -1,6 +1,7 @@
 package org.berrycrush.samples.petstore;
 
 import org.berrycrush.config.BerryCrushConfiguration;
+import org.berrycrush.config.OpenApiSpecValue;
 import org.berrycrush.junit.BerryCrushBindings;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Lazy;
@@ -36,36 +37,19 @@ public class PetstoreBindings implements BerryCrushBindings {
     @LocalServerPort
     private int port;
 
-    @Override
-    public Map<String, Object> getBindings() {
-        // Don't set global baseUrl here - use getSpecBaseUrls() for per-spec URLs
-        // Setting baseUrl here would override all per-spec URLs
-        return Map.of();
-    }
-
-    @Override
-    public String getOpenApiSpec() {
-        return "petstore.yaml";
-    }
-
-    @Override
-    public Map<String, String> getAdditionalSpecs() {
-        return Map.of("auth", "auth.yaml");
-    }
-
     /**
-     * Provide per-spec base URLs for multi-host API testing.
+     * Provide bindings for multi-host API testing.
      * <p>
      * The petstore API is at /api/v1 while the auth API is at /auth/api/v1.
      * This demonstrates different base URLs for different specs within
      * the same test suite - simulating a microservices architecture.
      */
     @Override
-    public Map<String, String> getSpecBaseUrls() {
+    public Map<String, Object> getBindings() {
         String host = "http://localhost:" + port;
         return Map.of(
-            "default", host + "/api/v1",      // Pet API
-            "auth", host + "/auth/api/v1"     // Auth API (different path prefix)
+            "default", new OpenApiSpecValue("petstore.yaml", host + "/api/v1"),
+            "auth", new OpenApiSpecValue("auth.yaml", host + "/auth/api/v1")
         );
     }
 

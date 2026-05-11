@@ -26,7 +26,6 @@ import org.springframework.boot.test.context.SpringBootTest
 @BerryCrushScenarios(locations = ["scenarios/*.scenario"])
 @BerryCrushConfiguration(
     bindings = TicTacToeBindings::class,
-    openApiSpec = "openapi/tictactoe.yaml",
     plugins = ["report:console"],
 )
 @BerryCrushSpec(paths = ["openapi/tictactoe.yaml"])

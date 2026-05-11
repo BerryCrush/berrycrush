@@ -75,13 +75,8 @@ Create a Spring-managed bindings class:
         @Override
         public Map<String, Object> getBindings() {
             return Map.of(
-                "baseUrl", "http://localhost:" + port + "/api/v1"
+                "default", new OpenApiSpecValue("my-api.yaml", "http://localhost:" + port + "/api/v1")
             );
-        }
-        
-        @Override
-        public String getOpenApiSpec() {
-            return "my-api.yaml";
         }
     }
 
@@ -95,7 +90,7 @@ Create a Spring-managed bindings class:
 Multi-Spec Support
 ------------------
 
-For APIs with multiple OpenAPI specs:
+For APIs with multiple OpenAPI specs, use ``OpenApiSpecValue`` in ``getBindings()``:
 
 .. code-block:: java
 
@@ -108,21 +103,11 @@ For APIs with multiple OpenAPI specs:
         
         @Override
         public Map<String, Object> getBindings() {
+            String host = "http://localhost:" + port;
             return Map.of(
-                "baseUrl", "http://localhost:" + port + "/api/v1"
-            );
-        }
-        
-        @Override
-        public String getOpenApiSpec() {
-            return "petstore.yaml";  // Default spec
-        }
-        
-        @Override
-        public Map<String, String> getAdditionalSpecs() {
-            return Map.of(
-                "auth", "auth.yaml",    // Authentication APIs
-                "admin", "admin.yaml"   // Admin APIs
+                "default", new OpenApiSpecValue("petstore.yaml", host + "/api/v1"),
+                "auth", new OpenApiSpecValue("auth.yaml", host + "/auth/api/v1"),
+                "admin", new OpenApiSpecValue("admin.yaml", host + "/admin/api/v1")
             );
         }
     }
