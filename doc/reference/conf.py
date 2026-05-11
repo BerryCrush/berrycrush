@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.abspath('../sphinx/_extensions'))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'BerryCrush'
-copyright = '2026, Takashi Kato'
+copyright = '2026, BerryCrush Authors'
 author = 'Takashi Kato'
 
 # -- Dynamic version configuration -------------------------------------------
@@ -95,10 +95,19 @@ try:
         'collapse_navigation': False,
         'sticky_navigation': True,
         'includehidden': True,
+        'logo_only': False,
+        'prev_next_buttons_location': 'bottom',
+        'style_external_links': True,
     }
 except ImportError:
     html_theme = 'alabaster'
     html_theme_options = {}
+
+# Project home link
+html_context = {
+    'display_home': True,
+    'home_url': 'https://berrycrush.org',
+}
 
 html_static_path = ['_static']
 

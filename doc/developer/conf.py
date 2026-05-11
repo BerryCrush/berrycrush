@@ -49,6 +49,15 @@ html_theme_options = {
     'navigation_depth': 3,
     'collapse_navigation': False,
     'sticky_navigation': True,
+    'logo_only': False,
+    'prev_next_buttons_location': 'bottom',
+    'style_external_links': True,
+}
+
+# Project home link
+html_context = {
+    'display_home': True,
+    'home_url': 'https://berrycrush.org',
 }
 
 # Custom sidebar templates
