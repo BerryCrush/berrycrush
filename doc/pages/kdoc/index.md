@@ -8,11 +8,11 @@ The BerryCrush API documentation is generated from Kotlin source code using [Dok
 
 Select a module to view its API documentation:
 
-| Module | Description | Link |
-|--------|-------------|------|
-| :material-cube-outline: **Core** | The core BDD execution engine with OpenAPI integration. Contains: Lexer, Parser, Executor, Step Definitions, Assertions | [:octicons-arrow-right-24: Core API](https://doc.berrycrush.org/kdoc/core/) |
-| :material-test-tube: **JUnit** | JUnit 5 Platform integration for running BerryCrush tests. Contains: Test Engine, Annotations, Extensions | [:octicons-arrow-right-24: JUnit API](https://doc.berrycrush.org/kdoc/junit/) |
-| :material-leaf: **Spring** | Spring Boot auto-configuration and integration. Contains: Auto-Configuration, Context Helpers | [:octicons-arrow-right-24: Spring API](https://doc.berrycrush.org/kdoc/spring/) |
+| Module | Description |
+|--------|-------------|
+| :material-cube-outline: [**Core**](core/) | The core BDD execution engine with OpenAPI integration. Contains: Lexer, Parser, Executor, Step Definitions, Assertions |
+| :material-test-tube: [**JUnit**](junit/) | JUnit 5 Platform integration for running BerryCrush tests. Contains: Test Engine, Annotations, Extensions |
+| :material-leaf: [**Spring**](spring/) | Spring Boot auto-configuration and integration. Contains: Auto-Configuration, Context Helpers |
 
 ## Using the API
 

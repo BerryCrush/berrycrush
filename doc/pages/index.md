@@ -8,17 +8,17 @@ Welcome to the BerryCrush documentation. BerryCrush is an OpenAPI-driven BDD tes
 
 | Section | Description |
 |---------|-------------|
-| [:material-book-open-variant: **User Reference**](https://doc.berrycrush.org/manual/) | Complete user documentation with tutorials, feature guides, and best practices |
-| [:material-code-tags: **Developer Guide**](https://doc.berrycrush.org/developer/) | Architecture documentation, contributing guidelines, and internal design |
-| [:material-api: **API Reference (KDoc)**](kdoc/index.md) | Kotlin API documentation generated from source code comments |
+| [:material-book-open-variant: **User Reference**](manual/) | Complete user documentation with tutorials, feature guides, and best practices |
+| [:material-code-tags: **Developer Guide**](developer/) | Architecture documentation, contributing guidelines, and internal design |
+| [:material-api: **API Reference (KDoc)**](kdoc/) | Kotlin API documentation generated from source code comments |
 
 ## Quick Links
 
 | Resource | Description |
 |----------|-------------|
-| [Getting Started](https://doc.berrycrush.org/manual/quickstart.html) | Start writing your first BerryCrush test |
-| [Scenario Syntax](https://doc.berrycrush.org/manual/features/scenario-syntax.html) | Complete syntax reference |
-| [Spring Boot Integration](https://doc.berrycrush.org/manual/features/spring-boot.html) | Using BerryCrush with Spring Boot |
+| [Getting Started](manual/quickstart.html) | Start writing your first BerryCrush test |
+| [Scenario Syntax](manual/features/scenario-syntax.html) | Complete syntax reference |
+| [Spring Boot Integration](manual/features/spring-boot.html) | Using BerryCrush with Spring Boot |
 | [VS Code Extension](https://vscode.berrycrush.org) | IDE support for VS Code |
 | [IntelliJ Plugin](https://intellij.berrycrush.org) | IDE support for IntelliJ IDEA |
 
