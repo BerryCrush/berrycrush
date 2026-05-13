@@ -29,7 +29,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
-      - name: Download artifact
+      - name: Download new version artifact
         uses: actions/download-artifact@v4
         with:
           name: ${{ inputs.artifact-name }}
@@ -42,40 +42,58 @@ jobs:
           sparse-checkout: doc/templates
           path: _src
           
-      - name: Fetch existing content from Pages
+      - name: Download existing docs from Pages
         run: |
           PAGES_URL="https://doc.berrycrush.org"
           
           echo "Fetching existing content from $PAGES_URL..."
           
-          # Download the entire existing site
+          # Download the entire existing site with all assets
           mkdir -p _existing
           wget --recursive \
+               --level=10 \
                --no-parent \
                --no-host-directories \
                --directory-prefix="_existing" \
+               --page-requisites \
                --reject="robots.txt" \
-               --quiet \
-               "$PAGES_URL/" 2>/dev/null || echo "Note: wget completed (some files may not exist)"
+               --timeout=30 \
+               --tries=3 \
+               --wait=0.1 \
+               "$PAGES_URL/" 2>&1 | tail -30 || echo "wget completed"
           
-          # Remove the version we're about to deploy (will be replaced with new content)
+          # Fix filenames with query strings (e.g., file.js?v=xxx -> file.js)
+          echo "Fixing filenames with query strings..."
+          find _existing -name "*\?*" -type f | while read file; do
+            newname=$(echo "$file" | sed 's/\?.*$//')
+            if [ "$file" != "$newname" ]; then
+              echo "  Renaming: $file -> $newname"
+              mv "$file" "$newname"
+            fi
+          done
+          
+          # Show what was downloaded
+          echo ""
+          echo "Downloaded content:"
+          find _existing -type f | head -30
+          echo "..."
+          echo "Total files: $(find _existing -type f | wc -l)"
+          
+          # Remove the version we're about to deploy (will be replaced)
           if [ -d "_existing/${{ inputs.version }}" ]; then
             echo "Removing old version ${{ inputs.version }} (will be replaced)"
             rm -rf "_existing/${{ inputs.version }}"
           fi
           
-          echo "Existing content summary:"
-          if [ -d "_existing" ]; then
-            for dir in _existing/*/; do
-              if [ -d "$dir" ]; then
-                name=$(basename "$dir")
-                count=$(find "$dir" -type f 2>/dev/null | wc -l)
-                echo "  $name: $count files"
-              fi
-            done
-          else
-            echo "  (no existing content)"
-          fi
+          echo ""
+          echo "Versions to preserve:"
+          for dir in _existing/*/; do
+            if [ -d "$dir" ]; then
+              name=$(basename "$dir")
+              count=$(find "$dir" -type f 2>/dev/null | wc -l)
+              echo "  $name: $count files"
+            fi
+          done
           
       - name: Prepare site structure
         run: |
@@ -84,17 +102,17 @@ jobs:
             echo "Using existing content as base..."
             mv _existing _site
           else
-            echo "Creating fresh site structure..."
+            echo "No existing content found - fresh deployment"
             mkdir -p _site
           fi
           
-          # Add/replace the new version
+          # Add the new version (removing old if exists)
           echo "Adding version: ${{ inputs.version }}"
           rm -rf "_site/${{ inputs.version }}" 2>/dev/null || true
           mkdir -p "_site/${{ inputs.version }}"
           cp -r _docs/* "_site/${{ inputs.version }}/"
           
-          echo "Final site structure:"
+          echo "Site structure:"
           for dir in _site/*/; do
             if [ -d "$dir" ]; then
               name=$(basename "$dir")
@@ -145,7 +163,7 @@ jobs:
           pip install mkdocs mkdocs-material
           cd _src/doc/templates
           mkdocs build
-          # Copy landing page files
+          # Copy landing page files (don't overwrite version directories)
           cp _site/index.html $GITHUB_WORKSPACE/_site/
           cp -r _site/assets $GITHUB_WORKSPACE/_site/ 2>/dev/null || true
           cp _site/sitemap.xml $GITHUB_WORKSPACE/_site/ 2>/dev/null || true
