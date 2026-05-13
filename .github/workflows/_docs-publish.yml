@@ -42,67 +42,66 @@ jobs:
           sparse-checkout: doc/templates
           path: _src
           
-      - name: Fetch existing versions from Pages
+      - name: Fetch existing content from Pages
         run: |
-          mkdir -p _existing
           PAGES_URL="https://doc.berrycrush.org"
           
-          echo "Fetching version list from $PAGES_URL..."
+          echo "Fetching existing content from $PAGES_URL..."
           
-          # Try to fetch the index page
-          if curl -sf "$PAGES_URL/" -o /tmp/index.html; then
-            echo "Index page found, extracting version links..."
-            # Extract version directories from links (e.g., href="1.0.0/" or href="nightly/")
-            VERSIONS=$(grep -oP 'href="([0-9]+\.[0-9]+\.[0-9]+|nightly)/"' /tmp/index.html | grep -oP '[0-9]+\.[0-9]+\.[0-9]+|nightly' | sort -u || true)
-            echo "Found versions: $VERSIONS"
-            
-            # Download each version's content
-            for v in $VERSIONS; do
-              if [ "$v" != "${{ inputs.version }}" ]; then
-                echo "Downloading version $v..."
-                mkdir -p "_existing/$v"
-                # Use wget to recursively download
-                wget -q -r -np -nH --cut-dirs=1 -P "_existing/$v" "$PAGES_URL/$v/" 2>/dev/null || echo "  Warning: Could not fully download $v"
-              fi
-            done
-            
-            # Also try to download /current if it exists
-            if curl -sf "$PAGES_URL/current/" > /dev/null 2>&1; then
-              mkdir -p "_existing/current"
-              wget -q -np -nH --cut-dirs=1 -P "_existing/current" "$PAGES_URL/current/index.html" 2>/dev/null || true
-            fi
-          else
-            echo "No existing index page found - this appears to be a fresh deployment"
+          # Download the entire existing site
+          mkdir -p _existing
+          wget --recursive \
+               --no-parent \
+               --no-host-directories \
+               --directory-prefix="_existing" \
+               --reject="robots.txt" \
+               --quiet \
+               "$PAGES_URL/" 2>/dev/null || echo "Note: wget completed (some files may not exist)"
+          
+          # Remove the version we're about to deploy (will be replaced with new content)
+          if [ -d "_existing/${{ inputs.version }}" ]; then
+            echo "Removing old version ${{ inputs.version }} (will be replaced)"
+            rm -rf "_existing/${{ inputs.version }}"
           fi
           
-          echo "Existing content:"
-          ls -la _existing/ || echo "  (empty)"
+          echo "Existing content summary:"
+          if [ -d "_existing" ]; then
+            for dir in _existing/*/; do
+              if [ -d "$dir" ]; then
+                name=$(basename "$dir")
+                count=$(find "$dir" -type f 2>/dev/null | wc -l)
+                echo "  $name: $count files"
+              fi
+            done
+          else
+            echo "  (no existing content)"
+          fi
           
       - name: Prepare site structure
         run: |
-          mkdir -p _site
-          
-          # Copy existing versions
+          # Start with existing content as base
           if [ -d "_existing" ] && [ "$(ls -A _existing 2>/dev/null)" ]; then
-            echo "Copying existing versions..."
-            for item in _existing/*/; do
-              if [ -d "$item" ]; then
-                name=$(basename "$item")
-                if [ "$name" != "${{ inputs.version }}" ]; then
-                  echo "  Copying $name..."
-                  cp -r "$item" "_site/"
-                fi
-              fi
-            done
+            echo "Using existing content as base..."
+            mv _existing _site
+          else
+            echo "Creating fresh site structure..."
+            mkdir -p _site
           fi
           
-          # Add new version
+          # Add/replace the new version
           echo "Adding version: ${{ inputs.version }}"
+          rm -rf "_site/${{ inputs.version }}" 2>/dev/null || true
           mkdir -p "_site/${{ inputs.version }}"
           cp -r _docs/* "_site/${{ inputs.version }}/"
           
-          echo "Site structure:"
-          ls -la _site/
+          echo "Final site structure:"
+          for dir in _site/*/; do
+            if [ -d "$dir" ]; then
+              name=$(basename "$dir")
+              count=$(find "$dir" -type f 2>/dev/null | wc -l)
+              echo "  $name: $count files"
+            fi
+          done
           
       - name: Update /current redirect
         if: inputs.set-current
