@@ -38,6 +38,7 @@ jobs:
       - name: Checkout for templates
         uses: actions/checkout@v4
         with:
+          ref: main
           sparse-checkout: doc/templates
           path: _src
           
@@ -46,7 +47,18 @@ jobs:
         with:
           ref: gh-pages
           path: _existing
+          fetch-depth: 1
         continue-on-error: true
+        
+      - name: Debug existing versions
+        run: |
+          echo "Checking for existing versions..."
+          if [ -d "_existing" ]; then
+            echo "Found _existing directory:"
+            ls -la _existing/ || echo "Empty or error"
+          else
+            echo "WARNING: _existing directory not found - existing versions will be lost!"
+          fi
           
       - name: Prepare site structure
         run: |
@@ -54,11 +66,13 @@ jobs:
           
           # Copy existing versions if they exist
           if [ -d "_existing" ]; then
+            echo "Copying existing versions from gh-pages..."
             for dir in _existing/*/; do
               if [ -d "$dir" ]; then
                 dirname=$(basename "$dir")
                 # Skip if it's the version we're deploying
                 if [ "$dirname" != "${{ inputs.version }}" ]; then
+                  echo "  Copying $dirname..."
                   cp -r "$dir" "_site/"
                 fi
               fi
@@ -66,11 +80,19 @@ jobs:
             # Copy root files if they exist
             [ -f "_existing/index.html" ] && cp "_existing/index.html" "_site/" || true
             [ -d "_existing/current" ] && cp -r "_existing/current" "_site/" || true
+            echo "Existing versions copied:"
+            ls -la _site/
+          else
+            echo "WARNING: No existing versions found - deploying only ${{ inputs.version }}"
           fi
           
           # Copy new version docs
+          echo "Adding new version: ${{ inputs.version }}"
           mkdir -p _site/${{ inputs.version }}
           cp -r _docs/* _site/${{ inputs.version }}/
+          
+          echo "Final site structure:"
+          ls -la _site/
           
       - name: Update /current redirect
         if: inputs.set-current
@@ -86,12 +108,14 @@ jobs:
           # Build version list as Markdown table
           VERSION_TABLE_FILE=$(mktemp)
           echo "| Version | Status |" > "$VERSION_TABLE_FILE"
-          echo "|----|-------|" >> "$VERSION_TABLE_FILE"
+          echo "|---------|--------|" >> "$VERSION_TABLE_FILE"
           for v in $VERSIONS; do
             if [ "$v" = "nightly" ]; then
-              echo "| [:octicons-arrow-right-24: nightly]($v/) | :material-weather-night: Latest |" >> "$VERSION_TABLE_FILE"
+              echo "| [**nightly**]($v/) | :material-weather-night: Latest build |" >> "$VERSION_TABLE_FILE"
+            elif [ "$v" = "current" ]; then
+              continue  # Skip the redirect directory
             else
-              echo "| [:octicons-arrow-right-24: $v]($v/) | |" >> "$VERSION_TABLE_FILE"
+              echo "| [$v]($v/) | |" >> "$VERSION_TABLE_FILE"
             fi
           done
           
