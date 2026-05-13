@@ -35,63 +35,73 @@ jobs:
           name: ${{ inputs.artifact-name }}
           path: _docs
           
-      - name: Checkout for templates
+      - name: Checkout main for templates
         uses: actions/checkout@v4
         with:
           ref: main
           sparse-checkout: doc/templates
           path: _src
           
-      - name: Checkout gh-pages for existing versions
-        uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-          path: _existing
-          fetch-depth: 1
-        continue-on-error: true
-        
-      - name: Debug existing versions
+      - name: Fetch existing versions from Pages
         run: |
-          echo "Checking for existing versions..."
-          if [ -d "_existing" ]; then
-            echo "Found _existing directory:"
-            ls -la _existing/ || echo "Empty or error"
+          mkdir -p _existing
+          PAGES_URL="https://doc.berrycrush.org"
+          
+          echo "Fetching version list from $PAGES_URL..."
+          
+          # Try to fetch the index page
+          if curl -sf "$PAGES_URL/" -o /tmp/index.html; then
+            echo "Index page found, extracting version links..."
+            # Extract version directories from links (e.g., href="1.0.0/" or href="nightly/")
+            VERSIONS=$(grep -oP 'href="([0-9]+\.[0-9]+\.[0-9]+|nightly)/"' /tmp/index.html | grep -oP '[0-9]+\.[0-9]+\.[0-9]+|nightly' | sort -u || true)
+            echo "Found versions: $VERSIONS"
+            
+            # Download each version's content
+            for v in $VERSIONS; do
+              if [ "$v" != "${{ inputs.version }}" ]; then
+                echo "Downloading version $v..."
+                mkdir -p "_existing/$v"
+                # Use wget to recursively download
+                wget -q -r -np -nH --cut-dirs=1 -P "_existing/$v" "$PAGES_URL/$v/" 2>/dev/null || echo "  Warning: Could not fully download $v"
+              fi
+            done
+            
+            # Also try to download /current if it exists
+            if curl -sf "$PAGES_URL/current/" > /dev/null 2>&1; then
+              mkdir -p "_existing/current"
+              wget -q -np -nH --cut-dirs=1 -P "_existing/current" "$PAGES_URL/current/index.html" 2>/dev/null || true
+            fi
           else
-            echo "WARNING: _existing directory not found - existing versions will be lost!"
+            echo "No existing index page found - this appears to be a fresh deployment"
           fi
+          
+          echo "Existing content:"
+          ls -la _existing/ || echo "  (empty)"
           
       - name: Prepare site structure
         run: |
           mkdir -p _site
           
-          # Copy existing versions if they exist
-          if [ -d "_existing" ]; then
-            echo "Copying existing versions from gh-pages..."
-            for dir in _existing/*/; do
-              if [ -d "$dir" ]; then
-                dirname=$(basename "$dir")
-                # Skip if it's the version we're deploying
-                if [ "$dirname" != "${{ inputs.version }}" ]; then
-                  echo "  Copying $dirname..."
-                  cp -r "$dir" "_site/"
+          # Copy existing versions
+          if [ -d "_existing" ] && [ "$(ls -A _existing 2>/dev/null)" ]; then
+            echo "Copying existing versions..."
+            for item in _existing/*/; do
+              if [ -d "$item" ]; then
+                name=$(basename "$item")
+                if [ "$name" != "${{ inputs.version }}" ]; then
+                  echo "  Copying $name..."
+                  cp -r "$item" "_site/"
                 fi
               fi
             done
-            # Copy root files if they exist
-            [ -f "_existing/index.html" ] && cp "_existing/index.html" "_site/" || true
-            [ -d "_existing/current" ] && cp -r "_existing/current" "_site/" || true
-            echo "Existing versions copied:"
-            ls -la _site/
-          else
-            echo "WARNING: No existing versions found - deploying only ${{ inputs.version }}"
           fi
           
-          # Copy new version docs
-          echo "Adding new version: ${{ inputs.version }}"
-          mkdir -p _site/${{ inputs.version }}
-          cp -r _docs/* _site/${{ inputs.version }}/
+          # Add new version
+          echo "Adding version: ${{ inputs.version }}"
+          mkdir -p "_site/${{ inputs.version }}"
+          cp -r _docs/* "_site/${{ inputs.version }}/"
           
-          echo "Final site structure:"
+          echo "Site structure:"
           ls -la _site/
           
       - name: Update /current redirect
@@ -103,7 +113,8 @@ jobs:
       - name: Create root index with version selector
         run: |
           # Find all versions
-          VERSIONS=$(ls -d _site/*/ 2>/dev/null | xargs -n 1 basename | grep -v current | sort -rV || echo "")
+          VERSIONS=$(find _site -maxdepth 1 -type d \( -name "[0-9]*" -o -name "nightly" \) | xargs -n 1 basename 2>/dev/null | sort -rV || echo "")
+          echo "Versions for index: $VERSIONS"
           
           # Build version list as Markdown table
           VERSION_TABLE_FILE=$(mktemp)
@@ -112,14 +123,12 @@ jobs:
           for v in $VERSIONS; do
             if [ "$v" = "nightly" ]; then
               echo "| [**nightly**]($v/) | :material-weather-night: Latest build |" >> "$VERSION_TABLE_FILE"
-            elif [ "$v" = "current" ]; then
-              continue  # Skip the redirect directory
             else
               echo "| [$v]($v/) | |" >> "$VERSION_TABLE_FILE"
             fi
           done
           
-          # Inject version list into markdown template using awk
+          # Inject version list into markdown template
           awk -v table="$(cat "$VERSION_TABLE_FILE")" '
             /<!-- VERSION_LIST -->/ { print table; next }
             { print }
@@ -137,7 +146,10 @@ jobs:
           pip install mkdocs mkdocs-material
           cd _src/doc/templates
           mkdocs build
-          cp -r _site/* $GITHUB_WORKSPACE/_site/
+          # Copy landing page files
+          cp _site/index.html $GITHUB_WORKSPACE/_site/
+          cp -r _site/assets $GITHUB_WORKSPACE/_site/ 2>/dev/null || true
+          cp _site/sitemap.xml $GITHUB_WORKSPACE/_site/ 2>/dev/null || true
           
       - name: Setup Pages
         uses: actions/configure-pages@v5
