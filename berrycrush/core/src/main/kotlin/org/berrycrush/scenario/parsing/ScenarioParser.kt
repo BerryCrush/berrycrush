@@ -27,6 +27,15 @@ internal fun ParserState.parseTags(): Set<String> {
 
 /**
  * Parse a scenario definition.
+ *
+ * Scenarios can optionally have a parameters block before their steps:
+ * ```
+ * scenario: Create pet with extended timeout
+ *   parameters:
+ *     timeout: 120
+ *   when I create a pet
+ *     ...
+ * ```
  */
 internal fun ParserState.parseScenario(tags: Set<String> = emptySet()): ScenarioNode? {
     val loc = currentLocation()
@@ -40,6 +49,20 @@ internal fun ParserState.parseScenario(tags: Set<String> = emptySet()): Scenario
     val name = parseScenarioName() ?: return null
     skipNewlines()
 
+    // Check for optional scenario-level parameters
+    var parameters: ParametersNode? = null
+    if (current().type == TokenType.INDENT) {
+        advance() // consume indent
+        if (current().type == TokenType.PARAMETERS) {
+            parameters = parseParameters()
+            // After parameters, we're still inside the scenario block
+            // Steps will be parsed next
+        } else {
+            // Not a parameters block, retreat to let parseSteps handle the indent
+            retreat()
+        }
+    }
+
     val steps = parseSteps()
 
     return ScenarioNode(
@@ -48,12 +71,26 @@ internal fun ParserState.parseScenario(tags: Set<String> = emptySet()): Scenario
         isOutline = false,
         examples = null,
         tags = tags,
+        parameters = parameters,
         location = loc,
     )
 }
 
 /**
  * Parse a scenario outline with examples.
+ *
+ * Scenario outlines can optionally have a parameters block before their steps:
+ * ```
+ * outline: Create pet with different names
+ *   parameters:
+ *     timeout: 120
+ *   when I create a pet with name "<name>"
+ *     ...
+ *   examples:
+ *     | name    |
+ *     | Fluffy  |
+ *     | Buddy   |
+ * ```
  */
 internal fun ParserState.parseScenarioOutline(tags: Set<String> = emptySet()): ScenarioNode? {
     val loc = currentLocation()
@@ -67,6 +104,20 @@ internal fun ParserState.parseScenarioOutline(tags: Set<String> = emptySet()): S
     val name = parseScenarioName() ?: return null
     skipNewlines()
 
+    // Check for optional scenario-level parameters
+    var parameters: ParametersNode? = null
+    if (current().type == TokenType.INDENT) {
+        advance() // consume indent
+        if (current().type == TokenType.PARAMETERS) {
+            parameters = parseParameters()
+            // After parameters, we're still inside the scenario block
+            // Steps will be parsed next
+        } else {
+            // Not a parameters block, retreat to let parseSteps handle the indent
+            retreat()
+        }
+    }
+
     val steps = parseSteps()
     val examples = parseExamples()
 
@@ -76,6 +127,7 @@ internal fun ParserState.parseScenarioOutline(tags: Set<String> = emptySet()): S
         isOutline = true,
         examples = examples,
         tags = tags,
+        parameters = parameters,
         location = loc,
     )
 }

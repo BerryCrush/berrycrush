@@ -10,6 +10,7 @@ import org.berrycrush.scenario.SourceLocation
  * @property steps Ordered list of steps to execute
  * @property background Optional background steps run before the scenario
  * @property examples Optional example rows for scenario outline parameterization
+ * @property parameters Scenario-level parameters (merged with file and feature parameters)
  * @property sourceLocation Optional source location for error reporting
  */
 data class Scenario(
@@ -18,6 +19,7 @@ data class Scenario(
     val steps: List<Step> = emptyList(),
     val background: List<Step> = emptyList(),
     val examples: List<ExampleRow>? = null,
+    val parameters: Map<String, Any> = emptyMap(),
     val sourceLocation: SourceLocation? = null,
 ) {
     init {

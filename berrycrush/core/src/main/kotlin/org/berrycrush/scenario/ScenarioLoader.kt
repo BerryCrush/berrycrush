@@ -20,6 +20,16 @@ import org.berrycrush.model.ConditionOperator as ModelConditionOperator
 import org.berrycrush.model.LogicalOperator as ModelLogicalOperator
 
 /**
+ * Interface for loaded content that carries configuration parameters.
+ *
+ * Parameters provide configuration that is resolved at execution time.
+ * The parameter values support variable interpolation using `${variable}` syntax.
+ */
+interface HasParameters {
+    val parameters: Map<String, Any>
+}
+
+/**
  * Represents a group of scenarios within a feature block.
  *
  * @property name Feature name
@@ -32,9 +42,9 @@ data class FeatureGroup(
     val name: String,
     val scenarios: List<Scenario>,
     val tags: Set<String> = emptySet(),
-    val parameters: Map<String, Any> = emptyMap(),
+    override val parameters: Map<String, Any> = emptyMap(),
     val sourceLocation: SourceLocation? = null,
-)
+) : HasParameters
 
 /**
  * Result of loading a scenario file.
@@ -48,8 +58,8 @@ data class ScenarioFileContent(
     val scenarios: List<Scenario>,
     val features: List<FeatureGroup> = emptyList(),
     val standaloneScenarios: List<Scenario> = emptyList(),
-    val parameters: Map<String, Any> = emptyMap(),
-)
+    override val parameters: Map<String, Any> = emptyMap(),
+) : HasParameters
 
 /**
  * Loads and transforms scenario files into executable Scenario objects.
@@ -220,6 +230,7 @@ class ScenarioLoader {
     ): Scenario {
         val steps = node.steps.flatMap { transformStep(it) }
         val examples = node.examples?.map { transformExampleRow(it) }
+        val parameters = node.parameters?.values ?: emptyMap()
 
         return Scenario(
             name = node.name,
@@ -227,6 +238,7 @@ class ScenarioLoader {
             steps = steps,
             background = backgroundSteps,
             examples = examples,
+            parameters = parameters,
             sourceLocation = node.location,
         )
     }
@@ -236,18 +248,37 @@ class ScenarioLoader {
      *
      * Background steps from the feature are prepended to each scenario.
      * Feature tags are inherited by scenarios unless the scenario overrides them.
+     * Feature parameters are inherited by scenarios, with scenario parameters taking precedence.
      */
     private fun transformFeature(node: FeatureNode): List<Scenario> {
         // Transform background steps if present
         val backgroundSteps =
             node.background?.steps?.flatMap { transformStep(it) } ?: emptyList()
 
+        // Get feature-level parameters
+        val featureParams = node.parameters?.values ?: emptyMap()
+
         // Transform each scenario in the feature, prepending background steps
         return node.scenarios.map { scenarioNode ->
             // Merge feature tags with scenario tags (scenario tags take precedence)
             val mergedTags = node.tags + scenarioNode.tags
+
+            // Merge feature parameters with scenario parameters (scenario params take precedence)
+            val scenarioParams = scenarioNode.parameters?.values ?: emptyMap()
+            val mergedParams = featureParams + scenarioParams
+
+            // Create merged parameters node
+            val mergedParametersNode =
+                if (scenarioNode.parameters != null) {
+                    scenarioNode.parameters.copy(values = mergedParams)
+                } else if (mergedParams.isNotEmpty()) {
+                    ParametersNode(mergedParams, node.parameters?.location ?: scenarioNode.location)
+                } else {
+                    null
+                }
+
             transformScenario(
-                scenarioNode.copy(tags = mergedTags),
+                scenarioNode.copy(tags = mergedTags, parameters = mergedParametersNode),
                 backgroundSteps,
             )
         }
