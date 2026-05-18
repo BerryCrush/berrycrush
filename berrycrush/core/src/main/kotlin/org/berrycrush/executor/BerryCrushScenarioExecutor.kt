@@ -103,6 +103,30 @@ class BerryCrushScenarioExecutor(
         sourceFile: java.io.File? = null,
         executionListener: BerryCrushExecutionListener? = null,
     ): ScenarioResult {
+        // If scenario has configuration-affecting parameters, delegate to a modified executor
+        if (scenario.parameters.isNotEmpty()) {
+            val modifiedConfig = configuration.withParameters(scenario.parameters)
+            // Only create new executor if configuration actually changed
+            if (modifiedConfig != configuration) {
+                val modifiedExecutor =
+                    BerryCrushScenarioExecutor(
+                        specRegistry,
+                        modifiedConfig,
+                        pluginRegistry,
+                        fragmentRegistry,
+                        stepRegistry,
+                        assertionRegistry,
+                    )
+                // Execute with modified executor but clear scenario parameters to avoid recursion
+                return modifiedExecutor.execute(
+                    scenario.copy(parameters = emptyMap()),
+                    sharedContext,
+                    sourceFile,
+                    executionListener,
+                )
+            }
+        }
+
         // Set the listener for this execution (thread-local for concurrent safety)
         val listener = executionListener ?: BerryCrushExecutionListener.NOOP
         currentExecutionListener.set(listener)
@@ -113,6 +137,12 @@ class BerryCrushScenarioExecutor(
 
             val startTime = Instant.now()
             val context = sharedContext?.createChild() ?: ExecutionContext()
+
+            // Store scenario parameters in context for variable resolution
+            for ((key, value) in scenario.parameters) {
+                context["param.$key"] = value
+            }
+
             val scenarioContext = ScenarioContextAdapter(scenario, context, startTime, sourceFile)
 
             pluginRegistry?.dispatchScenarioStart(scenarioContext)

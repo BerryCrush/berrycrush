@@ -283,4 +283,140 @@ class ScenarioLoaderTest {
         assertEquals("custom-value", content.parameters["header.X-Custom"])
         assertEquals(true, content.parameters["logRequests"])
     }
+
+    // =========================================================================
+    // Scenario-Level Parameters Tests
+    // =========================================================================
+
+    @Test
+    fun `should load scenario with parameters`() {
+        val source =
+            """
+            |scenario: Create pet with custom config
+            |  parameters:
+            |    timeout: 120
+            |    retries: 3
+            |  when I create a pet
+            |    call ^createPet
+            """.trimMargin()
+
+        val scenarios = loader.loadScenariosFromString(source)
+
+        assertEquals(1, scenarios.size)
+        val scenario = scenarios[0]
+        assertEquals("Create pet with custom config", scenario.name)
+        assertEquals(2, scenario.parameters.size)
+        assertEquals(120L, scenario.parameters["timeout"])
+        assertEquals(3L, scenario.parameters["retries"])
+    }
+
+    @Test
+    fun `should load scenario without parameters`() {
+        val source =
+            """
+            |scenario: Simple scenario
+            |  when I list pets
+            |    call ^listPets
+            """.trimMargin()
+
+        val scenarios = loader.loadScenariosFromString(source)
+
+        assertEquals(1, scenarios.size)
+        assertTrue(scenarios[0].parameters.isEmpty())
+    }
+
+    @Test
+    fun `should merge feature and scenario parameters`() {
+        val source =
+            """
+            |feature: Pet management
+            |  parameters:
+            |    environment: staging
+            |    timeout: 30
+            |  
+            |  scenario: Create with overridden timeout
+            |    parameters:
+            |      timeout: 120
+            |    when I create a pet
+            |      call ^createPet
+            """.trimMargin()
+
+        val scenarios = loader.loadScenariosFromString(source)
+
+        assertEquals(1, scenarios.size)
+        val scenario = scenarios[0]
+        // Scenario should have merged parameters (scenario overrides feature)
+        assertEquals(2, scenario.parameters.size)
+        assertEquals("staging", scenario.parameters["environment"])
+        assertEquals(120L, scenario.parameters["timeout"])
+    }
+
+    @Test
+    fun `should inherit feature parameters when scenario has no parameters`() {
+        val source =
+            """
+            |feature: Pet management
+            |  parameters:
+            |    timeout: 60
+            |    environment: production
+            |  
+            |  scenario: List pets
+            |    when I list pets
+            |      call ^listPets
+            """.trimMargin()
+
+        val scenarios = loader.loadScenariosFromString(source)
+
+        assertEquals(1, scenarios.size)
+        val scenario = scenarios[0]
+        assertEquals(2, scenario.parameters.size)
+        assertEquals(60L, scenario.parameters["timeout"])
+        assertEquals("production", scenario.parameters["environment"])
+    }
+
+    @Test
+    fun `should load scenario outline with parameters`() {
+        val source =
+            """
+            |outline: Test with configs
+            |  parameters:
+            |    timeout: 90
+            |  when I create pet "<name>"
+            |    call ^createPet
+            |      name: "<name>"
+            |  examples:
+            |    | name   |
+            |    | Fluffy |
+            |    | Buddy  |
+            """.trimMargin()
+
+        val scenarios = loader.loadScenariosFromString(source)
+
+        assertEquals(1, scenarios.size)
+        val scenario = scenarios[0]
+        assertEquals(90L, scenario.parameters["timeout"])
+        assertNotNull(scenario.examples)
+        assertEquals(2, scenario.examples!!.size)
+    }
+
+    @Test
+    fun `should preserve feature groups with parameters`() {
+        val source =
+            """
+            |feature: Pet API
+            |  parameters:
+            |    baseUrl: "https://api.example.com"
+            |  
+            |  scenario: Create pet
+            |    when I create a pet
+            |      call ^createPet
+            """.trimMargin()
+
+        val content = loader.loadFileContentFromString(source)
+
+        assertEquals(1, content.features.size)
+        val featureGroup = content.features[0]
+        assertEquals("Pet API", featureGroup.name)
+        assertEquals("https://api.example.com", featureGroup.parameters["baseUrl"])
+    }
 }

@@ -2344,4 +2344,121 @@ class ParserTest {
         // Tokens are joined with single spaces - whitespace is normalized
         assertEquals("total equals 100", assertions[0].getCustomPattern())
     }
+
+    // =========================================================================
+    // Scenario-Level Parameters Tests
+    // =========================================================================
+
+    @Test
+    fun `should parse scenario with parameters block`() {
+        val source =
+            """
+            scenario: Create pet with custom timeout
+              parameters:
+                timeout: 120
+                retries: 3
+              when I create a pet
+                call ^createPet
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val scenario = result.ast!!.scenarios[0]
+        assertNotNull(scenario.parameters, "Scenario should have parameters")
+        assertEquals(2, scenario.parameters!!.values.size)
+        assertEquals(120L, scenario.parameters!!.values["timeout"])
+        assertEquals(3L, scenario.parameters!!.values["retries"])
+    }
+
+    @Test
+    fun `should parse scenario outline with parameters block`() {
+        val source =
+            """
+            outline: Test with various configs
+              parameters:
+                timeout: 60
+              when I create pet "<name>"
+                call ^createPet
+                  name: "<name>"
+              examples:
+                | name   |
+                | Fluffy |
+                | Buddy  |
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val scenario = result.ast!!.scenarios[0]
+        assertTrue(scenario.isOutline)
+        assertNotNull(scenario.parameters)
+        assertEquals(60L, scenario.parameters!!.values["timeout"])
+        assertNotNull(scenario.examples)
+        assertEquals(2, scenario.examples!!.size)
+    }
+
+    @Test
+    fun `should parse scenario without parameters block`() {
+        val source =
+            """
+            scenario: Simple scenario
+              when I list pets
+                call ^listPets
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val scenario = result.ast!!.scenarios[0]
+        assertTrue(scenario.parameters == null, "Scenario should not have parameters")
+    }
+
+    @Test
+    fun `should parse parameters with variable references`() {
+        val source =
+            """
+            scenario: Use environment variable
+              parameters:
+                apiKey: "${'$'}{env.API_KEY}"
+                baseUrl: "https://${'$'}{env.HOST}/api"
+              when I authenticate
+                call ^authenticate
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val scenario = result.ast!!.scenarios[0]
+        assertNotNull(scenario.parameters)
+        assertEquals("\${env.API_KEY}", scenario.parameters!!.values["apiKey"])
+        assertEquals("https://\${env.HOST}/api", scenario.parameters!!.values["baseUrl"])
+    }
+
+    @Test
+    fun `should parse feature with scenario-level parameters`() {
+        val source =
+            """
+            feature: Pet management
+              parameters:
+                environment: staging
+              
+              scenario: Create with feature timeout
+                parameters:
+                  timeout: 120
+                when I create a pet
+                  call ^createPet
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val feature = result.ast!!.features[0]
+        assertNotNull(feature.parameters)
+        assertEquals("staging", feature.parameters!!.values["environment"])
+
+        val scenario = feature.scenarios[0]
+        assertNotNull(scenario.parameters)
+        assertEquals(120L, scenario.parameters!!.values["timeout"])
+    }
 }

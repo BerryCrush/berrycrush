@@ -22,6 +22,142 @@ scenarios or fragments:
      when I call the API
        call ^listPets
 
+Scenario-Level Parameters
+=========================
+
+Parameters can also be defined at the scenario level to override settings for
+individual scenarios. This is useful when different scenarios require different
+configurations.
+
+Syntax
+------
+
+Place the ``parameters:`` block immediately after the scenario declaration, before
+the steps:
+
+.. code-block:: berrycrush
+
+   scenario: Create pet with extended timeout
+     parameters:
+       timeout: 120
+       retries: 3
+     when I create a pet
+       call ^createPet
+         body: {"name": "Fluffy"}
+       assert status 201
+
+This also works with scenario outlines:
+
+.. code-block:: berrycrush
+
+   outline: Test with various configurations
+     parameters:
+       timeout: 90
+     when I get pet "<name>"
+       call ^getPetById
+         petId: "<id>"
+       assert status 200
+     examples:
+       | name   | id |
+       | Fluffy | 1  |
+       | Buddy  | 2  |
+
+Feature-Level Parameters
+========================
+
+When using features to group scenarios, you can define parameters at the feature
+level. These parameters are inherited by all scenarios in the feature.
+
+Syntax
+------
+
+Place the ``parameters:`` block immediately after the feature declaration:
+
+.. code-block:: berrycrush
+
+   feature: Pet Management API
+     parameters:
+       environment: staging
+       timeout: 60
+
+     scenario: Create a pet
+       when I create a pet
+         call ^createPet
+       assert status 201
+
+     scenario: List all pets
+       when I list pets
+         call ^listPets
+       assert status 200
+
+Parameter Inheritance
+=====================
+
+Parameters follow a hierarchical inheritance model:
+
+1. **File-level parameters** - Apply to all scenarios in the file
+2. **Feature-level parameters** - Apply to all scenarios in the feature
+3. **Scenario-level parameters** - Apply to a specific scenario
+
+Lower levels override higher levels. For example:
+
+.. code-block:: berrycrush
+
+   parameters:
+     timeout: 30
+     environment: development
+
+   feature: Pet Management
+     parameters:
+       timeout: 60
+       # environment inherited from file
+
+     scenario: Quick operation
+       # timeout = 60 (from feature)
+       # environment = development (from file)
+       when I list pets
+         call ^listPets
+
+     scenario: Slow operation with override
+       parameters:
+         timeout: 120
+       # timeout = 120 (from scenario, overrides feature)
+       # environment = development (from file)
+       when I create multiple pets
+         call ^batchCreate
+
+Variable References in Parameters
+=================================
+
+Parameter values can include variable references using the ``${...}`` syntax:
+
+.. code-block:: berrycrush
+
+   scenario: Use environment variables
+     parameters:
+       apiKey: "${env.API_KEY}"
+       baseUrl: "https://${env.HOST}/api"
+     when I authenticate
+       call ^authenticate
+         header.X-Api-Key: {{apiKey}}
+
+Supported variable reference patterns:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Pattern
+     - Description
+   * - ``${env.VAR_NAME}``
+     - Environment variable
+   * - ``${context.variableName}``
+     - Variable from execution context
+   * - ``${param.paramName}``
+     - Reference to another parameter
+   * - ``${variableName}``
+     - Shorthand for context variable
+
 Supported Parameters
 --------------------
 

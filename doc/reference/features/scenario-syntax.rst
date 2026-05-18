@@ -505,6 +505,46 @@ In this example:
 * "valid login" has tags: ``api``, ``regression``, ``smoke``
 * "incomplete test" has tags: ``api``, ``regression``, ``ignore``
 
+Scenario-Level Parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Individual scenarios can have their own parameters block:
+
+.. code-block:: berrycrush
+
+    scenario: Create pet with extended timeout
+      parameters:
+        timeout: 120
+        retries: 3
+      when I create a pet
+        call ^createPet
+          body: {"name": "Fluffy"}
+      then pet is created
+        assert status 201
+
+Feature-level parameters are inherited by scenarios:
+
+.. code-block:: berrycrush
+
+    feature: Pet Management
+      parameters:
+        environment: staging
+        timeout: 60
+
+      scenario: Quick operation
+        # Inherits timeout=60, environment=staging
+        when I list pets
+          call ^listPets
+
+      scenario: Slow operation
+        parameters:
+          timeout: 120
+        # Overrides timeout to 120, inherits environment=staging
+        when I perform bulk operation
+          call ^bulkCreate
+
+See :doc:`parameters` for complete details on parameter inheritance and variable references.
+
 Parameterized Scenarios (Outline)
 ---------------------------------
 

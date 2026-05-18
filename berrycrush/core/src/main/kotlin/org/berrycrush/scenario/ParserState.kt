@@ -36,6 +36,15 @@ class ParserState(
     }
 
     /**
+     * Retreat to the previous token.
+     * Used when we need to "unread" a token after peeking ahead.
+     */
+    fun retreat(): Token {
+        if (pos > 0) pos--
+        return tokens[pos]
+    }
+
+    /**
      * Check if we've reached the end of input.
      */
     fun isAtEnd(): Boolean = pos >= tokens.size || tokens[pos].type == TokenType.EOF
