@@ -3,9 +3,11 @@
 # =============================================================================
 # This scenario file demonstrates:
 # - Feature-level parameters: block inside feature
+# - Scenario-level parameters: block inside scenario
 # - shareVariablesAcrossScenarios scoped to feature
 # - Variable isolation between features
 # - Parameter inheritance and override
+# - Dynamic parameter values with variable references
 
 # -----------------------------------------------------------------------------
 # Feature with shareVariablesAcrossScenarios - variables shared within feature
@@ -65,6 +67,34 @@ feature: Independent Pet Tests
       call ^listPets
     then: I see the list
       assert status 200
+
+# -----------------------------------------------------------------------------
+# Scenario-level parameters with dynamic values
+# -----------------------------------------------------------------------------
+
+feature: Pet Tests with Parameter Hierarchy
+  # Feature-level parameters - inherited by all scenarios
+  parameters:
+    environment: test
+    timeout: 30
+
+  scenario: Quick pet listing
+    # Inherits environment=test and timeout=30 from feature
+    when: I quickly list pets
+      call ^listPets
+    then: pets listed
+      assert status 200
+
+  scenario: Slow pet creation with custom timeout
+    # Override timeout for this specific scenario
+    parameters:
+      timeout: 120
+    # Now: environment=test (inherited), timeout=120 (overridden)
+    when: I create a pet slowly
+      call ^createPet
+        body: {"name": "SlowPet", "status": "available"}
+    then: pet is created
+      assert status 2xx
 
 # -----------------------------------------------------------------------------
 # Standalone scenario - uses file-level parameters (none in this case)

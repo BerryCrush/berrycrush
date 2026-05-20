@@ -8,15 +8,30 @@ sealed class AstNode {
 }
 
 /**
+ * Interface for AST nodes that can have parameters.
+ *
+ * Parameters provide configuration that can be applied at different levels:
+ * - File level: applies to all scenarios
+ * - Feature level: applies to scenarios within the feature
+ * - Scenario level: applies to a single scenario
+ *
+ * Parameters at lower levels override those at higher levels.
+ */
+interface Parameterized {
+    val parameters: ParametersNode?
+}
+
+/**
  * Root node representing a scenario file.
  */
 data class ScenarioFileNode(
     val scenarios: List<ScenarioNode>,
     val fragments: List<FragmentNode>,
     val features: List<FeatureNode> = emptyList(),
-    val parameters: ParametersNode? = null,
+    override val parameters: ParametersNode? = null,
     override val location: SourceLocation,
-) : AstNode()
+) : AstNode(),
+    Parameterized
 
 /**
  * Represents file-level configuration parameters.
@@ -59,12 +74,13 @@ data class ParametersNode(
 data class FeatureNode(
     val name: String,
     val description: String? = null,
-    val parameters: ParametersNode? = null,
+    override val parameters: ParametersNode? = null,
     val background: BackgroundNode? = null,
     val scenarios: List<ScenarioNode>,
     val tags: Set<String> = emptySet(),
     override val location: SourceLocation,
-) : AstNode()
+) : AstNode(),
+    Parameterized
 
 /**
  * Represents background steps shared across scenarios in a feature.
@@ -82,6 +98,16 @@ data class BackgroundNode(
  *
  * Scenarios can be tagged for filtering and categorization.
  * Example: @slow @wip for a slow work-in-progress scenario.
+ *
+ * Scenarios can also have parameters that override feature and file-level parameters.
+ * Example:
+ * ```
+ * scenario: Create pet with extended timeout
+ *   parameters:
+ *     timeout: 120
+ *   when I create a pet
+ *     ...
+ * ```
  */
 data class ScenarioNode(
     val name: String,
@@ -89,8 +115,10 @@ data class ScenarioNode(
     val isOutline: Boolean = false,
     val examples: List<ExampleRowNode>? = null,
     val tags: Set<String> = emptySet(),
+    override val parameters: ParametersNode? = null,
     override val location: SourceLocation,
-) : AstNode()
+) : AstNode(),
+    Parameterized
 
 /**
  * Represents a fragment (reusable step sequence).
