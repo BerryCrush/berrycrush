@@ -42,6 +42,7 @@ import java.time.Instant
 import io.swagger.v3.oas.models.media.Schema as SwaggerSchema
 
 private const val BODY_PREVIEW_LENGTH = 200
+private const val MS_PER_SECOND = 1000L
 
 private val objectMapper = ObjectMapper()
 private val schemaValidator = SchemaValidator(objectMapper)
@@ -1385,20 +1386,22 @@ class BerryCrushScenarioExecutor(
      * Parse a time value to milliseconds.
      * Supports formats: 500, "500", "500ms", "2s"
      */
-    private fun parseTimeToMs(value: Any, context: ExecutionContext): Long {
-        return when (value) {
+    private fun parseTimeToMs(
+        value: Any,
+        context: ExecutionContext,
+    ): Long =
+        when (value) {
             is Number -> value.toLong()
             is String -> {
                 val resolved = context.interpolate(value)
                 when {
                     resolved.endsWith("ms") -> resolved.dropLast(2).trim().toLongOrNull() ?: 0L
-                    resolved.endsWith("s") -> (resolved.dropLast(1).trim().toDoubleOrNull() ?: 0.0).times(1000).toLong()
+                    resolved.endsWith("s") -> (resolved.dropLast(1).trim().toDoubleOrNull() ?: 0.0).times(MS_PER_SECOND).toLong()
                     else -> resolved.toLongOrNull() ?: 0L
                 }
             }
             else -> 0L
         }
-    }
 
     /**
      * Evaluate a variable condition.
