@@ -475,8 +475,8 @@ class BerryCrushScenarioExecutor(
                 StepContextImpl(
                     executionContext = context,
                     configuration = configuration,
-                    sharedVariables = null, // FIXME: Add shared variables support
-                    sharingEnabled = false,
+                    sharedVariables = context.allVariables().toMutableMap(),
+                    sharingEnabled = configuration.shareVariablesAcrossScenarios,
                 )
 
             // Invoke the custom step method with extracted parameters and context
