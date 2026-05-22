@@ -698,6 +698,10 @@ class BerryCrushScenarioExecutor(
                 body = body,
             )
 
+        // Calculate and store response time
+        val responseTimeMs = System.currentTimeMillis() - requestStartTime
+        context.updateLastResponseTime(responseTimeMs)
+
         // Log response if enabled
         logResponse(resolvedOp.method, url, response, requestStartTime)
 
@@ -1364,16 +1368,36 @@ class BerryCrushScenarioExecutor(
 
     /**
      * Evaluate a response time condition.
-     * Note: This requires tracking request start time, which may not be available in conditional context.
+     * Compares actual response time against the specified threshold.
      */
-    @Suppress("FunctionOnlyReturningConstant", "UnusedParameter") // Placeholder for future implementation
     private fun evaluateResponseTimeCondition(
         response: HttpResponse<String>,
         condition: Condition.ResponseTime,
         context: ExecutionContext,
     ): Boolean {
-        // FIXME: Implement response time check
-        return true
+        val actualMs = context.lastResponseTimeMs ?: return true
+        val maxMs = condition.maxMs
+        val threshold = parseTimeToMs(maxMs, context)
+        return actualMs <= threshold
+    }
+
+    /**
+     * Parse a time value to milliseconds.
+     * Supports formats: 500, "500", "500ms", "2s"
+     */
+    private fun parseTimeToMs(value: Any, context: ExecutionContext): Long {
+        return when (value) {
+            is Number -> value.toLong()
+            is String -> {
+                val resolved = context.interpolate(value)
+                when {
+                    resolved.endsWith("ms") -> resolved.dropLast(2).trim().toLongOrNull() ?: 0L
+                    resolved.endsWith("s") -> (resolved.dropLast(1).trim().toDoubleOrNull() ?: 0.0).times(1000).toLong()
+                    else -> resolved.toLongOrNull() ?: 0L
+                }
+            }
+            else -> 0L
+        }
     }
 
     /**
@@ -1595,7 +1619,7 @@ class BerryCrushScenarioExecutor(
             is Condition.Header -> headerMessage(response, condition, passed)
             is Condition.BodyContains -> bodyContainsMessage(condition, passed)
             is Condition.Schema -> if (passed) "Response matches schema" else "Response does not match schema"
-            is Condition.ResponseTime -> responseTimeMessage(condition, passed)
+            is Condition.ResponseTime -> responseTimeMessage(condition, passed, context)
             is Condition.Variable -> variableMessage(condition, passed, context)
             is Condition.Negated -> negatedMessage(response, condition, passed, context)
             is Condition.Compound -> if (passed) "Compound condition passed" else "Compound condition failed"
@@ -1655,7 +1679,15 @@ class BerryCrushScenarioExecutor(
     private fun responseTimeMessage(
         condition: Condition.ResponseTime,
         passed: Boolean,
-    ): String = if (passed) "Response time is under ${condition.maxMs}ms" else "Response time exceeded ${condition.maxMs}ms"
+        context: ExecutionContext,
+    ): String {
+        val actualMs = context.lastResponseTimeMs
+        return if (passed) {
+            "Response time ${actualMs}ms is under ${condition.maxMs}"
+        } else {
+            "Response time exceeded: ${actualMs}ms > ${condition.maxMs}"
+        }
+    }
 
     private fun variableMessage(
         condition: Condition.Variable,
@@ -1702,6 +1734,7 @@ class BerryCrushScenarioExecutor(
             is Condition.Header -> response.headers().allValues(condition.name).firstOrNull()
             is Condition.BodyContains -> response.body()?.take(BODY_PREVIEW_LENGTH)
             is Condition.Variable -> context.get<Any>(condition.name)
+            is Condition.ResponseTime -> context.lastResponseTimeMs
             is Condition.Negated -> getActualValueForCondition(response, condition.condition, context)
             else -> null
         }

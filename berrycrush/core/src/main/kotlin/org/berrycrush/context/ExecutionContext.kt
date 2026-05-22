@@ -28,6 +28,14 @@ class ExecutionContext {
         private set
 
     /**
+     * The last HTTP response time in milliseconds.
+     * Set after each HTTP request completes.
+     */
+    @Volatile
+    var lastResponseTimeMs: Long? = null
+        private set
+
+    /**
      * The last response body (cached for convenience).
      */
     val lastResponseBody: String?
@@ -94,12 +102,20 @@ class ExecutionContext {
     }
 
     /**
+     * Update the last response time.
+     */
+    fun updateLastResponseTime(timeMs: Long) {
+        lastResponseTimeMs = timeMs
+    }
+
+    /**
      * Clear all variables and state.
      */
     fun clear() {
         variables.clear()
         lastResponse = null
         currentOperation = null
+        lastResponseTimeMs = null
     }
 
     /**
