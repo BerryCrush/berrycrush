@@ -17,5 +17,9 @@ gradlePlugin {
             id = "berrycrush.test-config"
             implementationClass = "BerryCrushTestConventionPlugin"
         }
+        register("jacoco-convention") {
+            id = "berrycrush.jacoco"
+            implementationClass = "JacocoConventionPlugin"
+        }
     }
 }
