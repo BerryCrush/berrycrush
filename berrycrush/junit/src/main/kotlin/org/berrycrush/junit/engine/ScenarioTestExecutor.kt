@@ -7,6 +7,7 @@ import org.berrycrush.autotest.MultiTestResult
 import org.berrycrush.config.OpenApiSpecValue
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.dsl.BerryCrushSuite
+import org.berrycrush.exception.ErrorContextConfig
 import org.berrycrush.executor.BerryCrushExecutionListener
 import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.junit.BerryCrushBindings
@@ -863,10 +864,40 @@ class ScenarioTestExecutor(
                                 .takeIf { it.isNotEmpty() }
                                 ?.joinToString("\n") { "      - ${it.message}" }
                                 ?: "      - ${step.error?.message ?: "Assertion failed"}"
-                        "$header\n$details"
+
+                        // Build HTTP context for failed steps with responses
+                        val httpContext = buildHttpContext(step)
+
+                        "$header\n$details$httpContext"
                     }.joinToString("\n")
 
             return "Scenario '$scenarioName' failed:\n$failedSteps"
+        }
+
+        /**
+         * Build HTTP response context for a failed step.
+         */
+        private fun buildHttpContext(step: org.berrycrush.model.StepResult): String {
+            val statusCode = step.statusCode ?: return ""
+            val responseBody = step.responseBody
+
+            return buildString {
+                append("\n      ━━━ HTTP Response ━━━")
+                append("\n      Status: $statusCode")
+                step.responseHeaders.forEach { (name, values) ->
+                    append("\n      $name: ${values.joinToString(", ")}")
+                }
+                if (responseBody != null) {
+                    val maxSize = ErrorContextConfig().maxBodySize
+                    val displayBody =
+                        if (responseBody.length > maxSize) {
+                            "${responseBody.take(maxSize)}... (truncated)"
+                        } else {
+                            responseBody
+                        }
+                    append("\n      Body: $displayBody")
+                }
+            }
         }
     }
 }

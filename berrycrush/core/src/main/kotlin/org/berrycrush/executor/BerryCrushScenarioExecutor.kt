@@ -5,6 +5,8 @@ import org.berrycrush.assertion.SchemaValidator
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.exception.ConfigurationException
+import org.berrycrush.exception.HttpExecutionException
+import org.berrycrush.exception.ScenarioErrorContext
 import org.berrycrush.model.Assertion
 import org.berrycrush.model.AssertionResult
 import org.berrycrush.model.BodyProperty
@@ -298,8 +300,8 @@ class BerryCrushScenarioExecutor(
         // Dispatch plugin: onStepStart
         pluginRegistry?.dispatchStepStart(stepContext)
 
-        // Execute the actual step
-        val result = executeStep(step, context)
+        // Execute the actual step with scenario context for error enrichment
+        val result = executeStep(step, context, scenarioContext, stepIndex)
 
         // Dispatch plugin: onStepEnd
         pluginRegistry?.dispatchStepEnd(stepContext, StepResultAdapter(result))
@@ -409,12 +411,14 @@ class BerryCrushScenarioExecutor(
     private fun executeStep(
         step: Step,
         context: ExecutionContext,
+        scenarioContext: ScenarioContextAdapter,
+        stepIndex: Int,
     ): StepResult {
         val stepStartTime = Instant.now()
 
         // If no operation to call, check for custom step or assertions
         return step.operationId?.let {
-            executeOperationStep(step, context, stepStartTime)
+            executeOperationStep(step, context, stepStartTime, scenarioContext, stepIndex)
         } ?: executeNonOperationStep(step, context, stepStartTime)
     }
 
@@ -555,6 +559,8 @@ class BerryCrushScenarioExecutor(
         step: Step,
         context: ExecutionContext,
         stepStartTime: Instant,
+        scenarioContext: ScenarioContextAdapter,
+        stepIndex: Int,
     ): StepResult =
         runCatching {
             // Check if this step has auto-test configuration
@@ -565,13 +571,75 @@ class BerryCrushScenarioExecutor(
                 executeHttpRequest(step, context, stepStartTime)
             }
         }.getOrElse { e ->
+            // Create enriched error context for debugging
+            val errorContext = buildScenarioErrorContext(scenarioContext, step, stepIndex)
+            val enrichedError = enrichException(e, errorContext, context)
+
             StepResult(
                 step = step,
                 status = ResultStatus.ERROR,
                 duration = Duration.between(stepStartTime, Instant.now()),
-                error = e as? Exception ?: RuntimeException(e),
+                error = enrichedError,
             )
         }
+
+    /**
+     * Build scenario error context from current execution state.
+     */
+    private fun buildScenarioErrorContext(
+        scenarioContext: ScenarioContextAdapter,
+        step: Step,
+        stepIndex: Int,
+    ): ScenarioErrorContext =
+        ScenarioErrorContext(
+            scenarioName = scenarioContext.scenarioName,
+            scenarioFile = scenarioContext.scenarioFile.toString(),
+            stepDescription = step.description,
+            stepIndex = stepIndex,
+            stepLine = step.sourceLocation?.line,
+            operationId = step.operationId,
+        )
+
+    /**
+     * Enrich an exception with scenario/step context for better debugging.
+     */
+    private fun enrichException(
+        original: Throwable,
+        errorContext: ScenarioErrorContext,
+        executionContext: ExecutionContext,
+    ): Exception {
+        // For HTTP-related exceptions, wrap with full context
+        val exception = original as? Exception ?: RuntimeException(original)
+
+        // If this is already an HttpExecutionException with context, return as-is
+        if (exception is HttpExecutionException && exception.scenarioContext != null) {
+            return exception
+        }
+
+        // Create response snapshot from context
+        val lastResponse = executionContext.lastResponse
+        val responseSnapshot =
+            lastResponse?.let { resp ->
+                org.berrycrush.plugin.HttpResponse(
+                    statusCode = resp.statusCode(),
+                    statusMessage = "",
+                    headers = resp.headers().map(),
+                    body = resp.body(),
+                    duration = Duration.ofMillis(executionContext.lastResponseTimeMs ?: 0L),
+                    timestamp = Instant.now(),
+                )
+            }
+
+        // Return enhanced exception with context
+        return HttpExecutionException(
+            url = lastResponse?.uri()?.toString() ?: "unknown",
+            method = lastResponse?.request()?.method() ?: "UNKNOWN",
+            cause = exception,
+            response = responseSnapshot,
+            scenarioContext = errorContext,
+            config = configuration.errorContextConfig,
+        )
+    }
 
     /**
      * Execute auto-test step with configured test types.

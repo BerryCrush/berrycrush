@@ -1,12 +1,14 @@
 package org.berrycrush.config
 
 import org.berrycrush.autotest.MultiTestParameters
+import org.berrycrush.exception.ErrorContextConfig
 import org.berrycrush.logging.HttpLogFormatter
 import org.berrycrush.logging.HttpLogger
 import org.berrycrush.logging.HttpLoggerFactory
 import java.time.Duration
 
 private const val DEFAULT_TIMEOUT_SECONDS = 30L
+private const val DEFAULT_MAX_ERROR_BODY_SIZE = 4096
 
 /**
  * Configuration for BerryCrush test execution.
@@ -24,6 +26,7 @@ private const val DEFAULT_TIMEOUT_SECONDS = 30L
  * @property logFormatter Custom log formatter (default: multi-line human-readable format)
  * @property multiTestSequentialCount Number of sequential requests for multi-tests
  * @property multiTestConcurrentCount Number of concurrent requests for multi-tests
+ * @property errorContextConfig Configuration for error context in exception messages
  */
 data class BerryCrushConfiguration(
     var baseUrl: String? = null,
@@ -66,6 +69,15 @@ data class BerryCrushConfiguration(
      * Default: 5
      */
     var multiTestConcurrentCount: Int = MultiTestParameters.DEFAULTS.getValue(MultiTestParameters.CONCURRENT_COUNT),
+    /**
+     * Configuration for error context in exception messages.
+     *
+     * Controls what information is included in error messages, such as:
+     * - Request/response body inclusion
+     * - Maximum body size (truncation)
+     * - Header masking for sensitive values
+     */
+    var errorContextConfig: ErrorContextConfig = ErrorContextConfig(),
 ) {
     /**
      * Get the effective HTTP logger.
@@ -91,6 +103,13 @@ data class BerryCrushConfiguration(
     }
 
     /**
+     * DSL helper to configure error context settings.
+     */
+    fun errorContext(block: ErrorContextConfig.() -> Unit) {
+        errorContextConfig = errorContextConfig.copy().apply(block)
+    }
+
+    /**
      * Create a copy of this configuration with parameters applied.
      *
      * Supports the following parameter names:
@@ -105,6 +124,9 @@ data class BerryCrushConfiguration(
      * - `header.<name>` - Add/override a default header
      * - `multiTestSequentialCount` - Number of sequential requests for multi-tests
      * - `multiTestConcurrentCount` - Number of concurrent requests for multi-tests
+     * - `errorContext.includeRequestBody` - Include request body in errors (true/false)
+     * - `errorContext.includeResponseBody` - Include response body in errors (true/false)
+     * - `errorContext.maxBodySize` - Max body size in error messages (number)
      *
      * @param parameters Map of parameter names to values
      * @return A new Configuration with parameters applied
@@ -114,52 +136,79 @@ data class BerryCrushConfiguration(
             this.copy(
                 defaultHeaders = this.defaultHeaders.toMutableMap(),
                 autoAssertions = this.autoAssertions.copy(),
+                errorContextConfig = this.errorContextConfig.copy(),
             )
 
         for ((key, value) in parameters) {
-            when {
-                key == "baseUrl" -> copy.baseUrl = value.toString()
-                key == "timeout" ->
-                    copy.timeout =
-                        when (value) {
-                            is Number -> Duration.ofSeconds(value.toLong())
-                            is String -> Duration.ofSeconds(value.toLong())
-                            else -> copy.timeout
-                        }
-                key == "environment" -> copy.environment = value.toString()
-                key == "strictSchemaValidation" -> copy.strictSchemaValidation = value.toString().toBoolean()
-                key == "followRedirects" -> copy.followRedirects = value.toString().toBoolean()
-                key == "logRequests" -> copy.logRequests = value.toString().toBoolean()
-                key == "logResponses" -> copy.logResponses = value.toString().toBoolean()
-                key == "shareVariablesAcrossScenarios" -> copy.shareVariablesAcrossScenarios = value.toString().toBoolean()
-                key == "multiTestSequentialCount" ->
-                    copy.multiTestSequentialCount =
-                        when (value) {
-                            is Number -> value.toInt()
-                            is String -> value.toIntOrNull() ?: copy.multiTestSequentialCount
-                            else -> copy.multiTestSequentialCount
-                        }
-                key == "multiTestConcurrentCount" ->
-                    copy.multiTestConcurrentCount =
-                        when (value) {
-                            is Number -> value.toInt()
-                            is String -> value.toIntOrNull() ?: copy.multiTestConcurrentCount
-                            else -> copy.multiTestConcurrentCount
-                        }
-                key.startsWith("header.") -> {
-                    val headerName = key.removePrefix("header.")
-                    copy.defaultHeaders[headerName] = value.toString()
-                }
-                // Auto assertion parameters
-                key == "autoAssertions.enabled" -> copy.autoAssertions.enabled = value.toString().toBoolean()
-                key == "autoAssertions.statusCode" -> copy.autoAssertions.statusCode = value.toString().toBoolean()
-                key == "autoAssertions.contentType" -> copy.autoAssertions.contentType = value.toString().toBoolean()
-                key == "autoAssertions.schema" -> copy.autoAssertions.schema = value.toString().toBoolean()
-            }
+            copy.applyParameter(key, value)
         }
 
         return copy
     }
+
+    private fun applyParameter(
+        key: String,
+        value: Any,
+    ) {
+        when {
+            key == "baseUrl" -> baseUrl = value.toString()
+            key == "timeout" -> timeout = parseTimeout(value)
+            key == "environment" -> environment = value.toString()
+            key == "strictSchemaValidation" -> strictSchemaValidation = value.toString().toBoolean()
+            key == "followRedirects" -> followRedirects = value.toString().toBoolean()
+            key == "logRequests" -> logRequests = value.toString().toBoolean()
+            key == "logResponses" -> logResponses = value.toString().toBoolean()
+            key == "shareVariablesAcrossScenarios" -> shareVariablesAcrossScenarios = value.toString().toBoolean()
+            key == "multiTestSequentialCount" -> multiTestSequentialCount = parseIntOrDefault(value, multiTestSequentialCount)
+            key == "multiTestConcurrentCount" -> multiTestConcurrentCount = parseIntOrDefault(value, multiTestConcurrentCount)
+            key.startsWith("header.") -> defaultHeaders[key.removePrefix("header.")] = value.toString()
+            key.startsWith("autoAssertions.") -> applyAutoAssertionParam(key, value)
+            key.startsWith("errorContext.") -> applyErrorContextParam(key, value)
+        }
+    }
+
+    private fun applyAutoAssertionParam(
+        key: String,
+        value: Any,
+    ) {
+        when (key) {
+            "autoAssertions.enabled" -> autoAssertions.enabled = value.toString().toBoolean()
+            "autoAssertions.statusCode" -> autoAssertions.statusCode = value.toString().toBoolean()
+            "autoAssertions.contentType" -> autoAssertions.contentType = value.toString().toBoolean()
+            "autoAssertions.schema" -> autoAssertions.schema = value.toString().toBoolean()
+        }
+    }
+
+    private fun applyErrorContextParam(
+        key: String,
+        value: Any,
+    ) {
+        when (key) {
+            "errorContext.includeRequestBody" ->
+                errorContextConfig = errorContextConfig.copy(includeRequestBody = value.toString().toBoolean())
+            "errorContext.includeResponseBody" ->
+                errorContextConfig = errorContextConfig.copy(includeResponseBody = value.toString().toBoolean())
+            "errorContext.maxBodySize" ->
+                errorContextConfig = errorContextConfig.copy(maxBodySize = parseIntOrDefault(value, errorContextConfig.maxBodySize))
+        }
+    }
+
+    private fun parseTimeout(value: Any): Duration =
+        when (value) {
+            is Number -> Duration.ofSeconds(value.toLong())
+            is String -> Duration.ofSeconds(value.toLong())
+            else -> timeout
+        }
+
+    private fun parseIntOrDefault(
+        value: Any,
+        default: Int,
+    ): Int =
+        when (value) {
+            is Number -> value.toInt()
+            is String -> value.toIntOrNull() ?: default
+            else -> default
+        }
 
     /**
      * Get multi-test parameters as a map for executor use.

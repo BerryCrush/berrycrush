@@ -259,4 +259,15 @@
     <Match>
         <Bug pattern="UMAC_UNCALLABLE_METHOD_OF_ANONYMOUS_CLASS"/>
     </Match>
+    
+    <!-- ========================================== -->
+    <!-- Exception context patterns                 -->
+    <!-- ========================================== -->
+    
+    <!-- Exception classes store context data that doesn't need serialization.
+         These are runtime debugging aids, not persisted state. -->
+    <Match>
+        <Bug pattern="SE_BAD_FIELD"/>
+        <Class name="~org\.berrycrush\.exception\..*Exception"/>
+    </Match>
 </FindBugsFilter>

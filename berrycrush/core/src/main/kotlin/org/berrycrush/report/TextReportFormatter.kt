@@ -32,9 +32,11 @@ import java.time.format.DateTimeFormatter
  * ```
  *
  * @property colorScheme Color scheme for terminal output. Use [ColorScheme.NONE] for plain text.
+ * @property verboseFailures When true, show detailed request/response context for failures.
  */
 class TextReportFormatter(
     private val colorScheme: ColorScheme = ColorScheme.NONE,
+    private val verboseFailures: Boolean = false,
 ) {
     companion object {
         private const val SEPARATOR = "═══════════════════════════════════════════════════════════════════════════════"
@@ -46,18 +48,23 @@ class TextReportFormatter(
         /**
          * Create a plain text formatter with no colors.
          */
-        fun plain(): TextReportFormatter = TextReportFormatter(ColorScheme.NONE)
+        fun plain(verboseFailures: Boolean = false) = TextReportFormatter(ColorScheme.NONE, verboseFailures)
 
         /**
          * Create a colored formatter with the default color scheme.
          */
-        fun colored(): TextReportFormatter = TextReportFormatter(ColorScheme.DEFAULT)
+        fun colored(verboseFailures: Boolean = false) = TextReportFormatter(ColorScheme.DEFAULT, verboseFailures)
 
         /**
          * Create a colored formatter with a custom color scheme.
          */
-        fun colored(scheme: ColorScheme): TextReportFormatter = TextReportFormatter(scheme)
+        fun colored(
+            scheme: ColorScheme,
+            verboseFailures: Boolean = false,
+        ): TextReportFormatter = TextReportFormatter(scheme, verboseFailures)
     }
+
+    private val errorFormatter = ErrorContextFormatter(colorScheme)
 
     /**
      * Format a complete test report.
@@ -159,6 +166,23 @@ class TextReportFormatter(
         if (failure != null && status == ResultStatus.FAILED) {
             appendLine("    expected: ${failure.expected}")
             appendLine("    actual: ${failure.actual}")
+
+            // Show diff if available
+            if (failure.diff != null) {
+                appendLine("    diff: ${failure.diff}")
+            }
+
+            // Show verbose details (request/response snapshots) if enabled
+            if (verboseFailures) {
+                failure.requestSnapshot?.let { req ->
+                    appendLine()
+                    append(errorFormatter.formatRequest(req).prependIndent("    "))
+                }
+                failure.responseSnapshot?.let { resp ->
+                    appendLine()
+                    append(errorFormatter.formatResponse(resp).prependIndent("    "))
+                }
+            }
         }
     }
 

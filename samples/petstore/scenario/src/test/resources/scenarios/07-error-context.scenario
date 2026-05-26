@@ -1,0 +1,163 @@
+# =============================================================================
+# Error Context Configuration
+# =============================================================================
+# This scenario file demonstrates:
+# - Error context parameters for debugging failures
+# - Controlling request/response body inclusion in errors
+# - Body size truncation for large responses
+# - How enhanced error messages help troubleshooting
+
+# -----------------------------------------------------------------------------
+# Error Context - Default settings
+# -----------------------------------------------------------------------------
+
+scenario: Default error context settings
+  # By default, error messages include:
+  # - Request body (truncated at 4096 bytes)
+  # - Response body (truncated at 4096 bytes)
+  # - Masked sensitive headers (Authorization, Cookie, etc.)
+  when: I create a pet with default error context
+    call ^createPet
+      body: {"name": "DefaultContextPet", "status": "available"}
+  then: pet is created
+    assert status 2xx
+    extract $.id => defaultPetId
+  # Clean up
+  finally: clean up
+    call ^deletePet
+      petId: {{defaultPetId}}
+
+# -----------------------------------------------------------------------------
+# Error Context - Feature-level configuration
+# -----------------------------------------------------------------------------
+
+feature: Error Context Customization Examples
+  # Customize error context at feature level
+  # These settings apply to ALL scenarios in this feature
+  parameters:
+    # Include full request/response bodies in error messages
+    errorContext.includeRequestBody: true
+    errorContext.includeResponseBody: true
+    # Truncate bodies larger than 8KB
+    errorContext.maxBodySize: 8192
+  
+  scenario: Verbose error context for debugging
+    # When this scenario fails, error messages will include
+    # full request and response details (up to 8KB)
+    when: I create a pet with verbose error context
+      call ^createPet
+        body: {"name": "VerbosePet", "status": "available"}
+    then: pet is created successfully
+      assert status 2xx
+      extract $.id => verbosePetId
+    finally: clean up
+      call ^deletePet
+        petId: {{verbosePetId}}
+
+  scenario: Test with detailed error output
+    # Useful for CI environments where you want complete context
+    when: I request a specific pet
+      call ^getPetById
+        petId: 99999
+    then: pet is not found (expected error)
+      # This will show full response body in error message if it fails
+      assert status 404
+
+# -----------------------------------------------------------------------------
+# Error Context - Minimal output for security
+# -----------------------------------------------------------------------------
+
+feature: Secure Error Context
+  # Minimal error context - exclude bodies to prevent leaking sensitive data
+  parameters:
+    errorContext.includeRequestBody: false
+    errorContext.includeResponseBody: false
+  
+  scenario: Secure operation without body logging
+    # Error messages will NOT include request/response bodies
+    # Useful when dealing with sensitive data (passwords, tokens, PII)
+    when: I create a pet without body logging
+      call ^createPet
+        body: {"name": "SecurePet", "status": "available"}
+    then: pet is created
+      assert status 2xx
+      extract $.id => securePetId
+    finally: clean up
+      call ^deletePet
+        petId: {{securePetId}}
+
+# -----------------------------------------------------------------------------
+# Error Context - Scenario-level override
+# -----------------------------------------------------------------------------
+
+feature: Error Context with Scenario Override
+  # Feature defaults
+  parameters:
+    errorContext.includeResponseBody: false
+    errorContext.maxBodySize: 1024
+  
+  scenario: Using feature defaults
+    # Uses feature-level settings: no response body, 1KB limit
+    when: I list pets
+      call ^listPets
+    then: I see pets
+      assert status 200
+
+  scenario: Override with verbose output
+    # Override feature settings for this specific scenario
+    parameters:
+      errorContext.includeResponseBody: true
+      errorContext.maxBodySize: 4096
+    when: I list pets with verbose output
+      call ^listPets
+    then: I see pets
+      assert status 200
+
+# -----------------------------------------------------------------------------
+# Error Context - Truncation example
+# -----------------------------------------------------------------------------
+
+feature: Body Truncation Demo
+  # Small max body size to demonstrate truncation
+  parameters:
+    errorContext.maxBodySize: 256
+  
+  scenario: Create pet with truncated error context
+    # If this fails, only first 256 bytes of request/response body shown
+    when: I create a pet with a long description
+      call ^createPet
+        body:
+          name: TruncationPet
+          status: available
+    then: pet is created
+      assert status 2xx
+      extract $.id => truncPetId
+    finally: clean up
+      call ^deletePet
+        petId: {{truncPetId}}
+
+# -----------------------------------------------------------------------------
+# Usage Summary
+# -----------------------------------------------------------------------------
+# 
+# Error Context Parameters:
+# 
+# | Parameter                          | Type    | Default | Description                      |
+# |------------------------------------|---------|---------|----------------------------------|
+# | errorContext.includeRequestBody    | boolean | true    | Include request body in errors   |
+# | errorContext.includeResponseBody   | boolean | true    | Include response body in errors  |
+# | errorContext.maxBodySize           | number  | 4096    | Max bytes to show (truncation)   |
+#
+# Header Masking (automatic):
+# The following headers are automatically masked in error output:
+# - Authorization
+# - Cookie / Set-Cookie  
+# - X-API-Key
+# - X-Auth-Token
+# - Bearer
+#
+# Best Practices:
+# 1. Use minimal context (no bodies) when handling sensitive data
+# 2. Use verbose context in development/debugging
+# 3. Set appropriate maxBodySize based on typical response sizes
+# 4. Feature-level defaults with scenario overrides for flexibility

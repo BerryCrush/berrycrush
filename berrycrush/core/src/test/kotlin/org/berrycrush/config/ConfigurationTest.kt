@@ -176,4 +176,60 @@ class ConfigurationTest {
 
         assertEquals("http://original.com", modified.baseUrl)
     }
+
+    @Test
+    fun `should apply error context parameters`() {
+        val config = BerryCrushConfiguration()
+        val modified =
+            config.withParameters(
+                mapOf(
+                    "errorContext.includeRequestBody" to false,
+                    "errorContext.includeResponseBody" to false,
+                    "errorContext.maxBodySize" to 1024,
+                ),
+            )
+
+        assertFalse(modified.errorContextConfig.includeRequestBody)
+        assertFalse(modified.errorContextConfig.includeResponseBody)
+        assertEquals(1024, modified.errorContextConfig.maxBodySize)
+    }
+
+    @Test
+    fun `should apply error context maxBodySize from string`() {
+        val config = BerryCrushConfiguration()
+        val modified =
+            config.withParameters(
+                mapOf("errorContext.maxBodySize" to "2048"),
+            )
+
+        assertEquals(2048, modified.errorContextConfig.maxBodySize)
+    }
+
+    @Test
+    fun `should have sensible error context defaults`() {
+        val config = BerryCrushConfiguration()
+
+        assertTrue(config.errorContextConfig.includeRequestBody)
+        assertTrue(config.errorContextConfig.includeResponseBody)
+        assertEquals(4096, config.errorContextConfig.maxBodySize)
+        assertTrue(config.errorContextConfig.maskedHeaders.contains("authorization"))
+    }
+
+    @Test
+    fun `should not modify original error context config`() {
+        val config = BerryCrushConfiguration()
+        val original = config.errorContextConfig
+
+        val modified =
+            config.withParameters(
+                mapOf("errorContext.maxBodySize" to 512),
+            )
+
+        // Original should be unchanged
+        assertEquals(4096, config.errorContextConfig.maxBodySize)
+        assertEquals(original, config.errorContextConfig)
+
+        // Modified should have new value
+        assertEquals(512, modified.errorContextConfig.maxBodySize)
+    }
 }

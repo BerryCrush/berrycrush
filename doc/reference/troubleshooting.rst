@@ -284,6 +284,127 @@ Report Not Generated
         plugins = ["report:json:build/reports/test.json"]
     )
 
+Understanding Error Messages
+----------------------------
+
+BerryCrush provides detailed error context to help diagnose test failures quickly.
+
+HTTP Execution Errors
+^^^^^^^^^^^^^^^^^^^^^
+
+When HTTP requests fail, exceptions include rich context:
+
+.. code-block:: text
+
+    HTTP request failed: POST https://api.example.com/pets
+    Cause: Connection timeout
+
+    --- Scenario Context ---
+    Scenario: Create Pet
+    File: src/test/resources/pets.scenario
+    Step: Create a new pet (line 15)
+    Operation: createPet
+
+    --- Request ---
+    POST https://api.example.com/pets
+      Content-Type: application/json
+      Authorization: [MASKED]
+
+    Request Body:
+    {"name": "Fluffy", "type": "cat"}
+
+    --- Response ---
+    Status: 500 Internal Server Error
+    Duration: 150ms
+      Content-Type: application/json
+
+    Response Body:
+    {"error": "Database connection failed"}
+
+Sensitive headers like ``Authorization``, ``Cookie``, and ``X-Api-Key`` are
+automatically masked in error output.
+
+Assertion Failures
+^^^^^^^^^^^^^^^^^^
+
+Assertion exceptions show expected vs actual values clearly:
+
+.. code-block:: text
+
+    Assertion failed for $.name [jsonpath]
+      Expected: "Fluffy"
+      Actual:   "Buddy"
+
+    Scenario: Verify Pet Name
+    Step: Check pet details (line 25)
+    Operation: getPetById
+
+    Response Status: 200 OK
+    Response Body (preview): {"id": 123, "name": "Buddy", ...}
+
+Schema Validation Errors
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Schema validation failures include the failing path and response context:
+
+.. code-block:: text
+
+    Schema validation failed at path: #/components/schemas/Pet:
+      - required property 'name' is missing
+      - property 'age' must be integer
+
+    Scenario: Create Pet
+    Operation: createPet
+
+    Response Status: 200
+    Response (preview): {"id": 123, "type": "cat"}
+
+Parse Errors
+^^^^^^^^^^^^
+
+Parse exceptions show surrounding source context:
+
+.. code-block:: text
+
+    Parse error in test.scenario at line 3, column 8: Unknown step type 'invlid'
+
+         1: Scenario: Test
+         2:   Given a user
+    >    3:   When invlid step
+         4:   Then success
+         5: End Scenario
+                ^
+
+Configuring Error Context
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Control error output through configuration:
+
+.. code-block:: kotlin
+
+    configuration {
+        // Include/exclude body content in errors
+        errorContext.includeRequestBody = true
+        errorContext.includeResponseBody = true
+
+        // Limit body size (prevents huge payloads in logs)
+        errorContext.maxBodySize = 4096  // bytes
+
+        // Additional headers to mask (case-insensitive)
+        // Default: authorization, cookie, set-cookie, x-api-key, x-auth-token
+    }
+
+Or via parameters:
+
+.. code-block:: kotlin
+
+    @BerryCrushConfiguration(
+        parameters = [
+            "errorContext.maxBodySize=1024",
+            "errorContext.includeResponseBody=false"
+        ]
+    )
+
 Getting Help
 ------------
 

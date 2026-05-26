@@ -1,11 +1,15 @@
 package org.berrycrush.junit.plugin
 
+import org.berrycrush.exception.ErrorContextConfig
 import org.berrycrush.plugin.BerryCrushPlugin
+import org.berrycrush.plugin.HttpRequest
+import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.ResultStatus
 import org.berrycrush.plugin.ScenarioContext
 import org.berrycrush.plugin.ScenarioResult
 import org.berrycrush.plugin.StepContext
 import org.berrycrush.plugin.StepResult
+import org.berrycrush.report.ErrorContextFormatter
 import org.junit.platform.engine.EngineExecutionListener
 import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.TestExecutionResult
@@ -44,14 +48,6 @@ class ConsoleOutputPlugin(
     private val listener: EngineExecutionListener? = null,
     private val scenarioDescriptor: TestDescriptor? = null,
 ) : BerryCrushPlugin {
-    companion object {
-        /**
-         * Plugin ID for console output plugin.
-         * Uses a fixed ID to enable replacement via PluginRegistry.replace().
-         */
-        const val PLUGIN_ID = "org.berrycrush.junit.console-output"
-    }
-
     override val id: String = PLUGIN_ID
     override val name: String = "Console Output"
     override val priority: Int = -50 // Run early, before report plugins
@@ -63,6 +59,8 @@ class ConsoleOutputPlugin(
         val statusCode: Int?,
         val errorMessage: String?,
         val failureMessage: String?,
+        val request: HttpRequest?,
+        val response: HttpResponse?,
     )
 
     // Collected step info per scenario
@@ -89,6 +87,8 @@ class ConsoleOutputPlugin(
                 statusCode = extractStatusCode(context),
                 errorMessage = result.error?.message,
                 failureMessage = result.failure?.message,
+                request = context.request,
+                response = context.response,
             )
         scenarioSteps[context.scenarioContext.scenarioName]?.add(stepInfo)
     }
@@ -190,14 +190,48 @@ class ConsoleOutputPlugin(
      */
     private fun buildFailureException(scenarioName: String): Throwable {
         val steps = scenarioSteps[scenarioName] ?: emptyList()
+        val formatter = ErrorContextFormatter.plain()
+        val errorConfig = ErrorContextConfig(maxBodySize = DEFAULT_ERROR_BODY_SIZE)
+
         val failedSteps =
             steps
                 .filter { it.status != ResultStatus.PASSED }
-                .joinToString("\n") { step ->
-                    "  - ${step.description}: ${step.status}" +
-                        (step.errorMessage?.let { " - $it" } ?: "") +
-                        (step.failureMessage?.let { "\n      \u2717 $it" } ?: "")
+                .joinToString("\n\n") { step ->
+                    buildString {
+                        append("  Step: ${step.description}")
+                        append("\n    Status: ${step.status}")
+
+                        step.failureMessage?.let { msg ->
+                            append("\n    $FAILURE_ICON $msg")
+                        }
+                        step.errorMessage?.let { err ->
+                            append("\n    Error: $err")
+                        }
+
+                        // Include HTTP context for failed steps
+                        if (step.status == ResultStatus.FAILED && step.response != null) {
+                            step.request?.let { req ->
+                                append("\n")
+                                append(formatter.formatRequest(req, errorConfig).prependIndent("    "))
+                            }
+                            step.response?.let { resp ->
+                                append("\n")
+                                append(formatter.formatResponse(resp, errorConfig).prependIndent("    "))
+                            }
+                        }
+                    }
                 }
         return AssertionError("Scenario '$scenarioName' failed:\n$failedSteps")
+    }
+
+    companion object {
+        /**
+         * Plugin ID for console output plugin.
+         * Uses a fixed ID to enable replacement via PluginRegistry.replace().
+         */
+        const val PLUGIN_ID = "org.berrycrush.junit.console-output"
+
+        private const val FAILURE_ICON = "\u2717"
+        private const val DEFAULT_ERROR_BODY_SIZE = 2048
     }
 }
