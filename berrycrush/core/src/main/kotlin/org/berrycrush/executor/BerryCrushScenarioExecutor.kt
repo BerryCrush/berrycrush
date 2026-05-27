@@ -1,31 +1,29 @@
 package org.berrycrush.executor
 
 import com.jayway.jsonpath.JsonPath
-import org.berrycrush.assertion.SchemaValidator
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
-import org.berrycrush.exception.ConfigurationException
 import org.berrycrush.exception.HttpExecutionException
 import org.berrycrush.exception.ScenarioErrorContext
+import org.berrycrush.executor.assertion.AssertionEngine
+import org.berrycrush.executor.assertion.DefaultAssertionEngine
+import org.berrycrush.executor.fragment.DefaultFragmentExecutor
+import org.berrycrush.executor.fragment.FragmentExecutor
+import org.berrycrush.executor.http.DefaultHttpExecutor
+import org.berrycrush.executor.http.HttpExecutor
 import org.berrycrush.model.Assertion
 import org.berrycrush.model.AssertionResult
-import org.berrycrush.model.BodyProperty
 import org.berrycrush.model.Condition
-import org.berrycrush.model.ConditionOperator
 import org.berrycrush.model.ConditionalActions
 import org.berrycrush.model.ConditionalAssertion
 import org.berrycrush.model.FragmentRegistry
-import org.berrycrush.model.LogicalOperator
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Scenario
 import org.berrycrush.model.ScenarioResult
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepResult
 import org.berrycrush.openapi.HttpMethod
-import org.berrycrush.openapi.ResolvedOperation
-import org.berrycrush.openapi.SchemaSpec
 import org.berrycrush.openapi.SpecRegistry
-import org.berrycrush.openapi.findResponse
 import org.berrycrush.plugin.PluginRegistry
 import org.berrycrush.plugin.adapter.ScenarioContextAdapter
 import org.berrycrush.plugin.adapter.ScenarioResultAdapter
@@ -36,18 +34,10 @@ import org.berrycrush.step.StepContext
 import org.berrycrush.step.StepContextImpl
 import org.berrycrush.step.StepMatch
 import org.berrycrush.step.StepRegistry
-import org.berrycrush.util.FileLoader
-import tools.jackson.databind.ObjectMapper
 import java.net.http.HttpResponse
 import java.time.Duration
 import java.time.Instant
-import io.swagger.v3.oas.models.media.Schema as SwaggerSchema
-
-private const val BODY_PREVIEW_LENGTH = 200
-private const val MS_PER_SECOND = 1000L
-
-private val objectMapper = ObjectMapper()
-private val schemaValidator = SchemaValidator(objectMapper)
+import org.berrycrush.executor.assertion.AssertionContext as ExecutorAssertionContext
 
 /**
  * Executes BDD scenarios against API endpoints.
@@ -58,6 +48,9 @@ private val schemaValidator = SchemaValidator(objectMapper)
  * @property fragmentRegistry Optional registry for reusable fragments
  * @property stepRegistry Optional registry for custom step definitions
  * @property assertionRegistry Optional registry for custom assertion definitions
+ * @property assertionEngine Engine for evaluating assertions and conditions
+ * @property httpExecutor Executor for HTTP requests
+ * @property fragmentExecutor Executor for fragment expansion
  */
 class BerryCrushScenarioExecutor(
     private val specRegistry: SpecRegistry,
@@ -66,6 +59,9 @@ class BerryCrushScenarioExecutor(
     private val fragmentRegistry: FragmentRegistry? = null,
     private val stepRegistry: StepRegistry? = null,
     private val assertionRegistry: org.berrycrush.assertion.AssertionRegistry? = null,
+    private val assertionEngine: AssertionEngine = DefaultAssertionEngine(configuration, assertionRegistry),
+    private val httpExecutor: HttpExecutor = DefaultHttpExecutor(configuration),
+    private val fragmentExecutor: FragmentExecutor = DefaultFragmentExecutor(fragmentRegistry),
 ) {
     private val httpBuilder = HttpRequestBuilder(configuration)
 
@@ -119,6 +115,8 @@ class BerryCrushScenarioExecutor(
                         fragmentRegistry,
                         stepRegistry,
                         assertionRegistry,
+                        DefaultAssertionEngine(modifiedConfig, assertionRegistry),
+                        DefaultHttpExecutor(modifiedConfig),
                     )
                 // Execute with modified executor but clear scenario parameters to avoid recursion
                 return modifiedExecutor.execute(
@@ -212,9 +210,9 @@ class BerryCrushScenarioExecutor(
             }
 
             // Inject include parameters into context before expanding
-            injectIncludeParameters(step, context)
+            fragmentExecutor.injectParameters(step, context)
 
-            val expandedSteps = expandStep(step)
+            val expandedSteps = fragmentExecutor.expand(step)
             for (expandedStep in expandedSteps) {
                 if (!continueExecution) {
                     stepResults.add(StepResult(step = expandedStep, status = ResultStatus.SKIPPED))
@@ -251,9 +249,9 @@ class BerryCrushScenarioExecutor(
             if (!continueExecution) break
 
             // Inject include parameters into context before expanding
-            injectIncludeParameters(step, context)
+            fragmentExecutor.injectParameters(step, context)
 
-            val expandedSteps = expandStep(step)
+            val expandedSteps = fragmentExecutor.expand(step)
             for (expandedStep in expandedSteps) {
                 if (!continueExecution) break
 
@@ -309,102 +307,6 @@ class BerryCrushScenarioExecutor(
         // Notify listener that step completed
         listener.onStepCompleted(step, result)
 
-        return result
-    }
-
-    /**
-     * Expand a step by resolving any fragment references.
-     *
-     * If the step references a fragment (via fragmentName), returns the steps
-     * from that fragment. Otherwise, returns a list containing just the original step.
-     *
-     * @param step The step to expand
-     * @return List of steps to execute (fragment steps or original step)
-     */
-    private fun expandStep(step: Step): List<Step> {
-        val fragmentName = step.fragmentName ?: return listOf(step)
-
-        // Look up the fragment in the registry
-        val fragment =
-            fragmentRegistry?.get(fragmentName)
-                ?: throw ConfigurationException(
-                    "Fragment '$fragmentName' not found. " +
-                        "Register it with fragmentRegistry.register() or load from a .fragment file.",
-                )
-
-        return fragment.steps
-    }
-
-    /**
-     * Inject include parameters into the execution context.
-     *
-     * When a step has include parameters, they become available as variables
-     * for interpolation in the included fragment's steps.
-     *
-     * @param step The include step with parameters
-     * @param context The execution context to inject parameters into
-     */
-    private fun injectIncludeParameters(
-        step: Step,
-        context: ExecutionContext,
-    ) {
-        if (step.includeParameters.isEmpty()) return
-
-        for ((name, value) in step.includeParameters) {
-            // Resolve any variable references in the parameter value
-            val resolvedValue = resolveParameterValue(value, context)
-            context[name] = resolvedValue
-        }
-    }
-
-    /**
-     * Resolve a parameter value, handling variable interpolation.
-     */
-    private fun resolveParameterValue(
-        value: Any,
-        context: ExecutionContext,
-    ): Any =
-        when (value) {
-            is String -> interpolateVariables(value, context)
-            else -> value
-        }
-
-    /**
-     * Simple variable interpolation for parameter values.
-     * Handles both {{variableName}} and ${variableName} patterns.
-     * The AST converts {{var}} syntax to ${var} format in ScenarioLoader.
-     */
-    private fun interpolateVariables(
-        text: String,
-        context: ExecutionContext,
-    ): Any {
-        // Check if the entire value is a single variable reference
-        // Support both {{varName}} and ${varName} patterns
-        val singleVarPatterns =
-            listOf(
-                Regex("""^\{\{(\w+)\}\}$"""),
-                Regex("""^\$\{(\w+)\}$"""),
-            )
-
-        for (pattern in singleVarPatterns) {
-            pattern.find(text)?.let { match ->
-                val varName = match.groupValues[1]
-                return context.get<Any>(varName) ?: text
-            }
-        }
-
-        // Otherwise do string interpolation for embedded variables
-        // First replace {{var}} patterns, then ${var} patterns
-        var result =
-            text.replace(Regex("""\{\{(\w+)\}\}""")) { match ->
-                val varName = match.groupValues[1]
-                context.get<Any>(varName)?.toString() ?: match.value
-            }
-        result =
-            result.replace(Regex("""\$\{(\w+)\}""")) { match ->
-                val varName = match.groupValues[1]
-                context.get<Any>(varName)?.toString() ?: match.value
-            }
         return result
     }
 
@@ -736,43 +638,15 @@ class BerryCrushScenarioExecutor(
         // Store the resolved operation for schema validation
         context.updateCurrentOperation(resolvedOp)
 
-        // Build the URL
-        val baseUrl = configuration.baseUrl ?: spec.baseUrl
-        val url =
-            httpBuilder.buildUrl(
-                baseUrl = baseUrl,
-                path = resolvedOp.path,
-                pathParams = resolveParams(step.pathParams, context),
-                queryParams = resolveParams(step.queryParams, context),
-            )
-
-        // Merge headers immutably
-        val headers = configuration.defaultHeaders + spec.defaultHeaders + step.headers
-
-        // Resolve body: prefer inline body, structured properties, or fall back to bodyFile
-        val body = resolveBody(step, context, resolvedOp)
-
-        // Log request if enabled
-        logRequest(resolvedOp.method, url, headers, body)
-
-        // Record request start time for logging
+        // Record request start time
         val requestStartTime = System.currentTimeMillis()
 
-        // Execute the HTTP request
-        val response =
-            httpBuilder.execute(
-                method = resolvedOp.method,
-                url = url,
-                headers = headers,
-                body = body,
-            )
+        // Execute the HTTP request using the HttpExecutor
+        val response = httpExecutor.execute(step, spec, resolvedOp, context)
 
         // Calculate and store response time
         val responseTimeMs = System.currentTimeMillis() - requestStartTime
         context.updateLastResponseTime(responseTimeMs)
-
-        // Log response if enabled
-        logResponse(resolvedOp.method, url, response, requestStartTime)
 
         // Update context with response
         context.updateLastResponse(response)
@@ -933,153 +807,6 @@ class BerryCrushScenarioExecutor(
             }
         }
 
-    /**
-     * Resolve the request body from either inline body, structured properties, or external file.
-     *
-     * Priority:
-     * 1. Inline body (step.body) takes precedence
-     * 2. Structured body properties (step.bodyProperties) merged with schema defaults
-     * 3. External file (step.bodyFile) is used as fallback
-     *
-     * Variable interpolation is applied to the final body content.
-     */
-    private fun resolveBody(
-        step: Step,
-        context: ExecutionContext,
-        resolvedOp: ResolvedOperation? = null,
-    ): String? {
-        // Inline body takes precedence
-        step.body?.let { return context.interpolate(it) }
-
-        // Structured body properties - generate from schema and merge
-        step.bodyProperties?.let { props ->
-            val bodyJson = generateBodyFromProperties(props, resolvedOp, context)
-            return bodyJson
-        }
-
-        // Fall back to body file
-        return step.bodyFile?.let { path ->
-            val content = FileLoader.load(path)
-            context.interpolate(content)
-        }
-    }
-
-    /**
-     * Generate JSON body from structured properties and OpenAPI schema defaults.
-     */
-    private fun generateBodyFromProperties(
-        props: Map<String, BodyProperty>,
-        resolvedOp: ResolvedOperation?,
-        context: ExecutionContext,
-    ): String {
-        // Get schema defaults from OpenAPI spec
-        val schemaDefaults = resolvedOp?.let { getSchemaDefaults(it) } ?: emptyMap()
-
-        // Merge schema defaults with user-provided properties (user wins)
-        val merged = mergeBodyProperties(schemaDefaults, props)
-
-        // Convert to JSON and interpolate variables
-        val json = bodyPropertyToJson(merged)
-        return context.interpolate(json)
-    }
-
-    /**
-     * Extract default values from OpenAPI requestBody schema.
-     */
-    private fun getSchemaDefaults(resolvedOp: ResolvedOperation): Map<String, BodyProperty> {
-        val requestBody = resolvedOp.operation.requestBody ?: return emptyMap()
-        val content = requestBody.content
-        if (content.isEmpty()) return emptyMap()
-
-        // Prefer application/json schema
-        val mediaType = content["application/json"] ?: content.values.firstOrNull() ?: return emptyMap()
-        val schema = mediaType.schema ?: return emptyMap()
-
-        return extractPropertiesFromSchemaSpec(schema)
-    }
-
-    /**
-     * Extract default properties from a SchemaSpec.
-     */
-    private fun extractPropertiesFromSchemaSpec(schema: org.berrycrush.openapi.SchemaSpec): Map<String, BodyProperty> {
-        val result = mutableMapOf<String, BodyProperty>()
-
-        schema.properties?.forEach { (name, propSchema) ->
-            val defaultValue = getSchemaSpecDefaultValue(propSchema)
-            if (defaultValue != null) {
-                result[name] = defaultValue
-            }
-        }
-
-        return result
-    }
-
-    /**
-     * Get a default value for a SchemaSpec property.
-     */
-    private fun getSchemaSpecDefaultValue(schema: org.berrycrush.openapi.SchemaSpec): BodyProperty? {
-        // Use explicit default if provided
-        schema.default?.let { return BodyProperty.Simple(it) }
-
-        // Use example if provided
-        schema.example?.let { return BodyProperty.Simple(it) }
-
-        // Generate a sensible default based on type
-        return when (schema.type) {
-            "string" -> BodyProperty.Simple("")
-            "integer", "number" -> BodyProperty.Simple(0)
-            "boolean" -> BodyProperty.Simple(false)
-            "array" -> BodyProperty.Simple(emptyList<Any>())
-            "object" -> {
-                val nestedProps = extractPropertiesFromSchemaSpec(schema)
-                if (nestedProps.isNotEmpty()) {
-                    BodyProperty.Nested(nestedProps)
-                } else {
-                    BodyProperty.Simple(emptyMap<String, Any>())
-                }
-            }
-            else -> null
-        }
-    }
-
-    /**
-     * Merge schema defaults with user-provided properties.
-     * User properties override schema defaults.
-     */
-    private fun mergeBodyProperties(
-        defaults: Map<String, BodyProperty>,
-        userProps: Map<String, BodyProperty>,
-    ): Map<String, BodyProperty> {
-        val result = defaults.toMutableMap()
-
-        userProps.forEach { (key, value) ->
-            val existing = result[key]
-            if (existing is BodyProperty.Nested && value is BodyProperty.Nested) {
-                // Deep merge nested properties
-                result[key] = BodyProperty.Nested(mergeBodyProperties(existing.properties, value.properties))
-            } else {
-                // User property overrides
-                result[key] = value
-            }
-        }
-
-        return result
-    }
-
-    /**
-     * Convert BodyProperty map to JSON string.
-     */
-    private fun bodyPropertyToJson(props: Map<String, BodyProperty>): String {
-        val jsonMap = props.mapValues { (_, prop) -> bodyPropertyToJsonValue(prop) }
-        return objectMapper.writeValueAsString(jsonMap)
-    }
-
-    private fun bodyPropertyToJsonValue(prop: BodyProperty): Any =
-        when (prop) {
-            is BodyProperty.Simple -> prop.value
-            is BodyProperty.Nested -> prop.properties.mapValues { (_, p) -> bodyPropertyToJsonValue(p) }
-        }
-
     private fun extractValues(
         response: HttpResponse<String>,
         step: Step,
@@ -1101,6 +828,48 @@ class BerryCrushScenarioExecutor(
         assertions: List<Assertion>,
         context: ExecutionContext,
     ): List<AssertionResult> = assertions.map { assertion -> runAssertion(response, assertion, context) }
+
+    /**
+     * Run a single assertion using the AssertionEngine.
+     *
+     * Delegates condition evaluation and message generation to the assertion engine,
+     * ensuring consistent behavior between `assert` and `if` conditions.
+     */
+    private fun runAssertion(
+        response: HttpResponse<String>,
+        assertion: Assertion,
+        context: ExecutionContext,
+    ): AssertionResult {
+        val assertionContext = buildAssertionContext(response, context)
+        val result = assertionEngine.evaluate(assertion.condition, assertionContext)
+
+        return AssertionResult(
+            assertion = assertion,
+            passed = result.passed,
+            message = result.message,
+            actual = result.actual,
+        )
+    }
+
+    /**
+     * Build an AssertionContext from the current execution state.
+     */
+    private fun buildAssertionContext(
+        response: HttpResponse<String>,
+        context: ExecutionContext,
+    ): ExecutorAssertionContext {
+        val headers = response.headers().map().mapValues { it.value.toList() }
+        return ExecutorAssertionContext(
+            response = response,
+            responseBody = response.body(),
+            responseHeaders = headers,
+            statusCode = response.statusCode(),
+            responseTimeMs = context.lastResponseTimeMs,
+            variables = context.allVariables(),
+            executionContext = context,
+            currentOperation = context.currentOperation,
+        )
+    }
 
     /**
      * Result of running conditional assertions.
@@ -1151,14 +920,16 @@ class BerryCrushScenarioExecutor(
         conditional: ConditionalAssertion,
         context: ExecutionContext,
     ): ConditionalRunResult {
+        val assertionContext = buildAssertionContext(response, context)
+
         // Try if branch
-        if (evaluateCondition(response, conditional.ifBranch.condition, context)) {
+        if (assertionEngine.evaluate(conditional.ifBranch.condition, assertionContext).passed) {
             return runConditionalActions(response, conditional.ifBranch.actions, context)
         }
 
         // Try else-if branches
         for (elseIfBranch in conditional.elseIfBranches) {
-            if (evaluateCondition(response, elseIfBranch.condition, context)) {
+            if (assertionEngine.evaluate(elseIfBranch.condition, assertionContext).passed) {
                 return runConditionalActions(response, elseIfBranch.actions, context)
             }
         }
@@ -1274,539 +1045,4 @@ class BerryCrushScenarioExecutor(
             )
         }
     }
-
-    /**
-     * Evaluate a condition against the response.
-     */
-    @Suppress("CyclomaticComplexMethod") // Dispatcher pattern - complexity from many condition types
-    private fun evaluateCondition(
-        response: HttpResponse<String>,
-        condition: Condition,
-        context: ExecutionContext,
-    ): Boolean =
-        when (condition) {
-            is Condition.Status -> evaluateStatusCondition(response, condition)
-            is Condition.JsonPath -> evaluateJsonPathCondition(response, condition, context)
-            is Condition.Header -> evaluateHeaderCondition(response, condition, context)
-            is Condition.Variable -> evaluateVariableCondition(condition, context)
-            is Condition.Negated -> !evaluateCondition(response, condition.condition, context)
-            is Condition.Compound -> evaluateCompoundCondition(response, condition, context)
-            is Condition.BodyContains -> evaluateBodyContainsCondition(response, condition, context)
-            is Condition.Schema -> evaluateSchemaCondition(response, context)
-            is Condition.ResponseTime -> evaluateResponseTimeCondition(response, condition, context)
-            is Condition.CustomAssertion -> evaluateCustomAssertionCondition(response, condition, context)
-            is Condition.Custom -> evaluateCustomPredicateCondition(response, condition, context)
-        }
-
-    /**
-     * Evaluate a compound condition (AND/OR).
-     */
-    private fun evaluateCompoundCondition(
-        response: HttpResponse<String>,
-        condition: Condition.Compound,
-        context: ExecutionContext,
-    ): Boolean {
-        val leftResult = evaluateCondition(response, condition.left, context)
-        return when (condition.operator) {
-            LogicalOperator.AND -> leftResult && evaluateCondition(response, condition.right, context)
-            LogicalOperator.OR -> leftResult || evaluateCondition(response, condition.right, context)
-        }
-    }
-
-    /**
-     * Evaluate a custom assertion by invoking the matching assertion from the registry.
-     */
-    private fun evaluateCustomAssertionCondition(
-        response: HttpResponse<String>,
-        condition: Condition.CustomAssertion,
-        context: ExecutionContext,
-    ): Boolean {
-        val registry = assertionRegistry ?: return false
-
-        val match = registry.findMatch(condition.pattern) ?: return false
-
-        val assertionContext =
-            org.berrycrush.assertion.AssertionContextImpl(
-                executionContext = context,
-                configuration = configuration,
-                sharedVariables = null,
-                sharingEnabled = false,
-            )
-
-        return runCatching {
-            val method = match.definition.method
-            val parameters = match.parameters.toTypedArray()
-
-            // Check if method accepts AssertionContext as last parameter
-            val methodParams = method.parameters
-            val args =
-                if (methodParams.isNotEmpty() &&
-                    methodParams.last().type.isAssignableFrom(org.berrycrush.assertion.AssertionContext::class.java)
-                ) {
-                    arrayOf(*parameters, assertionContext)
-                } else {
-                    parameters
-                }
-
-            val result = method.invoke(match.definition.instance, *args)
-
-            when (result) {
-                is org.berrycrush.assertion.AssertionResult -> result.passed
-                is Boolean -> result
-                else -> true // Assume passed if no AssertionResult returned
-            }
-        }.getOrElse { e ->
-            // Unwrap InvocationTargetException
-            val actualException =
-                when (e) {
-                    is java.lang.reflect.InvocationTargetException -> e.cause ?: e
-                    else -> e
-                }
-
-            // AssertionError means the assertion failed
-            actualException !is AssertionError
-        }
-    }
-
-    /**
-     * Evaluate a custom predicate condition (from DSL conditional).
-     */
-    private fun evaluateCustomPredicateCondition(
-        response: HttpResponse<String>,
-        condition: Condition.Custom,
-        context: ExecutionContext,
-    ): Boolean {
-        // Note: lastResponse should already be set by the executor before evaluating conditions
-        val testContext = org.berrycrush.context.MutableTestExecutionContext(context)
-        return runCatching {
-            condition.predicate(testContext)
-        }.getOrElse { false }
-    }
-
-    /**
-     * Evaluate a body contains condition.
-     */
-    private fun evaluateBodyContainsCondition(
-        response: HttpResponse<String>,
-        condition: Condition.BodyContains,
-        context: ExecutionContext,
-    ): Boolean {
-        val body = response.body() ?: ""
-        val text = resolveConditionValue(condition.text, context).toString()
-        return body.contains(text)
-    }
-
-    /**
-     * Evaluate a schema condition by validating the response against the OpenAPI schema.
-     *
-     * The schema is retrieved from the current operation's response definition based on
-     * the actual response status code.
-     */
-    private fun evaluateSchemaCondition(
-        response: HttpResponse<String>,
-        context: ExecutionContext,
-    ): Boolean {
-        val operation = context.currentOperation ?: return true // Can't validate without operation
-        val responseBody = response.body() ?: return true // Empty body passes validation
-
-        // Find the schema for this response status code
-        val schemaSpec = findResponseSchema(operation, response.statusCode()) ?: return true
-
-        // Get raw swagger schema for validation
-        @Suppress("UNCHECKED_CAST")
-        val rawSchema = schemaSpec.rawSchema as? SwaggerSchema<*> ?: return true
-
-        // Validate the response body against the schema
-        val errors = schemaValidator.validate(responseBody, rawSchema)
-        return errors.isEmpty()
-    }
-
-    /**
-     * Find the response schema for a given status code from the operation's response definitions.
-     */
-    private fun findResponseSchema(
-        operation: ResolvedOperation,
-        statusCode: Int,
-    ): SchemaSpec? {
-        val response = operation.findResponse(statusCode) ?: return null
-        return response.content
-            .values
-            .first()
-            .schema
-    }
-
-    /**
-     * Evaluate a response time condition.
-     * Compares actual response time against the specified threshold.
-     */
-    private fun evaluateResponseTimeCondition(
-        response: HttpResponse<String>,
-        condition: Condition.ResponseTime,
-        context: ExecutionContext,
-    ): Boolean {
-        val actualMs = context.lastResponseTimeMs ?: return true
-        val maxMs = condition.maxMs
-        val threshold = parseTimeToMs(maxMs, context)
-        return actualMs <= threshold
-    }
-
-    /**
-     * Parse a time value to milliseconds.
-     * Supports formats: 500, "500", "500ms", "2s"
-     */
-    private fun parseTimeToMs(
-        value: Any,
-        context: ExecutionContext,
-    ): Long =
-        when (value) {
-            is Number -> value.toLong()
-            is String -> {
-                val resolved = context.interpolate(value)
-                when {
-                    resolved.endsWith("ms") -> resolved.dropLast(2).trim().toLongOrNull() ?: 0L
-                    resolved.endsWith("s") -> (resolved.dropLast(1).trim().toDoubleOrNull() ?: 0.0).times(MS_PER_SECOND).toLong()
-                    else -> resolved.toLongOrNull() ?: 0L
-                }
-            }
-            else -> 0L
-        }
-
-    /**
-     * Evaluate a variable condition.
-     */
-    private fun evaluateVariableCondition(
-        condition: Condition.Variable,
-        context: ExecutionContext,
-    ): Boolean {
-        val actual: Any? = context.get<Any>(condition.name)
-        val expected = condition.expected
-        return evaluateOperator(actual, expected, condition.operator)
-    }
-
-    /**
-     * Shared operator evaluation logic for variable and JSON path conditions.
-     *
-     * Reduces duplication between evaluateVariableCondition and evaluateJsonPathCondition.
-     */
-    private fun evaluateOperator(
-        actual: Any?,
-        expected: Any?,
-        operator: ConditionOperator,
-    ): Boolean =
-        when (operator) {
-            ConditionOperator.EXISTS -> actual != null
-            ConditionOperator.NOT_EXISTS -> actual == null
-            ConditionOperator.EQUALS -> actual == expected || actual?.toString() == expected?.toString()
-            ConditionOperator.NOT_EQUALS -> actual != expected && actual?.toString() != expected?.toString()
-            ConditionOperator.CONTAINS ->
-                when (actual) {
-                    is String -> actual.contains(expected?.toString() ?: "")
-                    is Collection<*> -> actual.contains(expected)
-                    else -> false
-                }
-            ConditionOperator.NOT_CONTAINS ->
-                when (actual) {
-                    is String -> !actual.contains(expected?.toString() ?: "")
-                    is Collection<*> -> !actual.contains(expected)
-                    else -> true
-                }
-            ConditionOperator.MATCHES -> {
-                val pattern = expected?.toString() ?: ""
-                actual?.toString()?.matches(pattern.toRegex()) ?: false
-            }
-            ConditionOperator.GREATER_THAN -> compareAsNumbers(actual, expected) { a, e -> a > e }
-            ConditionOperator.LESS_THAN -> compareAsNumbers(actual, expected) { a, e -> a < e }
-            ConditionOperator.HAS_SIZE -> {
-                val actualSize = sizeOf(actual) ?: return false
-                val expectedSize =
-                    (expected as? Number)?.toInt()
-                        ?: expected?.toString()?.toIntOrNull()
-                        ?: return false
-                actualSize == expectedSize
-            }
-            ConditionOperator.NOT_EMPTY ->
-                when (actual) {
-                    is Collection<*> -> actual.isNotEmpty()
-                    is String -> actual.isNotEmpty()
-                    is Array<*> -> actual.isNotEmpty()
-                    else -> actual != null
-                }
-        }
-
-    /**
-     * Get the size of a collection, string, or array.
-     */
-    private fun sizeOf(value: Any?): Int? =
-        when (value) {
-            is Collection<*> -> value.size
-            is String -> value.length
-            is Array<*> -> value.size
-            else -> null
-        }
-
-    /**
-     * Compare two values as numbers using the provided comparison function.
-     * Returns false if either value cannot be converted to a number.
-     */
-    private inline fun compareAsNumbers(
-        actual: Any?,
-        expected: Any?,
-        compare: (Double, Double) -> Boolean,
-    ): Boolean {
-        val actualNum =
-            (actual as? Number)?.toDouble()
-                ?: actual?.toString()?.toDoubleOrNull()
-                ?: return false
-        val expectedNum =
-            (expected as? Number)?.toDouble()
-                ?: expected?.toString()?.toDoubleOrNull()
-                ?: return false
-        return compare(actualNum, expectedNum)
-    }
-
-    /**
-     * Evaluate a status code condition.
-     */
-    private fun evaluateStatusCondition(
-        response: HttpResponse<String>,
-        condition: Condition.Status,
-    ): Boolean {
-        val actual = response.statusCode()
-        return when (val expected = condition.expected) {
-            is Number -> actual == expected.toInt()
-            is IntRange -> actual in expected
-            is String -> {
-                // Handle patterns like "2xx", "20x", "200-299"
-                val pattern = expected.lowercase()
-                when {
-                    pattern.contains('-') -> {
-                        val (start, end) = pattern.split('-').map { it.trim().toIntOrNull() }
-                        start?.let { s -> end?.let { e -> actual in s..e } } ?: false
-                    }
-                    pattern.contains('x') -> {
-                        val regex = pattern.replace("x", "\\d").toRegex()
-                        actual.toString().matches(regex)
-                    }
-                    else -> expected.toIntOrNull()?.let { actual == it } ?: false
-                }
-            }
-            else -> false
-        }
-    }
-
-    /**
-     * Evaluate a JSON path condition.
-     */
-    private fun evaluateJsonPathCondition(
-        response: HttpResponse<String>,
-        condition: Condition.JsonPath,
-        context: ExecutionContext,
-    ): Boolean {
-        val body = response.body() ?: ""
-        val actualValue = runCatching { JsonPath.read<Any>(body, condition.path) }.getOrNull()
-        val expectedValue = condition.expected?.let { resolveConditionValue(it, context) }
-        return evaluateOperator(actualValue, expectedValue, condition.operator)
-    }
-
-    /**
-     * Evaluate a header condition.
-     */
-    private fun evaluateHeaderCondition(
-        response: HttpResponse<String>,
-        condition: Condition.Header,
-        context: ExecutionContext,
-    ): Boolean {
-        val headerValues = response.headers().allValues(condition.name)
-        val actualValue = headerValues.firstOrNull()
-        val expectedValue = condition.expected?.let { resolveConditionValue(it, context) }
-
-        return when (condition.operator) {
-            ConditionOperator.EXISTS -> headerValues.isNotEmpty()
-            ConditionOperator.NOT_EXISTS -> headerValues.isEmpty()
-            ConditionOperator.EQUALS -> actualValue == expectedValue?.toString()
-            ConditionOperator.NOT_EQUALS -> actualValue != expectedValue?.toString()
-            ConditionOperator.CONTAINS -> actualValue?.contains(expectedValue?.toString() ?: "") ?: false
-            ConditionOperator.NOT_CONTAINS -> !(actualValue?.contains(expectedValue?.toString() ?: "") ?: false)
-            ConditionOperator.MATCHES -> actualValue?.matches((expectedValue?.toString() ?: "").toRegex()) ?: false
-            ConditionOperator.GREATER_THAN, ConditionOperator.LESS_THAN,
-            ConditionOperator.HAS_SIZE, ConditionOperator.NOT_EMPTY,
-            -> false // Not applicable for headers
-        }
-    }
-
-    /**
-     * Resolve condition value, handling variable interpolation.
-     */
-    private fun resolveConditionValue(
-        value: Any,
-        context: ExecutionContext,
-    ): Any =
-        when (value) {
-            is String -> context.interpolate(value)
-            else -> value
-        }
-
-    /**
-     * Run a single assertion using the shared condition evaluation logic.
-     *
-     * This ensures that `assert status 2xx` and `if status 2xx` use the exact same
-     * evaluation logic, eliminating code duplication and potential inconsistencies.
-     */
-    private fun runAssertion(
-        response: HttpResponse<String>,
-        assertion: Assertion,
-        context: ExecutionContext,
-    ): AssertionResult {
-        // Use the shared condition evaluation
-        val passed = evaluateCondition(response, assertion.condition, context)
-
-        // Generate appropriate message based on condition type
-        val message = generateAssertionMessage(response, assertion.condition, passed, context)
-
-        // Get actual value for reporting
-        val actual = getActualValueForCondition(response, assertion.condition, context)
-
-        return AssertionResult(
-            assertion = assertion,
-            passed = passed,
-            message = message,
-            actual = actual,
-        )
-    }
-
-    /**
-     * Generate a human-readable message for an assertion result.
-     */
-    @Suppress("CyclomaticComplexMethod") // Dispatcher pattern - one branch per condition type
-    private fun generateAssertionMessage(
-        response: HttpResponse<String>,
-        condition: Condition,
-        passed: Boolean,
-        context: ExecutionContext,
-    ): String =
-        when (condition) {
-            is Condition.Status -> statusMessage(response, condition, passed)
-            is Condition.JsonPath -> jsonPathMessage(response, condition, passed, context)
-            is Condition.Header -> headerMessage(response, condition, passed)
-            is Condition.BodyContains -> bodyContainsMessage(condition, passed)
-            is Condition.Schema -> if (passed) "Response matches schema" else "Response does not match schema"
-            is Condition.ResponseTime -> responseTimeMessage(condition, passed, context)
-            is Condition.Variable -> variableMessage(condition, passed, context)
-            is Condition.Negated -> negatedMessage(response, condition, passed, context)
-            is Condition.Compound -> if (passed) "Compound condition passed" else "Compound condition failed"
-            is Condition.CustomAssertion -> customAssertionMessage(condition, passed)
-            is Condition.Custom -> if (passed) "Custom predicate passed" else "Custom predicate failed"
-        }
-
-    private fun statusMessage(
-        response: HttpResponse<String>,
-        condition: Condition.Status,
-        passed: Boolean,
-    ): String {
-        val actual = response.statusCode()
-        return if (passed) "Status code is $actual" else "Expected status ${condition.expected} but got $actual"
-    }
-
-    private fun jsonPathMessage(
-        response: HttpResponse<String>,
-        condition: Condition.JsonPath,
-        passed: Boolean,
-        context: ExecutionContext,
-    ): String {
-        val body = response.body() ?: ""
-        val actualValue = runCatching { JsonPath.read<Any>(body, condition.path) }.getOrNull()
-        val expectedValue = condition.expected?.let { resolveConditionValue(it, context) }
-        return if (passed) {
-            "${condition.path} ${condition.operator.name.lowercase()} ${expectedValue ?: ""}"
-        } else {
-            "Assertion failed at ${condition.path}\n" +
-                "  Operator: ${condition.operator.name.lowercase()}\n" +
-                "  Expected: ${expectedValue ?: "(none)"}\n" +
-                "  Actual:   $actualValue"
-        }
-    }
-
-    private fun headerMessage(
-        response: HttpResponse<String>,
-        condition: Condition.Header,
-        passed: Boolean,
-    ): String {
-        val actualValue = response.headers().allValues(condition.name).firstOrNull()
-        return if (passed) {
-            "Header ${condition.name} ${condition.operator.name.lowercase()} ${condition.expected ?: ""}"
-        } else {
-            "Header assertion failed: ${condition.name} ${condition.operator.name.lowercase()}, actual: $actualValue"
-        }
-    }
-
-    private fun bodyContainsMessage(
-        condition: Condition.BodyContains,
-        passed: Boolean,
-    ): String {
-        val text = condition.text.toString()
-        return if (passed) "Body contains '$text'" else "Body does not contain '$text'"
-    }
-
-    private fun responseTimeMessage(
-        condition: Condition.ResponseTime,
-        passed: Boolean,
-        context: ExecutionContext,
-    ): String {
-        val actualMs = context.lastResponseTimeMs
-        return if (passed) {
-            "Response time ${actualMs}ms is under ${condition.maxMs}"
-        } else {
-            "Response time exceeded: ${actualMs}ms > ${condition.maxMs}"
-        }
-    }
-
-    private fun variableMessage(
-        condition: Condition.Variable,
-        passed: Boolean,
-        context: ExecutionContext,
-    ): String {
-        val actual = context.get<Any>(condition.name)
-        return if (passed) {
-            "${condition.name} ${condition.operator.name.lowercase()} ${condition.expected}"
-        } else {
-            "Variable ${condition.name}: expected ${condition.expected}, got $actual"
-        }
-    }
-
-    private fun negatedMessage(
-        response: HttpResponse<String>,
-        condition: Condition.Negated,
-        passed: Boolean,
-        context: ExecutionContext,
-    ): String {
-        val innerMessage = generateAssertionMessage(response, condition.condition, !passed, context)
-        return if (passed) "NOT: condition was false (assertion passed)" else "Negated assertion failed: $innerMessage"
-    }
-
-    private fun customAssertionMessage(
-        condition: Condition.CustomAssertion,
-        passed: Boolean,
-    ): String = if (passed) "Custom assertion passed: ${condition.pattern}" else "Custom assertion failed: ${condition.pattern}"
-
-    /**
-     * Get the actual value from the response for a given condition type.
-     */
-    private fun getActualValueForCondition(
-        response: HttpResponse<String>,
-        condition: Condition,
-        context: ExecutionContext,
-    ): Any? =
-        when (condition) {
-            is Condition.Status -> response.statusCode()
-            is Condition.JsonPath -> {
-                val body = response.body() ?: ""
-                runCatching { JsonPath.read<Any>(body, condition.path) }.getOrNull()
-            }
-            is Condition.Header -> response.headers().allValues(condition.name).firstOrNull()
-            is Condition.BodyContains -> response.body()?.take(BODY_PREVIEW_LENGTH)
-            is Condition.Variable -> context.get<Any>(condition.name)
-            is Condition.ResponseTime -> context.lastResponseTimeMs
-            is Condition.Negated -> getActualValueForCondition(response, condition.condition, context)
-            else -> null
-        }
 }
