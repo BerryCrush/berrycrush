@@ -19,6 +19,7 @@ BerryCrush is an OpenAPI-driven BDD-style API testing library for Kotlin and Jav
    features/kotlin-dsl
    features/standalone-runner
    features/parameters
+   features/error-context
    features/plugins
    features/custom-steps
    features/reporting

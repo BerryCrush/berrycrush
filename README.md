@@ -17,6 +17,7 @@ BerryCrush enables you to write human-readable scenario files that test your RES
 - **Fragments**: Create reusable scenario steps that can be included across tests
 - **Plugin System**: Extend functionality with plugins for reporting, logging, and custom actions
 - **Custom Steps**: Define domain-specific steps via annotations, DSL, or registration API
+- **Enhanced Error Context**: Rich HTTP request/response details in assertion failures for faster debugging
 
 ## Quick Start
 
