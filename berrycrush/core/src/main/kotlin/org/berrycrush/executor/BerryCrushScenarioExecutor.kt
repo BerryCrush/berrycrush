@@ -68,10 +68,6 @@ class BerryCrushScenarioExecutor(
 ) {
     private val httpBuilder = HttpRequestBuilder(configuration)
 
-    // Current execution listener for the executing scenario
-    // Thread-local to support concurrent execution
-    private val currentExecutionListener = ThreadLocal<BerryCrushExecutionListener>()
-
     // Lazy-initialized auto-test executor - created on first use to avoid circular dependencies
     private val autoTestExecutor: AutoTestExecutor by lazy {
         AutoTestExecutor(
@@ -131,56 +127,49 @@ class BerryCrushScenarioExecutor(
             }
         }
 
-        // Set the listener for this execution (thread-local for concurrent safety)
         val listener = executionListener ?: BerryCrushExecutionListener.NOOP
-        currentExecutionListener.set(listener)
 
-        try {
-            // Notify listener that scenario is starting
-            listener.onScenarioStarting(scenario)
+        // Notify listener that scenario is starting
+        listener.onScenarioStarting(scenario)
 
-            val startTime = Instant.now()
-            val context = sharedContext?.createChild() ?: ExecutionContext()
+        val startTime = Instant.now()
+        val context = sharedContext?.createChild() ?: ExecutionContext()
 
-            // Store scenario parameters in context for variable resolution
-            for ((key, value) in scenario.parameters) {
-                context["param.$key"] = value
-            }
-
-            val scenarioContext = ScenarioContextAdapter(scenario, context, startTime, sourceFile)
-
-            pluginRegistry?.dispatchScenarioStart(scenarioContext)
-
-            val stepResults = executeAllSteps(scenario, context, scenarioContext)
-            val overallStatus = determineOverallStatus(stepResults)
-            val duration = Duration.between(startTime, Instant.now())
-
-            val scenarioResult =
-                ScenarioResult(
-                    scenario = scenario,
-                    status = overallStatus,
-                    stepResults = stepResults,
-                    startTime = startTime,
-                    duration = duration,
-                )
-
-            pluginRegistry?.dispatchScenarioEnd(scenarioContext, ScenarioResultAdapter(scenarioResult))
-
-            // Copy extracted variables back to shared context for cross-scenario sharing
-            if (sharedContext != null && scenarioResult.status == ResultStatus.PASSED) {
-                context.allVariables().forEach { (name, value) ->
-                    value?.let { sharedContext[name] = it }
-                }
-            }
-
-            // Notify listener that scenario completed
-            listener.onScenarioCompleted(scenario, scenarioResult)
-
-            return scenarioResult
-        } finally {
-            // Clean up thread-local
-            currentExecutionListener.remove()
+        // Store scenario parameters in context for variable resolution
+        for ((key, value) in scenario.parameters) {
+            context["param.$key"] = value
         }
+
+        val scenarioContext = ScenarioContextAdapter(scenario, context, startTime, sourceFile)
+
+        pluginRegistry?.dispatchScenarioStart(scenarioContext)
+
+        val stepResults = executeAllSteps(scenario, context, scenarioContext, listener)
+        val overallStatus = determineOverallStatus(stepResults)
+        val duration = Duration.between(startTime, Instant.now())
+
+        val scenarioResult =
+            ScenarioResult(
+                scenario = scenario,
+                status = overallStatus,
+                stepResults = stepResults,
+                startTime = startTime,
+                duration = duration,
+            )
+
+        pluginRegistry?.dispatchScenarioEnd(scenarioContext, ScenarioResultAdapter(scenarioResult))
+
+        // Copy extracted variables back to shared context for cross-scenario sharing
+        if (sharedContext != null && scenarioResult.status == ResultStatus.PASSED) {
+            context.allVariables().forEach { (name, value) ->
+                value?.let { sharedContext[name] = it }
+            }
+        }
+
+        // Notify listener that scenario completed
+        listener.onScenarioCompleted(scenario, scenarioResult)
+
+        return scenarioResult
     }
 
     /**
@@ -190,6 +179,7 @@ class BerryCrushScenarioExecutor(
         scenario: Scenario,
         context: ExecutionContext,
         scenarioContext: ScenarioContextAdapter,
+        listener: BerryCrushExecutionListener,
     ): List<StepResult> {
         val stepResults = mutableListOf<StepResult>()
         var stepIndex = 0
@@ -202,6 +192,7 @@ class BerryCrushScenarioExecutor(
                 stepResults,
                 stepIndex,
                 true,
+                listener,
             ) { stepIndex++ }
 
         // Execute scenario steps
@@ -222,7 +213,7 @@ class BerryCrushScenarioExecutor(
                     continue
                 }
 
-                val result = executeStepWithPlugins(expandedStep, context, scenarioContext, stepIndex++)
+                val result = executeStepWithPlugins(expandedStep, context, scenarioContext, stepIndex++, listener)
                 stepResults.add(result)
 
                 if (result.status != ResultStatus.PASSED) {
@@ -244,6 +235,7 @@ class BerryCrushScenarioExecutor(
         results: MutableList<StepResult>,
         startIndex: Int,
         initialContinue: Boolean,
+        listener: BerryCrushExecutionListener,
         onStepExecuted: () -> Unit,
     ): Boolean {
         var continueExecution = initialContinue
@@ -258,7 +250,7 @@ class BerryCrushScenarioExecutor(
             for (expandedStep in expandedSteps) {
                 if (!continueExecution) break
 
-                val result = executeStepWithPlugins(expandedStep, context, scenarioContext, startIndex)
+                val result = executeStepWithPlugins(expandedStep, context, scenarioContext, startIndex, listener)
                 results.add(result)
                 onStepExecuted()
 
@@ -288,10 +280,8 @@ class BerryCrushScenarioExecutor(
         context: ExecutionContext,
         scenarioContext: ScenarioContextAdapter,
         stepIndex: Int,
+        listener: BerryCrushExecutionListener,
     ): StepResult {
-        // Get current execution listener
-        val listener = currentExecutionListener.get() ?: BerryCrushExecutionListener.NOOP
-
         // Create step context
         val stepContext = StepContextAdapter(step, stepIndex, scenarioContext)
 
@@ -302,7 +292,7 @@ class BerryCrushScenarioExecutor(
         pluginRegistry?.dispatchStepStart(stepContext)
 
         // Execute the actual step with scenario context for error enrichment
-        val result = executeStep(step, context, scenarioContext, stepIndex)
+        val result = executeStep(step, context, scenarioContext, stepIndex, listener)
 
         // Dispatch plugin: onStepEnd
         pluginRegistry?.dispatchStepEnd(stepContext, StepResultAdapter(result))
@@ -318,12 +308,13 @@ class BerryCrushScenarioExecutor(
         context: ExecutionContext,
         scenarioContext: ScenarioContextAdapter,
         stepIndex: Int,
+        listener: BerryCrushExecutionListener,
     ): StepResult {
         val stepStartTime = Instant.now()
 
         // If no operation to call, check for custom step or assertions
         return step.operationId?.let {
-            executeOperationStep(step, context, stepStartTime, scenarioContext, stepIndex)
+            executeOperationStep(step, context, stepStartTime, scenarioContext, stepIndex, listener)
         } ?: executeNonOperationStep(step, context, stepStartTime)
     }
 
@@ -466,12 +457,13 @@ class BerryCrushScenarioExecutor(
         stepStartTime: Instant,
         scenarioContext: ScenarioContextAdapter,
         stepIndex: Int,
+        listener: BerryCrushExecutionListener,
     ): StepResult =
         runCatching {
             // Check if this step has auto-test configuration
             val autoTestConfig = step.autoTestConfig
             if (autoTestConfig != null) {
-                executeAutoTestStep(step, context, stepStartTime, autoTestConfig)
+                executeAutoTestStep(step, context, stepStartTime, autoTestConfig, listener)
             } else {
                 executeHttpRequest(step, context, stepStartTime)
             }
@@ -554,8 +546,8 @@ class BerryCrushScenarioExecutor(
         context: ExecutionContext,
         stepStartTime: Instant,
         autoTestConfig: AutoTestConfig,
+        listener: BerryCrushExecutionListener,
     ): StepResult {
-        val listener = currentExecutionListener.get() ?: BerryCrushExecutionListener.NOOP
         val hasMulti = AutoTestType.MULTI in autoTestConfig.types
         val hasInvalidOrSecurity =
             autoTestConfig.types.any {
