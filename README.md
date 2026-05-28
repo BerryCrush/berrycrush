@@ -527,6 +527,37 @@ samples/petstore/
         └── 99-delete-pet.scenario
 ```
 
+## Architecture
+
+The scenario executor uses a component-based architecture for maintainability and testability:
+
+```
+BerryCrushScenarioExecutor (Coordinator)
+    ├── AssertionEngine      # Condition evaluation & message generation
+    ├── HttpExecutor         # HTTP request execution & body resolution
+    └── FragmentExecutor     # Fragment expansion & parameter injection
+```
+
+### Components
+
+| Component | Interface | Description |
+|-----------|-----------|-------------|
+| **AssertionEngine** | `org.berrycrush.executor.assertion.AssertionEngine` | Evaluates all assertion conditions (status, headers, JSON paths, variables, response time) |
+| **HttpExecutor** | `org.berrycrush.executor.http.HttpExecutor` | Executes HTTP requests, resolves request bodies, handles variable interpolation |
+| **FragmentExecutor** | `org.berrycrush.executor.fragment.FragmentExecutor` | Expands `include` steps into fragment content, injects parameters |
+
+### Extending Components
+
+Components can be customized by implementing the interfaces and configuring the executor:
+
+```kotlin
+class CustomAssertionEngine : AssertionEngine {
+    override fun evaluate(condition: Condition, context: AssertionContext): Boolean {
+        // Custom evaluation logic
+    }
+}
+```
+
 ## Building from Source
 
 ```bash

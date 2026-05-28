@@ -3,6 +3,7 @@ package org.berrycrush.executor
 import com.jayway.jsonpath.JsonPath
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
+import org.berrycrush.context.MutableTestExecutionContext
 import org.berrycrush.exception.HttpExecutionException
 import org.berrycrush.exception.ScenarioErrorContext
 import org.berrycrush.executor.assertion.AssertionEngine
@@ -13,9 +14,11 @@ import org.berrycrush.executor.http.DefaultHttpExecutor
 import org.berrycrush.executor.http.HttpExecutor
 import org.berrycrush.model.Assertion
 import org.berrycrush.model.AssertionResult
+import org.berrycrush.model.AutoTestConfig
 import org.berrycrush.model.Condition
 import org.berrycrush.model.ConditionalActions
 import org.berrycrush.model.ConditionalAssertion
+import org.berrycrush.model.CustomAssertionDefinition
 import org.berrycrush.model.FragmentRegistry
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Scenario
@@ -550,7 +553,7 @@ class BerryCrushScenarioExecutor(
         step: Step,
         context: ExecutionContext,
         stepStartTime: Instant,
-        autoTestConfig: org.berrycrush.model.AutoTestConfig,
+        autoTestConfig: AutoTestConfig,
     ): StepResult {
         val listener = currentExecutionListener.get() ?: BerryCrushExecutionListener.NOOP
         val hasMulti = AutoTestType.MULTI in autoTestConfig.types
@@ -1002,7 +1005,7 @@ class BerryCrushScenarioExecutor(
      */
     private fun runCustomAssertions(
         response: HttpResponse<String>,
-        customAssertions: List<org.berrycrush.model.CustomAssertionDefinition>,
+        customAssertions: List<CustomAssertionDefinition>,
         context: ExecutionContext,
     ): List<AssertionResult> =
         customAssertions.map { customAssertion ->
@@ -1014,10 +1017,10 @@ class BerryCrushScenarioExecutor(
      */
     private fun runCustomAssertion(
         response: HttpResponse<String>,
-        customAssertion: org.berrycrush.model.CustomAssertionDefinition,
+        customAssertion: CustomAssertionDefinition,
         context: ExecutionContext,
     ): AssertionResult {
-        val testContext = org.berrycrush.context.MutableTestExecutionContext(context)
+        val testContext = MutableTestExecutionContext(context)
         val assertion =
             Assertion(
                 condition = Condition.CustomAssertion(customAssertion.description),
