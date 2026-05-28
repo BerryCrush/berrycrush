@@ -1,0 +1,13 @@
+scenario: test file for copilot
+  include verify_pet_by_id
+    petId: 1
+
+outline: foo
+  when I do something
+    call ^getPetById
+      petId: {{petId}}
+  examples:
+    | petId | value  |
+    | 1     | fluffy |
+
+

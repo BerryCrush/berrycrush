@@ -30,9 +30,26 @@ import kotlin.reflect.KClass
  *                            Each class must have a public no-arg constructor.
  * @property assertionPackages Array of package names to scan for assertion definition classes.
  *                             All classes in these packages with @Assertion methods will be registered.
+ * @property parallelExecution Controls how scenarios execute when JUnit parallel execution is enabled.
+ *                             - CONCURRENT: Scenarios can run in parallel (default, thread-safe)
+ *                             - SAME_THREAD: Force sequential execution for scenarios that share state
+ *
+ * ## Parallel Execution Support
+ *
+ * BerryCrush supports JUnit 5 parallel execution. Enable via `junit-platform.properties`:
+ * ```properties
+ * junit.jupiter.execution.parallel.enabled=true
+ * junit.jupiter.execution.parallel.mode.default=concurrent
+ * ```
+ *
+ * **Thread-safety guarantees:**
+ * - Each scenario gets its own [ExecutionContext] by default
+ * - All executors and components are stateless and thread-safe
+ * - Scenarios with `shareVariablesAcrossScenarios=true` should use SAME_THREAD
  *
  * @see BerryCrushSpec
  * @see BerryCrushBindings
+ * @see ParallelExecutionMode
  */
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
@@ -46,4 +63,35 @@ annotation class BerryCrushConfiguration(
     val stepPackages: Array<String> = [],
     val assertionClasses: Array<KClass<*>> = [],
     val assertionPackages: Array<String> = [],
+    val parallelExecution: ParallelExecutionMode = ParallelExecutionMode.CONCURRENT,
 )
+
+/**
+ * Execution mode for BerryCrush scenarios when JUnit parallel execution is enabled.
+ *
+ * Controls whether scenarios within a test class can run concurrently or must
+ * execute sequentially.
+ *
+ * @see BerryCrushConfiguration.parallelExecution
+ */
+enum class ParallelExecutionMode {
+    /**
+     * Scenarios can run in parallel (default).
+     *
+     * Safe when:
+     * - Each scenario uses its own [ExecutionContext]
+     * - No shared mutable state between scenarios
+     * - `shareVariablesAcrossScenarios=false` (default)
+     */
+    CONCURRENT,
+
+    /**
+     * Force sequential execution within this test class.
+     *
+     * Use when:
+     * - Scenarios share variables (`shareVariablesAcrossScenarios=true`)
+     * - External resources need exclusive access
+     * - Scenario order matters
+     */
+    SAME_THREAD,
+}

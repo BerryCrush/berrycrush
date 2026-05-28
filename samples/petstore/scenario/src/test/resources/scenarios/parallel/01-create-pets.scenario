@@ -1,0 +1,48 @@
+# Parallel Execution Demo - Create Pets
+#
+# This scenario file demonstrates parallel execution capabilities.
+# Each scenario is independent and can run concurrently with others.
+
+scenario: Create Cat (Parallel)
+  tags: parallel, create
+  when I create a cat
+    call ^createPet
+      body:
+        name: "Whiskers"
+        status: "available"
+  then the cat is created
+    assert status 201
+    assert $.name equals "Whiskers"
+
+scenario: Create Dog (Parallel)
+  tags: parallel, create
+  when I create a dog
+    call ^createPet
+      body:
+        name: "Buddy"
+        status: "available"
+  then the dog is created
+    assert status 201
+    assert $.name equals "Buddy"
+
+scenario: Create Bird (Parallel)
+  tags: parallel, create
+  when I create a bird
+    call ^createPet
+      body:
+        name: "Tweety"
+        status: "available"
+  then the bird is created
+    assert status 201
+    assert $.name equals "Tweety"
+
+scenario: Create Fish (Parallel)
+  tags: parallel, create
+  when I create a fish
+    call ^createPet
+      body:
+        name: "Nemo"
+        status: "available"
+  then the fish is created
+    assert status 201
+    assert $.name equals "Nemo"

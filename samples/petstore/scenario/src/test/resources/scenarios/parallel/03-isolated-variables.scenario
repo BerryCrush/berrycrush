@@ -1,0 +1,69 @@
+# Parallel Execution Demo - Isolated Variables
+#
+# These scenarios demonstrate isolated ExecutionContext.
+# Each scenario has its own variable scope, ensuring no interference.
+#
+# Thread Safety Note:
+# - Each scenario gets an isolated copy of ExecutionContext
+# - Variables set in one scenario don't affect others
+# - This allows safe parallel execution
+
+scenario: Create and Verify Pet 1 (Isolated Context)
+  tags: parallel, isolation
+  when I create pet one
+    call ^createPet
+      body:
+        name: "Pet-One"
+        status: "available"
+    extract $.id => petId
+  then verify my pet id is stored
+    assert $.id equals {{petId}}
+  and I can retrieve my pet
+    call ^getPetById
+      petId: {{petId}}
+    assert $.name equals "Pet-One"
+
+scenario: Create and Verify Pet 2 (Isolated Context)
+  tags: parallel, isolation
+  when I create pet two
+    call ^createPet
+      body:
+        name: "Pet-Two"
+        status: "pending"
+    extract $.id => petId
+  then verify my pet id is stored
+    assert $.id equals {{petId}}
+  and I can retrieve my pet
+    call ^getPetById
+      petId: {{petId}}
+    assert $.name equals "Pet-Two"
+
+scenario: Create and Verify Pet 3 (Isolated Context)
+  tags: parallel, isolation
+  when I create pet three
+    call ^createPet
+      body:
+        name: "Pet-Three"
+        status: "sold"
+    extract $.id => petId
+  then verify my pet id is stored
+    assert $.id equals {{petId}}
+  and I can retrieve my pet
+    call ^getPetById
+      petId: {{petId}}
+    assert $.name equals "Pet-Three"
+
+scenario: Create and Verify Pet 4 (Isolated Context)
+  tags: parallel, isolation
+  when I create pet four
+    call ^createPet
+      body:
+        name: "Pet-Four"
+        status: "available"
+    extract $.id => petId
+  then verify my pet id is stored
+    assert $.id equals {{petId}}
+  and I can retrieve my pet
+    call ^getPetById
+      petId: {{petId}}
+    assert $.name equals "Pet-Four"

@@ -3,6 +3,7 @@ package org.berrycrush.junit.engine
 import org.berrycrush.junit.BerryCrushBindings
 import org.berrycrush.junit.BerryCrushConfiguration
 import org.berrycrush.junit.BerryCrushSpec
+import org.berrycrush.junit.ParallelExecutionMode
 import org.junit.jupiter.api.Test
 import org.junit.platform.engine.UniqueId
 import kotlin.test.assertEquals
@@ -32,6 +33,23 @@ class BerryCrushConfigurationTest {
         assertEquals(null, descriptor.bindingsClass)
         assertEquals(null, descriptor.openApiSpec)
         assertEquals(30_000L, descriptor.timeout)
+        assertEquals(ParallelExecutionMode.CONCURRENT, descriptor.parallelExecution)
+    }
+
+    @Test
+    fun `ClassTestDescriptor reads parallelExecution configuration`() {
+        val uniqueId = UniqueId.forEngine("berrycrush").append("class", SequentialTestStub::class.java.name)
+        val descriptor = ClassTestDescriptor(uniqueId, SequentialTestStub::class.java)
+
+        assertEquals(ParallelExecutionMode.SAME_THREAD, descriptor.parallelExecution)
+    }
+
+    @Test
+    fun `default parallelExecution is CONCURRENT`() {
+        val uniqueId = UniqueId.forEngine("berrycrush").append("class", ConfiguredTestStub::class.java.name)
+        val descriptor = ClassTestDescriptor(uniqueId, ConfiguredTestStub::class.java)
+
+        assertEquals(ParallelExecutionMode.CONCURRENT, descriptor.parallelExecution)
     }
 
     @Test
@@ -75,3 +93,10 @@ class ConfiguredTestStub
  * Used only for testing default values, not for actual test execution.
  */
 class UnconfiguredTestStub
+
+/**
+ * Sample test class configured for sequential (same-thread) execution.
+ * Used for testing parallelExecution configuration.
+ */
+@BerryCrushConfiguration(parallelExecution = ParallelExecutionMode.SAME_THREAD)
+class SequentialTestStub

@@ -509,6 +509,53 @@ public class MyBindings implements BerryCrushBindings {
 - Database changes persist across scenarios
 - Control execution order with filename prefixes: `01-setup.scenario`, `99-cleanup.scenario`
 
+### Parallel Execution
+
+BerryCrush supports JUnit 5 parallel execution. All components are thread-safe and each scenario gets its own isolated `ExecutionContext` by default.
+
+#### Enabling Parallel Execution
+
+Create `src/test/resources/junit-platform.properties`:
+
+```properties
+junit.jupiter.execution.parallel.enabled=true
+junit.jupiter.execution.parallel.mode.default=concurrent
+junit.jupiter.execution.parallel.config.strategy=fixed
+junit.jupiter.execution.parallel.config.fixed.parallelism=4
+```
+
+#### Configuration via Annotation
+
+Control parallel execution per test class:
+
+```java
+// Default: scenarios can run in parallel (thread-safe)
+@BerryCrushConfiguration(parallelExecution = ParallelExecutionMode.CONCURRENT)
+
+// Force sequential execution for this test class
+@BerryCrushConfiguration(parallelExecution = ParallelExecutionMode.SAME_THREAD)
+```
+
+Use `SAME_THREAD` when:
+- Using `shareVariablesAcrossScenarios: true` 
+- Scenarios depend on specific ordering
+- External resources need exclusive access
+
+#### Thread-Safety Guarantees
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| ExecutionContext | Thread-safe | ConcurrentHashMap + @Volatile |
+| BerryCrushScenarioExecutor | Stateless | No shared mutable state |
+| HTTP Client | Thread-safe | Java HttpClient is thread-safe |
+| Assertion Engine | Stateless | Immutable configuration |
+
+#### Best Practices
+
+1. **Use isolated contexts** - The default. Each scenario has its own variables.
+2. **Avoid shared state** - Don't rely on execution order between scenarios.
+3. **Mark sequential tests** - Use `@BerryCrushConfiguration(parallelExecution = SAME_THREAD)` for dependent scenarios.
+
 ## Example Project
 
 See the complete working example in [samples/petstore](samples/petstore):

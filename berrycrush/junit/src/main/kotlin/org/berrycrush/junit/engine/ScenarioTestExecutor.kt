@@ -13,6 +13,7 @@ import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.junit.BerryCrushBindings
 import org.berrycrush.junit.BerryCrushConfiguration
 import org.berrycrush.junit.DefaultBindings
+import org.berrycrush.junit.ParallelExecutionMode
 import org.berrycrush.junit.discovery.FragmentDiscovery
 import org.berrycrush.junit.spi.BindingsProvider
 import org.berrycrush.model.AutoTestResult
@@ -29,6 +30,7 @@ import org.berrycrush.step.StepRegistry
 import org.junit.platform.engine.EngineExecutionListener
 import org.junit.platform.engine.TestExecutionResult
 import java.io.File
+import java.util.logging.Logger
 
 /**
  * Responsible for executing scenario tests and reporting results.
@@ -37,10 +39,21 @@ import java.io.File
  * - Initializing execution context (bindings, plugins, fragments)
  * - Executing scenario files with proper lifecycle management
  * - Reporting results to JUnit execution listener
+ *
+ * ## Thread Safety
+ *
+ * This executor is designed to be thread-safe and supports JUnit 5 parallel execution:
+ * - Each scenario gets its own [ExecutionContext] by default
+ * - All internal components are stateless or use thread-safe data structures
+ * - When `shareVariablesAcrossScenarios=true`, scenarios share context and should run sequentially
+ *
+ * @see ParallelExecutionMode
  */
 class ScenarioTestExecutor(
     private val bindingsProviders: List<BindingsProvider>,
 ) {
+    private val logger = Logger.getLogger(ScenarioTestExecutor::class.java.name)
+
     /**
      * Execute all tests for a class descriptor.
      *
@@ -187,7 +200,7 @@ class ScenarioTestExecutor(
 
         val result =
             runCatching {
-                val fileContext = buildFileContext(fileDescriptor, context)
+                val fileContext = buildFileContext(fileDescriptor, classDescriptor, context)
                 executeFileChildren(fileDescriptor, classDescriptor, fileContext, listener)
             }
 
@@ -423,6 +436,7 @@ class ScenarioTestExecutor(
 
     private fun buildFileContext(
         fileDescriptor: ScenarioFileDescriptor,
+        classDescriptor: ClassTestDescriptor,
         context: TestExecutionContext,
     ): FileExecutionContext {
         val scenarioLoader = ScenarioLoader()
@@ -460,6 +474,16 @@ class ScenarioTestExecutor(
 
         val sharedContext =
             if (fileConfig.shareVariablesAcrossScenarios) ExecutionContext() else null
+
+        // Warn if sharing variables across scenarios with concurrent execution mode
+        if (sharedContext != null && classDescriptor.parallelExecution == ParallelExecutionMode.CONCURRENT) {
+            logger.warning {
+                "File '${fileDescriptor.scenarioPath}' uses shareVariablesAcrossScenarios=true " +
+                    "but test class '${classDescriptor.testClass.name}' has CONCURRENT parallel execution. " +
+                    "Consider using @BerryCrushConfiguration(parallelExecution = SAME_THREAD) " +
+                    "to ensure scenarios execute sequentially."
+            }
+        }
 
         return FileExecutionContext(
             executor = executor,
