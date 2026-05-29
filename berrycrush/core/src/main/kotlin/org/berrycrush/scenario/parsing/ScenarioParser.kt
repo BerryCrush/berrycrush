@@ -26,6 +26,39 @@ internal fun ParserState.parseTags(): Set<String> {
 }
 
 /**
+ * Parse optional scenario-level parameters block.
+ * Returns null if no parameters block is present.
+ *
+ * Handles the INDENT token peek/retreat pattern:
+ * - If INDENT followed by PARAMETERS → parse parameters
+ * - If INDENT followed by other token → retreat to let parseSteps handle it
+ */
+internal fun ParserState.parseOptionalParameters(): ParametersNode? {
+    if (current().type != TokenType.INDENT) return null
+    advance() // consume indent
+    return if (current().type == TokenType.PARAMETERS) {
+        parseParameters()
+    } else {
+        retreat()
+        null
+    }
+}
+
+/**
+ * Parse the header portion of a scenario or outline.
+ * Returns the scenario name if successful, null otherwise.
+ *
+ * Pattern: KEYWORD COLON NAME NEWLINES
+ */
+internal fun ParserState.parseScenarioHeader(expectedType: TokenType): String? {
+    if (!expect(expectedType)) return null
+    skipWhitespace()
+    if (!expect(TokenType.COLON)) return null
+    skipWhitespace()
+    return parseScenarioName()?.also { skipNewlines() }
+}
+
+/**
  * Parse a scenario definition.
  *
  * Scenarios can optionally have a parameters block before their steps:
@@ -39,30 +72,8 @@ internal fun ParserState.parseTags(): Set<String> {
  */
 internal fun ParserState.parseScenario(tags: Set<String> = emptySet()): ScenarioNode? {
     val loc = currentLocation()
-
-    if (!expect(TokenType.SCENARIO)) return null
-    skipWhitespace()
-
-    if (!expect(TokenType.COLON)) return null
-    skipWhitespace()
-
-    val name = parseScenarioName() ?: return null
-    skipNewlines()
-
-    // Check for optional scenario-level parameters
-    var parameters: ParametersNode? = null
-    if (current().type == TokenType.INDENT) {
-        advance() // consume indent
-        if (current().type == TokenType.PARAMETERS) {
-            parameters = parseParameters()
-            // After parameters, we're still inside the scenario block
-            // Steps will be parsed next
-        } else {
-            // Not a parameters block, retreat to let parseSteps handle the indent
-            retreat()
-        }
-    }
-
+    val name = parseScenarioHeader(TokenType.SCENARIO) ?: return null
+    val parameters = parseOptionalParameters()
     val steps = parseSteps()
 
     return ScenarioNode(
@@ -94,30 +105,8 @@ internal fun ParserState.parseScenario(tags: Set<String> = emptySet()): Scenario
  */
 internal fun ParserState.parseScenarioOutline(tags: Set<String> = emptySet()): ScenarioNode? {
     val loc = currentLocation()
-
-    if (!expect(TokenType.OUTLINE)) return null
-    skipWhitespace()
-
-    if (!expect(TokenType.COLON)) return null
-    skipWhitespace()
-
-    val name = parseScenarioName() ?: return null
-    skipNewlines()
-
-    // Check for optional scenario-level parameters
-    var parameters: ParametersNode? = null
-    if (current().type == TokenType.INDENT) {
-        advance() // consume indent
-        if (current().type == TokenType.PARAMETERS) {
-            parameters = parseParameters()
-            // After parameters, we're still inside the scenario block
-            // Steps will be parsed next
-        } else {
-            // Not a parameters block, retreat to let parseSteps handle the indent
-            retreat()
-        }
-    }
-
+    val name = parseScenarioHeader(TokenType.OUTLINE) ?: return null
+    val parameters = parseOptionalParameters()
     val steps = parseSteps()
     val examples = parseExamples()
 

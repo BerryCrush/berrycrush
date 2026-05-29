@@ -6,6 +6,7 @@ import org.berrycrush.junit.BerryCrushScenarios
 import org.berrycrush.junit.BerryCrushSpec
 import org.berrycrush.junit.BerryCrushSpecs
 import org.berrycrush.junit.BerryCrushTags
+import org.berrycrush.junit.ParallelExecutionMode
 import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.UniqueId
 import org.junit.platform.engine.support.descriptor.AbstractTestDescriptor
@@ -71,6 +72,14 @@ class ClassTestDescriptor(
     val timeout: Long
 
     /**
+     * Parallel execution mode for scenarios in this class.
+     *
+     * Controls whether scenarios can run concurrently when JUnit parallel
+     * execution is enabled. See [ParallelExecutionMode] for details.
+     */
+    val parallelExecution: ParallelExecutionMode
+
+    /**
      * Tags to include when filtering scenarios (empty means include all).
      */
     val includeTags: Set<String>
@@ -86,6 +95,7 @@ class ClassTestDescriptor(
 
         bindingsClass = config?.bindings?.java
         timeout = config?.timeout ?: DEFAULT_TIMEOUT_MS
+        parallelExecution = config?.parallelExecution ?: ParallelExecutionMode.CONCURRENT
 
         // Collect all @BerryCrushSpec annotations (supports repeatable)
         specs = collectSpecs()

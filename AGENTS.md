@@ -24,6 +24,9 @@ berrycrush/
 │   │       ├── config/      # Configuration classes
 │   │       ├── context/     # Execution context
 │   │       ├── executor/    # Scenario execution
+│   │       │   ├── assertion/   # AssertionEngine
+│   │       │   ├── fragment/    # FragmentExecutor
+│   │       │   └── http/        # HttpExecutor
 │   │       ├── model/       # Domain models
 │   │       ├── openapi/     # OpenAPI integration
 │   │       ├── plugin/      # Plugin system
@@ -84,6 +87,23 @@ samples/petstore/
 | `AssertNode` | Assertion action (AST) |
 | `ExecutionContext` | Variables and state during execution |
 | `Configuration` | Runtime configuration |
+
+### Executor Components
+
+The scenario executor uses a component-based architecture:
+
+```
+BerryCrushScenarioExecutor (Coordinator)
+    ├── AssertionEngine      # Condition evaluation & message generation
+    ├── HttpExecutor         # HTTP request execution & body resolution
+    └── FragmentExecutor     # Fragment expansion & parameter injection
+```
+
+| Interface | Implementation | Package |
+|-----------|----------------|---------|
+| `AssertionEngine` | `DefaultAssertionEngine` | `executor.assertion` |
+| `HttpExecutor` | `DefaultHttpExecutor` | `executor.http` |
+| `FragmentExecutor` | `DefaultFragmentExecutor` | `executor.fragment` |
 
 ## Build Commands
 

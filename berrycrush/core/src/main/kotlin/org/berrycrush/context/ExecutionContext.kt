@@ -7,7 +7,28 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Execution context that holds variables and state during scenario execution.
  *
- * Thread-safe for use in parallel execution scenarios.
+ * ## Thread Safety
+ *
+ * This class is designed for thread-safe usage in parallel execution scenarios:
+ * - Variables are stored in a [ConcurrentHashMap]
+ * - Mutable state fields use `@Volatile` for visibility
+ * - [createIsolatedCopy] creates a fully independent copy for parallel scenarios
+ *
+ * ## Parallel Execution
+ *
+ * For parallel scenario execution, use [createIsolatedCopy] to ensure each
+ * scenario has its own isolated context:
+ *
+ * ```kotlin
+ * val parallelContext = sharedContext.createIsolatedCopy()
+ * executor.execute(scenario, parallelContext)
+ * ```
+ *
+ * For sequential execution with shared variables, use [createChild]:
+ *
+ * ```kotlin
+ * val childContext = parentContext.createChild()
+ * ```
  */
 class ExecutionContext {
     private val variables = ConcurrentHashMap<String, Any>()
@@ -120,11 +141,32 @@ class ExecutionContext {
 
     /**
      * Create a child context that inherits variables from this context.
+     * The child shares variable references with the parent.
+     * Use [createIsolatedCopy] for fully isolated parallel execution.
      */
     fun createChild(): ExecutionContext {
         val child = ExecutionContext()
         child.variables.putAll(variables)
         return child
+    }
+
+    /**
+     * Create a fully isolated copy of this context for parallel execution.
+     * All state is copied, ensuring no shared mutable state between copies.
+     *
+     * This is the recommended method for parallel scenario execution.
+     */
+    fun createIsolatedCopy(): ExecutionContext {
+        val copy = ExecutionContext()
+        // Copy all variables
+        variables.forEach { (key, value) ->
+            copy.variables[key] = value
+        }
+        // Copy volatile state using update methods
+        lastResponse?.let { copy.updateLastResponse(it) }
+        copy.updateCurrentOperation(currentOperation)
+        lastResponseTimeMs?.let { copy.updateLastResponseTime(it) }
+        return copy
     }
 
     /**

@@ -1,0 +1,35 @@
+# Parallel Execution Demo - List and Query Pets
+#
+# These scenarios demonstrate parallel read operations.
+# Multiple queries can execute simultaneously without interference.
+
+scenario: List All Pets (Parallel)
+  tags: parallel, read
+  when I list all pets
+    call ^listPets
+  then I get pets
+    assert status 200
+
+scenario: List Available Pets (Parallel)
+  tags: parallel, read
+  when I list available pets
+    call ^listPets
+      status: available
+  then I get available pets
+    assert status 200
+
+scenario: List Pets with Limit (Parallel)
+  tags: parallel, read
+  when I list pets with limit
+    call ^listPets
+      limit: 5
+  then I get limited pets
+    assert status 200
+
+scenario: List Sold Pets (Parallel)
+  tags: parallel, read
+  when I list sold pets
+    call ^listPets
+      status: sold
+  then I get sold pets
+    assert status 200
