@@ -12,6 +12,7 @@ import org.berrycrush.executor.fragment.DefaultFragmentExecutor
 import org.berrycrush.executor.fragment.FragmentExecutor
 import org.berrycrush.executor.http.DefaultHttpExecutor
 import org.berrycrush.executor.http.HttpExecutor
+import org.berrycrush.executor.http.RetryingHttpExecutor
 import org.berrycrush.model.Assertion
 import org.berrycrush.model.AssertionResult
 import org.berrycrush.model.AutoTestConfig
@@ -63,10 +64,31 @@ class BerryCrushScenarioExecutor(
     private val stepRegistry: StepRegistry? = null,
     private val assertionRegistry: org.berrycrush.assertion.AssertionRegistry? = null,
     private val assertionEngine: AssertionEngine = DefaultAssertionEngine(configuration, assertionRegistry),
-    private val httpExecutor: HttpExecutor = DefaultHttpExecutor(configuration),
+    private val httpExecutor: HttpExecutor = createHttpExecutor(configuration),
     private val fragmentExecutor: FragmentExecutor = DefaultFragmentExecutor(fragmentRegistry),
 ) {
     private val httpBuilder = HttpRequestBuilder(configuration)
+
+    companion object {
+        /**
+         * Create the appropriate HTTP executor based on configuration.
+         *
+         * If retry is enabled in the configuration, wraps the default executor
+         * with a [RetryingHttpExecutor].
+         */
+        private fun createHttpExecutor(configuration: BerryCrushConfiguration): HttpExecutor {
+            val baseExecutor = DefaultHttpExecutor(configuration)
+            return if (configuration.retryConfig.isEnabled) {
+                RetryingHttpExecutor(
+                    delegate = baseExecutor,
+                    config = configuration.retryConfig,
+                    httpLogger = configuration.getEffectiveHttpLogger(),
+                )
+            } else {
+                baseExecutor
+            }
+        }
+    }
 
     // Lazy-initialized auto-test executor - created on first use to avoid circular dependencies
     private val autoTestExecutor: AutoTestExecutor by lazy {

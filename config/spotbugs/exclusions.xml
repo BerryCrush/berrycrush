@@ -276,4 +276,16 @@
         <Bug pattern="SE_BAD_FIELD"/>
         <Class name="~org\.berrycrush\.exception\..*Exception"/>
     </Match>
+
+    <!-- ========================================== -->
+    <!-- Retry mechanism patterns                   -->
+    <!-- ========================================== -->
+
+    <!-- RetryConfig uses ThreadLocalRandom for jitter in retry delays.
+         This is not a security-critical use case - jitter prevents thundering herd
+         and doesn't require cryptographically secure randomness. -->
+    <Match>
+        <Bug pattern="PREDICTABLE_RANDOM"/>
+        <Class name="org.berrycrush.config.RetryConfig"/>
+    </Match>
 </FindBugsFilter>
