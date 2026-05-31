@@ -18,6 +18,10 @@ object DefaultSecurityTestProviders {
             LdapInjectionProvider(),
             XxeProvider(),
             HeaderInjectionProvider(),
+            NoSqlInjectionProvider(),
+            SstiProvider(),
+            JwtAttackProvider(),
+            AuthorizationBypassProvider(),
         )
 }
 
@@ -146,5 +150,86 @@ class HeaderInjectionProvider : SecurityTestProvider {
         listOf(
             SecurityPayload("CRLF injection", "value\r\nX-Injected: header"),
             SecurityPayload("Null byte", "value\u0000injection"),
+        )
+}
+
+/**
+ * NoSQL injection attack payloads (MongoDB, etc.).
+ */
+class NoSqlInjectionProvider : SecurityTestProvider {
+    override val testType: String = "NoSQLInjection"
+    override val displayName: String = "NoSQL Injection"
+
+    override fun applicableLocations(): Set<ParameterLocation> = setOf(ParameterLocation.BODY, ParameterLocation.QUERY)
+
+    override fun generatePayloads(): List<SecurityPayload> =
+        listOf(
+            SecurityPayload("MongoDB \$ne", "{\"\$ne\": null}"),
+            SecurityPayload("MongoDB \$where", "{\"\$where\": \"1==1\"}"),
+            SecurityPayload("MongoDB \$regex", "{\"\$regex\": \".*\"}"),
+            SecurityPayload("MongoDB \$gt", "{\"\$gt\": \"\"}"),
+            SecurityPayload("MongoDB JS injection", "{\"\$where\": \"function(){return true}\"}"),
+        )
+}
+
+/**
+ * Server-Side Template Injection (SSTI) attack payloads.
+ */
+class SstiProvider : SecurityTestProvider {
+    override val testType: String = "SSTI"
+    override val displayName: String = "Template Injection"
+
+    override fun applicableLocations(): Set<ParameterLocation> = setOf(ParameterLocation.BODY, ParameterLocation.QUERY)
+
+    override fun generatePayloads(): List<SecurityPayload> =
+        listOf(
+            SecurityPayload("Jinja2/Twig", "{{7*7}}"),
+            SecurityPayload("Freemarker", "\${7*7}"),
+            SecurityPayload("Velocity", "#set(\$x=7*7)\$x"),
+            SecurityPayload("Smarty", "{php}echo 'test';{/php}"),
+            SecurityPayload("ERB", "<%= 7*7 %>"),
+        )
+}
+
+/**
+ * JWT attack payloads for Authorization header.
+ */
+class JwtAttackProvider : SecurityTestProvider {
+    override val testType: String = "JWT"
+    override val displayName: String = "JWT Attacks"
+
+    override fun applicableLocations(): Set<ParameterLocation> = setOf(ParameterLocation.HEADER)
+
+    override fun generatePayloads(): List<SecurityPayload> =
+        listOf(
+            // Algorithm none attack - tries to bypass signature verification
+            SecurityPayload("Algorithm none", "Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIxMjM0NTY3ODkwIn0."),
+            // Malformed JWT
+            SecurityPayload("Malformed JWT", "Bearer not.a.jwt"),
+            // Empty signature
+            SecurityPayload("Empty signature", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0."),
+            // Invalid base64
+            SecurityPayload("Invalid base64", "Bearer !!!invalid!!!.!!!base64!!!.!!!jwt!!!"),
+            // Missing Bearer prefix
+            SecurityPayload("Missing Bearer", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0.xxx"),
+        )
+}
+
+/**
+ * Authorization bypass attack payloads.
+ */
+class AuthorizationBypassProvider : SecurityTestProvider {
+    override val testType: String = "AuthorizationBypass"
+    override val displayName: String = "Authorization Bypass"
+
+    override fun applicableLocations(): Set<ParameterLocation> = setOf(ParameterLocation.HEADER)
+
+    override fun generatePayloads(): List<SecurityPayload> =
+        listOf(
+            SecurityPayload("Empty auth", ""),
+            SecurityPayload("Invalid scheme", "Basic !!!invalid!!!"),
+            SecurityPayload("Empty bearer", "Bearer "),
+            SecurityPayload("Null bearer", "Bearer null"),
+            SecurityPayload("Undefined bearer", "Bearer undefined"),
         )
 }
