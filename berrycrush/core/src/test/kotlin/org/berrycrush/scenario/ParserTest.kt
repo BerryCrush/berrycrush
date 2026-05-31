@@ -2461,4 +2461,157 @@ class ParserTest {
         assertNotNull(scenario.parameters)
         assertEquals(120L, scenario.parameters!!.values["timeout"])
     }
+
+    // =========================================================================
+    // Nested Parameters Tests
+    // =========================================================================
+
+    @Test
+    fun `should parse nested parameters and flatten to dot notation`() {
+        val source =
+            """
+            parameters:
+              retry:
+                maxAttempts: 3
+                delay: "500ms"
+
+            scenario: Test nested params
+              when I do something
+                call ^testOp
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        assertNotNull(result.ast!!.parameters)
+
+        val params = result.ast.parameters!!.values
+        assertEquals(3L, params["retry.maxAttempts"])
+        assertEquals("500ms", params["retry.delay"])
+    }
+
+    @Test
+    fun `should parse deeply nested parameters`() {
+        val source =
+            """
+            parameters:
+              http:
+                client:
+                  timeout: "30s"
+                  retry:
+                    enabled: true
+
+            scenario: Test deep nesting
+              when I do something
+                call ^testOp
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        assertNotNull(result.ast!!.parameters)
+
+        val params = result.ast.parameters!!.values
+        assertEquals("30s", params["http.client.timeout"])
+        assertEquals(true, params["http.client.retry.enabled"])
+    }
+
+    @Test
+    fun `should parse mixed flat and nested parameters`() {
+        val source =
+            """
+            parameters:
+              baseUrl: "http://localhost:8080"
+              retry:
+                maxAttempts: 3
+              timeout: 60
+
+            scenario: Test mixed params
+              when I do something
+                call ^testOp
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        assertNotNull(result.ast!!.parameters)
+
+        val params = result.ast.parameters!!.values
+        assertEquals("http://localhost:8080", params["baseUrl"])
+        assertEquals(3L, params["retry.maxAttempts"])
+        assertEquals(60L, params["timeout"])
+    }
+
+    @Test
+    fun `should parse nested parameters in feature`() {
+        val source =
+            """
+            feature: Test feature
+              parameters:
+                retry:
+                  maxAttempts: 5
+                  backoff: exponential
+
+              scenario: Test scenario
+                when I do something
+                  call ^testOp
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val feature = result.ast!!.features[0]
+        assertNotNull(feature.parameters)
+
+        val params = feature.parameters!!.values
+        assertEquals(5L, params["retry.maxAttempts"])
+        assertEquals("exponential", params["retry.backoff"])
+    }
+
+    @Test
+    fun `should parse nested parameters in scenario`() {
+        val source =
+            """
+            scenario: Test with nested params
+              parameters:
+                retry:
+                  maxAttempts: 2
+                  delay: "100ms"
+              when I do something
+                call ^testOp
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val scenario = result.ast!!.scenarios[0]
+        assertNotNull(scenario.parameters)
+
+        val params = scenario.parameters!!.values
+        assertEquals(2L, params["retry.maxAttempts"])
+        assertEquals("100ms", params["retry.delay"])
+    }
+
+    @Test
+    fun `should handle keywords as parameter names`() {
+        val source =
+            """
+            parameters:
+              include: true
+              using: "default"
+
+            scenario: Test keywords as params
+              when I do something
+                call ^testOp
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        assertNotNull(result.ast!!.parameters)
+
+        val params = result.ast.parameters!!.values
+        assertEquals(true, params["include"])
+        assertEquals("default", params["using"])
+    }
 }
