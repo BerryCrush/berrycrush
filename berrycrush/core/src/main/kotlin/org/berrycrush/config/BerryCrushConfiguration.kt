@@ -78,6 +78,19 @@ data class BerryCrushConfiguration(
      * - Header masking for sensitive values
      */
     var errorContextConfig: ErrorContextConfig = ErrorContextConfig(),
+    /**
+     * Configuration for HTTP request retry behavior.
+     *
+     * Controls automatic retries for failed HTTP requests, including:
+     * - Number of retry attempts
+     * - Delay between attempts (with backoff strategies)
+     * - Which status codes and exceptions trigger retries
+     *
+     * Default is disabled (maxAttempts = 0).
+     *
+     * @see RetryConfig
+     */
+    var retryConfig: RetryConfig = RetryConfig.DISABLED,
 ) {
     /**
      * Get the effective HTTP logger.
@@ -110,6 +123,22 @@ data class BerryCrushConfiguration(
     }
 
     /**
+     * DSL helper to configure retry settings.
+     *
+     * Example:
+     * ```kotlin
+     * retry {
+     *     maxAttempts = 3
+     *     delay = Duration.ofSeconds(1)
+     *     backoff = BackoffStrategy.EXPONENTIAL
+     * }
+     * ```
+     */
+    fun retry(block: RetryConfigBuilder.() -> Unit) {
+        retryConfig = RetryConfigBuilder(retryConfig).apply(block).build()
+    }
+
+    /**
      * Create a copy of this configuration with parameters applied.
      *
      * Supports the following parameter names:
@@ -127,6 +156,11 @@ data class BerryCrushConfiguration(
      * - `errorContext.includeRequestBody` - Include request body in errors (true/false)
      * - `errorContext.includeResponseBody` - Include response body in errors (true/false)
      * - `errorContext.maxBodySize` - Max body size in error messages (number)
+     * - `retry.maxAttempts` - Number of retry attempts (0 = disabled)
+     * - `retry.delay` - Delay between retries (e.g., "1s", "500ms")
+     * - `retry.maxDelay` - Maximum delay cap (e.g., "30s")
+     * - `retry.backoff` - Backoff strategy (fixed, linear, exponential)
+     * - `retry.jitter` - Add randomness to delays (true/false)
      *
      * @param parameters Map of parameter names to values
      * @return A new Configuration with parameters applied
@@ -137,6 +171,7 @@ data class BerryCrushConfiguration(
                 defaultHeaders = this.defaultHeaders.toMutableMap(),
                 autoAssertions = this.autoAssertions.copy(),
                 errorContextConfig = this.errorContextConfig.copy(),
+                retryConfig = this.retryConfig.copy(),
             )
 
         for ((key, value) in parameters) {
@@ -164,6 +199,7 @@ data class BerryCrushConfiguration(
             key.startsWith("header.") -> defaultHeaders[key.removePrefix("header.")] = value.toString()
             key.startsWith("autoAssertions.") -> applyAutoAssertionParam(key, value)
             key.startsWith("errorContext.") -> applyErrorContextParam(key, value)
+            key.startsWith("retry.") -> applyRetryParam(key, value)
         }
     }
 
@@ -190,6 +226,49 @@ data class BerryCrushConfiguration(
                 errorContextConfig = errorContextConfig.copy(includeResponseBody = value.toString().toBoolean())
             "errorContext.maxBodySize" ->
                 errorContextConfig = errorContextConfig.copy(maxBodySize = parseIntOrDefault(value, errorContextConfig.maxBodySize))
+        }
+    }
+
+    private fun applyRetryParam(
+        key: String,
+        value: Any,
+    ) {
+        when (key) {
+            "retry.maxAttempts" ->
+                retryConfig = retryConfig.copy(maxAttempts = parseIntOrDefault(value, retryConfig.maxAttempts))
+            "retry.delay" ->
+                retryConfig = retryConfig.copy(delay = parseDuration(value, retryConfig.delay))
+            "retry.maxDelay" ->
+                retryConfig = retryConfig.copy(maxDelay = parseDuration(value, retryConfig.maxDelay))
+            "retry.backoff" ->
+                retryConfig = retryConfig.copy(backoff = parseBackoffStrategy(value))
+            "retry.jitter" ->
+                retryConfig = retryConfig.copy(jitter = value.toString().toBoolean())
+        }
+    }
+
+    private fun parseBackoffStrategy(value: Any): BackoffStrategy =
+        when (value.toString().lowercase()) {
+            "fixed" -> BackoffStrategy.FIXED
+            "linear" -> BackoffStrategy.LINEAR
+            "exponential" -> BackoffStrategy.EXPONENTIAL
+            else -> retryConfig.backoff
+        }
+
+    private fun parseDuration(
+        value: Any,
+        default: Duration,
+    ): Duration {
+        val str = value.toString().trim().lowercase()
+        return try {
+            when {
+                str.endsWith("ms") -> Duration.ofMillis(str.removeSuffix("ms").trim().toLong())
+                str.endsWith("s") -> Duration.ofSeconds(str.removeSuffix("s").trim().toLong())
+                str.endsWith("m") -> Duration.ofMinutes(str.removeSuffix("m").trim().toLong())
+                else -> Duration.ofMillis(str.toLong())
+            }
+        } catch (_: NumberFormatException) {
+            default
         }
     }
 

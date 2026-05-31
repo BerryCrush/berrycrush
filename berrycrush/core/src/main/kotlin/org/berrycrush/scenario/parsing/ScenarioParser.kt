@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package org.berrycrush.scenario.parsing
 
 import org.berrycrush.scenario.BackgroundNode
@@ -253,6 +255,22 @@ internal fun ParserState.parseFragment(): FragmentNode? {
 
 /**
  * Parse file-level or feature-level parameters block.
+ * Supports both flat and nested parameter formats:
+ *
+ * Flat format:
+ * ```
+ * parameters:
+ *   retry.maxAttempts: 3
+ *   retry.delay: "500ms"
+ * ```
+ *
+ * Nested format (flattened to dot notation internally):
+ * ```
+ * parameters:
+ *   retry:
+ *     maxAttempts: 3
+ *     delay: "500ms"
+ * ```
  */
 internal fun ParserState.parseParameters(): ParametersNode? {
     val loc = currentLocation()
@@ -270,22 +288,74 @@ internal fun ParserState.parseParameters(): ParametersNode? {
         advance()
     }
 
-    // Parse name: value pairs
+    // Parse parameter entries (supports nested blocks)
+    parseParameterEntries(values, prefix = "")
+
+    // Handle dedent
+    if (current().type == TokenType.DEDENT) {
+        advance()
+    }
+
+    return ParametersNode(values, loc)
+}
+
+/**
+ * Token types that indicate the end of a parameters block.
+ */
+private val PARAMETER_BLOCK_TERMINATORS =
+    setOf(
+        TokenType.SCENARIO,
+        TokenType.OUTLINE,
+        TokenType.FRAGMENT,
+        TokenType.PARAMETERS,
+        TokenType.BACKGROUND,
+        TokenType.FEATURE,
+    )
+
+/**
+ * Check if a token type is a keyword that can be used as a parameter name.
+ */
+private fun isKeywordToken(type: TokenType): Boolean =
+    type in
+        setOf(
+            TokenType.INCLUDE,
+            TokenType.USING,
+        )
+
+/**
+ * Parse parameter entries recursively, supporting nested blocks.
+ * Nested parameters are flattened to dot notation.
+ *
+ * @param result The map to store parameter values
+ * @param prefix The current key prefix for nested parameters (e.g., "retry.")
+ */
+@Suppress("CyclomaticComplexMethod")
+private fun ParserState.parseParameterEntries(
+    result: MutableMap<String, Any>,
+    prefix: String,
+) {
     while (!isAtEnd() &&
         current().type != TokenType.DEDENT &&
-        current().type != TokenType.SCENARIO &&
-        current().type != TokenType.OUTLINE &&
-        current().type != TokenType.FRAGMENT &&
-        current().type != TokenType.PARAMETERS &&
-        current().type != TokenType.BACKGROUND &&
-        current().type != TokenType.FEATURE
+        current().type !in PARAMETER_BLOCK_TERMINATORS
     ) {
         if (current().type == TokenType.NEWLINE) {
             advance()
             continue
         }
 
-        val paramName = parseParameterName() ?: break
+        // Parse parameter name (supports keywords like 'include' as names)
+        val paramName =
+            when {
+                current().type == TokenType.IDENTIFIER -> parseParameterName()
+                isKeywordToken(current().type) -> {
+                    val name = current().value
+                    advance()
+                    name
+                }
+                else -> null
+            }
+
+        if (paramName == null) break
         skipWhitespace()
 
         if (!expect(TokenType.COLON)) {
@@ -294,20 +364,28 @@ internal fun ParserState.parseParameters(): ParametersNode? {
         }
         skipWhitespace()
 
-        val value = parseParameterValue()
-        if (value != null) {
-            values[paramName] = value
+        // Check if this is a nested block (no value on same line, followed by indent)
+        if (current().type == TokenType.NEWLINE) {
+            advance() // consume newline
+            if (current().type == TokenType.INDENT) {
+                // Nested block - recurse with updated prefix
+                advance() // consume indent
+                parseParameterEntries(result, prefix + paramName + ".")
+                // Handle dedent from nested block
+                if (current().type == TokenType.DEDENT) {
+                    advance()
+                }
+            }
+            // else: empty value, continue to next parameter
+        } else {
+            // Value on same line - parse it
+            val value = parseParameterValue()
+            if (value != null) {
+                result[prefix + paramName] = value
+            }
+            skipNewlines()
         }
-
-        skipNewlines()
     }
-
-    // Handle dedent
-    if (current().type == TokenType.DEDENT) {
-        advance()
-    }
-
-    return ParametersNode(values, loc)
 }
 
 /**

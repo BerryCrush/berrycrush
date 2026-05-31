@@ -1,0 +1,151 @@
+# =============================================================================
+# Retry Configuration Demo
+# =============================================================================
+# This scenario file demonstrates:
+# - File-level retry parameters configuration using NESTED format
+# - Automatic retry on transient failures
+# - Backoff strategies (FIXED, LINEAR, EXPONENTIAL)
+#
+# Note: In normal operation, retries happen automatically when the server
+# returns retryable status codes (429, 502, 503, 504) or throws retryable
+# exceptions (SocketTimeoutException, ConnectException, SocketException).
+#
+# HOW TO SEE RETRY PROOF:
+# -----------------------
+# Retries are logged when logRequests is enabled. To see retry attempts:
+#
+# 1. In your test configuration, enable request logging:
+#    config.logRequests = true
+#
+# 2. Or add logging parameter to the scenario:
+#    parameters:
+#      logRequests: true
+#
+# 3. Look for log messages like:
+#    "Retry attempt 1/3 after 500ms (status: 503)"
+#    "Request succeeded after 2 retries"
+
+# -----------------------------------------------------------------------------
+# Retry Configuration via Parameters - NESTED FORMAT
+# -----------------------------------------------------------------------------
+# BerryCrush supports YAML-like nested parameter syntax:
+#
+#   parameters:
+#     retry:
+#       maxAttempts: 3        # Maximum number of retry attempts
+#       delay: "500ms"        # Initial delay between retries
+#       maxDelay: "5s"        # Maximum delay cap for backoff
+#       backoff: exponential  # Strategy: fixed, linear, or exponential
+#       jitter: true          # Add ±20% randomization to delay
+#
+# Nested parameters are flattened to dot notation internally:
+#   retry.maxAttempts, retry.delay, etc.
+
+parameters:
+  retry:
+    maxAttempts: 3
+    delay: "500ms"
+    maxDelay: "5s"
+    backoff: exponential
+    jitter: true
+
+# -----------------------------------------------------------------------------
+# Basic Operations with Retry Protection
+# -----------------------------------------------------------------------------
+# These scenarios demonstrate normal API operations.
+# If the server returns 503 or similar, BerryCrush will automatically retry.
+
+scenario: Create pet with retry protection
+  description: Creating a pet with automatic retry on transient failures
+  when: I create a new pet
+    call ^createPet
+      body:
+        name: "RetryTestPet"
+        status: "available"
+  then: the pet is created successfully
+    assert status 201
+    assert $.name equals "RetryTestPet"
+    extract $.id => petId
+
+scenario: Retrieve pet with retry protection
+  description: Retrieving a pet with automatic retry on transient failures
+  given: I have a pet ID
+    call ^createPet
+      body:
+        name: "FetchTestPet"
+        status: "available"
+    extract $.id => petId
+  when: I fetch the pet
+    call ^getPetById
+      petId: {{petId}}
+  then: the pet is returned
+    assert status 200
+    assert $.name equals "FetchTestPet"
+
+scenario: List pets with retry protection
+  description: Listing pets with automatic retry on server errors
+  when: I list all pets
+    call ^listPets
+  then: pets are returned
+    assert status 200
+
+# -----------------------------------------------------------------------------
+# Backoff Strategy Examples (Documentation)
+# -----------------------------------------------------------------------------
+# The backoff strategy determines how delay increases between retries:
+#
+# FIXED (retry.backoff: fixed)
+#   - Same delay for every attempt
+#   - Example: 500ms, 500ms, 500ms
+#
+# LINEAR (retry.backoff: linear)
+#   - Delay increases linearly
+#   - Example: 500ms, 1000ms, 1500ms
+#
+# EXPONENTIAL (retry.backoff: exponential) [Recommended]
+#   - Delay doubles each attempt
+#   - Example: 500ms, 1000ms, 2000ms
+#   - Best for production to avoid overwhelming recovering servers
+
+scenario: Update pet with retry protection
+  description: Updating a pet demonstrates retry on potential conflicts
+  given: I have an existing pet
+    call ^createPet
+      body:
+        name: "UpdateTestPet"
+        status: "available"
+    extract $.id => updatePetId
+  when: I update the pet
+    call ^updatePet
+      petId: {{updatePetId}}
+      body:
+        name: "UpdatedPetName"
+        status: "sold"
+  then: the pet is updated
+    assert status 200
+    assert $.name equals "UpdatedPetName"
+    assert $.status equals "sold"
+
+# -----------------------------------------------------------------------------
+# Example: Different Retry Configurations
+# -----------------------------------------------------------------------------
+# You can override retry parameters per scenario using step parameters.
+# These examples show common configurations for different use cases.
+
+scenario: Delete pet operation
+  description: Delete operation with retry on server errors
+  given: I create a pet to delete
+    call ^createPet
+      body:
+        name: "DeleteTestPet"
+        status: "pending"
+    extract $.id => deletePetId
+  when: I delete the pet
+    call ^deletePet
+      petId: {{deletePetId}}
+  then: the pet is deleted
+    assert status 204
+  and: the pet no longer exists
+    call ^getPetById
+      petId: {{deletePetId}}
+    assert status 404

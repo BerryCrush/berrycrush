@@ -1,0 +1,109 @@
+# =============================================================================
+# Security Test Patterns Demo
+# =============================================================================
+# This scenario file demonstrates:
+# - Using auto-generated security tests with auto: [security]
+# - New security providers (NoSQLInjection, SSTI, JWT, AuthorizationBypass)
+# - Excluding specific security test types
+#
+# AVAILABLE SECURITY TEST TYPES:
+# ------------------------------
+# - SQLInjection       : SQL injection payloads
+# - NoSQLInjection     : MongoDB injection payloads (NEW)
+# - XSS                : Cross-site scripting payloads
+# - PathTraversal      : Directory traversal attempts
+# - CommandInjection   : OS command injection
+# - LDAPInjection      : LDAP injection payloads
+# - XXE                : XML External Entity attacks
+# - SSTI               : Server-Side Template Injection (NEW)
+# - HeaderInjection    : CRLF injection
+# - JWT                : JWT algorithm confusion attacks (NEW)
+# - AuthorizationBypass: Authorization bypass attempts (NEW)
+
+# -----------------------------------------------------------------------------
+# Auto-Generated Security Tests - All Types
+# -----------------------------------------------------------------------------
+# Use auto: [security] inside a call step to auto-generate tests
+# with all security payload types against the operation's parameters.
+
+@security
+scenario: Auto-generated security tests for pet creation
+  when: creating pet with security payloads
+    call ^createPet
+      auto: [security]
+      body:
+        name: SecurityTestPet
+        status: available
+    
+    if status 4xx
+      # Security payload was properly rejected
+    else if status 5xx
+      fail "Server error from security test: {{test.description}}"
+    else
+      # 2xx success - some payloads may be accepted without harm
+
+# -----------------------------------------------------------------------------
+# Auto-Generated Security Tests with Exclusions
+# -----------------------------------------------------------------------------
+# Use excludes: [Type1, Type2] to skip specific security test types
+
+@security
+scenario: Security tests excluding XSS and XXE
+  when: updating pet with injection payloads
+    call ^updatePet
+      auto: [security]
+      excludes: [XSS, XXE]
+      body:
+        id: 1
+        name: InjectionTestPet
+        status: available
+    
+    if status 4xx
+      # Injection was rejected
+    else if status 5xx
+      fail "Server error from injection: {{test.type}} - {{test.description}}"
+    else
+      # 2xx success
+
+# -----------------------------------------------------------------------------
+# NoSQL Injection Tests (NEW)
+# -----------------------------------------------------------------------------
+# Test MongoDB/NoSQL injection patterns specifically
+
+@security @nosql
+scenario: NoSQL injection payloads
+  when: creating pet with NoSQL payloads
+    call ^createPet
+      auto: [security]
+      excludes: [SQLInjection, XSS, PathTraversal, CommandInjection, LDAPInjection, XXE, HeaderInjection, SSTI, JWT, AuthorizationBypass]
+      body:
+        name: NoSQLTestPet
+        status: available
+    
+    if status 4xx
+      # NoSQL injection was rejected
+    else if status 5xx
+      fail "Server error from NoSQL injection: {{test.description}}"
+    else
+      # 2xx success
+
+# -----------------------------------------------------------------------------
+# SSTI (Template Injection) Tests (NEW)
+# -----------------------------------------------------------------------------
+
+@security @ssti
+scenario: Template injection payloads
+  when: creating pet with SSTI payloads
+    call ^createPet
+      auto: [security]
+      excludes: [SQLInjection, NoSQLInjection, XSS, PathTraversal, CommandInjection, LDAPInjection, XXE, HeaderInjection, JWT, AuthorizationBypass]
+      body:
+        name: SSTITestPet
+        status: available
+    
+    if status 4xx
+      # Template injection was rejected
+    else if status 5xx
+      fail "Server error from SSTI: {{test.description}}"
+    else
+      # 2xx success
