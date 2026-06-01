@@ -32,10 +32,15 @@ junit-platform-suite-api = { module = "org.junit.platform:junit-platform-suite-a
 
 # Spring Boot
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web", version.ref = "spring-boot" }
+spring-boot-starter-webflux = { module = "org.springframework.boot:spring-boot-starter-webflux", version.ref = "spring-boot" }
 spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa", version.ref = "spring-boot" }
+spring-boot-starter-data-r2dbc = { module = "org.springframework.boot:spring-boot-starter-data-r2dbc", version.ref = "spring-boot" }
 spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation", version.ref = "spring-boot" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
+spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator", version.ref = "spring-boot" }
+spring-boot-starter-graphql = { module = "org.springframework.boot:spring-boot-starter-graphql", version.ref = "spring-boot" }
 h2-database = { module = "com.h2database:h2", version.ref = "h2" }
+r2dbc-h2 = { module = "io.r2dbc:r2dbc-h2", version = "1.0.0.RELEASE" }
 
 # Kotlin test
 kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin" }
@@ -44,6 +49,7 @@ kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5", versi
 junit = ["junit-jupiter-api", "junit-jupiter-engine", "junit-jupiter-params"]
 junit-platform = ["junit-platform-engine", "junit-platform-commons"]
 spring-boot = ["spring-boot-starter-web", "spring-boot-starter-data-jpa", "spring-boot-starter-validation"]
+spring-boot-webflux = ["spring-boot-starter-webflux", "spring-boot-starter-data-r2dbc", "spring-boot-starter-validation", "spring-boot-starter-actuator"]
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

@@ -1,0 +1,105 @@
+# =============================================================================
+# GraphQL API Testing with BerryCrush
+# =============================================================================
+# This scenario demonstrates testing GraphQL APIs through the HTTP POST endpoint.
+# BerryCrush sends GraphQL queries as JSON bodies to /graphql.
+
+# -----------------------------------------------------------------------------
+# Query: Get All Books
+# -----------------------------------------------------------------------------
+
+scenario: Query all books
+  description: Retrieve all books using a GraphQL query
+  when: I query for all books
+    call ^graphqlQuery
+      body: {"query": "{ books { id title isbn pageCount } }"}
+  then: I receive a list of books
+    assert status 200
+    assert $.data.books notEmpty
+    assert $.data.books[0].title notEmpty
+
+# -----------------------------------------------------------------------------
+# Query: Get Book by ID
+# -----------------------------------------------------------------------------
+
+scenario: Query book by ID
+  description: Retrieve a specific book using its ID
+  when: I query for a book by ID
+    call ^graphqlQuery
+      body: {"query": "query GetBook($id: ID!) { bookById(id: $id) { id title isbn pageCount author { firstName lastName } } }", "variables": {"id": "1"}}
+  then: I receive the book details
+    assert status 200
+    assert $.data.bookById.title equals "Effective Java"
+    assert $.data.bookById.author.lastName equals "Bloch"
+
+# -----------------------------------------------------------------------------
+# Query: Get Book by ISBN
+# -----------------------------------------------------------------------------
+
+scenario: Query book by ISBN
+  when: I query for a book by ISBN
+    call ^graphqlQuery
+      body: {"query": "query GetBookByIsbn($isbn: String!) { bookByIsbn(isbn: $isbn) { title pageCount } }", "variables": {"isbn": "978-0132350884"}}
+  then: I receive the book
+    assert status 200
+    assert $.data.bookByIsbn.title equals "Clean Code"
+
+# -----------------------------------------------------------------------------
+# Mutation: Create Book
+# -----------------------------------------------------------------------------
+
+scenario: Create a new book
+  when: I create a book via mutation
+    call ^graphqlQuery
+      body: {"query": "mutation CreateBook($title: String!, $isbn: String!, $pageCount: Int) { createBook(title: $title, isbn: $isbn, pageCount: $pageCount) { id title isbn pageCount } }", "variables": {"title": "Test Book", "isbn": "978-1234567890", "pageCount": 100}}
+  then: the book is created
+    assert status 200
+    assert $.data.createBook.title equals "Test Book"
+    assert $.data.createBook.isbn equals "978-1234567890"
+    extract $.data.createBook.id => newBookId
+
+# -----------------------------------------------------------------------------
+# Mutation: Update Book
+# -----------------------------------------------------------------------------
+
+scenario: Update an existing book
+  given: I have a book to update
+    call ^graphqlQuery
+      body: {"query": "mutation CreateBook($title: String!, $isbn: String!, $pageCount: Int) { createBook(title: $title, isbn: $isbn, pageCount: $pageCount) { id } }", "variables": {"title": "Book to Update", "isbn": "978-0000000001", "pageCount": 100}}
+    extract $.data.createBook.id => bookId
+  when: I update the book
+    call ^graphqlQuery
+      body: {"query": "mutation UpdateBook($id: ID!, $title: String, $pageCount: Int) { updateBook(id: $id, title: $title, pageCount: $pageCount) { id title pageCount } }", "variables": {"id": "{{bookId}}", "title": "Updated Title", "pageCount": 200}}
+  then: the book is updated
+    assert status 200
+    assert $.data.updateBook.title equals "Updated Title"
+    assert $.data.updateBook.pageCount equals 200
+
+# -----------------------------------------------------------------------------
+# Mutation: Delete Book
+# -----------------------------------------------------------------------------
+
+scenario: Delete a book
+  given: I have a book to delete
+    call ^graphqlQuery
+      body: {"query": "mutation CreateBook($title: String!, $isbn: String!, $pageCount: Int) { createBook(title: $title, isbn: $isbn, pageCount: $pageCount) { id } }", "variables": {"title": "Book to Delete", "isbn": "978-0000000002", "pageCount": 50}}
+    extract $.data.createBook.id => bookId
+  when: I delete the book
+    call ^graphqlQuery
+      body: {"query": "mutation DeleteBook($id: ID!) { deleteBook(id: $id) }", "variables": {"id": "{{bookId}}"}}
+  then: the book is deleted
+    assert status 200
+    assert $.data.deleteBook equals true
+
+# -----------------------------------------------------------------------------
+# Nested Queries
+# -----------------------------------------------------------------------------
+
+scenario: Query author with nested books
+  when: I query author with detailed book information
+    call ^graphqlQuery
+      body: {"query": "query GetAuthor($id: ID!) { authorById(id: $id) { fullName books { title pageCount isbn } } }", "variables": {"id": "2"}}
+  then: I receive detailed nested data
+    assert status 200
+    assert $.data.authorById.fullName equals "Robert Martin"
+    assert $.data.authorById.books notEmpty

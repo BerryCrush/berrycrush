@@ -1,0 +1,9 @@
+# Fragment: my_fragment_1
+#
+# Reusable step fragment. Include in scenarios with:
+#   include my_fragment_1
+
+fragment: my_fragment_1
+  # TODO: Add steps here
+  given: setup
+    # Add directives

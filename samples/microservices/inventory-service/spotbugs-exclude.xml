@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <Match>
+        <Bug pattern="ENTITY_LEAK"/>
+    </Match>
+    <Match>
+        <Bug pattern="ENTITY_MASS_ASSIGNMENT"/>
+    </Match>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <Match>
+        <Class name="~org\.berrycrush\..*Controller"/>
+        <Bug category="SECURITY"/>
+    </Match>
+</FindBugsFilter>

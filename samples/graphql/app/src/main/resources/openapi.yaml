@@ -1,0 +1,87 @@
+openapi: 3.0.3
+info:
+  title: GraphQL Books API
+  description: |
+    REST API wrapper for testing GraphQL queries via BerryCrush.
+    GraphQL endpoints are typically POST /graphql with a JSON body containing
+    the query and variables.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8085
+    description: Local development server
+
+paths:
+  /graphql:
+    post:
+      operationId: graphqlQuery
+      summary: Execute a GraphQL query or mutation
+      description: |
+        Sends a GraphQL query or mutation to the server.
+        The body should contain `query` and optionally `variables` and `operationName`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GraphQLRequest'
+      responses:
+        '200':
+          description: GraphQL response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLResponse'
+
+components:
+  schemas:
+    GraphQLRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: The GraphQL query or mutation string
+        variables:
+          type: object
+          description: Variables for the query
+          additionalProperties: true
+        operationName:
+          type: string
+          description: Name of the operation to execute (for multi-operation documents)
+
+    GraphQLResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          description: The data returned by the query
+          additionalProperties: true
+        errors:
+          type: array
+          description: Any errors that occurred during execution
+          items:
+            $ref: '#/components/schemas/GraphQLError'
+
+    GraphQLError:
+      type: object
+      properties:
+        message:
+          type: string
+        locations:
+          type: array
+          items:
+            type: object
+            properties:
+              line:
+                type: integer
+              column:
+                type: integer
+        path:
+          type: array
+          items:
+            type: string
+        extensions:
+          type: object
+          additionalProperties: true

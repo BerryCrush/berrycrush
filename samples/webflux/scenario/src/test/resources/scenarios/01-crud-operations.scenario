@@ -1,0 +1,128 @@
+# =============================================================================
+# WebFlux Products API - Basic Usage
+# =============================================================================
+# This scenario file demonstrates BerryCrush with Spring WebFlux reactive APIs:
+# - Basic CRUD operations
+# - Reactive endpoint testing
+# - JSON assertions with reactive responses
+
+# -----------------------------------------------------------------------------
+# List Products
+# -----------------------------------------------------------------------------
+
+scenario: List all products
+  when: I request all products
+    call ^listProducts
+  then: I receive a list of products
+    assert status 200
+    assert $ notEmpty
+
+# -----------------------------------------------------------------------------
+# Get Product by ID
+# -----------------------------------------------------------------------------
+
+scenario: Get product by ID
+  when: I request a specific product
+    call ^getProduct
+      id: 1
+  then: I receive the product details
+    assert status 200
+    assert $.name notEmpty
+    assert $.price greaterThan 0
+    assert $.stock exists
+
+scenario: Get non-existent product returns 404
+  when: I request a product that doesn't exist
+    call ^getProduct
+      id: 99999
+  then: I receive a not found error
+    assert status 404
+
+# -----------------------------------------------------------------------------
+# Create Product
+# -----------------------------------------------------------------------------
+
+scenario: Create a new product
+  when: I create a new product
+    call ^createProduct
+      body:
+        name: "Test Product"
+        description: "A test product for WebFlux demo"
+        price: 29.99
+        stock: 100
+  then: the product is created
+    assert status 201
+    assert $.id notEmpty
+    assert $.name equals "Test Product"
+    extract $.id => productId
+  and: I can retrieve it
+    call ^getProduct
+      id: {{productId}}
+    assert status 200
+    assert $.name equals "Test Product"
+
+# -----------------------------------------------------------------------------
+# Update Product
+# -----------------------------------------------------------------------------
+
+scenario: Update an existing product
+  given: I have created a product
+    call ^createProduct
+      body:
+        name: "Original Product"
+        description: "Original description"
+        price: 19.99
+        stock: 50
+    assert status 201
+    extract $.id => productId
+  when: I update the product
+    call ^updateProduct
+      id: {{productId}}
+      body:
+        name: "Updated Product"
+        description: "Updated description"
+        price: 24.99
+        stock: 75
+  then: the product is updated
+    assert status 200
+    assert $.name equals "Updated Product"
+    assert $.price equals 24.99
+
+# -----------------------------------------------------------------------------
+# Delete Product
+# -----------------------------------------------------------------------------
+
+scenario: Delete a product
+  given: I have created a product
+    call ^createProduct
+      body:
+        name: "Product to Delete"
+        description: "This will be deleted"
+        price: 9.99
+        stock: 10
+    assert status 201
+    extract $.id => productId
+  when: I delete the product
+    call ^deleteProduct
+      id: {{productId}}
+  then: the product is deleted
+    assert status 204
+  and: the product is no longer available
+    call ^getProduct
+      id: {{productId}}
+    assert status 404
+
+# -----------------------------------------------------------------------------
+# Search Products
+# -----------------------------------------------------------------------------
+
+scenario: Search products by name
+  given: I have some products
+    call ^listProducts
+    assert status 200
+  when: I search for products
+    call ^listProducts
+      search: "Laptop"
+  then: I receive matching products
+    assert status 200
+    # May be empty if no matching products exist

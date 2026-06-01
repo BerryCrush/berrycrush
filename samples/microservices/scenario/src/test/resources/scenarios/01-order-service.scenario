@@ -1,0 +1,55 @@
+# =============================================================================
+# Microservices - Order Service Scenarios
+# =============================================================================
+# Demonstrates testing a microservice for order management
+
+# -----------------------------------------------------------------------------
+# List Orders
+# -----------------------------------------------------------------------------
+
+scenario: List all orders
+  when: I request all orders
+    call ^listOrders
+  then: I receive a list of orders
+    assert status 200
+
+# -----------------------------------------------------------------------------
+# Create Order
+# -----------------------------------------------------------------------------
+
+scenario: Create a new order
+  when: I create an order
+    call ^createOrder
+      body:
+        customerId: "CUST-001"
+        productId: "SKU-001"
+        quantity: 2
+        unitPrice: 9.99
+  then: the order is created
+    assert status 201
+    assert $.id notEmpty
+    assert $.customerId equals "CUST-001"
+    assert $.status equals "PENDING"
+    assert $.totalPrice equals 19.98
+    extract $.id => orderId
+
+# -----------------------------------------------------------------------------
+# Get Order by ID
+# -----------------------------------------------------------------------------
+
+scenario: Get order by ID
+  given: I have created an order
+    call ^createOrder
+      body:
+        customerId: "CUST-002"
+        productId: "SKU-002"
+        quantity: 1
+        unitPrice: 19.99
+    assert status 201
+    extract $.id => orderId
+  when: I request the order
+    call ^getOrder
+      id: {{orderId}}
+  then: I receive the order details
+    assert status 200
+    assert $.customerId equals "CUST-002"
