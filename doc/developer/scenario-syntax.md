@@ -20,8 +20,9 @@ All files must be UTF-8 encoded.
 scenario_file     = [ parameters_block ] , { feature | scenario | fragment } ;
 
 (* Parameters block - file-level or feature-level configuration *)
-parameters_block  = "parameters:" , NEWLINE , { parameter_entry } ;
+parameters_block  = "parameters:" , NEWLINE , { parameter_entry | nested_param_block } ;
 parameter_entry   = INDENT , parameter_name , ":" , parameter_value , NEWLINE ;
+nested_param_block = INDENT , identifier , ":" , NEWLINE , { INDENT , INDENT , parameter_entry } ;
 
 (* Tags *)
 tags              = { tag } ;
@@ -906,10 +907,56 @@ Feature-level parameters override file-level parameters for scenarios in that fe
 | `strictSchemaValidation` | Boolean | Fail on schema validation warnings |
 | `followRedirects` | Boolean | Follow HTTP redirects |
 | `header.<name>` | String | Add/override default header |
+| `retry.<option>` | Various | Configure retry behavior |
+| `errorContext.<option>` | Various | Configure error context output |
 | `autoAssertions.enabled` | Boolean | Enable/disable all auto-assertions |
 | `autoAssertions.statusCode` | Boolean | Auto-assert correct status code |
 | `autoAssertions.contentType` | Boolean | Auto-assert Content-Type header |
 | `autoAssertions.schema` | Boolean | Auto-assert response matches schema |
+
+### Nested Parameter Syntax
+
+Parameters with dot-notation prefixes (like `retry.*`, `header.*`, `errorContext.*`) can also 
+be written using nested YAML-like syntax for better readability.
+
+**Flat notation** (traditional):
+
+```berrycrush
+parameters:
+  retry.maxAttempts: 3
+  retry.delay: "1s"
+  retry.backoff: exponential
+  header.Authorization: "Bearer token"
+  header.X-Custom: "value"
+```
+
+**Nested notation** (more readable):
+
+```berrycrush
+parameters:
+  retry:
+    maxAttempts: 3
+    delay: "1s"
+    backoff: exponential
+  header:
+    Authorization: "Bearer token"
+    X-Custom: "value"
+  errorContext:
+    includeRequestBody: true
+    maxBodySize: 4096
+```
+
+Both formats are equivalent - nested blocks are flattened to dot notation internally.
+You can mix flat and nested syntax in the same parameters block:
+
+```berrycrush
+parameters:
+  baseUrl: "http://localhost:8080"
+  retry:
+    maxAttempts: 3
+    delay: "500ms"
+  header.Authorization: "Bearer token"
+```
 
 ## Variable Substitution
 

@@ -659,7 +659,54 @@ Parameter                  Type    Description
 ``logResponses``           Boolean Enable HTTP response logging
 ``strictSchemaValidation`` Boolean Fail on schema validation warnings
 ``header.<name>``          String  Add/override default header
+``retry.<option>``         Various Configure retry behavior
+``errorContext.<option>``  Various Configure error context output
 ========================== ======= ========================================
+
+Nested Parameter Syntax
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Parameters with dot-notation prefixes (like ``retry.*``, ``header.*``, ``errorContext.*``)
+can also be written using nested YAML-like syntax for better readability:
+
+**Flat notation** (traditional):
+
+.. code-block:: berrycrush
+
+    parameters:
+      retry.maxAttempts: 3
+      retry.delay: "1s"
+      retry.backoff: exponential
+      header.Authorization: "Bearer token"
+      header.X-Custom: "value"
+
+**Nested notation** (alternative, more readable):
+
+.. code-block:: berrycrush
+
+    parameters:
+      retry:
+        maxAttempts: 3
+        delay: "1s"
+        backoff: exponential
+      header:
+        Authorization: "Bearer token"
+        X-Custom: "value"
+      errorContext:
+        includeRequestBody: true
+        maxBodySize: 4096
+
+Both formats are equivalent - nested blocks are flattened to dot notation internally.
+You can also mix flat and nested syntax in the same parameters block:
+
+.. code-block:: berrycrush
+
+    parameters:
+      baseUrl: "http://localhost:8080"
+      retry:
+        maxAttempts: 3
+        delay: "500ms"
+      header.Authorization: "Bearer token"
 
 Auto-Generated Tests
 --------------------

@@ -73,19 +73,51 @@ Java equivalent:
 Parameter-Based Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can also configure retry via file-level or scenario-level parameters:
+You can also configure retry via file-level or scenario-level parameters.
 
-.. code-block:: gherkin
+**File-level parameters** (apply to all scenarios in the file):
 
-   @Parameters
-   | key                 | value       |
-   | retry.maxAttempts   | 3           |
-   | retry.delay         | 1s          |
-   | retry.maxDelay      | 30s         |
-   | retry.backoff       | exponential |
-   | retry.jitter        | true        |
+.. code-block:: berrycrush
 
-   Feature: Pet API with retry
+   parameters:
+     retry.maxAttempts: 3
+     retry.delay: "1s"
+     retry.maxDelay: "30s"
+     retry.backoff: exponential
+     retry.jitter: true
+
+   scenario: Pet API with retry
+     when: I request pets
+       call ^listPets
+     then: I receive a response
+       assert status 200
+
+**Nested syntax** (alternative, more readable format):
+
+.. code-block:: berrycrush
+
+   parameters:
+     retry:
+       maxAttempts: 3
+       delay: "1s"
+       maxDelay: "30s"
+       backoff: exponential
+       jitter: true
+
+**Scenario-level parameters** (apply to a specific scenario):
+
+.. code-block:: berrycrush
+
+   scenario: Flaky endpoint with retry
+     parameters:
+       retry:
+         maxAttempts: 5
+         delay: "500ms"
+         backoff: exponential
+     when: I call flaky endpoint
+       call ^flakyOperation
+     then: eventually succeeds
+       assert status 200
 
 Configuration Options
 ---------------------
