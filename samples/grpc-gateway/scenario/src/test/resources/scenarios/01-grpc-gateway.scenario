@@ -1,0 +1,183 @@
+# =============================================================================
+# gRPC-Gateway Style API Testing
+# =============================================================================
+# This scenario demonstrates BerryCrush testing with gRPC-Gateway style APIs:
+# - Custom method patterns (e.g., :send, :updateStatus)
+# - gRPC/Protobuf naming conventions
+# - Request/Response message patterns
+
+# -----------------------------------------------------------------------------
+# Send Message (Custom Method Pattern)
+# -----------------------------------------------------------------------------
+
+scenario: Send a message using gRPC-Gateway custom method
+  when: I send a message
+    call ^SendMessage
+      body:
+        senderId: "user-001"
+        recipientId: "user-002"
+        content: "Hello from BerryCrush!"
+        priority: 1
+  then: the message is sent successfully
+    assert status 201
+    assert $.messageId notEmpty
+    assert $.status equals "SENT"
+    extract $.messageId => messageId
+
+# -----------------------------------------------------------------------------
+# Get Message by ID
+# -----------------------------------------------------------------------------
+
+scenario: Retrieve a sent message
+  given: I have sent a message
+    call ^SendMessage
+      body:
+        senderId: "sender-get-test"
+        recipientId: "recipient-get-test"
+        content: "Test message for retrieval"
+    assert status 201
+    extract $.messageId => messageId
+  when: I retrieve the message
+    call ^GetMessage
+      messageId: {{messageId}}
+  then: I receive the message details
+    assert status 200
+    assert $.senderId equals "sender-get-test"
+    assert $.recipientId equals "recipient-get-test"
+    assert $.content equals "Test message for retrieval"
+
+# -----------------------------------------------------------------------------
+# List Messages with Filters
+# -----------------------------------------------------------------------------
+
+scenario: List messages by recipient
+  given: I have sent messages to a recipient
+    call ^SendMessage
+      body:
+        senderId: "sender-list-test"
+        recipientId: "recipient-list-test"
+        content: "First message"
+    assert status 201
+    call ^SendMessage
+      body:
+        senderId: "sender-list-test"
+        recipientId: "recipient-list-test"
+        content: "Second message"
+    assert status 201
+  when: I list messages for the recipient
+    call ^ListMessages
+      recipientId: "recipient-list-test"
+  then: I receive the messages
+    assert status 200
+    assert $.messages notEmpty
+
+scenario: List messages with pagination
+  when: I request messages with page size
+    call ^ListMessages
+      pageSize: 10
+  then: I receive a paginated response
+    assert status 200
+    assert $.messages exists
+    assert $.nextPageToken exists
+
+# -----------------------------------------------------------------------------
+# Update Message Status (Custom Method Pattern)
+# -----------------------------------------------------------------------------
+
+scenario: Update message status using custom method
+  given: I have a sent message
+    call ^SendMessage
+      body:
+        senderId: "sender-status-test"
+        recipientId: "recipient-status-test"
+        content: "Message for status update"
+    assert status 201
+    extract $.messageId => messageId
+  when: I update the message status to DELIVERED
+    call ^UpdateMessageStatus
+      messageId: {{messageId}}
+      body:
+        status: "DELIVERED"
+  then: the status is updated
+    assert status 200
+    assert $.status equals "DELIVERED"
+
+scenario: Mark message as read
+  given: I have a delivered message
+    call ^SendMessage
+      body:
+        senderId: "sender-read-test"
+        recipientId: "recipient-read-test"
+        content: "Message to be read"
+    extract $.messageId => messageId
+    call ^UpdateMessageStatus
+      messageId: {{messageId}}
+      body:
+        status: "DELIVERED"
+    assert status 200
+  when: I mark the message as read
+    call ^UpdateMessageStatus
+      messageId: {{messageId}}
+      body:
+        status: "READ"
+  then: the message is marked as read
+    assert status 200
+    assert $.status equals "READ"
+
+# -----------------------------------------------------------------------------
+# Batch Operations
+# Note: Skipping batch operations as BerryCrush doesn't support arrays well
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# Delete Message
+# -----------------------------------------------------------------------------
+
+scenario: Delete a message
+  given: I have a message
+    call ^SendMessage
+      body:
+        senderId: "sender-delete-test"
+        recipientId: "recipient-delete-test"
+        content: "Message to delete"
+    extract $.messageId => messageId
+  when: I delete the message
+    call ^DeleteMessage
+      messageId: {{messageId}}
+  then: the message is deleted
+    assert status 204
+  and: the message is no longer retrievable
+    call ^GetMessage
+      messageId: {{messageId}}
+    assert status 404
+
+# -----------------------------------------------------------------------------
+# Message Lifecycle
+# -----------------------------------------------------------------------------
+
+scenario: Complete message lifecycle
+  given: I send a new message
+    call ^SendMessage
+      body:
+        senderId: "lifecycle-sender"
+        recipientId: "lifecycle-recipient"
+        content: "Lifecycle test message"
+        priority: 2
+    assert status 201
+    extract $.messageId => messageId
+  when: I verify initial state
+    call ^GetMessage
+      messageId: {{messageId}}
+    assert $.status equals "SENT"
+  and: I mark it as delivered
+    call ^UpdateMessageStatus
+      messageId: {{messageId}}
+      body:
+        status: "DELIVERED"
+    assert $.status equals "DELIVERED"
+  then: I mark it as read
+    call ^UpdateMessageStatus
+      messageId: {{messageId}}
+      body:
+        status: "READ"
+    assert $.status equals "READ"

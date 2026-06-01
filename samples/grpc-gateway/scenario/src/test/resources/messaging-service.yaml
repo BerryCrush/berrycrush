@@ -1,0 +1,231 @@
+openapi: 3.0.3
+info:
+  title: Messaging Service API (gRPC-Gateway Style)
+  description: |
+    REST API following gRPC-Gateway conventions, demonstrating how BerryCrush
+    can test gRPC services exposed through REST gateways.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8084
+    description: Local development server
+
+paths:
+  /v1/messaging/messages:send:
+    post:
+      operationId: SendMessage
+      summary: Send a new message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '201':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendMessageResponse'
+
+  /v1/messaging/messages/{messageId}:
+    get:
+      operationId: GetMessage
+      summary: Get a message by ID
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Message details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '404':
+          description: Message not found
+    
+    delete:
+      operationId: DeleteMessage
+      summary: Delete a message
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Message deleted
+        '404':
+          description: Message not found
+
+  /v1/messaging/messages:
+    get:
+      operationId: ListMessages
+      summary: List messages
+      parameters:
+        - name: recipientId
+          in: query
+          schema:
+            type: string
+        - name: senderId
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 100
+        - name: pageToken
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListMessagesResponse'
+
+  /v1/messaging/messages/{messageId}:updateStatus:
+    post:
+      operationId: UpdateMessageStatus
+      summary: Update message delivery status
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStatusRequest'
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+
+  /v1/messaging/messages:batchSend:
+    post:
+      operationId: BatchSendMessages
+      summary: Send multiple messages in a batch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchSendRequest'
+      responses:
+        '200':
+          description: Batch sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchSendResponse'
+
+components:
+  schemas:
+    SendMessageRequest:
+      type: object
+      required:
+        - senderId
+        - recipientId
+        - content
+      properties:
+        senderId:
+          type: string
+        recipientId:
+          type: string
+        content:
+          type: string
+        priority:
+          type: integer
+
+    SendMessageResponse:
+      type: object
+      properties:
+        messageId:
+          type: integer
+          format: int64
+        timestamp:
+          type: string
+        status:
+          type: string
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        senderId:
+          type: string
+        recipientId:
+          type: string
+        content:
+          type: string
+        timestamp:
+          type: string
+        status:
+          type: string
+        priority:
+          type: integer
+
+    ListMessagesResponse:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        nextPageToken:
+          type: string
+
+    UpdateStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+
+    BatchSendRequest:
+      type: object
+      required:
+        - messages
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/SendMessageRequest'
+
+    BatchSendResponse:
+      type: object
+      properties:
+        messageIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+        successCount:
+          type: integer

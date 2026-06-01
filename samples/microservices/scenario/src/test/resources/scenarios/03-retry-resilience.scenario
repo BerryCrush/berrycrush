@@ -1,0 +1,156 @@
+# =============================================================================
+# Microservices - Retry Resilience Testing
+# =============================================================================
+# This scenario demonstrates:
+# - 503 Service Unavailable error emulation using chaos endpoints
+# - BerryCrush automatic retry mechanism
+# - Testing resilience patterns with transient failures
+#
+# The Inventory Service has built-in chaos endpoints that can simulate
+# transient failures (503 errors) to test retry behavior.
+
+# -----------------------------------------------------------------------------
+# Retry Configuration
+# -----------------------------------------------------------------------------
+# Configure BerryCrush to automatically retry on transient failures (5xx)
+
+parameters:
+  retry:
+    maxAttempts: 5
+    delay: "200ms"
+    maxDelay: "2s"
+    backoff: exponential
+    jitter: true
+
+# -----------------------------------------------------------------------------
+# Basic Chaos Testing
+# -----------------------------------------------------------------------------
+
+@retry @resilience
+scenario: API recovers after transient 503 errors
+  description: Demonstrates automatic retry when service returns 503
+  given: chaos mode is enabled to fail 2 requests
+    call ^enableChaos
+      failCount: 2
+      statusCode: 503
+    assert status 200
+    assert $.enabled equals true
+  when: I request inventory (will fail twice then succeed)
+    call ^listInventory
+  then: the request eventually succeeds after retries
+    assert status 200
+    assert $.length() >= 1
+  and: disable chaos mode
+    call ^disableChaos
+    assert status 200
+
+@retry @resilience  
+scenario: Get specific item with retry on 503
+  description: Fetching a specific item recovers from transient failures
+  given: chaos is configured for 1 failure
+    call ^enableChaos
+      failCount: 1
+      statusCode: 503
+    assert status 200
+  when: I request a specific inventory item
+    call ^getInventoryItem
+      sku: "SKU-001"
+  then: I receive the item after retry
+    assert status 200
+    assert $.sku equals "SKU-001"
+  and: cleanup chaos
+    call ^disableChaos
+
+# -----------------------------------------------------------------------------
+# Availability Check with Resilience
+# -----------------------------------------------------------------------------
+
+@retry @resilience
+scenario: Availability check succeeds after transient failures
+  description: Checking availability with automatic retry
+  given: chaos mode simulates intermittent failures
+    call ^enableChaos
+      failCount: 2
+      statusCode: 503
+    assert status 200
+  when: I check item availability
+    call ^checkAvailability
+      sku: "SKU-002"
+      quantity: 5
+  then: availability check completes successfully
+    assert status 200
+    assert $.available exists
+  and: disable chaos
+    call ^disableChaos
+
+# -----------------------------------------------------------------------------
+# Verify Chaos Mode Operation
+# -----------------------------------------------------------------------------
+
+scenario: Verify chaos status endpoint
+  when: I check chaos status
+    call ^getChaosStatus
+  then: I see the current configuration
+    assert status 200
+    assert $.enabled exists
+    assert $.failCount exists
+
+scenario: Enable and disable chaos mode
+  given: I enable chaos mode
+    call ^enableChaos
+      failCount: 3
+      statusCode: 503
+    assert status 200
+    assert $.enabled equals true
+    assert $.failCount equals 3
+  when: I disable chaos mode
+    call ^disableChaos
+  then: chaos mode is disabled
+    assert status 200
+    assert $.enabled equals false
+
+# -----------------------------------------------------------------------------
+# Reset Chaos Counter
+# -----------------------------------------------------------------------------
+
+scenario: Reset chaos counter mid-test
+  given: chaos is enabled and partially used
+    call ^enableChaos
+      failCount: 10
+      statusCode: 503
+    # Note: We can't easily trigger a partial failure here
+    # but we can show the reset functionality
+    call ^resetChaos
+    assert status 200
+    assert $.reset equals true
+  when: I check status after reset
+    call ^getChaosStatus
+  then: counter is reset to zero
+    assert status 200
+    assert $.currentFailCount equals 0
+  and: cleanup
+    call ^disableChaos
+
+# -----------------------------------------------------------------------------
+# Cross-Service Resilience (Order + Inventory)
+# -----------------------------------------------------------------------------
+# This demonstrates a realistic microservices scenario where
+# the order service might need to check inventory availability
+
+@retry @cross-service
+scenario: Order flow with resilient inventory check
+  description: Creating an order while inventory service has transient issues
+  given: inventory service will initially fail
+    call ^enableChaos
+      failCount: 1
+      statusCode: 503
+    assert status 200
+  when: I check inventory before ordering
+    call ^checkAvailability
+      sku: "SKU-001"
+      quantity: 2
+  then: availability check succeeds after retry
+    assert status 200
+    assert $.available equals true
+  and: cleanup
+    call ^disableChaos

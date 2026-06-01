@@ -1,0 +1,306 @@
+openapi: 3.0.3
+info:
+  title: Inventory Service API
+  description: Inventory management microservice API with chaos testing support
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8083
+    description: Local development server
+
+paths:
+  /api/inventory:
+    get:
+      operationId: listInventory
+      summary: List all inventory items
+      responses:
+        '200':
+          description: List of inventory items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InventoryItem'
+        '503':
+          description: Service temporarily unavailable (chaos mode)
+    
+    post:
+      operationId: createInventoryItem
+      summary: Create a new inventory item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryItemInput'
+      responses:
+        '201':
+          description: Item created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItem'
+        '409':
+          description: Item with SKU already exists
+        '503':
+          description: Service temporarily unavailable (chaos mode)
+
+  /api/inventory/{sku}:
+    get:
+      operationId: getInventoryItem
+      summary: Get inventory item by SKU
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Inventory item details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItem'
+        '404':
+          description: Item not found
+        '503':
+          description: Service temporarily unavailable (chaos mode)
+    
+    put:
+      operationId: updateInventoryItem
+      summary: Update an inventory item
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryItemInput'
+      responses:
+        '200':
+          description: Item updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItem'
+        '404':
+          description: Item not found
+        '503':
+          description: Service temporarily unavailable (chaos mode)
+    
+    delete:
+      operationId: deleteInventoryItem
+      summary: Delete an inventory item
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Item deleted
+        '404':
+          description: Item not found
+        '503':
+          description: Service temporarily unavailable (chaos mode)
+
+  /api/inventory/{sku}/availability:
+    get:
+      operationId: checkAvailability
+      summary: Check item availability
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: quantity
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Availability check result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailabilityResponse'
+        '404':
+          description: Item not found
+        '503':
+          description: Service temporarily unavailable (chaos mode)
+
+  /api/inventory/{sku}/reserve:
+    post:
+      operationId: reserveInventory
+      summary: Reserve inventory for an order
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: quantity
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Inventory reserved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        '404':
+          description: Item not found
+        '409':
+          description: Insufficient inventory
+        '503':
+          description: Service temporarily unavailable (chaos mode)
+
+  # Chaos Testing Endpoints
+  /api/chaos/enable:
+    post:
+      operationId: enableChaos
+      summary: Enable chaos mode for testing retries
+      description: Configure the service to return errors for a specified number of requests
+      parameters:
+        - name: failCount
+          in: query
+          description: Number of requests that should fail before succeeding
+          schema:
+            type: integer
+            default: 2
+        - name: statusCode
+          in: query
+          description: HTTP status code to return for failures
+          schema:
+            type: integer
+            default: 503
+      responses:
+        '200':
+          description: Chaos mode enabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChaosStatus'
+
+  /api/chaos/disable:
+    post:
+      operationId: disableChaos
+      summary: Disable chaos mode
+      responses:
+        '200':
+          description: Chaos mode disabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChaosStatus'
+
+  /api/chaos/reset:
+    post:
+      operationId: resetChaos
+      summary: Reset chaos failure counter
+      responses:
+        '200':
+          description: Chaos counter reset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChaosStatus'
+
+  /api/chaos/status:
+    get:
+      operationId: getChaosStatus
+      summary: Get current chaos configuration
+      responses:
+        '200':
+          description: Chaos configuration status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChaosStatus'
+
+components:
+  schemas:
+    InventoryItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        sku:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: integer
+        reservedQuantity:
+          type: integer
+        unitPrice:
+          type: number
+          format: double
+
+    InventoryItemInput:
+      type: object
+      required:
+        - sku
+        - name
+        - quantity
+        - unitPrice
+      properties:
+        sku:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+          format: double
+
+    AvailabilityResponse:
+      type: object
+      properties:
+        sku:
+          type: string
+        requestedQuantity:
+          type: integer
+        availableQuantity:
+          type: integer
+        available:
+          type: boolean
+
+    ReservationResponse:
+      type: object
+      properties:
+        sku:
+          type: string
+        reservedQuantity:
+          type: integer
+        remainingAvailable:
+          type: integer
+
+    ChaosStatus:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        failCount:
+          type: integer
+        statusCode:
+          type: integer
+        currentFailCount:
+          type: integer
+        message:
+          type: string

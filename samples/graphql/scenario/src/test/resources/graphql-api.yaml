@@ -1,0 +1,54 @@
+openapi: 3.0.3
+info:
+  title: GraphQL Books API
+  description: REST API wrapper for testing GraphQL queries via BerryCrush.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8085
+    description: Local development server
+
+paths:
+  /graphql:
+    post:
+      operationId: graphqlQuery
+      summary: Execute a GraphQL query or mutation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GraphQLRequest'
+      responses:
+        '200':
+          description: GraphQL response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLResponse'
+
+components:
+  schemas:
+    GraphQLRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+        variables:
+          type: object
+          additionalProperties: true
+        operationName:
+          type: string
+
+    GraphQLResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+        errors:
+          type: array
+          items:
+            type: object
