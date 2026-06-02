@@ -157,13 +157,21 @@ class DefaultAssertionEngine(
 
     /**
      * Evaluate a variable condition.
+     *
+     * Supports nested paths like `server.hook.length` by using ExecutionContext.interpolate.
      */
     private fun evaluateVariableCondition(
         condition: Condition.Variable,
         context: AssertionContext,
     ): Boolean {
+        // Try direct lookup first, then use interpolation for nested paths
         val actual: Any? = context.variables[condition.name]
-        val expected = condition.expected
+            ?: run {
+                val interpolated = context.executionContext.interpolate("{{${condition.name}}}")
+                // If interpolation returns the same string, the variable wasn't found
+                if (interpolated == "{{${condition.name}}}") null else interpolated
+            }
+        val expected = condition.expected?.let { resolveConditionValue(it, context) }
         return evaluateOperator(actual, expected, condition.operator)
     }
 
@@ -522,7 +530,12 @@ class DefaultAssertionEngine(
         passed: Boolean,
         context: AssertionContext,
     ): String {
+        // Try direct lookup first, then use interpolation for nested paths
         val actual = context.variables[condition.name]
+            ?: run {
+                val interpolated = context.executionContext.interpolate("{{${condition.name}}}")
+                if (interpolated == "{{${condition.name}}}") null else interpolated
+            }
         return if (passed) {
             "${condition.name} ${condition.operator.name.lowercase()} ${condition.expected}"
         } else {

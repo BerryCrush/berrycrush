@@ -1,6 +1,7 @@
 package org.berrycrush.model
 
 import org.berrycrush.scenario.SourceLocation
+import org.berrycrush.scenario.WebhookScope
 
 /**
  * Represents a body property value, which can be either a simple value or a nested object.
@@ -64,4 +65,20 @@ data class Step(
     val fragmentName: String? = null,
     val includeParameters: Map<String, Any> = emptyMap(),
     val sourceLocation: SourceLocation? = null,
+    val webhookConfig: WebhookConfig? = null,
+)
+
+/**
+ * Configuration for a webhook mock server.
+ *
+ * @property name Identifier for the webhook server (used in variable interpolation)
+ * @property port Port to listen on (0 = auto-assign random port)
+ * @property hooks List of webhook operation IDs to expect
+ * @property scope Cleanup scope (SCENARIO or FEATURE level)
+ */
+data class WebhookConfig(
+    val name: String,
+    val port: Int,
+    val hooks: List<String>,
+    val scope: WebhookScope = WebhookScope.SCENARIO,
 )

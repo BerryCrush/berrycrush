@@ -886,6 +886,125 @@ Register assertion classes in ``@BerryCrushConfiguration``:
     @BerryCrushConfiguration(assertionClasses = {PetstoreAssertions.class})
     public class PetstoreScenarioTest {}
 
+Webhook Servers
+---------------
+
+BerryCrush can spin up mock webhook servers to test callback/webhook flows without external infrastructure.
+This is useful when testing APIs that call back to webhook URLs.
+
+Basic Syntax
+^^^^^^^^^^^^
+
+Use the ``webhook:`` directive to start a webhook server:
+
+.. code-block:: berrycrush
+
+    scenario: Test webhook callback
+      given: webhook server is listening
+        webhook: myserver
+          port: 0
+          hook: statusCallback
+      when: I trigger an action that sends webhooks
+        call ^putSquare
+          row: 1
+          column: 1
+          header_progressUrl: "{{myserver.statusCallback}}"
+          body: {"mark": "X"}
+      then: webhook was received
+        assert {{myserver.statusCallback.length}} equals 1
+        assert {{myserver.statusCallback[0].body.winner}} equals "."
+
+Webhook Properties
+^^^^^^^^^^^^^^^^^^
+
+=================== ======== ======================================================
+Property            Required Description
+=================== ======== ======================================================
+``port``            No       Port to listen on (default: 0 = auto-assign)
+``hook``            Yes*     Single webhook endpoint name
+``hooks``           Yes*     List of webhook endpoint names
+``scope``           No       ``scenario`` (default) or ``feature`` lifecycle
+=================== ======== ======================================================
+
+\*Either ``hook`` or ``hooks`` must be provided.
+
+Multiple Hooks
+^^^^^^^^^^^^^^
+
+A single webhook server can listen on multiple endpoints:
+
+.. code-block:: berrycrush
+
+    given: notification server is ready
+      webhook: notifications
+        port: 8080
+        hooks:
+          - onPayment
+          - onShipment
+          - onDelivery
+
+    when: payment is processed
+      call ^processPayment
+        header_webhookUrl: "{{notifications.onPayment}}"
+        body: {"amount": 100}
+    
+    then: payment webhook received
+      assert {{notifications.onPayment.length}} equals 1
+
+Webhook Variable Interpolation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Webhook servers expose variables for use in ``{{}}`` interpolation:
+
+====================================== ================================================
+Variable Pattern                        Returns
+====================================== ================================================
+``{{server.hook}}``                    Full webhook URL (e.g., http://localhost:8080/webhook/hook)
+``{{server.hook.length}}``             Number of calls received on this hook
+``{{server.hook[0]}}``                 First webhook call (JSON string)
+``{{server.hook[0].body}}``            Request body of first call
+``{{server.hook[0].body.field}}``      Specific field from request body
+``{{server.hook[0].headers}}``         Request headers
+====================================== ================================================
+
+Example accessing nested body data:
+
+.. code-block:: berrycrush
+
+    assert {{server.callback[0].body.status}} equals "confirmed"
+    assert {{server.callback[0].body.orderId}} equals 12345
+
+Lifecycle (Scope)
+^^^^^^^^^^^^^^^^^
+
+By default, webhook servers are cleaned up after each scenario. Use ``scope: feature`` 
+to share a server across all scenarios in a feature:
+
+.. code-block:: berrycrush
+
+    feature: Payment Processing
+      background:
+        given: shared webhook server
+          webhook: events
+            port: 0
+            hook: onEvent
+            scope: feature
+
+      scenario: First payment
+        when: payment 1 is made
+          call ^processPayment
+            header_callbackUrl: "{{events.onEvent}}"
+        then: webhook received
+          assert {{events.onEvent.length}} equals 1
+
+      scenario: Second payment
+        # Server is shared, so previous call is still counted
+        when: payment 2 is made
+          call ^processPayment
+            header_callbackUrl: "{{events.onEvent}}"
+        then: both webhooks received
+          assert {{events.onEvent.length}} equals 2
+
 Best Practices
 --------------
 

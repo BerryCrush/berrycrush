@@ -13,6 +13,7 @@ import org.berrycrush.model.Fragment
 import org.berrycrush.model.Scenario
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepType
+import org.berrycrush.model.WebhookConfig
 import java.nio.file.Files
 import java.nio.file.Path
 import org.berrycrush.model.ConditionBranch as ModelConditionBranch
@@ -316,7 +317,27 @@ class ScenarioLoader {
                 is IncludeNode -> processIncludeNode(action)
                 is ConditionalNode -> conditionals.add(transformConditional(action))
                 is FailNode -> failMessage = action.message
+                is WebhookNode -> processWebhookNode(action)
             }
+        }
+
+        private fun processWebhookNode(webhook: WebhookNode) {
+            // Webhook nodes are processed during execution, not loading
+            // They are stored as a special step for the executor
+            finalizePendingCall()
+            steps.add(
+                Step(
+                    type = stepType,
+                    description = description,
+                    sourceLocation = webhook.location,
+                    webhookConfig = WebhookConfig(
+                        name = webhook.name,
+                        port = webhook.port,
+                        hooks = webhook.hooks,
+                        scope = webhook.scope,
+                    ),
+                ),
+            )
         }
 
         private fun processCallNode(call: CallNode) {
@@ -618,8 +639,8 @@ class ScenarioLoader {
                     )
                 is ConditionalNode -> conditionals.add(transformConditional(action))
                 is FailNode -> failMessage = action.message
-                is CallNode, is IncludeNode -> {
-                    // Calls and includes are not allowed in conditional branches
+                is CallNode, is IncludeNode, is WebhookNode -> {
+                    // Calls, includes, and webhooks are not allowed in conditional branches
                     // They should be ignored or logged as a warning
                 }
             }

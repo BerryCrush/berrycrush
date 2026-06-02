@@ -9,7 +9,9 @@ import org.springframework.stereotype.Service
  * Service that manages the TicTacToe game state.
  */
 @Service
-class GameService {
+class GameService(
+    private val webhookService: WebhookService,
+) {
     private val board = Board()
 
     /**
@@ -55,7 +57,12 @@ class GameService {
         require(mark != Mark.EMPTY) { "Invalid Mark (X or O)." }
 
         board.set(row, column, mark)
-        return getStatus()
+        val status = getStatus()
+
+        // Send webhook notification
+        webhookService.sendStatusWebhook(status)
+
+        return status
     }
 
     /**

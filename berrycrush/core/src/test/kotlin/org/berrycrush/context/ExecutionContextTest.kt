@@ -191,4 +191,123 @@ class ExecutionContextTest {
         assertTrue(copy2.contains("copy2Only"))
         assertFalse(copy2.contains("copy1Only"))
     }
+
+    // =========================================================================
+    // Webhook Variable Interpolation Tests
+    // =========================================================================
+
+    @Test
+    fun `should interpolate webhook URL`() {
+        val context = ExecutionContext()
+        val server = org.berrycrush.webhook.MockWebhookServer(0)
+        server.expect("onPaymentReceived")
+        val port = server.start()
+
+        try {
+            context.registerWebhookServer("payments", server)
+
+            val result = context.interpolate("{{payments.onPaymentReceived}}")
+
+            assertEquals("http://localhost:$port/webhook/onPaymentReceived", result)
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun `should interpolate webhook call count`() {
+        val context = ExecutionContext()
+        val server = org.berrycrush.webhook.MockWebhookServer(0)
+        server.expect("onEvent")
+        val port = server.start()
+
+        try {
+            context.registerWebhookServer("events", server)
+
+            // Initially 0 calls
+            assertEquals("0", context.interpolate("{{events.onEvent.length}}"))
+
+            // Simulate webhook call
+            val client = java.net.http.HttpClient.newHttpClient()
+            val request =
+                java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create("http://localhost:$port/webhook/onEvent"))
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString("""{"id": 1}"""))
+                    .build()
+            client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString())
+
+            // Now 1 call
+            assertEquals("1", context.interpolate("{{events.onEvent.length}}"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun `should interpolate webhook body`() {
+        val context = ExecutionContext()
+        val server = org.berrycrush.webhook.MockWebhookServer(0)
+        server.expect("onOrder")
+        val port = server.start()
+
+        try {
+            context.registerWebhookServer("orders", server)
+
+            // Simulate webhook call
+            val client = java.net.http.HttpClient.newHttpClient()
+            val body = """{"orderId": 123, "amount": 99.99}"""
+            val request =
+                java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create("http://localhost:$port/webhook/onOrder"))
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body))
+                    .build()
+            client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString())
+
+            // Get the body
+            assertEquals(body, context.interpolate("{{orders.onOrder[0]}}"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun `should interpolate webhook body field`() {
+        val context = ExecutionContext()
+        val server = org.berrycrush.webhook.MockWebhookServer(0)
+        server.expect("onOrder")
+        val port = server.start()
+
+        try {
+            context.registerWebhookServer("orders", server)
+
+            // Simulate webhook call
+            val client = java.net.http.HttpClient.newHttpClient()
+            val request =
+                java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create("http://localhost:$port/webhook/onOrder"))
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString("""{"orderId": 123, "amount": 99.99}"""))
+                    .build()
+            client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString())
+
+            // Get specific field
+            assertEquals("123", context.interpolate("{{orders.onOrder[0].body.orderId}}"))
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun `should cleanup webhook servers`() {
+        val context = ExecutionContext()
+        val server = org.berrycrush.webhook.MockWebhookServer(0)
+        server.expect("onTest")
+        server.start()
+
+        context.registerWebhookServer("test", server)
+        assertTrue(context.webhookServerNames().contains("test"))
+
+        context.cleanupWebhookServers()
+
+        assertTrue(context.webhookServerNames().isEmpty())
+    }
 }

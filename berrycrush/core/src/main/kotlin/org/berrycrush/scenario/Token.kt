@@ -25,6 +25,7 @@ enum class TokenType {
     IF,
     ELSE,
     FAIL,
+    WEBHOOK,
 
     // Literals
     STRING,

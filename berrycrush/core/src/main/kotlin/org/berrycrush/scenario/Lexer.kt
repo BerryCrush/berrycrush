@@ -46,6 +46,7 @@ class Lexer(
                 "if" to TokenType.IF,
                 "else" to TokenType.ELSE,
                 "fail" to TokenType.FAIL,
+                "webhook" to TokenType.WEBHOOK,
             )
     }
 

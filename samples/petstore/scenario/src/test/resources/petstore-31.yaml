@@ -1,0 +1,158 @@
+openapi: "3.1.0"
+info:
+  title: Petstore 3.1 API
+  description: A sample API demonstrating OpenAPI 3.1 features for BerryCrush testing
+  version: "1.0.0"
+
+servers:
+  - url: http://localhost:8080/api/v1
+
+paths:
+  /pets:
+    get:
+      operationId: listPets31
+      summary: List all pets (3.1 features)
+      responses:
+        "200":
+          description: A list of pets with 3.1 schema features
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - pets
+                properties:
+                  pets:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Pet31"
+                  apiVersion:
+                    const: "v1"
+
+    post:
+      operationId: createPet31
+      summary: Create a pet (3.1 features)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewPet31"
+      responses:
+        "201":
+          description: Pet created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet31"
+
+  /pets/{petId}:
+    get:
+      operationId: getPet31
+      summary: Get a pet by ID
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Pet details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet31"
+        "404":
+          description: Pet not found
+
+components:
+  schemas:
+    # Demonstrates OpenAPI 3.1 array type syntax for nullable
+    Pet31:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        # 3.1 style nullable using array type
+        nickname:
+          type:
+            - string
+            - "null"
+          description: Optional nickname for the pet
+        # 3.1 const validation
+        species:
+          type: string
+          enum: [dog, cat, bird, fish, other]
+        status:
+          type: string
+          enum: [available, pending, sold]
+        # 3.1 prefixItems for tuple validation
+        coordinates:
+          type: array
+          prefixItems:
+            - type: number
+              description: latitude
+            - type: number
+              description: longitude
+          items: false
+        # 3.1 exclusive ranges as numbers
+        age:
+          type: integer
+          exclusiveMinimum: 0
+          exclusiveMaximum: 100
+        # 3.1 dependent required
+        vaccinated:
+          type: boolean
+        vaccinationDate:
+          type: string
+          format: date
+      dependentRequired:
+        vaccinated:
+          - vaccinationDate
+
+    NewPet31:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+        nickname:
+          type:
+            - string
+            - "null"
+        species:
+          type: string
+          default: other
+        status:
+          type: string
+          default: available
+
+    # Demonstrates if/then/else conditional schema
+    Contact31:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [email, phone]
+        value:
+          type: string
+      if:
+        properties:
+          type:
+            const: email
+      then:
+        properties:
+          value:
+            format: email
+      else:
+        properties:
+          value:
+            pattern: "^\\+?[0-9\\-]+$"

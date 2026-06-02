@@ -1,0 +1,96 @@
+# Webhook testing scenarios for TicTacToe
+# Demonstrates BerryCrush webhook DSL for testing callback flows
+#
+# The TicTacToe API sends a webhook callback after each move with the game status.
+# This file demonstrates how to set up a mock webhook server using the webhook DSL
+# and assert on received webhook payloads.
+
+scenario: Player move triggers webhook callback
+  given: Webhook server is listening for move status
+    webhook: gameEvents
+      port: 0
+      hook: statusCallback
+  and: Board is reset
+    call ^resetBoard
+  when: Player X makes a move
+    call ^putSquare
+      row: 1
+      column: 1
+      header_progressUrl: "{{gameEvents.statusCallback}}"
+      body: {"mark": "X"}
+  then: Move is successful
+    assert status 200
+    assert $.winner equals "."
+  and: Webhook callback was received
+    assert {{gameEvents.statusCallback.length}} equals 1
+    assert {{gameEvents.statusCallback[0].body.winner}} equals "."
+    assert {{gameEvents.statusCallback[0].body.board[0][0]}} equals "X"
+
+scenario: Winning move triggers winner in webhook
+  given: Webhook server captures game events
+    webhook: gameServer
+      port: 0
+      hook: statusUpdate
+  and: X has two marks in a row
+    call ^resetBoard
+    call ^putSquare
+      row: 1
+      column: 1
+      body: {"mark": "X"}
+    call ^putSquare
+      row: 2
+      column: 1
+      body: {"mark": "O"}
+    call ^putSquare
+      row: 1
+      column: 2
+      body: {"mark": "X"}
+    call ^putSquare
+      row: 2
+      column: 2
+      body: {"mark": "O"}
+  when: X completes the row and wins
+    call ^putSquare
+      row: 1
+      column: 3
+      header_progressUrl: "{{gameServer.statusUpdate}}"
+      body: {"mark": "X"}
+  then: X wins the game
+    assert status 200
+    assert $.winner equals "X"
+  and: Winner is reported in webhook
+    assert {{gameServer.statusUpdate.length}} equals 1
+    assert {{gameServer.statusUpdate[0].body.winner}} equals "X"
+
+scenario: Multiple moves each trigger webhooks
+  given: Webhook server tracks all moves
+    webhook: moveTracker
+      port: 0
+      hook: onMove
+  and: Board is reset
+    call ^resetBoard
+  when: X makes first move
+    call ^putSquare
+      row: 1
+      column: 1
+      header_progressUrl: "{{moveTracker.onMove}}"
+      body: {"mark": "X"}
+  and: O responds
+    call ^putSquare
+      row: 2
+      column: 2
+      header_progressUrl: "{{moveTracker.onMove}}"
+      body: {"mark": "O"}
+  and: X makes another move
+    call ^putSquare
+      row: 3
+      column: 3
+      header_progressUrl: "{{moveTracker.onMove}}"
+      body: {"mark": "X"}
+  then: All three moves triggered webhooks
+    assert {{moveTracker.onMove.length}} equals 3
+  and: First move shows X at position 1,1
+    assert {{moveTracker.onMove[0].body.board[0][0]}} equals "X"
+  and: Last move shows both X marks
+    assert {{moveTracker.onMove[2].body.board[0][0]}} equals "X"
+    assert {{moveTracker.onMove[2].body.board[2][2]}} equals "X"

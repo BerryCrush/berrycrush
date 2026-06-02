@@ -29,6 +29,7 @@ internal fun ParserState.parseBlockActions(allowNestedConditionals: Boolean): Li
                 TokenType.ASSERT -> parseAssertAction()?.let { actions.add(it) }
                 TokenType.INCLUDE -> parseIncludeAction()?.let { actions.add(it) }
                 TokenType.FAIL -> actions.add(parseFailAction())
+                TokenType.WEBHOOK -> parseWebhookAction()?.let { actions.add(it) }
                 TokenType.IF -> {
                     if (allowNestedConditionals) {
                         parseConditional()?.let { actions.add(it) }

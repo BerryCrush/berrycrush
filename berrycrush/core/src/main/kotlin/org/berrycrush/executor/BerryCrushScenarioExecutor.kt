@@ -26,6 +26,7 @@ import org.berrycrush.model.Scenario
 import org.berrycrush.model.ScenarioResult
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepResult
+import org.berrycrush.model.WebhookConfig
 import org.berrycrush.openapi.HttpMethod
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.plugin.PluginRegistry
@@ -38,6 +39,7 @@ import org.berrycrush.step.StepContext
 import org.berrycrush.step.StepContextImpl
 import org.berrycrush.step.StepMatch
 import org.berrycrush.step.StepRegistry
+import org.berrycrush.webhook.MockWebhookServer
 import java.net.http.HttpResponse
 import java.time.Duration
 import java.time.Instant
@@ -180,6 +182,9 @@ class BerryCrushScenarioExecutor(
             )
 
         pluginRegistry?.dispatchScenarioEnd(scenarioContext, ScenarioResultAdapter(scenarioResult))
+
+        // Cleanup scenario-scoped webhook servers
+        context.cleanupWebhookServers()
 
         // Copy extracted variables back to shared context for cross-scenario sharing
         if (sharedContext != null && scenarioResult.status == ResultStatus.PASSED) {
@@ -344,16 +349,22 @@ class BerryCrushScenarioExecutor(
      * Execute a step that has no operationId.
      *
      * Checks in order:
-     * 1. Custom step definition match
-     * 2. Assertions/extractions against last response
-     * 3. No-op (just pass)
+     * 1. Webhook configuration (start mock webhook server)
+     * 2. Custom step definition match
+     * 3. Assertions/extractions against last response
+     * 4. No-op (just pass)
      */
     private fun executeNonOperationStep(
         step: Step,
         context: ExecutionContext,
         stepStartTime: Instant,
     ): StepResult {
-        // First, check if this is a custom step
+        // First, check if this is a webhook step
+        step.webhookConfig?.let { config ->
+            return executeWebhookStep(step, config, context, stepStartTime)
+        }
+
+        // Check if this is a custom step
         stepRegistry?.let { registry ->
             val resolvedDescription = resolveVariables(step.description, context)
             val match = registry.findMatch(resolvedDescription)
@@ -453,6 +464,48 @@ class BerryCrushScenarioExecutor(
                 duration = Duration.between(stepStartTime, Instant.now()),
                 error = actualException as? Exception ?: RuntimeException(actualException),
                 isCustomStep = true,
+            )
+        }
+
+    /**
+     * Execute a webhook step that starts a mock webhook server.
+     *
+     * This creates a MockWebhookServer, registers expected webhook operations,
+     * starts the server, and registers it in the execution context for
+     * variable interpolation (e.g., {{serverName.hookName}}).
+     */
+    private fun executeWebhookStep(
+        step: Step,
+        config: WebhookConfig,
+        context: ExecutionContext,
+        stepStartTime: Instant,
+    ): StepResult =
+        runCatching {
+            // Create and configure the webhook server
+            val server = MockWebhookServer(config.port)
+
+            // Register expected webhook operations
+            config.hooks.forEach { hookName ->
+                server.expect(hookName)
+            }
+
+            // Start the server
+            server.start()
+
+            // Register the server in the context for variable interpolation
+            context.registerWebhookServer(config.name, server)
+
+            StepResult(
+                step = step,
+                status = ResultStatus.PASSED,
+                duration = Duration.between(stepStartTime, Instant.now()),
+            )
+        }.getOrElse { e ->
+            StepResult(
+                step = step,
+                status = ResultStatus.ERROR,
+                duration = Duration.between(stepStartTime, Instant.now()),
+                error = e as? Exception ?: RuntimeException(e),
             )
         }
 

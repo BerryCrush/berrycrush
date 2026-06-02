@@ -1,0 +1,121 @@
+# =============================================================================
+# OpenAPI 3.1 Features
+# =============================================================================
+# This scenario demonstrates BerryCrush support for OpenAPI 3.1 specific features:
+# - Array type syntax for nullable fields (type: ["string", "null"])
+# - Const validation
+# - prefixItems for tuple validation
+# - exclusiveMinimum/Maximum as numbers
+# - dependentRequired validation
+# - if/then/else conditional schemas
+
+parameters:
+  spec: "petstore-31.yaml"
+
+# -----------------------------------------------------------------------------
+# Nullable Fields with Array Type Syntax
+# -----------------------------------------------------------------------------
+
+scenario: Create pet with null nickname (3.1 nullable array type)
+  when: I create a pet without nickname
+    call ^createPet31
+      body:
+        name: "NullNicknamePet"
+        nickname: null
+        species: "cat"
+  then: the pet is created with null nickname
+    assert status 201
+    assert $.name equals "NullNicknamePet"
+    assert $.nickname equals null
+
+scenario: Create pet with string nickname (3.1 nullable array type)
+  when: I create a pet with nickname
+    call ^createPet31
+      body:
+        name: "StringNicknamePet"
+        nickname: "Whiskers"
+        species: "cat"
+  then: the pet is created with nickname
+    assert status 201
+    assert $.nickname equals "Whiskers"
+
+# -----------------------------------------------------------------------------
+# Const Validation
+# -----------------------------------------------------------------------------
+
+scenario: List pets returns correct apiVersion const
+  when: I list all pets
+    call ^listPets31
+  then: the response contains apiVersion constant
+    assert status 200
+    assert $.apiVersion equals "v1"
+
+# -----------------------------------------------------------------------------
+# Tuple Validation with prefixItems
+# -----------------------------------------------------------------------------
+
+scenario: Create pet with valid coordinates tuple
+  when: I create a pet with coordinates
+    call ^createPet31
+      body:
+        name: "GeolocatedPet"
+        coordinates: [35.6762, 139.6503]
+  then: the pet has valid coordinate tuple
+    assert status 201
+    assert $.coordinates[0] notEmpty
+    assert $.coordinates[1] notEmpty
+
+# -----------------------------------------------------------------------------
+# Exclusive Ranges
+# -----------------------------------------------------------------------------
+
+scenario: Create pet with valid age (exclusive range)
+  when: I create a pet with valid age
+    call ^createPet31
+      body:
+        name: "AgedPet"
+        age: 5
+  then: the pet is created
+    assert status 201
+    assert $.age equals 5
+
+# -----------------------------------------------------------------------------
+# Dependent Required
+# -----------------------------------------------------------------------------
+
+scenario: Create vaccinated pet with date (dependent required)
+  when: I create a vaccinated pet
+    call ^createPet31
+      body:
+        name: "VaccinatedPet"
+        vaccinated: true
+        vaccinationDate: "2024-01-15"
+  then: the pet is created with vaccination info
+    assert status 201
+    assert $.vaccinated equals true
+    assert $.vaccinationDate notEmpty
+
+scenario: Create unvaccinated pet without date (dependent required satisfied)
+  when: I create an unvaccinated pet
+    call ^createPet31
+      body:
+        name: "UnvaccinatedPet"
+        vaccinated: false
+  then: the pet is created without vaccination date
+    assert status 201
+    assert $.vaccinated equals false
+
+# -----------------------------------------------------------------------------
+# Schema Validation Tests
+# -----------------------------------------------------------------------------
+
+scenario: Response schema validation with 3.1 features
+  given: pets exist in the system
+    call ^listPets31
+    assert status 200
+  when: I get pet details
+    call ^getPet31
+      petId: 1
+  then: the response matches 3.1 schema
+    assert status 200
+    assert schema

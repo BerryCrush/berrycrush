@@ -46,8 +46,9 @@ class DefaultHttpExecutor(
                 queryParams = resolveParams(step.queryParams, context),
             )
 
-        // Merge headers immutably
-        val headers = configuration.defaultHeaders + spec.defaultHeaders + step.headers
+        // Merge headers immutably and interpolate values
+        val headers = (configuration.defaultHeaders + spec.defaultHeaders + step.headers)
+            .mapValues { (_, value) -> context.interpolate(value) }
 
         // Resolve body
         val body = resolveBody(step, operation, context)
