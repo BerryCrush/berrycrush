@@ -2614,4 +2614,107 @@ class ParserTest {
         assertEquals(true, params["include"])
         assertEquals("default", params["using"])
     }
+
+    // =========================================================================
+    // Webhook DSL Tests
+    // =========================================================================
+
+    @Test
+    fun `should parse webhook step with single hook`() {
+        val source =
+            """
+            scenario: Test webhook
+              given a webhook server is running
+                webhook: payments
+                  port: 8080
+                  hook: onPaymentReceived
+              when I trigger a payment
+                call ^createPayment
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val scenario = result.ast!!.scenarios.first()
+        val webhookAction = scenario.steps.first().actions.filterIsInstance<WebhookNode>().first()
+
+        assertEquals("payments", webhookAction.name)
+        assertEquals(8080, webhookAction.port)
+        assertEquals(listOf("onPaymentReceived"), webhookAction.hooks)
+        assertEquals(WebhookScope.SCENARIO, webhookAction.scope)
+    }
+
+    @Test
+    fun `should parse webhook step with multiple hooks`() {
+        val source =
+            """
+            scenario: Test multiple webhooks
+              given webhook servers are ready
+                webhook: notifications
+                  port: 9000
+                  hooks:
+                    - onEmailSent
+                    - onSmsSent
+                    - onPushSent
+              when I send a notification
+                call ^sendNotification
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val scenario = result.ast!!.scenarios.first()
+        val webhookAction = scenario.steps.first().actions.filterIsInstance<WebhookNode>().first()
+
+        assertEquals("notifications", webhookAction.name)
+        assertEquals(9000, webhookAction.port)
+        assertEquals(listOf("onEmailSent", "onSmsSent", "onPushSent"), webhookAction.hooks)
+    }
+
+    @Test
+    fun `should parse webhook with default port`() {
+        val source =
+            """
+            scenario: Test default port
+              given a webhook is running
+                webhook: events
+                  hook: onEvent
+              when I trigger an event
+                call ^triggerEvent
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val scenario = result.ast!!.scenarios.first()
+        val webhookAction = scenario.steps.first().actions.filterIsInstance<WebhookNode>().first()
+
+        assertEquals("events", webhookAction.name)
+        assertEquals(0, webhookAction.port) // 0 means dynamic port
+        assertEquals(listOf("onEvent"), webhookAction.hooks)
+    }
+
+    @Test
+    fun `should parse webhook with feature scope`() {
+        val source =
+            """
+            scenario: Test feature scope
+              given a feature-level webhook is running
+                webhook: shared
+                  port: 7000
+                  hook: onSharedEvent
+                  scope: feature
+              when I test shared webhook
+                call ^testShared
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val scenario = result.ast!!.scenarios.first()
+        val webhookAction = scenario.steps.first().actions.filterIsInstance<WebhookNode>().first()
+
+        assertEquals("shared", webhookAction.name)
+        assertEquals(WebhookScope.FEATURE, webhookAction.scope)
+    }
 }

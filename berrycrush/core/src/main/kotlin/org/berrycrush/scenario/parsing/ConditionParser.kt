@@ -184,7 +184,8 @@ internal fun ParserState.parseJsonPathCondition(
 
 /**
  * Parse a condition for an assertion.
- * If no built-in condition matches, treats the text as a custom assertion pattern.
+ * If no built-in condition matches, checks for variable conditions,
+ * then treats the text as a custom assertion pattern.
  */
 internal fun ParserState.parseAssertCondition(
     loc: SourceLocation,
@@ -196,6 +197,28 @@ internal fun ParserState.parseAssertCondition(
     val result = parseCondition(typeOrPath, loc, ConditionContext.ASSERT, initialNegate)
     if (result != null) {
         return result
+    }
+
+    // Check for variable conditions starting with {{...}}
+    // (e.g., {{server.hook.length}} equals 1)
+    if (current().type == TokenType.VARIABLE) {
+        val savedPos = pos
+        val varName = buildVariablePath()
+        skipWhitespace()
+
+        // Check if there's a condition operator following the variable
+        val opText = current().value.lowercase()
+        if (opText in listOf("equals", "=", "matches", "contains", "notempty", "greaterthan", ">", "lessthan", "<")) {
+            val (op, expected) = parseConditionOperatorAndValue()
+            val cond = ConditionNode.VariableCondition(varName, op, expected, loc)
+            return if (initialNegate) {
+                ConditionNode.NegatedCondition(cond, loc)
+            } else {
+                cond
+            }
+        }
+        // No valid operator - restore position and fall through to custom assertion
+        pos = savedPos
     }
 
     // No built-in condition matched - treat as custom assertion pattern

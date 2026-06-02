@@ -263,6 +263,53 @@ data class IncludeNode(
 ) : ActionNode()
 
 /**
+ * Webhook server action - starts a mock webhook server for testing.
+ *
+ * The webhook server captures incoming webhook calls and makes them
+ * available for assertions. Server properties are accessible via
+ * variable interpolation: {{serverName.host}}, {{serverName.port}},
+ * {{serverName.hookName.length}}, etc.
+ *
+ * Example:
+ * ```
+ * webhook:
+ *   name: status-server
+ *   port: 0
+ *   hook: markStatus
+ *
+ * webhook:
+ *   name: multi-hook-server
+ *   port: 8080
+ *   hooks:
+ *     - onCreated
+ *     - onUpdated
+ * ```
+ *
+ * @property name Identifier for the webhook server (used in variable interpolation)
+ * @property port Port to listen on (0 = auto-assign random port)
+ * @property hooks List of webhook operation IDs to expect
+ * @property scope The cleanup scope (SCENARIO or FEATURE level)
+ */
+data class WebhookNode(
+    val name: String,
+    val port: Int,
+    val hooks: List<String>,
+    val scope: WebhookScope = WebhookScope.SCENARIO,
+    override val location: SourceLocation,
+) : ActionNode()
+
+/**
+ * Scope for webhook server cleanup.
+ */
+enum class WebhookScope {
+    /** Cleaned up after the scenario completes */
+    SCENARIO,
+
+    /** Cleaned up after all scenarios in the feature complete */
+    FEATURE,
+}
+
+/**
  * Conditional action - evaluates conditions and executes matching actions.
  *
  * Example:
