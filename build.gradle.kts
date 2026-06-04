@@ -101,7 +101,7 @@ subprojects {
         isIgnoreAnnotations = true
         isIgnoreLiterals = true
         isIgnoreIdentifiers = true
-        toolVersion = "7.24.0"
+        toolVersion = "7.25.0"
     }
     
     tasks.withType<de.aaschmid.gradle.plugins.cpd.Cpd>().configureEach {

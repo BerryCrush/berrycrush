@@ -21,11 +21,11 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/v1/pets")
-public class PetController {
+public class V1PetController {
 
     private final PetService petService;
 
-    public PetController(PetService petService) {
+    public V1PetController(PetService petService) {
         this.petService = petService;
     }
 
