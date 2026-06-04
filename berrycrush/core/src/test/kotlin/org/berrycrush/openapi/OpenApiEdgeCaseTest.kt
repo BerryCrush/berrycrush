@@ -57,7 +57,7 @@ class OpenApiEdgeCaseTest {
                 loader.loadFromString("not valid openapi")
             }
 
-        assertTrue(error.message?.startsWith("Failed to parse OpenAPI spec") == true)
+        assertEquals(error.message?.startsWith("Failed to parse OpenAPI spec"), true)
     }
 
     @Test
@@ -73,10 +73,10 @@ class OpenApiEdgeCaseTest {
     fun `open api spec helper methods should reflect data`() {
         val operation =
             object : OperationSpec {
-                override val operationId: String? = "ping"
+                override val operationId: String = "ping"
                 override val path: String = "/ping"
                 override val method: HttpMethod = HttpMethod.GET
-                override val summary: String? = "ping endpoint"
+                override val summary: String = "ping endpoint"
                 override val description: String? = null
                 override val tags: List<String> = emptyList()
                 override val parameters: List<ParameterSpec> = emptyList()

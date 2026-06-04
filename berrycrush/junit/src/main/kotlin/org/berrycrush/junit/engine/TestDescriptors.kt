@@ -51,7 +51,7 @@ class FeatureDescriptor(
     displayName: String,
     val featureName: String,
     val parameters: Map<String, Any> = emptyMap(),
-    private val testSource: TestSource? = null,
+    testSource: TestSource? = null,
 ) : AbstractTestDescriptor(uniqueId, displayName, testSource) {
     /**
      * Container type allows this descriptor to have child scenario descriptors.
@@ -68,7 +68,7 @@ class FeatureDescriptor(
          */
         fun createTestSource(
             scenarioFile: File?,
-            sourceLocation: org.berrycrush.scenario.SourceLocation?,
+            sourceLocation: SourceLocation?,
         ): TestSource? {
             scenarioFile ?: return null
             if (!scenarioFile.exists()) return null
@@ -97,7 +97,7 @@ class IndividualScenarioDescriptor(
     displayName: String,
     val scenario: Scenario,
     val hasAutoTests: Boolean = false,
-    private val testSource: TestSource? = null,
+    testSource: TestSource? = null,
 ) : AbstractTestDescriptor(uniqueId, displayName, testSource) {
     /**
      * For auto-test scenarios, use CONTAINER_AND_TEST to hold child tests.

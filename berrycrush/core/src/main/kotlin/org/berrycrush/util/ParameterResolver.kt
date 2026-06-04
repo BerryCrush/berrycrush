@@ -97,21 +97,20 @@ class ParameterResolver(
     ): String? {
         val parts = ref.split(".", limit = 2)
 
-        return when {
-            // Environment variable: ${env.VAR_NAME}
-            parts.size == 2 && parts[0] == "env" -> {
+        // Environment variable: ${env.VAR_NAME}
+        return when (parts.size) {
+            2 if parts[0] == "env" -> {
                 environmentProvider(parts[1])
             }
 
             // Context variable: ${context.variableName}
-            parts.size == 2 && parts[0] == "context" -> {
+            2 if parts[0] == "context" -> {
                 context?.get<Any>(parts[1])?.toString()
             }
 
             // Parameter reference: ${param.name}
-            parts.size == 2 && parts[0] == "param" -> {
-                val paramValue = parameters[parts[1]]
-                when (paramValue) {
+            2 if parts[0] == "param" -> {
+                when (val paramValue = parameters[parts[1]]) {
                     is String -> resolve(paramValue, depth + 1)
                     else -> paramValue?.toString()
                 }

@@ -104,7 +104,7 @@ class TextReportFormatter(
                 "  ${colorScheme.colorize("${report.summary.passed} passed", ResultStatus.PASSED)}, " +
                     "${colorScheme.colorize("${report.summary.failed} failed", ResultStatus.FAILED)}, " +
                     "${colorScheme.colorize("${report.summary.skipped} skipped", ResultStatus.SKIPPED)}, " +
-                    "${colorScheme.colorize("${report.summary.errors} errors", ResultStatus.ERROR)}",
+                    colorScheme.colorize("${report.summary.errors} errors", ResultStatus.ERROR),
             )
 
             val failedScenarios = report.scenarios.filter { it.status == ResultStatus.FAILED }

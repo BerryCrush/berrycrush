@@ -1,4 +1,4 @@
-@file:Suppress("MatchingDeclarationName")
+@file:Suppress("MatchingDeclarationName", "TooManyFunctions")
 
 package org.berrycrush.scenario.parsing
 
@@ -311,34 +311,15 @@ internal fun ParserState.parseAutoTestConfig(): AutoTestConfig? {
  * Parse auto test excludes configuration.
  */
 internal fun ParserState.parseAutoTestExcludes(): Set<String> {
-    val excludes = mutableSetOf<String>()
-
     if (current().type != TokenType.OPEN_BRACKET) {
+        val excludes = mutableSetOf<String>()
         if (current().type == TokenType.IDENTIFIER || current().type == TokenType.OPERATION_ID) {
             excludes.add(current().value)
             advance()
         }
         return excludes
     }
-
-    advance() // consume [
-
-    while (!isAtEnd() && current().type != TokenType.CLOSE_BRACKET) {
-        when (current().type) {
-            TokenType.IDENTIFIER, TokenType.OPERATION_ID -> {
-                excludes.add(current().value)
-                advance()
-            }
-            TokenType.COMMA -> advance()
-            else -> advance()
-        }
-    }
-
-    if (current().type == TokenType.CLOSE_BRACKET) {
-        advance()
-    }
-
-    return excludes
+    return parseInlineList().toSet()
 }
 
 /**
@@ -468,6 +449,7 @@ private fun ParserState.parseIncludeParameters(): Map<String, ValueNode> {
  *     - onUpdated
  * ```
  */
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 internal fun ParserState.parseWebhookAction(): WebhookNode? {
     val loc = currentLocation()
     advance() // consume 'webhook'
@@ -481,16 +463,16 @@ internal fun ParserState.parseWebhookAction(): WebhookNode? {
     skipWhitespace()
 
     // Parse the webhook name (right after the colon on the same line)
-    var name: String? = parseStringOrIdentifier()
+    var name = parseStringOrIdentifier()
 
     skipNewlines()
     if (current().type != TokenType.INDENT) {
         if (name == null) {
             addError("Expected webhook name or indented webhook configuration")
-            return null
+        } else {
+            // No indented block - error if we don't have hooks
+            addError("webhook requires 'hook' or 'hooks' property", loc)
         }
-        // No indented block - error if we don't have hooks
-        addError("webhook requires 'hook' or 'hooks' property", loc)
         return null
     }
 
@@ -528,10 +510,11 @@ internal fun ParserState.parseWebhookAction(): WebhookNode? {
                     }
                     "scope" -> {
                         val scopeValue = parseStringOrIdentifier()?.lowercase()
-                        scope = when (scopeValue) {
-                            "feature" -> WebhookScope.FEATURE
-                            else -> WebhookScope.SCENARIO
-                        }
+                        scope =
+                            when (scopeValue) {
+                                "feature" -> WebhookScope.FEATURE
+                                else -> WebhookScope.SCENARIO
+                            }
                     }
                 }
             }
@@ -543,57 +526,49 @@ internal fun ParserState.parseWebhookAction(): WebhookNode? {
     if (current().type == TokenType.DEDENT) {
         advance()
     }
-
-    if (name == null) {
-        addError("webhook requires 'name' property", loc)
-        return null
+    return when {
+        name == null -> {
+            addError("webhook requires 'name' property", loc)
+            null
+        }
+        hooks.isEmpty() -> {
+            addError("webhook requires 'hook' or 'hooks' property", loc)
+            null
+        }
+        else ->
+            WebhookNode(
+                name = name,
+                port = port,
+                hooks = hooks,
+                scope = scope,
+                location = loc,
+            )
     }
-
-    if (hooks.isEmpty()) {
-        addError("webhook requires 'hook' or 'hooks' property", loc)
-        return null
-    }
-
-    return WebhookNode(
-        name = name,
-        port = port,
-        hooks = hooks,
-        scope = scope,
-        location = loc,
-    )
 }
 
 /**
  * Parse a string or identifier value.
  * Also accepts keywords that might be used as values (like "feature" for scope).
  */
-private fun ParserState.parseStringOrIdentifier(): String? {
-    return when (current().type) {
-        TokenType.STRING -> {
-            val value = current().value
-            advance()
-            value
-        }
-        TokenType.IDENTIFIER, TokenType.OPERATION_ID -> {
-            val value = current().value
-            advance()
-            value
-        }
+private fun ParserState.parseStringOrIdentifier(): String? =
+    when (current().type) {
+        TokenType.STRING,
+        TokenType.IDENTIFIER, TokenType.OPERATION_ID,
         // Keywords that can be used as values
-        TokenType.FEATURE, TokenType.SCENARIO -> {
+        TokenType.FEATURE, TokenType.SCENARIO,
+        -> {
             val value = current().value
             advance()
             value
         }
         else -> null
     }
-}
 
 /**
  * Parse an integer value.
  */
-private fun ParserState.parseIntValue(): Int? {
-    return when (current().type) {
+private fun ParserState.parseIntValue(): Int? =
+    when (current().type) {
         TokenType.NUMBER -> {
             val value = current().value.toIntOrNull()
             advance()
@@ -601,7 +576,6 @@ private fun ParserState.parseIntValue(): Int? {
         }
         else -> null
     }
-}
 
 /**
  * Parse a list of hooks.
@@ -616,50 +590,34 @@ private fun ParserState.parseIntValue(): Int? {
  * ```
  */
 private fun ParserState.parseHookList(): List<String> {
-    val hooks = mutableListOf<String>()
-
     // Check for inline list [hook1, hook2]
     if (current().type == TokenType.OPEN_BRACKET) {
-        advance() // consume [
-        while (!isAtEnd() && current().type != TokenType.CLOSE_BRACKET) {
-            when (current().type) {
-                TokenType.STRING, TokenType.IDENTIFIER, TokenType.OPERATION_ID -> {
-                    hooks.add(current().value)
-                    advance()
-                }
-                TokenType.COMMA -> advance()
-                else -> advance()
-            }
-        }
-        if (current().type == TokenType.CLOSE_BRACKET) {
-            advance()
-        }
-        return hooks
+        return parseInlineList()
     }
 
+    val hooks = mutableListOf<String>()
     // Check for multi-line list with dashes
     skipNewlines()
     if (current().type == TokenType.INDENT) {
         advance()
         while (!isAtEnd() && current().type != TokenType.DEDENT) {
             // Look for "- hookName" pattern
-            if (current().type == TokenType.IDENTIFIER && current().value == "-") {
-                advance()
-                skipWhitespace()
-                parseStringOrIdentifier()?.let { hooks.add(it) }
-            } else if (current().type == TokenType.STRING || 
-                       current().type == TokenType.IDENTIFIER || 
-                       current().type == TokenType.OPERATION_ID) {
-                // Also accept bare identifiers (for YAML-style list items parsed differently)
-                val value = current().value
-                if (value != "-") {
-                    hooks.add(value)
+            when (current().type) {
+                TokenType.IDENTIFIER if current().value == "-" -> {
+                    advance()
+                    skipWhitespace()
+                    parseStringOrIdentifier()?.let { hooks.add(it) }
                 }
-                advance()
-            } else if (current().type == TokenType.NEWLINE) {
-                advance()
-            } else {
-                advance()
+                TokenType.STRING, TokenType.IDENTIFIER, TokenType.OPERATION_ID -> {
+                    // Also accept bare identifiers (for YAML-style list items parsed differently)
+                    val value = current().value
+                    if (value != "-") {
+                        hooks.add(value)
+                    }
+                    advance()
+                }
+                TokenType.NEWLINE -> advance()
+                else -> advance()
             }
         }
         if (current().type == TokenType.DEDENT) {
@@ -668,4 +626,23 @@ private fun ParserState.parseHookList(): List<String> {
     }
 
     return hooks
+}
+
+private fun ParserState.parseInlineList(): List<String> {
+    val elements = mutableListOf<String>()
+    advance() // consume [
+    while (!isAtEnd() && current().type != TokenType.CLOSE_BRACKET) {
+        when (current().type) {
+            TokenType.STRING, TokenType.IDENTIFIER, TokenType.OPERATION_ID -> {
+                elements.add(current().value)
+                advance()
+            }
+            TokenType.COMMA -> advance()
+            else -> advance()
+        }
+    }
+    if (current().type == TokenType.CLOSE_BRACKET) {
+        advance()
+    }
+    return elements
 }

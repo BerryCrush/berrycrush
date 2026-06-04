@@ -370,7 +370,7 @@ private fun ParserState.parseParameterEntries(
             if (current().type == TokenType.INDENT) {
                 // Nested block - recurse with updated prefix
                 advance() // consume indent
-                parseParameterEntries(result, prefix + paramName + ".")
+                parseParameterEntries(result, "$prefix$paramName.")
                 // Handle dedent from nested block
                 if (current().type == TokenType.DEDENT) {
                     advance()

@@ -3,8 +3,8 @@ package org.berrycrush.scenario
 /**
  * Abstract Syntax Tree nodes for parsed scenario files.
  */
-sealed class AstNode {
-    abstract val location: SourceLocation
+sealed interface AstNode {
+    val location: SourceLocation
 }
 
 /**
@@ -30,7 +30,7 @@ data class ScenarioFileNode(
     val features: List<FeatureNode> = emptyList(),
     override val parameters: ParametersNode? = null,
     override val location: SourceLocation,
-) : AstNode(),
+) : AstNode,
     Parameterized
 
 /**
@@ -47,7 +47,7 @@ data class ScenarioFileNode(
 data class ParametersNode(
     val values: Map<String, Any>,
     override val location: SourceLocation,
-) : AstNode()
+) : AstNode
 
 /**
  * Represents a feature block that groups related scenarios.
@@ -79,7 +79,7 @@ data class FeatureNode(
     val scenarios: List<ScenarioNode>,
     val tags: Set<String> = emptySet(),
     override val location: SourceLocation,
-) : AstNode(),
+) : AstNode,
     Parameterized
 
 /**
@@ -91,7 +91,7 @@ data class FeatureNode(
 data class BackgroundNode(
     val steps: List<StepNode>,
     override val location: SourceLocation,
-) : AstNode()
+) : AstNode
 
 /**
  * Represents a scenario definition.
@@ -117,7 +117,7 @@ data class ScenarioNode(
     val tags: Set<String> = emptySet(),
     override val parameters: ParametersNode? = null,
     override val location: SourceLocation,
-) : AstNode(),
+) : AstNode,
     Parameterized
 
 /**
@@ -127,7 +127,7 @@ data class FragmentNode(
     val name: String,
     val steps: List<StepNode>,
     override val location: SourceLocation,
-) : AstNode()
+) : AstNode
 
 /**
  * Represents a single step in a scenario.
@@ -137,7 +137,7 @@ data class StepNode(
     val description: String,
     val actions: List<ActionNode>,
     override val location: SourceLocation,
-) : AstNode()
+) : AstNode
 
 /**
  * Step keywords.
@@ -168,7 +168,7 @@ sealed class BodyPropertyValue {
 /**
  * Base class for step actions.
  */
-sealed class ActionNode : AstNode()
+sealed interface ActionNode : AstNode
 
 /**
  * API call action.
@@ -186,7 +186,7 @@ data class CallNode(
     /** Auto-test configuration for generating invalid/security tests */
     val autoTestConfig: AutoTestConfig? = null,
     override val location: SourceLocation,
-) : ActionNode()
+) : ActionNode
 
 /**
  * Configuration for auto-generating tests.
@@ -221,7 +221,7 @@ data class ExtractNode(
     val variableName: String,
     val jsonPath: String,
     override val location: SourceLocation,
-) : ActionNode()
+) : ActionNode
 
 /**
  * Assertion action - wraps a condition that must be true for the assertion to pass.
@@ -240,7 +240,7 @@ data class ExtractNode(
 data class AssertNode(
     val condition: ConditionNode,
     override val location: SourceLocation,
-) : ActionNode()
+) : ActionNode
 
 /**
  * Fragment include action.
@@ -260,7 +260,7 @@ data class IncludeNode(
     val fragmentName: String,
     val parameters: Map<String, ValueNode> = emptyMap(),
     override val location: SourceLocation,
-) : ActionNode()
+) : ActionNode
 
 /**
  * Webhook server action - starts a mock webhook server for testing.
@@ -296,7 +296,7 @@ data class WebhookNode(
     val hooks: List<String>,
     val scope: WebhookScope = WebhookScope.SCENARIO,
     override val location: SourceLocation,
-) : ActionNode()
+) : ActionNode
 
 /**
  * Scope for webhook server cleanup.
@@ -330,7 +330,7 @@ data class ConditionalNode(
     /** Optional else branch actions (no condition) */
     val elseActions: List<ActionNode>? = null,
     override val location: SourceLocation,
-) : ActionNode()
+) : ActionNode
 
 /**
  * A condition branch with its associated actions.
@@ -348,8 +348,8 @@ data class ConditionBranch(
  * Represents a condition to evaluate.
  * Conditions are similar to assertions but return true/false instead of failing.
  */
-sealed class ConditionNode {
-    abstract val location: SourceLocation
+sealed interface ConditionNode {
+    val location: SourceLocation
 
     /**
      * Status code condition.
@@ -358,7 +358,7 @@ sealed class ConditionNode {
     data class StatusCondition(
         val expected: ValueNode,
         override val location: SourceLocation,
-    ) : ConditionNode()
+    ) : ConditionNode
 
     /**
      * JSON path condition.
@@ -369,7 +369,7 @@ sealed class ConditionNode {
         val operator: ConditionOperator,
         val expected: ValueNode?,
         override val location: SourceLocation,
-    ) : ConditionNode()
+    ) : ConditionNode
 
     /**
      * Header condition.
@@ -380,7 +380,7 @@ sealed class ConditionNode {
         val operator: ConditionOperator?,
         val expected: ValueNode?,
         override val location: SourceLocation,
-    ) : ConditionNode()
+    ) : ConditionNode
 
     /**
      * Variable condition.
@@ -391,7 +391,7 @@ sealed class ConditionNode {
         val operator: ConditionOperator,
         val expected: ValueNode?,
         override val location: SourceLocation,
-    ) : ConditionNode()
+    ) : ConditionNode
 
     /**
      * Negated condition.
@@ -400,7 +400,7 @@ sealed class ConditionNode {
     data class NegatedCondition(
         val condition: ConditionNode,
         override val location: SourceLocation,
-    ) : ConditionNode()
+    ) : ConditionNode
 
     /**
      * Compound condition with logical operators.
@@ -411,7 +411,7 @@ sealed class ConditionNode {
         val operator: LogicalOperator,
         val right: ConditionNode,
         override val location: SourceLocation,
-    ) : ConditionNode()
+    ) : ConditionNode
 
     /**
      * Body contains condition (assertion-specific).
@@ -420,7 +420,7 @@ sealed class ConditionNode {
     data class BodyContainsCondition(
         val text: ValueNode,
         override val location: SourceLocation,
-    ) : ConditionNode()
+    ) : ConditionNode
 
     /**
      * Schema validation condition (assertion-specific).
@@ -428,7 +428,7 @@ sealed class ConditionNode {
      */
     data class SchemaCondition(
         override val location: SourceLocation,
-    ) : ConditionNode()
+    ) : ConditionNode
 
     /**
      * Response time condition (assertion-specific).
@@ -437,7 +437,7 @@ sealed class ConditionNode {
     data class ResponseTimeCondition(
         val maxMs: ValueNode,
         override val location: SourceLocation,
-    ) : ConditionNode()
+    ) : ConditionNode
 
     /**
      * Custom assertion condition (matched against AssertionRegistry).
@@ -449,7 +449,7 @@ sealed class ConditionNode {
     data class CustomAssertionCondition(
         val pattern: String,
         override val location: SourceLocation,
-    ) : ConditionNode()
+    ) : ConditionNode
 }
 
 /**
@@ -492,32 +492,12 @@ enum class ConditionOperator {
 data class FailNode(
     val message: String,
     override val location: SourceLocation,
-) : ActionNode()
-
-/**
- * Types of assertions.
- *
- * @deprecated Use ConditionNode subtypes instead. AssertNode now wraps ConditionNode.
- * This enum is kept for backward compatibility during migration.
- */
-@Deprecated("Use ConditionNode subtypes instead")
-enum class AssertionKind {
-    STATUS_CODE,
-    BODY_CONTAINS,
-    BODY_EQUALS,
-    BODY_MATCHES,
-    BODY_ARRAY_SIZE,
-    BODY_ARRAY_NOT_EMPTY,
-    HEADER_EXISTS,
-    HEADER_EQUALS,
-    MATCHES_SCHEMA,
-    RESPONSE_TIME,
-}
+) : ActionNode
 
 /**
  * Value node for literals, variables, or expressions.
  */
-sealed class ValueNode : AstNode()
+sealed interface ValueNode : AstNode
 
 /**
  * String literal value.
@@ -525,7 +505,7 @@ sealed class ValueNode : AstNode()
 data class StringValueNode(
     val value: String,
     override val location: SourceLocation,
-) : ValueNode()
+) : ValueNode
 
 /**
  * Number literal value.
@@ -533,7 +513,7 @@ data class StringValueNode(
 data class NumberValueNode(
     val value: Number,
     override val location: SourceLocation,
-) : ValueNode()
+) : ValueNode
 
 /**
  * Variable reference value.
@@ -541,15 +521,16 @@ data class NumberValueNode(
 data class VariableValueNode(
     val name: String,
     override val location: SourceLocation,
-) : ValueNode()
+) : ValueNode
 
 /**
  * JSON object/array value.
  */
-data class JsonValueNode(
-    val json: String,
-    override val location: SourceLocation,
-) : ValueNode()
+sealed interface JsonValueNode: ValueNode {
+    val json: String
+    data class ObjectValueNode(override val json: String, override val location: SourceLocation) : JsonValueNode
+    data class ArrayValueNode(override val json: String, override val location: SourceLocation) : JsonValueNode
+}
 
 /**
  * Status code range value (e.g., 1xx, 2xx, 3xx, 4xx, 5xx).
@@ -558,7 +539,7 @@ data class JsonValueNode(
 data class StatusRangeNode(
     val base: Int,
     override val location: SourceLocation,
-) : ValueNode() {
+) : ValueNode {
     companion object {
         private const val STATUS_RANGE_SIZE = 100
         private const val STATUS_RANGE_MAX_OFFSET = 99
@@ -574,4 +555,4 @@ data class StatusRangeNode(
 data class ExampleRowNode(
     val values: Map<String, ValueNode>,
     override val location: SourceLocation,
-) : AstNode()
+) : AstNode

@@ -9,8 +9,9 @@
 # - dependentRequired validation
 # - if/then/else conditional schemas
 
-parameters:
-  spec: "petstore-31.yaml"
+# TODO implement dynamic spec config
+# parameters:
+#   spec: "petstore-31.yaml"
 
 # -----------------------------------------------------------------------------
 # Nullable Fields with Array Type Syntax
@@ -18,7 +19,7 @@ parameters:
 
 scenario: Create pet with null nickname (3.1 nullable array type)
   when: I create a pet without nickname
-    call ^createPet31
+    call using openApi31 ^createPet31
       body:
         name: "NullNicknamePet"
         nickname: null
@@ -30,7 +31,7 @@ scenario: Create pet with null nickname (3.1 nullable array type)
 
 scenario: Create pet with string nickname (3.1 nullable array type)
   when: I create a pet with nickname
-    call ^createPet31
+    call using openApi31 ^createPet31
       body:
         name: "StringNicknamePet"
         nickname: "Whiskers"
@@ -45,10 +46,10 @@ scenario: Create pet with string nickname (3.1 nullable array type)
 
 scenario: List pets returns correct apiVersion const
   when: I list all pets
-    call ^listPets31
+    call using openApi31 ^listPets31
   then: the response contains apiVersion constant
     assert status 200
-    assert $.apiVersion equals "v1"
+    assert $.apiVersion equals "v2"
 
 # -----------------------------------------------------------------------------
 # Tuple Validation with prefixItems
@@ -56,7 +57,7 @@ scenario: List pets returns correct apiVersion const
 
 scenario: Create pet with valid coordinates tuple
   when: I create a pet with coordinates
-    call ^createPet31
+    call using openApi31 ^createPet31
       body:
         name: "GeolocatedPet"
         coordinates: [35.6762, 139.6503]
@@ -71,7 +72,7 @@ scenario: Create pet with valid coordinates tuple
 
 scenario: Create pet with valid age (exclusive range)
   when: I create a pet with valid age
-    call ^createPet31
+    call using openApi31 ^createPet31
       body:
         name: "AgedPet"
         age: 5
@@ -85,7 +86,7 @@ scenario: Create pet with valid age (exclusive range)
 
 scenario: Create vaccinated pet with date (dependent required)
   when: I create a vaccinated pet
-    call ^createPet31
+    call using openApi31 ^createPet31
       body:
         name: "VaccinatedPet"
         vaccinated: true
@@ -97,7 +98,7 @@ scenario: Create vaccinated pet with date (dependent required)
 
 scenario: Create unvaccinated pet without date (dependent required satisfied)
   when: I create an unvaccinated pet
-    call ^createPet31
+    call using openApi31 ^createPet31
       body:
         name: "UnvaccinatedPet"
         vaccinated: false
@@ -111,7 +112,7 @@ scenario: Create unvaccinated pet without date (dependent required satisfied)
 
 scenario: Response schema validation with 3.1 features
   given: pets exist in the system
-    call ^listPets31
+    call using openApi31 ^listPets31
     assert status 200
   when: I get pet details
     call ^getPet31

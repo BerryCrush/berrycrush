@@ -114,7 +114,7 @@ class DefaultFragmentExecutorTest {
         val step =
             createStep(
                 fragmentName = "createEntity",
-                includeParameters = mapOf("userId" to "${"$"}{currentUserId}"),
+                includeParameters = mapOf("userId" to $$"${currentUserId}"),
             )
         val context = ExecutionContext()
         context["currentUserId"] = "user123"
@@ -179,7 +179,7 @@ class DefaultFragmentExecutorTest {
         val step =
             createStep(
                 fragmentName = "createEntity",
-                includeParameters = mapOf("message" to "Hello, ${"$"}{userName}!"),
+                includeParameters = mapOf("message" to $$"Hello, ${userName}!"),
             )
         val context = ExecutionContext()
         context["userName"] = "World"

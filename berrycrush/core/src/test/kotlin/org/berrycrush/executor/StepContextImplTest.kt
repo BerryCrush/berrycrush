@@ -38,7 +38,7 @@ class StepContextImplTest {
         @Test
         @DisplayName("should return variable from execution context")
         fun returnVariableFromContext() {
-            executionContext.set("username", "john")
+            executionContext["username"] = "john"
 
             val result = stepContext.variable("username")
 
@@ -56,7 +56,7 @@ class StepContextImplTest {
         @Test
         @DisplayName("should return typed variable")
         fun returnTypedVariable() {
-            executionContext.set("count", 42)
+            executionContext["count"] = 42
 
             val result = stepContext.variable("count", Int::class.java)
 
@@ -72,7 +72,7 @@ class StepContextImplTest {
         fun setVariableInContext() {
             stepContext.setVariable("userId", 123)
 
-            assertEquals(123, executionContext.get("userId"))
+            assertEquals(123, executionContext["userId"])
         }
 
         @Test
@@ -80,7 +80,7 @@ class StepContextImplTest {
         fun setStringVariable() {
             stepContext.setVariable("name", "alice")
 
-            assertEquals("alice", executionContext.get("name"))
+            assertEquals("alice", executionContext["name"])
         }
 
         @Test
@@ -89,7 +89,7 @@ class StepContextImplTest {
             stepContext.setVariable("key", "value1")
             stepContext.setVariable("key", "value2")
 
-            assertEquals("value2", executionContext.get("key"))
+            assertEquals("value2", executionContext["key"])
         }
     }
 
@@ -112,7 +112,7 @@ class StepContextImplTest {
 
             // Variable should be in shared map, not execution context
             assertEquals("abc123", sharedVars["token"])
-            assertNull(executionContext.get("token"))
+            assertNull(executionContext["token"])
         }
 
         @Test
@@ -120,7 +120,7 @@ class StepContextImplTest {
         fun setVariableWhenSharingDisabled() {
             stepContext.setSharedVariable("token", "xyz789")
 
-            assertEquals("xyz789", executionContext.get("token"))
+            assertEquals("xyz789", executionContext["token"])
         }
     }
 
@@ -164,7 +164,7 @@ class StepContextImplTest {
                 )
 
             // Set scenario variable
-            executionContext.set("key", "scenario")
+            executionContext["key"] = "scenario"
 
             val result = ctxWithSharing.variable("key")
 
@@ -231,8 +231,8 @@ class StepContextImplTest {
         @Test
         @DisplayName("should return scenario variables when sharing is disabled")
         fun returnScenarioVariablesOnly() {
-            executionContext.set("name", "john")
-            executionContext.set("count", 5)
+            executionContext["name"] = "john"
+            executionContext["count"] = 5
 
             val result = stepContext.allVariables()
 
@@ -251,7 +251,7 @@ class StepContextImplTest {
                     sharedVariables = sharedVars,
                     sharingEnabled = true,
                 )
-            executionContext.set("scenario", "scenarioValue")
+            executionContext["scenario"] = "scenarioValue"
 
             val result = ctxWithSharing.allVariables()
 
@@ -270,7 +270,7 @@ class StepContextImplTest {
                     sharedVariables = sharedVars,
                     sharingEnabled = true,
                 )
-            executionContext.set("key", "scenario")
+            executionContext["key"] = "scenario"
 
             val result = ctxWithSharing.allVariables()
 

@@ -120,7 +120,7 @@ class RetryingHttpExecutorTest {
 
         assertEquals(3, exception.attempts) // 1 initial + 2 retries
         assertNotNull(exception.lastResponse)
-        assertEquals(503, exception.lastResponse?.statusCode())
+        assertEquals(503, exception.lastResponse.statusCode())
         assertNull(exception.lastException)
     }
 
@@ -194,7 +194,7 @@ class RetryingHttpExecutorTest {
                     step: Step,
                     operation: ResolvedOperation?,
                     context: ExecutionContext,
-                ): String? = """{"test": true}"""
+                ): String = """{"test": true}"""
             }
         val config = RetryConfig.DEFAULT
         val executor = RetryingHttpExecutor(delegate, config)
@@ -279,7 +279,7 @@ class RetryingHttpExecutorTest {
             // Create a minimal OpenApiSpec for testing
             val emptyOpenApiSpec =
                 object : org.berrycrush.openapi.OpenApiSpec {
-                    override val rawModel: Any = Object()
+                    override val rawModel: Any = Any()
                     override val version: OpenApiVersion = OpenApiVersion.V3_0_X
                     override val specVersion: String = "3.0.0"
                     override val info: SpecInfo =

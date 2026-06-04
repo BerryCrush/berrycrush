@@ -91,14 +91,14 @@ publishing {
                                     versionNode?.let { vn ->
                                         val node = vn.firstOrNull() as? groovy.util.Node
                                         node?.setValue(when {
-                                            groupId == "org.berrycrush" -> "\${berrycrush.version}"
-                                            groupId == "io.swagger.parser.v3" -> "\${swagger-parser.version}"
-                                            artifactId == "json-path" -> "\${json-path.version}"
-                                            artifactId == "json-schema-validator" -> "\${json-schema-validator.version}"
-                                            groupId?.startsWith("tools.jackson") == true -> "\${jackson.version}"
-                                            groupId == "org.junit.jupiter" -> "\${junit-jupiter.version}"
-                                            groupId == "org.junit.platform" -> "\${junit-platform.version}"
-                                            groupId == "org.springframework.boot" -> "\${spring-boot.version}"
+                                            groupId == "org.berrycrush" -> $$"${berrycrush.version}"
+                                            groupId == "io.swagger.parser.v3" -> $$"${swagger-parser.version}"
+                                            artifactId == "json-path" -> $$"${json-path.version}"
+                                            artifactId == "json-schema-validator" -> $$"${json-schema-validator.version}"
+                                            groupId?.startsWith("tools.jackson") == true -> $$"${jackson.version}"
+                                            groupId == "org.junit.jupiter" -> $$"${junit-jupiter.version}"
+                                            groupId == "org.junit.platform" -> $$"${junit-platform.version}"
+                                            groupId == "org.springframework.boot" -> $$"${spring-boot.version}"
                                             else -> node.text()
                                         })
                                     }

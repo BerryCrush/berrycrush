@@ -12,6 +12,10 @@ sealed class BodyProperty {
         val value: Any,
     ) : BodyProperty()
 
+    data class Container(
+        val value: String,
+    ) : BodyProperty()
+
     /** A nested object with properties */
     data class Nested(
         val properties: Map<String, BodyProperty>,

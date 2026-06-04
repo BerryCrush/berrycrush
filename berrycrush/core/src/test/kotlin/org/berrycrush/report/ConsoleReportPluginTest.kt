@@ -154,8 +154,6 @@ class ConsoleReportPluginTest {
 
     @Test
     fun `fromOptions creates plugin with high-contrast scheme`() {
-        val plugin = ConsoleReportPlugin.fromOptions("high-contrast")
-
         // Verify by checking output includes high contrast colors (bold green for passed)
         val outputStream = ByteArrayOutputStream()
         val printStream = PrintStream(outputStream)
@@ -187,8 +185,6 @@ class ConsoleReportPluginTest {
 
     @Test
     fun `fromOptions creates plugin with no colors`() {
-        val plugin = ConsoleReportPlugin.fromOptions("no-color")
-
         val outputStream = ByteArrayOutputStream()
         val printStream = PrintStream(outputStream)
 

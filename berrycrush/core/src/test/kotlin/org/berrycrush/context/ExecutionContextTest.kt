@@ -1,5 +1,9 @@
 package org.berrycrush.context
 
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -228,13 +232,22 @@ class ExecutionContextTest {
             assertEquals("0", context.interpolate("{{events.onEvent.length}}"))
 
             // Simulate webhook call
-            val client = java.net.http.HttpClient.newHttpClient()
+            val client =
+                HttpClient
+                    .newHttpClient()
             val request =
-                java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create("http://localhost:$port/webhook/onEvent"))
-                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString("""{"id": 1}"""))
-                    .build()
-            client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString())
+                HttpRequest
+                    .newBuilder()
+                    .uri(URI.create("http://localhost:$port/webhook/onEvent"))
+                    .POST(
+                        HttpRequest.BodyPublishers
+                            .ofString("""{"id": 1}"""),
+                    ).build()
+            client.send(
+                request,
+                HttpResponse.BodyHandlers
+                    .ofString(),
+            )
 
             // Now 1 call
             assertEquals("1", context.interpolate("{{events.onEvent.length}}"))
@@ -254,14 +267,23 @@ class ExecutionContextTest {
             context.registerWebhookServer("orders", server)
 
             // Simulate webhook call
-            val client = java.net.http.HttpClient.newHttpClient()
+            val client =
+                HttpClient
+                    .newHttpClient()
             val body = """{"orderId": 123, "amount": 99.99}"""
             val request =
-                java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create("http://localhost:$port/webhook/onOrder"))
-                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body))
-                    .build()
-            client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString())
+                HttpRequest
+                    .newBuilder()
+                    .uri(URI.create("http://localhost:$port/webhook/onOrder"))
+                    .POST(
+                        HttpRequest.BodyPublishers
+                            .ofString(body),
+                    ).build()
+            client.send(
+                request,
+                HttpResponse.BodyHandlers
+                    .ofString(),
+            )
 
             // Get the body
             assertEquals(body, context.interpolate("{{orders.onOrder[0]}}"))
@@ -281,13 +303,20 @@ class ExecutionContextTest {
             context.registerWebhookServer("orders", server)
 
             // Simulate webhook call
-            val client = java.net.http.HttpClient.newHttpClient()
+            val client = HttpClient.newHttpClient()
             val request =
-                java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create("http://localhost:$port/webhook/onOrder"))
-                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString("""{"orderId": 123, "amount": 99.99}"""))
-                    .build()
-            client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString())
+                HttpRequest
+                    .newBuilder()
+                    .uri(URI.create("http://localhost:$port/webhook/onOrder"))
+                    .POST(
+                        HttpRequest.BodyPublishers
+                            .ofString("""{"orderId": 123, "amount": 99.99}"""),
+                    ).build()
+            client.send(
+                request,
+                HttpResponse.BodyHandlers
+                    .ofString(),
+            )
 
             // Get specific field
             assertEquals("123", context.interpolate("{{orders.onOrder[0].body.orderId}}"))

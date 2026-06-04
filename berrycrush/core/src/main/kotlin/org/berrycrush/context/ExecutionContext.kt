@@ -1,11 +1,15 @@
 package org.berrycrush.context
 
 import com.jayway.jsonpath.JsonPath
-import com.jayway.jsonpath.PathNotFoundException
 import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.webhook.MockWebhookServer
 import java.net.http.HttpResponse
 import java.util.concurrent.ConcurrentHashMap
+
+private val mustachePattern = Regex("""\{\{([\w.\[\]0-9]+)}}""")
+private val bracketPattern = Regex("""\$\{([^}]+)}""")
+private val simplePattern = Regex("""\$(\w+)""")
+private val segmentPattern = Regex("""(\w+)((?:\[\d+])*)""")
 
 /**
  * Execution context that holds variables and state during scenario execution.
@@ -44,6 +48,7 @@ import java.util.concurrent.ConcurrentHashMap
  * // Returns: "http://localhost:8080/webhook/onPaymentReceived"
  * ```
  */
+@Suppress("TooManyFunctions")
 class ExecutionContext {
     private val variables = ConcurrentHashMap<String, Any>()
     private val webhookServers = ConcurrentHashMap<String, MockWebhookServer>()
@@ -263,7 +268,6 @@ class ExecutionContext {
 
         // Replace {{name}}, {{server.hook}}, or {{server.hook[0].body.field}} patterns
         // Matches: word chars, dots, array indices with brackets
-        val mustachePattern = Regex("""\{\{([\w.\[\]0-9]+)}}""")
         result =
             mustachePattern.replace(result) { match ->
                 val varName = match.groupValues[1]
@@ -271,7 +275,6 @@ class ExecutionContext {
             }
 
         // Replace ${name} patterns
-        val bracketPattern = Regex("""\$\{([^}]+)}""")
         result =
             bracketPattern.replace(result) { match ->
                 val varName = match.groupValues[1]
@@ -279,7 +282,6 @@ class ExecutionContext {
             }
 
         // Replace $name patterns (word boundary)
-        val simplePattern = Regex("""\$(\w+)""")
         result =
             simplePattern.replace(result) { match ->
                 val varName = match.groupValues[1]
@@ -307,22 +309,23 @@ class ExecutionContext {
      * @return The resolved value or null if not found
      */
     private fun resolveVariable(name: String): String? {
-        // First, try direct variable lookup
-        variables[name]?.let { return it.toString() }
+        fun fallback(): String? {
+            // Parse the path into segments
+            val segments = parsePathSegments(name)
+            if (segments.isEmpty()) return null
 
-        // Parse the path into segments
-        val segments = parsePathSegments(name)
-        if (segments.isEmpty()) return null
+            val firstSegment = segments[0]
 
-        val firstSegment = segments[0]
-
-        // Check if first segment is a webhook server name
-        val server = webhookServers[firstSegment.name]
-        if (server != null && segments.size >= 2) {
-            return resolveWebhookPath(server, segments.drop(1))
+            // Check if first segment is a webhook server name
+            val server = webhookServers[firstSegment.name]
+            return if (server != null && segments.size >= 2) {
+                resolveWebhookPath(server, segments.drop(1))
+            } else {
+                null
+            }
         }
-
-        return null
+        // First, try direct variable lookup
+        return variables[name]?.toString() ?: fallback()
     }
 
     /**
@@ -332,21 +335,21 @@ class ExecutionContext {
     private fun parsePathSegments(path: String): List<PathSegment> {
         val segments = mutableListOf<PathSegment>()
         // Match a word followed by zero or more array indices
-        val pattern = Regex("""(\w+)((?:\[\d+])*)""")
 
         var remaining = path
         while (remaining.isNotEmpty()) {
-            val match = pattern.matchAt(remaining, 0) ?: break
+            val match = segmentPattern.matchAt(remaining, 0) ?: break
 
             val name = match.groupValues[1]
             val indicesStr = match.groupValues[2]
 
             // Parse all indices from the matched string (e.g., "[0][1]" -> [0, 1])
-            val indices = if (indicesStr.isNotEmpty()) {
-                Regex("""\[(\d+)]""").findAll(indicesStr).map { it.groupValues[1].toInt() }.toList()
-            } else {
-                emptyList()
-            }
+            val indices =
+                if (indicesStr.isNotEmpty()) {
+                    Regex("""\[(\d+)]""").findAll(indicesStr).map { it.groupValues[1].toInt() }.toList()
+                } else {
+                    emptyList()
+                }
 
             segments.add(PathSegment(name, indices))
 
@@ -380,40 +383,36 @@ class ExecutionContext {
         server: MockWebhookServer,
         segments: List<PathSegment>,
     ): String? {
+        // If "server.hook[n]...", get the specific call
+        fun PathSegment.webhookCall(hookName: String): String? =
+            index?.let { callIndex ->
+                val calls = server.getReceived(hookName)
+                if (callIndex >= calls.size) {
+                    null
+                } else {
+                    val call = calls[callIndex]
+                    // If just "server.hook[0]", return the full call as JSON
+                    if (segments.size == 1) {
+                        call.body
+                    } else {
+                        // Process remaining segments
+                        resolveWebhookCallPath(call.body, segments.drop(1))
+                    }
+                }
+            }
         if (segments.isEmpty()) return null
 
         val hookSegment = segments[0]
         val hookName = hookSegment.name
 
-        // If just "server.hook" (no index), return the webhook URL
-        if (hookSegment.index == null && segments.size == 1) {
-            return server.getWebhookUrl(hookName)
+        return when (hookSegment.index) {
+            // If just "server.hook" (no index), return the webhook URL
+            null if segments.size == 1 -> server.getWebhookUrl(hookName)
+            // If "server.hook.length", return the call count
+            null if segments.size == 2 && segments[1].name == "length" -> server.getReceivedCount(hookName).toString()
+            // Get the webhook calls
+            else -> hookSegment.webhookCall(hookName)
         }
-
-        // If "server.hook.length", return the call count
-        if (hookSegment.index == null && segments.size == 2 && segments[1].name == "length") {
-            return server.getReceivedCount(hookName).toString()
-        }
-
-        // Get the webhook calls
-        val calls = server.getReceived(hookName)
-
-        // If "server.hook[n]...", get the specific call
-        val callIndex = hookSegment.index
-        if (callIndex != null) {
-            if (callIndex >= calls.size) return null
-            val call = calls[callIndex]
-
-            // If just "server.hook[0]", return the full call as JSON
-            if (segments.size == 1) {
-                return call.body
-            }
-
-            // Process remaining segments
-            return resolveWebhookCallPath(call.body, segments.drop(1))
-        }
-
-        return null
     }
 
     /**
@@ -429,22 +428,16 @@ class ExecutionContext {
         if (segments.isEmpty()) return body
 
         // If first segment is "body", use remaining as JsonPath
-        if (segments[0].name == "body") {
-            if (segments.size == 1) return body
-
-            // Build JsonPath from remaining segments
-            val jsonPath = buildJsonPath(segments.drop(1))
-            return try {
+        return when (segments[0].name) {
+            "body" if (segments.size == 1) -> body
+            "body" -> {
+                // Build JsonPath from remaining segments
+                val jsonPath = buildJsonPath(segments.drop(1))
                 val result: Any = JsonPath.read(body, jsonPath)
                 result.toString()
-            } catch (e: PathNotFoundException) {
-                null
-            } catch (e: Exception) {
-                null
             }
+            else -> null
         }
-
-        return null
     }
 
     /**

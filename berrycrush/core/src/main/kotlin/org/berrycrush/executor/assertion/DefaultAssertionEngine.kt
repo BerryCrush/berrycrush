@@ -165,12 +165,13 @@ class DefaultAssertionEngine(
         context: AssertionContext,
     ): Boolean {
         // Try direct lookup first, then use interpolation for nested paths
-        val actual: Any? = context.variables[condition.name]
-            ?: run {
-                val interpolated = context.executionContext.interpolate("{{${condition.name}}}")
-                // If interpolation returns the same string, the variable wasn't found
-                if (interpolated == "{{${condition.name}}}") null else interpolated
-            }
+        val actual: Any? =
+            context.variables[condition.name]
+                ?: run {
+                    val interpolated = context.executionContext.interpolate("{{${condition.name}}}")
+                    // If interpolation returns the same string, the variable wasn't found
+                    if (interpolated == "{{${condition.name}}}") null else interpolated
+                }
         val expected = condition.expected?.let { resolveConditionValue(it, context) }
         return evaluateOperator(actual, expected, condition.operator)
     }
@@ -313,9 +314,7 @@ class DefaultAssertionEngine(
                     parameters
                 }
 
-            val result = method.invoke(match.definition.instance, *args)
-
-            when (result) {
+            when (val result = method.invoke(match.definition.instance, *args)) {
                 is org.berrycrush.assertion.AssertionResult -> result.passed
                 is Boolean -> result
                 else -> true // Assume passed if no AssertionResult returned
@@ -531,11 +530,12 @@ class DefaultAssertionEngine(
         context: AssertionContext,
     ): String {
         // Try direct lookup first, then use interpolation for nested paths
-        val actual = context.variables[condition.name]
-            ?: run {
-                val interpolated = context.executionContext.interpolate("{{${condition.name}}}")
-                if (interpolated == "{{${condition.name}}}") null else interpolated
-            }
+        val actual =
+            context.variables[condition.name]
+                ?: run {
+                    val interpolated = context.executionContext.interpolate("{{${condition.name}}}")
+                    if (interpolated == "{{${condition.name}}}") null else interpolated
+                }
         return if (passed) {
             "${condition.name} ${condition.operator.name.lowercase()} ${condition.expected}"
         } else {

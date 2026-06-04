@@ -186,7 +186,8 @@ class WebhookAssertionsTest {
         server.start()
 
         val request =
-            HttpRequest.newBuilder()
+            HttpRequest
+                .newBuilder()
                 .uri(URI.create(server.getWebhookUrl("onPetAdopted")))
                 .header("Content-Type", "application/json")
                 .header("X-Webhook-Signature", "abc123")
@@ -215,7 +216,8 @@ class WebhookAssertionsTest {
         server.start()
 
         val request =
-            HttpRequest.newBuilder()
+            HttpRequest
+                .newBuilder()
                 .uri(URI.create(server.getWebhookUrl("onPetAdopted")))
                 .header("Content-Type", "application/json")
                 .header("X-Event-Type", "pet.adopted")
@@ -237,7 +239,8 @@ class WebhookAssertionsTest {
         contentType: String = "application/json",
     ) {
         val request =
-            HttpRequest.newBuilder()
+            HttpRequest
+                .newBuilder()
                 .uri(URI.create(server.getWebhookUrl(operationId)))
                 .header("Content-Type", contentType)
                 .POST(HttpRequest.BodyPublishers.ofString(body))

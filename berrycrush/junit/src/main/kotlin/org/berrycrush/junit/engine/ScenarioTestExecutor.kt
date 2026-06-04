@@ -511,7 +511,7 @@ class ScenarioTestExecutor(
 
         // Set global baseUrl if specified as a string (not OpenApiSpecValue)
         allBindings["baseUrl"]?.let { value ->
-            if (value !is org.berrycrush.config.OpenApiSpecValue) {
+            if (value !is OpenApiSpecValue) {
                 suite.configuration.baseUrl = value.toString()
             }
         }
@@ -901,7 +901,7 @@ class ScenarioTestExecutor(
         /**
          * Build HTTP response context for a failed step.
          */
-        private fun buildHttpContext(step: org.berrycrush.model.StepResult): String {
+        private fun buildHttpContext(step: StepResult): String {
             val statusCode = step.statusCode ?: return ""
             val responseBody = step.responseBody
 

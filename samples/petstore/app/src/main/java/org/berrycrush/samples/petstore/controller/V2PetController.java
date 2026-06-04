@@ -2,7 +2,9 @@ package org.berrycrush.samples.petstore.controller;
 
 import org.berrycrush.samples.petstore.dto.ErrorResponse;
 import org.berrycrush.samples.petstore.dto.NewPet;
+import org.berrycrush.samples.petstore.dto.NewPetV2;
 import org.berrycrush.samples.petstore.dto.PetResponse;
+import org.berrycrush.samples.petstore.dto.PetResponseV2;
 import org.berrycrush.samples.petstore.service.PetService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -25,7 +27,7 @@ public class V2PetController {
 
     private final PetService petService;
 
-    public V1PetController(PetService petService) {
+    public V2PetController(PetService petService) {
         this.petService = petService;
     }
 
@@ -59,6 +61,7 @@ public class V2PetController {
 
         return ResponseEntity.ok(Map.of(
                 "pets", pets,
+                "apiVersion", "v2",
                 "total", total
         ));
     }
@@ -81,7 +84,7 @@ public class V2PetController {
      * POST /pets
      */
     @PostMapping
-    public ResponseEntity<?> createPet(@Valid @RequestBody NewPet newPet) {
+    public ResponseEntity<?> createPet(@Valid @RequestBody NewPetV2 newPet) {
         // Validate status if provided
         if (newPet.status() != null && !newPet.status().isBlank() && !isValidStatus(newPet.status())) {
             return ResponseEntity.badRequest()
@@ -89,7 +92,7 @@ public class V2PetController {
                             List.of("status must be one of: available, pending, sold")));
         }
 
-        PetResponse created = petService.createPet(newPet);
+        PetResponseV2 created = petService.createPet(newPet);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 

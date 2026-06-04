@@ -35,7 +35,7 @@ class DefaultHttpExecutorTest {
         val step =
             createStep(
                 operationId = "createPet",
-                body = """{"name": "${"$"}{petName}"}""",
+                body = $$"""{"name": "${petName}"}""",
             )
         val context = ExecutionContext()
         context["petName"] = "Max"
@@ -111,7 +111,7 @@ class DefaultHttpExecutorTest {
                 operationId = "createPet",
                 bodyProperties =
                     mapOf(
-                        "name" to BodyProperty.Simple("${"$"}{petName}"),
+                        "name" to BodyProperty.Simple($$"${petName}"),
                     ),
             )
         val context = ExecutionContext()

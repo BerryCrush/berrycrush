@@ -3,6 +3,7 @@ package org.berrycrush.openapi
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.parser.OpenAPIV3Parser
 import io.swagger.v3.parser.core.models.ParseOptions
+import io.swagger.v3.parser.core.models.SwaggerParseResult
 import java.nio.file.Path
 
 /**
@@ -18,22 +19,10 @@ class OpenApiLoader {
      * @return Parsed OpenAPI model
      * @throws OpenApiParseException if parsing fails
      */
-    fun load(path: String): OpenAPI {
-        val parseOptions =
-            ParseOptions().apply {
-                isResolve = true
-                isResolveFully = true
-            }
-
-        val result = parser.readLocation(path, null, parseOptions)
-
-        if (result.openAPI == null) {
-            val errors = result.messages?.joinToString("\n") ?: "Unknown error"
-            throw OpenApiParseException("Failed to parse OpenAPI spec at $path: $errors")
+    fun load(path: String): OpenAPI =
+        load { parseOptions ->
+            parser.readLocation(path, null, parseOptions)
         }
-
-        return result.openAPI
-    }
 
     /**
      * Load an OpenAPI spec from a Path.
@@ -46,14 +35,19 @@ class OpenApiLoader {
      * @param content OpenAPI spec content (YAML or JSON)
      * @return Parsed OpenAPI model
      */
-    fun loadFromString(content: String): OpenAPI {
+    fun loadFromString(content: String): OpenAPI =
+        load { parseOptions ->
+            parser.readContents(content, null, parseOptions)
+        }
+
+    private fun load(loader: (ParseOptions) -> SwaggerParseResult): OpenAPI {
         val parseOptions =
             ParseOptions().apply {
                 isResolve = true
                 isResolveFully = true
             }
 
-        val result = parser.readContents(content, null, parseOptions)
+        val result = loader(parseOptions)
 
         if (result.openAPI == null) {
             val errors = result.messages?.joinToString("\n") ?: "Unknown error"

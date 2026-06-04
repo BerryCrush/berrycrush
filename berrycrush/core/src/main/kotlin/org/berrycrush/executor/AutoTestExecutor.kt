@@ -16,6 +16,7 @@ import org.berrycrush.model.BodyProperty
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepResult
+import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.scenario.AutoTestType
 import tools.jackson.databind.ObjectMapper
@@ -201,6 +202,9 @@ class AutoTestExecutor(
                         }
                     result[key] = resolved
                 }
+                // the value is JSON string, so
+                is BodyProperty.Container ->
+                    result[key] = objectMapper.readTree(context.interpolate(value.value))
                 is BodyProperty.Nested -> {
                     result[key] = flattenBodyProperties(value.properties, context)
                 }
@@ -302,17 +306,7 @@ class AutoTestExecutor(
         context: ExecutionContext,
         testStartTime: Instant,
     ): AutoTestResult {
-        val (spec, resolvedOp) = specRegistry.resolve(step.operationId!!, step.specName)
-        val baseUrl = configuration.baseUrl ?: spec.baseUrl
-        val url =
-            httpBuilder.buildUrl(
-                baseUrl = baseUrl,
-                path = resolvedOp.path,
-                pathParams = paramResolver(params.pathParams, context),
-                queryParams = paramResolver(step.queryParams, context),
-            )
-
-        val headers = configuration.defaultHeaders + spec.defaultHeaders + params.headers
+        val (url, headers, resolvedOp) = extractUrlHeaderOp(step, context)
         requestLogger(resolvedOp.method.name, url, headers, params.body)
 
         val requestStartTime = System.currentTimeMillis()
@@ -336,6 +330,27 @@ class AutoTestExecutor(
             assertionResults = assertionResults,
             duration = Duration.between(testStartTime, Instant.now()),
         )
+    }
+
+    private fun extractUrlHeaderOp(
+        step: Step,
+        context: ExecutionContext,
+    ): Triple<String, Map<String, String>, ResolvedOperation> {
+        val (spec, resolvedOp) = specRegistry.resolve(step.operationId!!, step.specName)
+
+        // Build URL
+        val baseUrl = configuration.baseUrl ?: spec.baseUrl
+        val url =
+            httpBuilder.buildUrl(
+                baseUrl = baseUrl,
+                path = resolvedOp.path,
+                pathParams = paramResolver(step.pathParams, context),
+                queryParams = paramResolver(step.queryParams, context),
+            )
+
+        // Merge headers
+        val headers = configuration.defaultHeaders + spec.defaultHeaders + step.headers
+        return Triple(url, headers, resolvedOp)
     }
 
     /**
@@ -453,7 +468,6 @@ class AutoTestExecutor(
         listener: BerryCrushExecutionListener = BerryCrushExecutionListener.NOOP,
     ): StepResult {
         val autoTestConfig = step.autoTestConfig!!
-        val operationId = step.operationId!!
 
         // Get the provider registry
         val registry = AutoTestProviderRegistry.default
@@ -578,22 +592,7 @@ class AutoTestExecutor(
         val requestStartTime = System.currentTimeMillis()
 
         return runCatching {
-            // Resolve the operation
-            val (spec, resolvedOp) = specRegistry.resolve(step.operationId!!, step.specName)
-
-            // Build URL
-            val baseUrl = configuration.baseUrl ?: spec.baseUrl
-            val url =
-                httpBuilder.buildUrl(
-                    baseUrl = baseUrl,
-                    path = resolvedOp.path,
-                    pathParams = paramResolver(step.pathParams, context),
-                    queryParams = paramResolver(step.queryParams, context),
-                )
-
-            // Merge headers
-            val headers = configuration.defaultHeaders + spec.defaultHeaders + step.headers
-
+            val (url, headers, resolvedOp) = extractUrlHeaderOp(step, context)
             // Resolve body
             val body =
                 step.body?.let { context.interpolate(it) }

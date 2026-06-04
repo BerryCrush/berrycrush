@@ -33,11 +33,13 @@ dokka {
 
 // Create source and javadoc jars
 val sourcesJar by tasks.registering(Jar::class) {
+    description = "source jar generation"
     archiveClassifier.set("sources")
     from(sourceSets.main.get().allSource)
 }
 
 val javadocJar by tasks.registering(Jar::class) {
+    description = "javadoc jar generation"
     archiveClassifier.set("javadoc")
     dependsOn(tasks.dokkaGeneratePublicationJavadoc)
     from(tasks.dokkaGeneratePublicationJavadoc.flatMap { it.outputDirectory })

@@ -1,5 +1,7 @@
 package org.berrycrush.scenario
 
+import java.nio.file.Files
+import java.nio.file.Path
 import org.berrycrush.dsl.BerryCrushSuite
 import org.berrycrush.exception.ScenarioParseException
 import org.berrycrush.model.Assertion
@@ -14,8 +16,6 @@ import org.berrycrush.model.Scenario
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepType
 import org.berrycrush.model.WebhookConfig
-import java.nio.file.Files
-import java.nio.file.Path
 import org.berrycrush.model.ConditionBranch as ModelConditionBranch
 import org.berrycrush.model.ConditionOperator as ModelConditionOperator
 import org.berrycrush.model.LogicalOperator as ModelLogicalOperator
@@ -330,12 +330,13 @@ class ScenarioLoader {
                     type = stepType,
                     description = description,
                     sourceLocation = webhook.location,
-                    webhookConfig = WebhookConfig(
-                        name = webhook.name,
-                        port = webhook.port,
-                        hooks = webhook.hooks,
-                        scope = webhook.scope,
-                    ),
+                    webhookConfig =
+                        WebhookConfig(
+                            name = webhook.name,
+                            port = webhook.port,
+                            hooks = webhook.hooks,
+                            scope = webhook.scope,
+                        ),
                 ),
             )
         }
@@ -520,7 +521,10 @@ class ScenarioLoader {
 
     private fun transformBodyPropertyValue(value: BodyPropertyValue): BodyProperty =
         when (value) {
-            is BodyPropertyValue.Simple -> BodyProperty.Simple(extractValue(value.value))
+            is BodyPropertyValue.Simple -> when (val v = value.value) {
+                is JsonValueNode -> BodyProperty.Container(v.json)
+                else -> BodyProperty.Simple(extractValue(value.value))
+            }
             is BodyPropertyValue.Nested -> BodyProperty.Nested(transformBodyProperties(value.properties))
         }
 

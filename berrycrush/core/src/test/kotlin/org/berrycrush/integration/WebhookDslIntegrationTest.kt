@@ -25,13 +25,14 @@ class WebhookDslIntegrationTest {
 
     @Test
     fun `should parse and execute webhook step successfully`() {
-        val source = """
+        val source =
+            """
             scenario: Test webhook setup
               given a webhook server is ready
                 webhook: payments
                   port: 0
                   hook: onPaymentReceived
-        """.trimIndent()
+            """.trimIndent()
 
         val scenarios = loader.loadScenariosFromString(source)
         assertEquals(1, scenarios.size)
@@ -42,9 +43,9 @@ class WebhookDslIntegrationTest {
         // Verify webhook config is parsed correctly
         val step = scenario.steps.first()
         assertNotNull(step.webhookConfig)
-        assertEquals("payments", step.webhookConfig!!.name)
-        assertEquals(0, step.webhookConfig!!.port)
-        assertEquals(listOf("onPaymentReceived"), step.webhookConfig!!.hooks)
+        assertEquals("payments", step.webhookConfig.name)
+        assertEquals(0, step.webhookConfig.port)
+        assertEquals(listOf("onPaymentReceived"), step.webhookConfig.hooks)
 
         // Execute scenario - should succeed
         val executor = BerryCrushScenarioExecutor(specRegistry, config)
@@ -54,7 +55,8 @@ class WebhookDslIntegrationTest {
 
     @Test
     fun `should parse multiple hooks in webhook step`() {
-        val source = """
+        val source =
+            """
             scenario: Multi-hook webhook
               given notification listeners are active
                 webhook: notifications
@@ -63,27 +65,28 @@ class WebhookDslIntegrationTest {
                     - onEmail
                     - onSms
                     - onPush
-        """.trimIndent()
+            """.trimIndent()
 
         val scenarios = loader.loadScenariosFromString(source)
         val step = scenarios.first().steps.first()
 
         assertNotNull(step.webhookConfig)
-        assertEquals("notifications", step.webhookConfig!!.name)
-        assertEquals(8080, step.webhookConfig!!.port)
-        assertEquals(listOf("onEmail", "onSms", "onPush"), step.webhookConfig!!.hooks)
+        assertEquals("notifications", step.webhookConfig.name)
+        assertEquals(8080, step.webhookConfig.port)
+        assertEquals(listOf("onEmail", "onSms", "onPush"), step.webhookConfig.hooks)
     }
 
     @Test
     fun `should parse feature scope webhook`() {
-        val source = """
+        val source =
+            """
             scenario: Feature scope webhook
               given a shared webhook server
                 webhook: shared
                   port: 0
                   hook: event
                   scope: feature
-        """.trimIndent()
+            """.trimIndent()
 
         val scenarios = loader.loadScenariosFromString(source)
         val step = scenarios.first().steps.first()
@@ -93,7 +96,8 @@ class WebhookDslIntegrationTest {
 
     @Test
     fun `should parse multiple webhook servers in same scenario`() {
-        val source = """
+        val source =
+            """
             scenario: Multiple webhooks
               given payment webhooks are ready
                 webhook: payments
@@ -105,7 +109,7 @@ class WebhookDslIntegrationTest {
                   hooks:
                     - onEmail
                     - onSms
-        """.trimIndent()
+            """.trimIndent()
 
         val scenarios = loader.loadScenariosFromString(source)
         assertEquals(1, scenarios.size)
@@ -116,12 +120,13 @@ class WebhookDslIntegrationTest {
 
         assertEquals("payments", step1.webhookConfig!!.name)
         assertEquals("notifications", step2.webhookConfig!!.name)
-        assertEquals(listOf("onEmail", "onSms"), step2.webhookConfig!!.hooks)
+        assertEquals(listOf("onEmail", "onSms"), step2.webhookConfig.hooks)
     }
 
     @Test
     fun `should execute scenario with multiple webhooks successfully`() {
-        val source = """
+        val source =
+            """
             scenario: Multiple webhooks
               given payment webhooks are ready
                 webhook: payments
@@ -131,7 +136,7 @@ class WebhookDslIntegrationTest {
                 webhook: notifications
                   port: 0
                   hook: onEmail
-        """.trimIndent()
+            """.trimIndent()
 
         val scenarios = loader.loadScenariosFromString(source)
         val executor = BerryCrushScenarioExecutor(specRegistry, config)
@@ -144,13 +149,14 @@ class WebhookDslIntegrationTest {
 
     @Test
     fun `should cleanup webhook servers after scenario execution`() {
-        val source = """
+        val source =
+            """
             scenario: Cleanup test
               given a webhook server exists
                 webhook: temp
                   port: 0
                   hook: event
-        """.trimIndent()
+            """.trimIndent()
 
         val scenarios = loader.loadScenariosFromString(source)
         val localContext = ExecutionContext()

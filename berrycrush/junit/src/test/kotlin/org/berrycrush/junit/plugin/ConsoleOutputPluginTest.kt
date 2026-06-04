@@ -223,7 +223,7 @@ class ConsoleOutputPluginTest {
                     duration = Duration.ofMillis(10),
                     timestamp = Instant.now(),
                 )
-            override val operationId: String? = "listPets"
+            override val operationId: String = "listPets"
         }
 
     private fun testStepContextWithoutResponse(

@@ -44,7 +44,8 @@ class WebhookIntegrationTest {
         // Simulate a webhook call that the app would make after a move
         val gameStatus = """{"board":[["X",".","."],[".",".","."],[".",".","."]],"winner":"."}"""
         val request =
-            HttpRequest.newBuilder()
+            HttpRequest
+                .newBuilder()
                 .uri(URI.create(webhookServer.getWebhookUrl("markOperationWebhook")))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(gameStatus))
@@ -64,7 +65,8 @@ class WebhookIntegrationTest {
         // Simulate webhook call
         val gameStatus = """{"board":[["X","X","X"],[".","O","."],[".","O","."]],"winner":"X"}"""
         val request =
-            HttpRequest.newBuilder()
+            HttpRequest
+                .newBuilder()
                 .uri(URI.create(webhookServer.getWebhookUrl("markOperationWebhook")))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(gameStatus))
@@ -89,7 +91,8 @@ class WebhookIntegrationTest {
         // First move - X places at (1,1)
         val status1 = """{"board":[["X",".","."],[".",".","."],[".",".","."]],"winner":"."}"""
         httpClient.send(
-            HttpRequest.newBuilder()
+            HttpRequest
+                .newBuilder()
                 .uri(URI.create(webhookUrl))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(status1))
@@ -100,7 +103,8 @@ class WebhookIntegrationTest {
         // Second move - O places at (2,2)
         val status2 = """{"board":[["X",".","."],[".",".","."],[".","O","."]],"winner":"."}"""
         httpClient.send(
-            HttpRequest.newBuilder()
+            HttpRequest
+                .newBuilder()
                 .uri(URI.create(webhookUrl))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(status2))
@@ -111,7 +115,8 @@ class WebhookIntegrationTest {
         // Third move - X wins
         val status3 = """{"board":[["X","X","X"],[".",".","."],[".","O","."]],"winner":"X"}"""
         httpClient.send(
-            HttpRequest.newBuilder()
+            HttpRequest
+                .newBuilder()
                 .uri(URI.create(webhookUrl))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(status3))

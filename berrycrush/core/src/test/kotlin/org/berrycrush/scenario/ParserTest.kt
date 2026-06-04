@@ -2366,9 +2366,9 @@ class ParserTest {
         assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
         val scenario = result.ast!!.scenarios[0]
         assertNotNull(scenario.parameters, "Scenario should have parameters")
-        assertEquals(2, scenario.parameters!!.values.size)
-        assertEquals(120L, scenario.parameters!!.values["timeout"])
-        assertEquals(3L, scenario.parameters!!.values["retries"])
+        assertEquals(2, scenario.parameters.values.size)
+        assertEquals(120L, scenario.parameters.values["timeout"])
+        assertEquals(3L, scenario.parameters.values["retries"])
     }
 
     @Test
@@ -2393,9 +2393,9 @@ class ParserTest {
         val scenario = result.ast!!.scenarios[0]
         assertTrue(scenario.isOutline)
         assertNotNull(scenario.parameters)
-        assertEquals(60L, scenario.parameters!!.values["timeout"])
+        assertEquals(60L, scenario.parameters.values["timeout"])
         assertNotNull(scenario.examples)
-        assertEquals(2, scenario.examples!!.size)
+        assertEquals(2, scenario.examples.size)
     }
 
     @Test
@@ -2411,17 +2411,17 @@ class ParserTest {
 
         assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
         val scenario = result.ast!!.scenarios[0]
-        assertTrue(scenario.parameters == null, "Scenario should not have parameters")
+        assertEquals(scenario.parameters, null, "Scenario should not have parameters")
     }
 
     @Test
     fun `should parse parameters with variable references`() {
         val source =
-            """
+            $$"""
             scenario: Use environment variable
               parameters:
-                apiKey: "${'$'}{env.API_KEY}"
-                baseUrl: "https://${'$'}{env.HOST}/api"
+                apiKey: "${env.API_KEY}"
+                baseUrl: "https://${env.HOST}/api"
               when I authenticate
                 call ^authenticate
             """.trimIndent()
@@ -2431,8 +2431,8 @@ class ParserTest {
         assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
         val scenario = result.ast!!.scenarios[0]
         assertNotNull(scenario.parameters)
-        assertEquals("\${env.API_KEY}", scenario.parameters!!.values["apiKey"])
-        assertEquals("https://\${env.HOST}/api", scenario.parameters!!.values["baseUrl"])
+        assertEquals($$"${env.API_KEY}", scenario.parameters.values["apiKey"])
+        assertEquals($$"https://${env.HOST}/api", scenario.parameters.values["baseUrl"])
     }
 
     @Test
@@ -2455,11 +2455,11 @@ class ParserTest {
         assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
         val feature = result.ast!!.features[0]
         assertNotNull(feature.parameters)
-        assertEquals("staging", feature.parameters!!.values["environment"])
+        assertEquals("staging", feature.parameters.values["environment"])
 
         val scenario = feature.scenarios[0]
         assertNotNull(scenario.parameters)
-        assertEquals(120L, scenario.parameters!!.values["timeout"])
+        assertEquals(120L, scenario.parameters.values["timeout"])
     }
 
     // =========================================================================
@@ -2485,7 +2485,7 @@ class ParserTest {
         assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
         assertNotNull(result.ast!!.parameters)
 
-        val params = result.ast.parameters!!.values
+        val params = result.ast.parameters.values
         assertEquals(3L, params["retry.maxAttempts"])
         assertEquals("500ms", params["retry.delay"])
     }
@@ -2511,7 +2511,7 @@ class ParserTest {
         assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
         assertNotNull(result.ast!!.parameters)
 
-        val params = result.ast.parameters!!.values
+        val params = result.ast.parameters.values
         assertEquals("30s", params["http.client.timeout"])
         assertEquals(true, params["http.client.retry.enabled"])
     }
@@ -2536,7 +2536,7 @@ class ParserTest {
         assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
         assertNotNull(result.ast!!.parameters)
 
-        val params = result.ast.parameters!!.values
+        val params = result.ast.parameters.values
         assertEquals("http://localhost:8080", params["baseUrl"])
         assertEquals(3L, params["retry.maxAttempts"])
         assertEquals(60L, params["timeout"])
@@ -2563,7 +2563,7 @@ class ParserTest {
         val feature = result.ast!!.features[0]
         assertNotNull(feature.parameters)
 
-        val params = feature.parameters!!.values
+        val params = feature.parameters.values
         assertEquals(5L, params["retry.maxAttempts"])
         assertEquals("exponential", params["retry.backoff"])
     }
@@ -2587,7 +2587,7 @@ class ParserTest {
         val scenario = result.ast!!.scenarios[0]
         assertNotNull(scenario.parameters)
 
-        val params = scenario.parameters!!.values
+        val params = scenario.parameters.values
         assertEquals(2L, params["retry.maxAttempts"])
         assertEquals("100ms", params["retry.delay"])
     }
@@ -2610,7 +2610,7 @@ class ParserTest {
         assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
         assertNotNull(result.ast!!.parameters)
 
-        val params = result.ast.parameters!!.values
+        val params = result.ast.parameters.values
         assertEquals(true, params["include"])
         assertEquals("default", params["using"])
     }
@@ -2636,7 +2636,12 @@ class ParserTest {
 
         assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
         val scenario = result.ast!!.scenarios.first()
-        val webhookAction = scenario.steps.first().actions.filterIsInstance<WebhookNode>().first()
+        val webhookAction =
+            scenario.steps
+                .first()
+                .actions
+                .filterIsInstance<WebhookNode>()
+                .first()
 
         assertEquals("payments", webhookAction.name)
         assertEquals(8080, webhookAction.port)
@@ -2664,7 +2669,12 @@ class ParserTest {
 
         assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
         val scenario = result.ast!!.scenarios.first()
-        val webhookAction = scenario.steps.first().actions.filterIsInstance<WebhookNode>().first()
+        val webhookAction =
+            scenario.steps
+                .first()
+                .actions
+                .filterIsInstance<WebhookNode>()
+                .first()
 
         assertEquals("notifications", webhookAction.name)
         assertEquals(9000, webhookAction.port)
@@ -2687,7 +2697,12 @@ class ParserTest {
 
         assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
         val scenario = result.ast!!.scenarios.first()
-        val webhookAction = scenario.steps.first().actions.filterIsInstance<WebhookNode>().first()
+        val webhookAction =
+            scenario.steps
+                .first()
+                .actions
+                .filterIsInstance<WebhookNode>()
+                .first()
 
         assertEquals("events", webhookAction.name)
         assertEquals(0, webhookAction.port) // 0 means dynamic port
@@ -2712,7 +2727,12 @@ class ParserTest {
 
         assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
         val scenario = result.ast!!.scenarios.first()
-        val webhookAction = scenario.steps.first().actions.filterIsInstance<WebhookNode>().first()
+        val webhookAction =
+            scenario.steps
+                .first()
+                .actions
+                .filterIsInstance<WebhookNode>()
+                .first()
 
         assertEquals("shared", webhookAction.name)
         assertEquals(WebhookScope.FEATURE, webhookAction.scope)

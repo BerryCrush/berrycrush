@@ -47,8 +47,9 @@ class DefaultHttpExecutor(
             )
 
         // Merge headers immutably and interpolate values
-        val headers = (configuration.defaultHeaders + spec.defaultHeaders + step.headers)
-            .mapValues { (_, value) -> context.interpolate(value) }
+        val headers =
+            (configuration.defaultHeaders + spec.defaultHeaders + step.headers)
+                .mapValues { (_, value) -> context.interpolate(value) }
 
         // Resolve body
         val body = resolveBody(step, operation, context)
@@ -125,7 +126,7 @@ class DefaultHttpExecutor(
         val merged = mergeBodyProperties(schemaDefaults, props)
 
         // Convert to JSON and interpolate variables
-        val json = bodyPropertyToJson(merged)
+        val json = bodyPropertyToJson(merged, context)
         return context.interpolate(json)
     }
 
@@ -216,15 +217,16 @@ class DefaultHttpExecutor(
     /**
      * Convert BodyProperty map to JSON string.
      */
-    private fun bodyPropertyToJson(props: Map<String, BodyProperty>): String {
-        val jsonMap = props.mapValues { (_, prop) -> bodyPropertyToJsonValue(prop) }
+    private fun bodyPropertyToJson(props: Map<String, BodyProperty>, context: ExecutionContext): String {
+        val jsonMap = props.mapValues { (_, prop) -> bodyPropertyToJsonValue(prop, context) }
         return objectMapper.writeValueAsString(jsonMap)
     }
 
-    private fun bodyPropertyToJsonValue(prop: BodyProperty): Any =
+    private fun bodyPropertyToJsonValue(prop: BodyProperty, context: ExecutionContext): Any =
         when (prop) {
             is BodyProperty.Simple -> prop.value
-            is BodyProperty.Nested -> prop.properties.mapValues { (_, p) -> bodyPropertyToJsonValue(p) }
+            is BodyProperty.Container -> objectMapper.readTree(context.interpolate(prop.value))
+            is BodyProperty.Nested -> prop.properties.mapValues { (_, p) -> bodyPropertyToJsonValue(p, context) }
         }
 
     // ========== Logging ==========

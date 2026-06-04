@@ -5,7 +5,7 @@ info:
   version: "1.0.0"
 
 servers:
-  - url: http://localhost:8080/api/v1
+  - url: http://localhost:8080/api/v2
 
 paths:
   /pets:
@@ -27,7 +27,10 @@ paths:
                     items:
                       $ref: "#/components/schemas/Pet31"
                   apiVersion:
-                    const: "v1"
+                    const: "v2"
+                  total:
+                    type: integer
+                    description: Total count of pets
 
     post:
       operationId: createPet31
@@ -134,6 +137,17 @@ components:
         status:
           type: string
           default: available
+        age:
+          type: integer
+          exclusiveMinimum: 0
+          exclusiveMaximum: 100
+        vaccinated:
+          type: boolean
+        vaccinationDate:
+          type: string
+          format: date
+        coordinates:
+          $ref: "#/components/schemas/Pet31/properties/coordinates"
 
     # Demonstrates if/then/else conditional schema
     Contact31:

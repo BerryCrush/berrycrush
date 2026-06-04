@@ -1,11 +1,11 @@
 package org.berrycrush.samples.tictactoe.service
 
 import org.berrycrush.samples.tictactoe.model.GameStatus
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestClient
-import org.slf4j.LoggerFactory
 
 /**
  * Service for sending webhook notifications when game state changes.
@@ -26,22 +26,27 @@ class WebhookService(
      * @param status The game status to send
      * @param operationId The operation ID (for webhook identification)
      */
-    fun sendStatusWebhook(status: GameStatus, operationId: String = "markOperationWebhook") {
+    fun sendStatusWebhook(
+        status: GameStatus,
+        operationId: String = "markOperationWebhook",
+    ) {
         if (webhookUrl.isBlank()) {
             logger.debug("Webhook URL not configured, skipping webhook")
             return
         }
 
         try {
-            val url = if (webhookUrl.endsWith("/")) {
-                "$webhookUrl$operationId"
-            } else {
-                "$webhookUrl/$operationId"
-            }
+            val url =
+                if (webhookUrl.endsWith("/")) {
+                    "$webhookUrl$operationId"
+                } else {
+                    "$webhookUrl/$operationId"
+                }
 
             logger.info("Sending webhook to: $url")
 
-            restClient.post()
+            restClient
+                .post()
                 .uri(url)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(status)
@@ -64,11 +69,15 @@ class WebhookService(
      * @param status The game status to send
      * @param callbackUrl The URL to send the callback to
      */
-    fun sendStatusCallback(status: GameStatus, callbackUrl: String) {
+    fun sendStatusCallback(
+        status: GameStatus,
+        callbackUrl: String,
+    ) {
         try {
             logger.info("Sending status callback to: $callbackUrl")
 
-            restClient.post()
+            restClient
+                .post()
                 .uri(callbackUrl)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(status)

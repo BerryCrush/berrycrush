@@ -83,7 +83,7 @@ internal fun ParserState.parseStatusValue(): ValueNode? {
 /**
  * Parse a JSON object.
  */
-internal fun ParserState.parseJsonObject(loc: SourceLocation): JsonValueNode {
+internal fun ParserState.parseJsonObject(loc: SourceLocation): ValueNode {
     val sb = StringBuilder()
     var depth = 0
 
@@ -98,7 +98,7 @@ internal fun ParserState.parseJsonObject(loc: SourceLocation): JsonValueNode {
                 sb.append('}')
                 if (depth == 0) {
                     advance()
-                    return JsonValueNode(sb.toString(), loc)
+                    return JsonValueNode.ObjectValueNode(sb.toString(), loc)
                 }
             }
             TokenType.STRING -> sb.append('"').append(current().value).append('"')
@@ -112,14 +112,14 @@ internal fun ParserState.parseJsonObject(loc: SourceLocation): JsonValueNode {
         }
         advance()
     }
-
-    return JsonValueNode(sb.toString(), loc)
+    // In correct JSON, return it as string
+    return StringValueNode(sb.toString(), loc)
 }
 
 /**
  * Parse a JSON array.
  */
-internal fun ParserState.parseJsonArray(loc: SourceLocation): JsonValueNode {
+internal fun ParserState.parseJsonArray(loc: SourceLocation): ValueNode {
     val sb = StringBuilder()
     var depth = 0
 
@@ -134,7 +134,7 @@ internal fun ParserState.parseJsonArray(loc: SourceLocation): JsonValueNode {
                 sb.append(']')
                 if (depth == 0) {
                     advance()
-                    return JsonValueNode(sb.toString(), loc)
+                    return JsonValueNode.ArrayValueNode(sb.toString(), loc)
                 }
             }
             TokenType.STRING -> sb.append('"').append(current().value).append('"')
@@ -148,6 +148,6 @@ internal fun ParserState.parseJsonArray(loc: SourceLocation): JsonValueNode {
         }
         advance()
     }
-
-    return JsonValueNode(sb.toString(), loc)
+    //
+    return StringValueNode(sb.toString(), loc)
 }

@@ -41,7 +41,8 @@ class MockWebhookServerTest {
         server.start()
 
         val request =
-            HttpRequest.newBuilder()
+            HttpRequest
+                .newBuilder()
                 .uri(URI.create(server.getWebhookUrl("onPetAdopted")))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString("""{"petId": 123, "adopterId": 456}"""))
@@ -61,7 +62,8 @@ class MockWebhookServerTest {
 
         val body = """{"petId": 123, "adopterId": 456}"""
         val request =
-            HttpRequest.newBuilder()
+            HttpRequest
+                .newBuilder()
                 .uri(URI.create(server.getWebhookUrl("onPetAdopted")))
                 .header("Content-Type", "application/json")
                 .header("X-Custom-Header", "custom-value")
@@ -76,7 +78,7 @@ class MockWebhookServerTest {
         val call = calls.first()
         assertEquals(body, call.body)
         assertEquals("application/json", call.contentType)
-        assertTrue(call.headers["X-custom-header"]?.contains("custom-value") == true)
+        assertEquals(call.headers["X-custom-header"]?.contains("custom-value"), true)
     }
 
     @Test
@@ -86,7 +88,8 @@ class MockWebhookServerTest {
 
         repeat(3) { i ->
             val request =
-                HttpRequest.newBuilder()
+                HttpRequest
+                    .newBuilder()
                     .uri(URI.create(server.getWebhookUrl("onPetAdopted")))
                     .POST(HttpRequest.BodyPublishers.ofString("""{"call": $i}"""))
                     .build()
@@ -106,13 +109,15 @@ class MockWebhookServerTest {
         server.start()
 
         val adoptRequest =
-            HttpRequest.newBuilder()
+            HttpRequest
+                .newBuilder()
                 .uri(URI.create(server.getWebhookUrl("onPetAdopted")))
                 .POST(HttpRequest.BodyPublishers.ofString("""{"type": "adopt"}"""))
                 .build()
 
         val createRequest =
-            HttpRequest.newBuilder()
+            HttpRequest
+                .newBuilder()
                 .uri(URI.create(server.getWebhookUrl("onPetCreated")))
                 .POST(HttpRequest.BodyPublishers.ofString("""{"type": "create"}"""))
                 .build()
@@ -132,7 +137,8 @@ class MockWebhookServerTest {
         server.start()
 
         val request =
-            HttpRequest.newBuilder()
+            HttpRequest
+                .newBuilder()
                 .uri(URI.create(server.getWebhookUrl("unknownWebhook")))
                 .POST(HttpRequest.BodyPublishers.ofString("{}"))
                 .build()
@@ -148,7 +154,8 @@ class MockWebhookServerTest {
         server.start()
 
         val request =
-            HttpRequest.newBuilder()
+            HttpRequest
+                .newBuilder()
                 .uri(URI.create(server.getWebhookUrl("onPetAdopted")))
                 .POST(HttpRequest.BodyPublishers.ofString("{}"))
                 .build()
@@ -168,7 +175,8 @@ class MockWebhookServerTest {
 
         // First call - not enough
         val request =
-            HttpRequest.newBuilder()
+            HttpRequest
+                .newBuilder()
                 .uri(URI.create(server.getWebhookUrl("onPetAdopted")))
                 .POST(HttpRequest.BodyPublishers.ofString("{}"))
                 .build()

@@ -1,15 +1,20 @@
 package org.berrycrush.samples.petstore.service;
 
 import org.berrycrush.samples.petstore.dto.NewPet;
+import org.berrycrush.samples.petstore.dto.NewPetV2;
 import org.berrycrush.samples.petstore.dto.PetResponse;
+import org.berrycrush.samples.petstore.dto.PetResponseV2;
+import org.berrycrush.samples.petstore.entity.Coordinate;
 import org.berrycrush.samples.petstore.entity.Pet;
 import org.berrycrush.samples.petstore.entity.PetStatus;
+import org.berrycrush.samples.petstore.repository.CoordinateRepository;
 import org.berrycrush.samples.petstore.repository.PetRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,9 +26,11 @@ import java.util.Optional;
 public class PetService {
 
     private final PetRepository petRepository;
+    private final CoordinateRepository coordinateRepository;
 
-    public PetService(PetRepository petRepository) {
+    public PetService(PetRepository petRepository, CoordinateRepository coordinateRepository) {
         this.petRepository = petRepository;
+        this.coordinateRepository = coordinateRepository;
     }
 
     /**
@@ -77,6 +84,10 @@ public class PetService {
      */
     public PetResponse createPet(NewPet newPet) {
         Pet pet = new Pet();
+        return mapToPet(newPet, pet);
+    }
+
+    private PetResponse mapToPet(NewPet newPet, Pet pet) {
         pet.setName(newPet.name());
         pet.setStatus(parseStatus(newPet.status()));
         pet.setCategory(newPet.category());
@@ -84,27 +95,8 @@ public class PetService {
         if (newPet.price() != null) {
             pet.setPrice(BigDecimal.valueOf(newPet.price()));
         }
-
         Pet saved = petRepository.save(pet);
         return PetResponse.from(saved);
-    }
-
-    /**
-     * Update an existing pet.
-     */
-    public Optional<PetResponse> updatePet(Long id, NewPet newPet) {
-        return petRepository.findById(id)
-            .map(pet -> {
-                pet.setName(newPet.name());
-                pet.setStatus(parseStatus(newPet.status()));
-                pet.setCategory(newPet.category());
-                pet.setTags(newPet.tags() != null ? newPet.tags() : List.of());
-                if (newPet.price() != null) {
-                    pet.setPrice(BigDecimal.valueOf(newPet.price()));
-                }
-                Pet saved = petRepository.save(pet);
-                return PetResponse.from(saved);
-            });
     }
 
     /**
@@ -123,15 +115,7 @@ public class PetService {
         if (existing.isPresent()) {
             // Update existing pet
             Pet pet = existing.get();
-            pet.setName(newPet.name());
-            pet.setStatus(parseStatus(newPet.status()));
-            pet.setCategory(newPet.category());
-            pet.setTags(newPet.tags() != null ? newPet.tags() : List.of());
-            if (newPet.price() != null) {
-                pet.setPrice(BigDecimal.valueOf(newPet.price()));
-            }
-            Pet saved = petRepository.save(pet);
-            return new UpsertResult(PetResponse.from(saved), false);
+            return new UpsertResult(mapToPet(newPet, pet), false);
         } else {
             // Create new pet with specified ID using native SQL
             Instant now = Instant.now();
@@ -157,6 +141,33 @@ public class PetService {
             }
             return new UpsertResult(PetResponse.from(created), true);
         }
+    }
+
+    /**
+     * Create a new pet.
+     */
+    public PetResponseV2 createPet(NewPetV2 newPet) {
+        Pet pet = new Pet();
+        return mapToPet(newPet, pet);
+    }
+
+    private PetResponseV2 mapToPet(NewPetV2 newPet, Pet pet) {
+        var coordinate = newPet.coordinates() != null && newPet.coordinates().length >= 2
+                ? new Coordinate(newPet.coordinates()[0], newPet.coordinates()[1])
+                : null;
+        if (coordinate != null) {
+            coordinate = coordinateRepository.save(coordinate);
+        }
+        pet.setName(newPet.name());
+        pet.setNickname(newPet.nickname());
+        pet.setAge(0);
+        pet.setStatus(parseStatus(newPet.status()));
+        pet.setCoordinates(coordinate);
+        pet.setAge(newPet.age());
+        pet.setVaccinated(newPet.vaccinated() != null && newPet.vaccinated());
+        pet.setVaccinationDate(newPet.vaccinationDate() != null ? newPet.vaccinationDate().atStartOfDay(ZoneId.systemDefault()).toInstant() : null);
+        Pet saved = petRepository.save(pet);
+        return PetResponseV2.from(saved);
     }
 
     /**

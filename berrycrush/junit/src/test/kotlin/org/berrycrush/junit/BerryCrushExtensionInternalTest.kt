@@ -60,7 +60,7 @@ class BerryCrushExtensionInternalTest {
             }
 
         assertTrue(error.cause is ConfigurationException)
-        assertTrue(error.cause?.message?.contains("Classpath resource not found") == true)
+        assertEquals(error.cause?.message?.contains("Classpath resource not found"), true)
     }
 
     @Test
@@ -195,16 +195,15 @@ class BerryCrushExtensionInternalTest {
         return Proxy.newProxyInstance(
             javaClass.classLoader,
             arrayOf(ExtensionContext.Store::class.java),
-            java.lang.reflect.InvocationHandler { _, method, args ->
-                when (method.name) {
-                    "get" -> handleStoreGet(storeData, args)
-                    "put" -> handleStorePut(storeData, args)
-                    "remove" -> handleStoreRemove(storeData, args)
-                    "getOrComputeIfAbsent", "computeIfAbsent" -> handleStoreCompute(storeData, args)
-                    else -> defaultValueFor(method.returnType)
-                }
-            },
-        ) as ExtensionContext.Store
+        ) { _, method, args ->
+            when (method.name) {
+                "get" -> handleStoreGet(storeData, args)
+                "put" -> handleStorePut(storeData, args)
+                "remove" -> handleStoreRemove(storeData, args)
+                "getOrComputeIfAbsent", "computeIfAbsent" -> handleStoreCompute(storeData, args)
+                else -> defaultValueFor(method.returnType)
+            }
+        } as ExtensionContext.Store
     }
 
     private fun handleStoreGet(

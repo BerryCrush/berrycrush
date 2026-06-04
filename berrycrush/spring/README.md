@@ -129,7 +129,7 @@ Missing `@SpringBootTest` with `@BerryCrushContextConfiguration` produces a clea
 
 ## Complete Example
 
-See [samples/petstore](../samples/petstore) for a complete working example with:
+See [samples/petstore](../../samples/petstore) for a complete working example with:
 - Spring Boot application with H2 database
 - Multiple scenario files
 - Spring-injected bindings with `@LocalServerPort`

@@ -90,6 +90,7 @@ class WebhookAssertions(
      * @return This instance for chaining
      * @throws AssertionError if the value doesn't match or path doesn't exist
      */
+    @Suppress("ThrowsCount")
     fun assertBodyContains(
         jsonPath: String,
         expectedValue: Any?,
@@ -108,7 +109,7 @@ class WebhookAssertions(
             try {
                 JsonPath.read<Any?>(lastCall.body, jsonPath)
             } catch (e: Exception) {
-                throw AssertionError("JSON path '$jsonPath' not found in webhook body: ${lastCall.body}")
+                throw AssertionError("JSON path '$jsonPath' not found in webhook body: ${lastCall.body}", e)
             }
 
         if (actual != expectedValue) {

@@ -3,7 +3,6 @@ package org.berrycrush.assertion
 import io.swagger.v3.oas.models.media.ObjectSchema
 import io.swagger.v3.oas.models.media.StringSchema
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
@@ -16,12 +15,13 @@ class SchemaValidator31Test {
 
     @Test
     fun `should validate nullable string using array types`() {
-        val schema = """
+        val schema =
+            """
             {
                 "type": ["string", "null"],
                 "minLength": 1
             }
-        """.trimIndent()
+            """.trimIndent()
 
         // Valid: string value
         val stringErrors = validator.validateAgainstJsonSchema(""""hello"""", schema)
@@ -38,7 +38,8 @@ class SchemaValidator31Test {
 
     @Test
     fun `should validate object with nullable field using array type`() {
-        val schema = """
+        val schema =
+            """
             {
                 "type": "object",
                 "properties": {
@@ -47,7 +48,7 @@ class SchemaValidator31Test {
                 },
                 "required": ["name"]
             }
-        """.trimIndent()
+            """.trimIndent()
 
         // Valid: nickname is null
         val withNull = """{"name": "Fluffy", "nickname": null}"""
@@ -66,12 +67,13 @@ class SchemaValidator31Test {
 
     @Test
     fun `should validate const value`() {
-        val schema = """
+        val schema =
+            """
             {
                 "type": "string",
                 "const": "v1"
             }
-        """.trimIndent()
+            """.trimIndent()
 
         // Valid: exact match
         val exactMatch = validator.validateAgainstJsonSchema(""""v1"""", schema)
@@ -84,14 +86,15 @@ class SchemaValidator31Test {
 
     @Test
     fun `should validate const in object property`() {
-        val schema = """
+        val schema =
+            """
             {
                 "type": "object",
                 "properties": {
                     "apiVersion": {"type": "string", "const": "2023-01"}
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val valid = """{"apiVersion": "2023-01"}"""
         val invalid = """{"apiVersion": "2022-01"}"""
@@ -104,7 +107,8 @@ class SchemaValidator31Test {
 
     @Test
     fun `should validate tuple with prefixItems`() {
-        val schema = """
+        val schema =
+            """
             {
                 "type": "array",
                 "prefixItems": [
@@ -113,7 +117,7 @@ class SchemaValidator31Test {
                     {"type": "boolean"}
                 ]
             }
-        """.trimIndent()
+            """.trimIndent()
 
         // Valid: correct types in order
         val valid = """["hello", 42, true]"""
@@ -132,7 +136,8 @@ class SchemaValidator31Test {
 
     @Test
     fun `should validate conditional schema with if-then-else`() {
-        val schema = """
+        val schema =
+            """
             {
                 "type": "object",
                 "properties": {
@@ -149,7 +154,7 @@ class SchemaValidator31Test {
                     "properties": {"value": {"type": "string"}}
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
 
         // Valid: type=number, value=number
         val numberType = """{"type": "number", "value": 42}"""
@@ -168,13 +173,14 @@ class SchemaValidator31Test {
 
     @Test
     fun `should validate exclusiveMinimum and exclusiveMaximum as numbers`() {
-        val schema = """
+        val schema =
+            """
             {
                 "type": "number",
                 "exclusiveMinimum": 0,
                 "exclusiveMaximum": 100
             }
-        """.trimIndent()
+            """.trimIndent()
 
         // Valid: within exclusive range
         val valid = """50"""
@@ -193,7 +199,8 @@ class SchemaValidator31Test {
 
     @Test
     fun `should validate dependentRequired`() {
-        val schema = """
+        val schema =
+            """
             {
                 "type": "object",
                 "properties": {
@@ -204,7 +211,7 @@ class SchemaValidator31Test {
                     "creditCard": ["billingAddress"]
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
 
         // Valid: no creditCard field
         val noCreditCard = """{"name": "John"}"""
@@ -223,14 +230,15 @@ class SchemaValidator31Test {
 
     @Test
     fun `should validate oneOf composition`() {
-        val schema = """
+        val schema =
+            """
             {
                 "oneOf": [
                     {"type": "string", "maxLength": 5},
                     {"type": "integer"}
                 ]
             }
-        """.trimIndent()
+            """.trimIndent()
 
         // Valid: short string
         assertTrue(validator.validateAgainstJsonSchema(""""hi"""", schema).isEmpty())
@@ -244,14 +252,15 @@ class SchemaValidator31Test {
 
     @Test
     fun `should validate anyOf composition`() {
-        val schema = """
+        val schema =
+            """
             {
                 "anyOf": [
                     {"type": "string"},
                     {"type": "number"}
                 ]
             }
-        """.trimIndent()
+            """.trimIndent()
 
         assertTrue(validator.validateAgainstJsonSchema(""""hello"""", schema).isEmpty())
         assertTrue(validator.validateAgainstJsonSchema("42", schema).isEmpty())
@@ -260,14 +269,15 @@ class SchemaValidator31Test {
 
     @Test
     fun `should validate allOf composition`() {
-        val schema = """
+        val schema =
+            """
             {
                 "allOf": [
                     {"type": "object", "required": ["name"]},
                     {"type": "object", "required": ["age"]}
                 ]
             }
-        """.trimIndent()
+            """.trimIndent()
 
         // Valid: has both name and age
         val valid = """{"name": "John", "age": 30}"""
@@ -280,11 +290,12 @@ class SchemaValidator31Test {
 
     @Test
     fun `should validate not composition`() {
-        val schema = """
+        val schema =
+            """
             {
                 "not": {"type": "string"}
             }
-        """.trimIndent()
+            """.trimIndent()
 
         // Valid: not a string
         assertTrue(validator.validateAgainstJsonSchema("42", schema).isEmpty())
@@ -298,13 +309,14 @@ class SchemaValidator31Test {
     @Test
     fun `should accept contentMediaType and contentEncoding`() {
         // Note: validation of actual content encoding may depend on library support
-        val schema = """
+        val schema =
+            """
             {
                 "type": "string",
                 "contentMediaType": "application/json",
                 "contentEncoding": "base64"
             }
-        """.trimIndent()
+            """.trimIndent()
 
         // Schema should parse without error
         val result = validator.validateAgainstJsonSchema(""""eyJoZWxsbyI6IndvcmxkIn0="""", schema)
@@ -319,14 +331,15 @@ class SchemaValidator31Test {
     fun `should handle ref in schema without throwing`() {
         // In 3.1, $ref can coexist with other keywords
         // This test verifies we don't throw when $ref is present
-        val schema = """
+        val schema =
+            """
             {
                 "type": "object",
                 "properties": {
                     "name": {"type": "string"}
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
 
         // Basic validation still works
         val valid = """{"name": "test"}"""
@@ -338,10 +351,11 @@ class SchemaValidator31Test {
     @Test
     fun `should handle OpenAPI 3_0 nullable true via OpenApiSchema object`() {
         // OpenAPI 3.0 uses nullable: true instead of type array
-        val schema = StringSchema().apply {
-            nullable = true
-            minLength = 1
-        }
+        val schema =
+            StringSchema().apply {
+                nullable = true
+                minLength = 1
+            }
 
         // Valid: string value
         val stringErrors = validator.validate(""""hello"""", schema)
@@ -354,15 +368,17 @@ class SchemaValidator31Test {
 
     @Test
     fun `should handle OpenAPI 3_0 object with nullable property`() {
-        val nicknameSchema = StringSchema().apply {
-            nullable = true
-        }
+        val nicknameSchema =
+            StringSchema().apply {
+                nullable = true
+            }
 
-        val schema = ObjectSchema().apply {
-            addProperty("name", StringSchema())
-            addProperty("nickname", nicknameSchema)
-            required = listOf("name")
-        }
+        val schema =
+            ObjectSchema().apply {
+                addProperty("name", StringSchema())
+                addProperty("nickname", nicknameSchema)
+                required = listOf("name")
+            }
 
         // Valid: nickname is null
         val withNull = """{"name": "Fluffy", "nickname": null}"""
@@ -380,10 +396,11 @@ class SchemaValidator31Test {
         // Verify that the internal conversion from nullable: true to type array works
         // by testing that null passes but the type constraint still applies
 
-        val schema = StringSchema().apply {
-            nullable = true
-            pattern = "^[a-z]+$"  // only lowercase letters
-        }
+        val schema =
+            StringSchema().apply {
+                nullable = true
+                pattern = "^[a-z]+$" // only lowercase letters
+            }
 
         // Valid: lowercase string
         val lowercaseErrors = validator.validate(""""hello"""", schema)

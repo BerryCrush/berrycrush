@@ -115,7 +115,8 @@ class WebhookTest {
 
         // Send webhook with custom header
         val request =
-            HttpRequest.newBuilder()
+            HttpRequest
+                .newBuilder()
                 .uri(URI.create(webhookServer.getWebhookUrl("onPetAdopted")))
                 .header("Content-Type", "application/json")
                 .header("X-Webhook-Signature", "sha256=abc123def456")
@@ -148,11 +149,11 @@ class WebhookTest {
         WebhookAssertions(webhookServer)
             .assertReceived("onPetCreated")
             .assertBodyContains("$.name", "Fluffy")
-        
+
         WebhookAssertions(webhookServer)
             .assertReceived("onPetAdopted")
             .assertBodyContains("$.adopterId", 100)
-        
+
         WebhookAssertions(webhookServer)
             .assertNotReceived("onPetReturned")
     }
@@ -209,7 +210,8 @@ class WebhookTest {
         body: String,
     ) {
         val request =
-            HttpRequest.newBuilder()
+            HttpRequest
+                .newBuilder()
                 .uri(URI.create(webhookServer.getWebhookUrl(operationId)))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body))

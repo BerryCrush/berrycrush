@@ -4,11 +4,14 @@ import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpHandler
 import com.sun.net.httpserver.HttpServer
 import org.berrycrush.openapi.OpenApiSpec
-import org.berrycrush.openapi.PathSpec
 import java.net.InetSocketAddress
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
+
+private const val HTTP_STATUS_OK = 200
+private const val HTTP_STATUS_NOT_FOUND = 404
+private const val HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
 
 /**
  * Mock server for testing webhook deliveries.
@@ -57,7 +60,7 @@ class MockWebhookServer(
      * @param spec The OpenAPI specification containing webhook definitions
      */
     fun registerFromSpec(spec: OpenApiSpec) {
-        spec.webhooks.forEach { (name, pathSpec) ->
+        spec.webhooks.forEach { (_, pathSpec) ->
             pathSpec.operations.values.forEach { operation ->
                 operation.operationId?.let { operationId ->
                     expect(operationId)
@@ -72,13 +75,10 @@ class MockWebhookServer(
      * @return The actual port the server is listening on
      */
     fun start(): Int {
-        if (server != null) {
-            throw IllegalStateException("Server already started")
-        }
-
+        check(server == null) { "Server already started" }
         server =
             HttpServer.create(InetSocketAddress(port), 0).apply {
-                executor = Executors.newFixedThreadPool(4)
+                executor = Executors.newVirtualThreadPerTaskExecutor()
 
                 // Create a context for each expected webhook
                 expectations.keys.forEach { operationId ->
@@ -92,7 +92,7 @@ class MockWebhookServer(
                     if (operationId.isNotEmpty() && expectations.containsKey(operationId)) {
                         WebhookHandler(operationId).handle(exchange)
                     } else {
-                        exchange.sendResponseHeaders(404, -1)
+                        exchange.sendResponseHeaders(HTTP_STATUS_NOT_FOUND, -1)
                         exchange.close()
                     }
                 }
@@ -176,16 +176,13 @@ class MockWebhookServer(
     fun verify(operationId: String): Boolean {
         val expectation = expectations[operationId] ?: return false
         val calls = receivedCalls[operationId] ?: return false
-
-        if (expectation.expectedCount >= 0 && calls.size != expectation.expectedCount) {
-            return false
+        return if (expectation.expectedCount >= 0 && calls.size != expectation.expectedCount) {
+            false
+        } else if (calls.isEmpty() && expectation.expectedCount != 0) {
+            false
+        } else {
+            true
         }
-
-        if (calls.isEmpty() && expectation.expectedCount != 0) {
-            return false
-        }
-
-        return true
     }
 
     /**
@@ -195,32 +192,32 @@ class MockWebhookServer(
         private val operationId: String,
     ) : HttpHandler {
         override fun handle(exchange: HttpExchange) {
-            try {
-                val body = exchange.requestBody.bufferedReader().use { it.readText() }
-                val headers =
-                    exchange.requestHeaders.mapValues { (_, values) ->
-                        values.toList()
-                    }
-                val contentType = exchange.requestHeaders.getFirst("Content-Type")
+            exchange.use {
+                runCatching {
+                    val body = exchange.requestBody.bufferedReader().use { it.readText() }
+                    val headers =
+                        exchange.requestHeaders.mapValues { (_, values) ->
+                            values.toList()
+                        }
+                    val contentType = exchange.requestHeaders.getFirst("Content-Type")
 
-                val call =
-                    WebhookCall(
-                        operationId = operationId,
-                        body = body,
-                        headers = headers,
-                        contentType = contentType,
-                    )
+                    val call =
+                        WebhookCall(
+                            operationId = operationId,
+                            body = body,
+                            headers = headers,
+                            contentType = contentType,
+                        )
 
-                receivedCalls.getOrPut(operationId) { CopyOnWriteArrayList() }.add(call)
+                    receivedCalls.getOrPut(operationId) { CopyOnWriteArrayList() }.add(call)
 
-                // Send success response
-                exchange.sendResponseHeaders(200, 0)
-                exchange.responseBody.use { it.write("OK".toByteArray()) }
-            } catch (e: Exception) {
-                exchange.sendResponseHeaders(500, 0)
-                exchange.responseBody.use { it.write("Error: ${e.message}".toByteArray()) }
-            } finally {
-                exchange.close()
+                    // Send success response
+                    exchange.sendResponseHeaders(HTTP_STATUS_OK, 0)
+                    exchange.responseBody.use { it.write("OK".toByteArray()) }
+                }.onFailure { e ->
+                    exchange.sendResponseHeaders(HTTP_STATUS_INTERNAL_SERVER_ERROR, 0)
+                    exchange.responseBody.use { it.write("Error: ${e.message}".toByteArray()) }
+                }
             }
         }
     }

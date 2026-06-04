@@ -97,7 +97,7 @@ class CommandInjectionProvider : SecurityTestProvider {
             SecurityPayload("Unix semicolon", "; ls -la"),
             SecurityPayload("Unix pipe", "| cat /etc/passwd"),
             SecurityPayload("Unix backtick", "`id`"),
-            SecurityPayload("Unix subshell", $$"$(whoami)"),
+            SecurityPayload("Unix subshell", "$(whoami)"),
             SecurityPayload("Windows ampersand", "& dir"),
         )
 }
@@ -164,11 +164,11 @@ class NoSqlInjectionProvider : SecurityTestProvider {
 
     override fun generatePayloads(): List<SecurityPayload> =
         listOf(
-            SecurityPayload("MongoDB \$ne", "{\"\$ne\": null}"),
-            SecurityPayload("MongoDB \$where", "{\"\$where\": \"1==1\"}"),
-            SecurityPayload("MongoDB \$regex", "{\"\$regex\": \".*\"}"),
-            SecurityPayload("MongoDB \$gt", "{\"\$gt\": \"\"}"),
-            SecurityPayload("MongoDB JS injection", "{\"\$where\": \"function(){return true}\"}"),
+            SecurityPayload($$"MongoDB $ne", $$"{\"$ne\": null}"),
+            SecurityPayload($$"MongoDB $where", $$"{\"$where\": \"1==1\"}"),
+            SecurityPayload($$"MongoDB $regex", $$"{\"$regex\": \".*\"}"),
+            SecurityPayload($$"MongoDB $gt", $$"{\"$gt\": \"\"}"),
+            SecurityPayload("MongoDB JS injection", $$"{\"$where\": \"function(){return true}\"}"),
         )
 }
 
@@ -184,8 +184,8 @@ class SstiProvider : SecurityTestProvider {
     override fun generatePayloads(): List<SecurityPayload> =
         listOf(
             SecurityPayload("Jinja2/Twig", "{{7*7}}"),
-            SecurityPayload("Freemarker", "\${7*7}"),
-            SecurityPayload("Velocity", "#set(\$x=7*7)\$x"),
+            SecurityPayload("Freemarker", $$"${7*7}"),
+            SecurityPayload("Velocity", $$"#set($x=7*7)$x"),
             SecurityPayload("Smarty", "{php}echo 'test';{/php}"),
             SecurityPayload("ERB", "<%= 7*7 %>"),
         )

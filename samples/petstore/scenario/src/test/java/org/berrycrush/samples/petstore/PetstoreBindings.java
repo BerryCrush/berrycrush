@@ -49,7 +49,8 @@ public class PetstoreBindings implements BerryCrushBindings {
         String host = "http://localhost:" + port;
         return Map.of(
             "default", new OpenApiSpecValue("petstore.yaml", host + "/api/v1"),
-            "auth", new OpenApiSpecValue("auth.yaml", host + "/auth/api/v1")
+            "auth", new OpenApiSpecValue("auth.yaml", host + "/auth/api/v1"),
+                "openApi31", new OpenApiSpecValue("petstore-31.yaml", host + "/api/v2")
         );
     }
 

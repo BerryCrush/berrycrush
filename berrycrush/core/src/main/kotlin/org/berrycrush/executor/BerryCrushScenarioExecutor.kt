@@ -218,7 +218,6 @@ class BerryCrushScenarioExecutor(
                 scenarioContext,
                 stepResults,
                 stepIndex,
-                true,
                 listener,
             ) { stepIndex++ }
 
@@ -261,11 +260,10 @@ class BerryCrushScenarioExecutor(
         scenarioContext: ScenarioContextAdapter,
         results: MutableList<StepResult>,
         startIndex: Int,
-        initialContinue: Boolean,
         listener: BerryCrushExecutionListener,
         onStepExecuted: () -> Unit,
     ): Boolean {
-        var continueExecution = initialContinue
+        var continueExecution = true
 
         for (step in steps) {
             if (!continueExecution) break
@@ -354,7 +352,7 @@ class BerryCrushScenarioExecutor(
      * 3. Assertions/extractions against last response
      * 4. No-op (just pass)
      */
-    private fun executeNonOperationStep(
+    internal fun executeNonOperationStep(
         step: Step,
         context: ExecutionContext,
         stepStartTime: Instant,

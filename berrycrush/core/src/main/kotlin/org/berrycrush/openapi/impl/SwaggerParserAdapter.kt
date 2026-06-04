@@ -16,8 +16,6 @@ import io.swagger.v3.oas.models.responses.ApiResponse
 import io.swagger.v3.oas.models.security.OAuthFlow
 import io.swagger.v3.oas.models.security.OAuthFlows
 import io.swagger.v3.oas.models.security.SecurityScheme
-import io.swagger.v3.parser.OpenAPIV3Parser
-import io.swagger.v3.parser.core.models.ParseOptions
 import org.berrycrush.openapi.ApiKeyLocation
 import org.berrycrush.openapi.ComponentsSpec
 import org.berrycrush.openapi.ContactInfo
@@ -31,7 +29,7 @@ import org.berrycrush.openapi.LinkSpec
 import org.berrycrush.openapi.MediaTypeSpec
 import org.berrycrush.openapi.OAuthFlowSpec
 import org.berrycrush.openapi.OAuthFlowsSpec
-import org.berrycrush.openapi.OpenApiParseException
+import org.berrycrush.openapi.OpenApiLoader
 import org.berrycrush.openapi.OpenApiParser
 import org.berrycrush.openapi.OpenApiSpec
 import org.berrycrush.openapi.OpenApiVersion
@@ -57,43 +55,13 @@ import io.swagger.v3.oas.models.Components as SwaggerComponents
  * Supports OpenAPI 2.0 (Swagger), 3.0.x, and 3.1.x specifications.
  */
 class SwaggerParserAdapter : OpenApiParser {
-    private val parser = OpenAPIV3Parser()
+    private val loader = OpenApiLoader()
 
     override fun parse(path: Path): OpenApiSpec = parse(path.toString())
 
-    override fun parse(path: String): OpenApiSpec {
-        val parseOptions =
-            ParseOptions().apply {
-                isResolve = true
-                isResolveFully = true
-            }
+    override fun parse(path: String): OpenApiSpec = SwaggerOpenApiSpec(loader.load(path))
 
-        val result = parser.readLocation(path, null, parseOptions)
-
-        if (result.openAPI == null) {
-            val errors = result.messages?.joinToString("\n") ?: "Unknown error"
-            throw OpenApiParseException("Failed to parse OpenAPI spec at $path: $errors")
-        }
-
-        return SwaggerOpenApiSpec(result.openAPI)
-    }
-
-    override fun parseContent(content: String): OpenApiSpec {
-        val parseOptions =
-            ParseOptions().apply {
-                isResolve = true
-                isResolveFully = true
-            }
-
-        val result = parser.readContents(content, null, parseOptions)
-
-        if (result.openAPI == null) {
-            val errors = result.messages?.joinToString("\n") ?: "Unknown error"
-            throw OpenApiParseException("Failed to parse OpenAPI spec: $errors")
-        }
-
-        return SwaggerOpenApiSpec(result.openAPI)
-    }
+    override fun parseContent(content: String): OpenApiSpec = SwaggerOpenApiSpec(loader.loadFromString(content))
 
     override fun supportedVersions(): Set<OpenApiVersion> =
         setOf(

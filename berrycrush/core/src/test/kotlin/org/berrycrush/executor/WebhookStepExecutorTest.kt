@@ -4,6 +4,7 @@ import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Step
+import org.berrycrush.model.StepResult
 import org.berrycrush.model.StepType
 import org.berrycrush.model.WebhookConfig
 import org.berrycrush.openapi.SpecRegistry
@@ -12,6 +13,7 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.time.Instant
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -35,11 +37,12 @@ class WebhookStepExecutorTest {
 
     @Test
     fun `should start webhook server on dynamic port`() {
-        val step = createWebhookStep(
-            name = "testServer",
-            port = 0,
-            hooks = listOf("onEvent"),
-        )
+        val step =
+            createWebhookStep(
+                name = "testServer",
+                port = 0,
+                hooks = listOf("onEvent"),
+            )
 
         val result = executeWebhookStep(step)
 
@@ -50,11 +53,12 @@ class WebhookStepExecutorTest {
 
     @Test
     fun `should register multiple hooks`() {
-        val step = createWebhookStep(
-            name = "multiHook",
-            port = 0,
-            hooks = listOf("hook1", "hook2", "hook3"),
-        )
+        val step =
+            createWebhookStep(
+                name = "multiHook",
+                port = 0,
+                hooks = listOf("hook1", "hook2", "hook3"),
+            )
 
         val result = executeWebhookStep(step)
 
@@ -71,21 +75,24 @@ class WebhookStepExecutorTest {
 
     @Test
     fun `should receive webhook calls`() {
-        val step = createWebhookStep(
-            name = "receiver",
-            port = 0,
-            hooks = listOf("onPayment"),
-        )
+        val step =
+            createWebhookStep(
+                name = "receiver",
+                port = 0,
+                hooks = listOf("onPayment"),
+            )
 
         executeWebhookStep(step)
         val server = context.getWebhookServer("receiver")!!
 
         // Send a webhook call
-        val request = HttpRequest.newBuilder()
-            .uri(URI.create(server.getWebhookUrl("onPayment")))
-            .header("Content-Type", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString("""{"amount": 100}"""))
-            .build()
+        val request =
+            HttpRequest
+                .newBuilder()
+                .uri(URI.create(server.getWebhookUrl("onPayment")))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString("""{"amount": 100}"""))
+                .build()
 
         httpClient.send(request, HttpResponse.BodyHandlers.ofString())
 
@@ -136,26 +143,18 @@ class WebhookStepExecutorTest {
         port: Int,
         hooks: List<String>,
         scope: WebhookScope = WebhookScope.SCENARIO,
-    ): Step = Step(
-        type = StepType.GIVEN,
-        description = "webhook server is running",
-        webhookConfig = WebhookConfig(
-            name = name,
-            port = port,
-            hooks = hooks,
-            scope = scope,
-        ),
-    )
-
-    private fun executeWebhookStep(step: Step): org.berrycrush.model.StepResult {
-        // Use reflection to access the private executeNonOperationStep method
-        val method = BerryCrushScenarioExecutor::class.java.getDeclaredMethod(
-            "executeNonOperationStep",
-            Step::class.java,
-            ExecutionContext::class.java,
-            java.time.Instant::class.java,
+    ): Step =
+        Step(
+            type = StepType.GIVEN,
+            description = "webhook server is running",
+            webhookConfig =
+                WebhookConfig(
+                    name = name,
+                    port = port,
+                    hooks = hooks,
+                    scope = scope,
+                ),
         )
-        method.isAccessible = true
-        return method.invoke(executor, step, context, java.time.Instant.now()) as org.berrycrush.model.StepResult
-    }
+
+    private fun executeWebhookStep(step: Step): StepResult = executor.executeNonOperationStep(step, context, Instant.now())
 }

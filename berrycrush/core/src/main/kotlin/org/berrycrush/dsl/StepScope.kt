@@ -390,6 +390,6 @@ class StepScope internal constructor(
         type: StepType,
         description: String,
         suite: BerryCrushSuite,
-        @Suppress("UNUSED_PARAMETER") internal: Boolean,
+        internal: Boolean,
     ) : this(type, description, suite)
 }
