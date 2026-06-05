@@ -217,12 +217,18 @@ class DefaultHttpExecutor(
     /**
      * Convert BodyProperty map to JSON string.
      */
-    private fun bodyPropertyToJson(props: Map<String, BodyProperty>, context: ExecutionContext): String {
+    private fun bodyPropertyToJson(
+        props: Map<String, BodyProperty>,
+        context: ExecutionContext,
+    ): String {
         val jsonMap = props.mapValues { (_, prop) -> bodyPropertyToJsonValue(prop, context) }
         return objectMapper.writeValueAsString(jsonMap)
     }
 
-    private fun bodyPropertyToJsonValue(prop: BodyProperty, context: ExecutionContext): Any =
+    private fun bodyPropertyToJsonValue(
+        prop: BodyProperty,
+        context: ExecutionContext,
+    ): Any =
         when (prop) {
             is BodyProperty.Simple -> prop.value
             is BodyProperty.Container -> objectMapper.readTree(context.interpolate(prop.value))

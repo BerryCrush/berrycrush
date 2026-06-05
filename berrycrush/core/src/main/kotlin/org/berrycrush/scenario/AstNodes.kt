@@ -526,10 +526,18 @@ data class VariableValueNode(
 /**
  * JSON object/array value.
  */
-sealed interface JsonValueNode: ValueNode {
+sealed interface JsonValueNode : ValueNode {
     val json: String
-    data class ObjectValueNode(override val json: String, override val location: SourceLocation) : JsonValueNode
-    data class ArrayValueNode(override val json: String, override val location: SourceLocation) : JsonValueNode
+
+    data class ObjectValueNode(
+        override val json: String,
+        override val location: SourceLocation,
+    ) : JsonValueNode
+
+    data class ArrayValueNode(
+        override val json: String,
+        override val location: SourceLocation,
+    ) : JsonValueNode
 }
 
 /**
