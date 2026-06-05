@@ -37,6 +37,7 @@ interface HttpExecutor {
      * @param context The execution context with variables
      * @return The resolved body string, or null if no body is required
      */
+    @Deprecated(level = DeprecationLevel.ERROR, message = "Will be removed in 2.0.0")
     fun resolveBody(
         step: Step,
         operation: ResolvedOperation?,

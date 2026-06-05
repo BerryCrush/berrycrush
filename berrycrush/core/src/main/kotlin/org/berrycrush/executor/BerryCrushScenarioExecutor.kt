@@ -99,7 +99,6 @@ class BerryCrushScenarioExecutor(
             configuration = configuration,
             httpBuilder = httpBuilder,
             assertionRunner = ::runAssertions,
-            paramResolver = ::resolveParams,
             requestLogger = { method, url, headers, body ->
                 logRequest(HttpMethod.valueOf(method), url, headers, body)
             },
@@ -863,17 +862,6 @@ class BerryCrushScenarioExecutor(
             configuration.getEffectiveHttpLogger().logResponse(method, url, response, durationMs)
         }
     }
-
-    private fun resolveParams(
-        params: Map<String, Any>,
-        context: ExecutionContext,
-    ): Map<String, Any> =
-        params.mapValues { (_, value) ->
-            when (value) {
-                is String -> context.interpolate(value)
-                else -> value
-            }
-        }
 
     private fun extractValues(
         response: HttpResponse<String>,

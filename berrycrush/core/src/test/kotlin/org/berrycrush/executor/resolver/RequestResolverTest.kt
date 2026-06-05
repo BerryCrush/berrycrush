@@ -1,7 +1,9 @@
-package org.berrycrush.executor.http
+package org.berrycrush.executor.resolver
 
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
+import org.berrycrush.executor.HttpRequestBuilder
+import org.berrycrush.executor.resolvers.RequestResolver
 import org.berrycrush.model.BodyProperty
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepType
@@ -10,9 +12,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
-class DefaultHttpExecutorTest {
+class RequestResolverTest {
     private val configuration = BerryCrushConfiguration()
-    private val executor = DefaultHttpExecutor(configuration)
+    private val httpBuilder = HttpRequestBuilder()
+    private val resolver = RequestResolver(configuration, httpBuilder)
 
     // --- resolveBody Tests ---
 
@@ -25,7 +28,7 @@ class DefaultHttpExecutorTest {
             )
         val context = ExecutionContext()
 
-        val body = executor.resolveBody(step, null, context)
+        val body = resolver.resolveBody(step, null, context)
 
         assertEquals("""{"name": "Fluffy"}""", body)
     }
@@ -40,7 +43,7 @@ class DefaultHttpExecutorTest {
         val context = ExecutionContext()
         context["petName"] = "Max"
 
-        val body = executor.resolveBody(step, null, context)
+        val body = resolver.resolveBody(step, null, context)
 
         assertEquals("""{"name": "Max"}""", body)
     }
@@ -50,7 +53,7 @@ class DefaultHttpExecutorTest {
         val step = createStep(operationId = "getPets")
         val context = ExecutionContext()
 
-        val body = executor.resolveBody(step, null, context)
+        val body = resolver.resolveBody(step, null, context)
 
         assertNull(body)
     }
@@ -68,7 +71,7 @@ class DefaultHttpExecutorTest {
             )
         val context = ExecutionContext()
 
-        val body = executor.resolveBody(step, null, context)
+        val body = resolver.resolveBody(step, null, context)
 
         assertNotNull(body)
         // Body should contain both properties as JSON
@@ -96,7 +99,7 @@ class DefaultHttpExecutorTest {
             )
         val context = ExecutionContext()
 
-        val body = executor.resolveBody(step, null, context)
+        val body = resolver.resolveBody(step, null, context)
 
         assertNotNull(body)
         assert(body.contains("\"pet\""))
@@ -117,7 +120,7 @@ class DefaultHttpExecutorTest {
         val context = ExecutionContext()
         context["petName"] = "Max"
 
-        val body = executor.resolveBody(step, null, context)
+        val body = resolver.resolveBody(step, null, context)
 
         assertNotNull(body)
         assert(body.contains("Max"))
@@ -135,7 +138,7 @@ class DefaultHttpExecutorTest {
             )
         val context = ExecutionContext()
 
-        val body = executor.resolveBody(step, null, context)
+        val body = resolver.resolveBody(step, null, context)
 
         assertNotNull(body)
         assert(body.contains("true"))
@@ -153,7 +156,7 @@ class DefaultHttpExecutorTest {
             )
         val context = ExecutionContext()
 
-        val body = executor.resolveBody(step, null, context)
+        val body = resolver.resolveBody(step, null, context)
 
         assertNotNull(body)
         assert(body.contains("\"tags\""))

@@ -8,6 +8,7 @@ import org.berrycrush.model.Step
 import org.berrycrush.openapi.LoadedSpec
 import org.berrycrush.openapi.ResolvedOperation
 import java.net.http.HttpResponse
+import java.time.Duration
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -30,7 +31,7 @@ class RetryingHttpExecutor(
     private val delegate: HttpExecutor,
     private val config: RetryConfig,
     private val httpLogger: HttpLogger? = null,
-) : HttpExecutor {
+) : HttpExecutor by delegate {
     private val logger = Logger.getLogger(RetryingHttpExecutor::class.java.name)
 
     override fun execute(
@@ -89,12 +90,6 @@ class RetryingHttpExecutor(
         )
     }
 
-    override fun resolveBody(
-        step: Step,
-        operation: ResolvedOperation?,
-        context: ExecutionContext,
-    ): String? = delegate.resolveBody(step, operation, context)
-
     private fun logRetryAttempt(
         operation: ResolvedOperation,
         attempt: Int,
@@ -131,7 +126,7 @@ class RetryingHttpExecutor(
         )
     }
 
-    private fun sleep(duration: java.time.Duration) {
+    private fun sleep(duration: Duration) {
         try {
             Thread.sleep(duration.toMillis())
         } catch (_: InterruptedException) {

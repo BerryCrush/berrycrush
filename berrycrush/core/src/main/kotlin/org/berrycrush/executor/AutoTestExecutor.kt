@@ -9,10 +9,11 @@ import org.berrycrush.autotest.RequestResult
 import org.berrycrush.autotest.provider.AutoTestProviderRegistry
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
+import org.berrycrush.executor.resolvers.RequestResolver
+import org.berrycrush.executor.resolvers.ResolvedRequest
 import org.berrycrush.model.Assertion
 import org.berrycrush.model.AssertionResult
 import org.berrycrush.model.AutoTestResult
-import org.berrycrush.model.BodyProperty
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepResult
@@ -50,11 +51,11 @@ class AutoTestExecutor(
     private val configuration: BerryCrushConfiguration,
     private val httpBuilder: HttpRequestBuilder,
     private val assertionRunner: (HttpResponse<String>, List<Assertion>, ExecutionContext) -> List<AssertionResult>,
-    private val paramResolver: (Map<String, Any>, ExecutionContext) -> Map<String, Any>,
     private val requestLogger: (String, String, Map<String, String>, String?) -> Unit,
     private val responseLogger: (String, String, HttpResponse<String>, Long) -> Unit,
+    private val objectMapper: ObjectMapper = ObjectMapper(),
 ) {
-    private val objectMapper = ObjectMapper()
+    private val requestResolver = RequestResolver(configuration, httpBuilder, objectMapper)
 
     /**
      * Execute auto-generated tests for a step with autoTestConfig.
@@ -78,13 +79,13 @@ class AutoTestExecutor(
         val operationId = step.operationId!!
 
         // Resolve the operation to get the OpenAPI spec
-        val (spec, _) = specRegistry.resolve(operationId, step.specName)
+        val (spec, operation) = specRegistry.resolve(operationId, step.specName)
 
         // Create the auto-test generator
         val generator = AutoTestGenerator.fromSpec(spec)
 
         // Extract base body from step if present
-        val baseBody = extractBaseBody(step, context)
+        val baseBody = extractBaseBody(step, operation, context)
 
         // Extract base path params from step
         val basePathParams =
@@ -161,57 +162,12 @@ class AutoTestExecutor(
     @Suppress("UNCHECKED_CAST")
     private fun extractBaseBody(
         step: Step,
+        operation: ResolvedOperation?,
         context: ExecutionContext,
-    ): Map<String, Any>? {
-        // From inline body JSON
-        step.body?.let { bodyStr ->
-            val interpolated = context.interpolate(bodyStr)
-            return runCatching {
-                @Suppress("UNCHECKED_CAST")
-                objectMapper.readValue(interpolated, Map::class.java) as Map<String, Any>
-            }.getOrNull()
+    ): Map<String, Any>? =
+        requestResolver.resolveBody(step, operation, context)?.let { body ->
+            objectMapper.readValue(body, Map::class.java) as Map<String, Any>
         }
-
-        // From structured body properties
-        step.bodyProperties?.let { props ->
-            return flattenBodyProperties(props, context)
-        }
-
-        return null
-    }
-
-    /**
-     * Flatten body properties to a simple map for auto-test base body.
-     *
-     * @param props The body properties to flatten
-     * @param context Execution context for variable interpolation
-     * @return Flattened map representation
-     */
-    private fun flattenBodyProperties(
-        props: Map<String, BodyProperty>,
-        context: ExecutionContext,
-    ): Map<String, Any> {
-        val result = mutableMapOf<String, Any>()
-        for ((key, value) in props) {
-            when (value) {
-                is BodyProperty.Simple -> {
-                    val resolved =
-                        when (val v = value.value) {
-                            is String -> context.interpolate(v)
-                            else -> v
-                        }
-                    result[key] = resolved
-                }
-                // the value is JSON string, so
-                is BodyProperty.Container ->
-                    result[key] = objectMapper.readTree(context.interpolate(value.value))
-                is BodyProperty.Nested -> {
-                    result[key] = flattenBodyProperties(value.properties, context)
-                }
-            }
-        }
-        return result
-    }
 
     /**
      * Parameters prepared for a test case execution.
@@ -238,9 +194,11 @@ class AutoTestExecutor(
         testCase.pathParams.forEach { (k, v) -> testPathParams[k] = v ?: "" }
 
         val testHeaders =
-            step.headers.toMutableMap().apply {
-                putAll(testCase.headers)
-            }
+            step.headers
+                .toMutableMap()
+                .apply {
+                    putAll(testCase.headers)
+                }.toMap()
 
         return TestCaseParams(testBody, testPathParams, testHeaders)
     }
@@ -306,18 +264,18 @@ class AutoTestExecutor(
         context: ExecutionContext,
         testStartTime: Instant,
     ): AutoTestResult {
-        val (url, headers, resolvedOp) = extractUrlHeaderOp(step, context)
-        requestLogger(resolvedOp.method.name, url, headers, params.body)
+        val request = extractUrlHeaderOp(step, context)
+        requestLogger(request.method.name, request.url, request.headers, params.body)
 
         val requestStartTime = System.currentTimeMillis()
         val response =
             httpBuilder.execute(
-                method = resolvedOp.method,
-                url = url,
-                headers = headers,
+                method = request.method,
+                url = request.url,
+                headers = request.headers,
                 body = params.body,
             )
-        responseLogger(resolvedOp.method.name, url, response, requestStartTime)
+        responseLogger(request.method.name, request.url, response, requestStartTime)
 
         context.updateLastResponse(response)
         val assertionResults = assertionRunner(response, step.assertions, context)
@@ -335,22 +293,9 @@ class AutoTestExecutor(
     private fun extractUrlHeaderOp(
         step: Step,
         context: ExecutionContext,
-    ): Triple<String, Map<String, String>, ResolvedOperation> {
+    ): ResolvedRequest {
         val (spec, resolvedOp) = specRegistry.resolve(step.operationId!!, step.specName)
-
-        // Build URL
-        val baseUrl = configuration.baseUrl ?: spec.baseUrl
-        val url =
-            httpBuilder.buildUrl(
-                baseUrl = baseUrl,
-                path = resolvedOp.path,
-                pathParams = paramResolver(step.pathParams, context),
-                queryParams = paramResolver(step.queryParams, context),
-            )
-
-        // Merge headers
-        val headers = configuration.defaultHeaders + spec.defaultHeaders + step.headers
-        return Triple(url, headers, resolvedOp)
+        return requestResolver.resolve(step, spec, resolvedOp, context)
     }
 
     /**
@@ -592,26 +537,21 @@ class AutoTestExecutor(
         val requestStartTime = System.currentTimeMillis()
 
         return runCatching {
-            val (url, headers, resolvedOp) = extractUrlHeaderOp(step, context)
-            // Resolve body
-            val body =
-                step.body?.let { context.interpolate(it) }
-                    ?: step.bodyProperties?.let { buildBodyFromProperties(it, context) }
-
+            val request = extractUrlHeaderOp(step, context)
             // Log request if enabled
-            requestLogger(resolvedOp.method.name, url, headers, body)
+            requestLogger(request.method.name, request.url, request.headers, request.body)
 
             // Execute the request
             val response =
                 httpBuilder.execute(
-                    method = resolvedOp.method,
-                    url = url,
-                    headers = headers,
-                    body = body,
+                    method = request.method,
+                    url = request.url,
+                    headers = request.headers,
+                    body = request.body,
                 )
 
             // Log response if enabled
-            responseLogger(resolvedOp.method.name, url, response, requestStartTime)
+            responseLogger(request.method.name, request.url, response, requestStartTime)
 
             // Update context with response for subsequent assertions
             context.updateLastResponse(response)
@@ -635,17 +575,6 @@ class AutoTestExecutor(
                 durationMs = durationMs,
             )
         }
-    }
-
-    /**
-     * Build JSON body from structured body properties.
-     */
-    private fun buildBodyFromProperties(
-        props: Map<String, BodyProperty>,
-        context: ExecutionContext,
-    ): String {
-        val map = flattenBodyProperties(props, context)
-        return objectMapper.writeValueAsString(map)
     }
 
     /**

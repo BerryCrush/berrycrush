@@ -186,24 +186,6 @@ class RetryingHttpExecutorTest {
         assertEquals(1, delegate.callCount)
     }
 
-    @Test
-    fun `resolveBody delegates to underlying executor`() {
-        val delegate =
-            object : TestHttpExecutor() {
-                override fun resolveBody(
-                    step: Step,
-                    operation: ResolvedOperation?,
-                    context: ExecutionContext,
-                ): String = """{"test": true}"""
-            }
-        val config = RetryConfig.DEFAULT
-        val executor = RetryingHttpExecutor(delegate, config)
-
-        val result = executor.resolveBody(step, delegate.mockOperation, context)
-
-        assertEquals("""{"test": true}""", result)
-    }
-
     // --- Test Helpers ---
 
     /**
