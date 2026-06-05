@@ -84,7 +84,6 @@ class BerryCrushScenarioExecutor(
                 RetryingHttpExecutor(
                     delegate = baseExecutor,
                     config = configuration.retryConfig,
-                    httpLogger = configuration.getEffectiveHttpLogger(),
                 )
             } else {
                 baseExecutor

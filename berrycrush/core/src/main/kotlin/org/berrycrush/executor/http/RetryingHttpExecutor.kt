@@ -3,7 +3,6 @@ package org.berrycrush.executor.http
 import org.berrycrush.config.RetryConfig
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.exception.RetryExhaustedException
-import org.berrycrush.logging.HttpLogger
 import org.berrycrush.model.Step
 import org.berrycrush.openapi.LoadedSpec
 import org.berrycrush.openapi.ResolvedOperation
@@ -25,12 +24,10 @@ import java.util.logging.Logger
  *
  * @property delegate The underlying HTTP executor to use for actual requests
  * @property config The retry configuration
- * @property httpLogger Optional HTTP logger for logging retry attempts
  */
 class RetryingHttpExecutor(
     private val delegate: HttpExecutor,
     private val config: RetryConfig,
-    private val httpLogger: HttpLogger? = null,
 ) : HttpExecutor by delegate {
     private val logger = Logger.getLogger(RetryingHttpExecutor::class.java.name)
 
@@ -53,28 +50,15 @@ class RetryingHttpExecutor(
 
         for (attempt in 0 until totalAttempts) {
             try {
-                val response = delegate.execute(step, spec, operation, context)
-
-                if (config.shouldRetryStatus(response.statusCode())) {
-                    lastResponse = response
-                    if (attempt < config.maxAttempts) {
-                        logRetryAttempt(operation, attempt + 1, config.maxAttempts, response.statusCode())
-                        sleep(config.calculateDelay(attempt))
-                    }
-                } else {
-                    // Success or non-retryable status
-                    if (attempt > 0) {
-                        logRetrySuccess(operation, attempt + 1)
-                    }
+                val (success, response) = execute(step, spec, operation, context, attempt)
+                if (success) {
                     return response
+                } else {
+                    lastResponse = response
                 }
             } catch (e: Exception) {
-                if (config.shouldRetryException(e)) {
+                if (RetryCheck.of(e).checkSleep(attempt, operation)) {
                     lastException = e
-                    if (attempt < config.maxAttempts) {
-                        logRetryAttempt(operation, attempt + 1, config.maxAttempts, e)
-                        sleep(config.calculateDelay(attempt))
-                    }
                 } else {
                     // Non-retryable exception
                     throw e
@@ -88,6 +72,71 @@ class RetryingHttpExecutor(
             lastResponse = lastResponse,
             lastException = lastException,
         )
+    }
+
+    private fun execute(
+        step: Step,
+        spec: LoadedSpec,
+        operation: ResolvedOperation,
+        context: ExecutionContext,
+        attempt: Int,
+    ): Pair<Boolean, HttpResponse<String>> {
+        val response = delegate.execute(step, spec, operation, context)
+
+        return if (RetryCheck.of(response.statusCode()).checkSleep(attempt, operation)) {
+            false to response
+        } else {
+            // Success or non-retryable status
+            if (attempt > 0) {
+                logRetrySuccess(operation, attempt + 1)
+            }
+            true to response
+        }
+    }
+
+    sealed interface RetryCheck {
+        fun check(config: RetryConfig): Boolean
+
+        data class ExceptionParam(
+            val exception: Exception,
+        ) : RetryCheck {
+            override fun check(config: RetryConfig) = config.shouldRetryException(exception)
+        }
+
+        data class StatusParam(
+            val status: Int,
+        ) : RetryCheck {
+            override fun check(config: RetryConfig) = config.shouldRetryStatus(status)
+        }
+
+        companion object {
+            fun of(e: Exception) = ExceptionParam(e)
+
+            fun of(status: Int) = StatusParam(status)
+        }
+    }
+
+    private fun RetryCheck.checkSleep(
+        attempt: Int,
+        operation: ResolvedOperation,
+    ): Boolean =
+        if (check(config)) {
+            if (attempt < config.maxAttempts) {
+                this.logRetryAttempt(operation, attempt + 1, config.maxAttempts)
+                sleep(config.calculateDelay(attempt))
+            }
+            true
+        } else {
+            false
+        }
+
+    private fun RetryCheck.logRetryAttempt(
+        operation: ResolvedOperation,
+        attempt: Int,
+        maxAttempts: Int,
+    ) = when (this) {
+        is RetryCheck.ExceptionParam -> logRetryAttempt(operation, attempt, maxAttempts, exception)
+        is RetryCheck.StatusParam -> logRetryAttempt(operation, attempt, maxAttempts, status)
     }
 
     private fun logRetryAttempt(
