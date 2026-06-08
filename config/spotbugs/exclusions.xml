@@ -9,7 +9,12 @@
         <Class name="~.*Test.*"/>
         <Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"/>
     </Match>
-    
+
+    <Match>
+        <Class name="~.*Test.*"/>
+        <Bug pattern="NP_LOAD_OF_KNOWN_NULL_VALUE"/>
+    </Match>
+
     <!-- Executor.submit return values ignored in tests - using CountDownLatch for synchronization -->
     <Match>
         <Class name="~.*Test.*"/>

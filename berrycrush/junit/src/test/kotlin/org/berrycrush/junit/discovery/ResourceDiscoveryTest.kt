@@ -48,6 +48,13 @@ class ResourceDiscoveryTest {
 
         assertTrue(result.isEmpty())
     }
+
+    @Test
+    fun `discover should search jar files`() {
+        // doesn't exist but it's in jar :)
+        val result = discovery.discover(ResourceDiscovery::class.java.classLoader, arrayOf("org/junit/jupiter/api/*.scenario"))
+        assertTrue(result.isEmpty())
+    }
 }
 
 private data class TestDiscoveredScenario(

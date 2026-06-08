@@ -23,6 +23,7 @@ dependencies {
 
     // Testing
     testImplementation(libs.kotlin.test.junit5)
+    testImplementation(libs.bundles.mockito)
 }
 
 dokka {

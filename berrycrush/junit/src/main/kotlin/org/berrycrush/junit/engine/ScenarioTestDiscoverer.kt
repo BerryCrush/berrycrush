@@ -3,11 +3,13 @@ package org.berrycrush.junit.engine
 import org.berrycrush.junit.BerryCrushScenarios
 import org.berrycrush.junit.discovery.DiscoveredScenario
 import org.berrycrush.junit.discovery.ScenarioDiscovery
+import org.berrycrush.model.Scenario
 import org.berrycrush.scenario.FeatureGroup
 import org.berrycrush.scenario.ScenarioFileContent
 import org.berrycrush.scenario.ScenarioLoader
 import org.junit.jupiter.api.Disabled
 import org.junit.platform.engine.UniqueId
+import org.junit.platform.engine.support.descriptor.AbstractTestDescriptor
 import org.junit.platform.engine.support.descriptor.EngineDescriptor
 import java.io.File
 import java.io.InputStreamReader
@@ -38,7 +40,7 @@ object ScenarioTestDiscoverer {
         val annotation = testClass.getAnnotation(BerryCrushScenarios::class.java) ?: return
 
         if (testClass.isAnnotationPresent(Disabled::class.java)) return
-        if (alreadyDiscovered(engineDescriptor, testClass)) return
+        if (engineDescriptor.alreadyDiscovered(testClass)) return
         if (annotation.locations.isEmpty()) return
 
         val discoveredFiles =
@@ -50,11 +52,6 @@ object ScenarioTestDiscoverer {
             engineDescriptor.addChild(classDescriptor)
         }
     }
-
-    private fun alreadyDiscovered(
-        engineDescriptor: EngineDescriptor,
-        testClass: Class<*>,
-    ): Boolean = engineDescriptor.children.any { it is ClassTestDescriptor && it.testClass == testClass }
 
     private fun discoverScenarioFiles(
         classLoader: ClassLoader,
@@ -117,10 +114,7 @@ object ScenarioTestDiscoverer {
     ) {
         // Add standalone scenarios (expanding outlines), filtered by scenario name
         content.standaloneScenarios
-            .flatMap { scenario -> expandScenarioIfOutline(scenario) }
-            .filter { scenario -> filters.matchesScenarioName(scenario.name) }
-            .map { scenario -> createScenarioDescriptor(fileDescriptor.uniqueId, scenario, scenarioFile) }
-            .forEach { fileDescriptor.addChild(it) }
+            .addToDescriptor(filters, fileDescriptor.uniqueId, scenarioFile, fileDescriptor)
 
         // Add feature groups, filtered by feature name
         content.features
@@ -129,11 +123,22 @@ object ScenarioTestDiscoverer {
             .forEach { fileDescriptor.addChild(it) }
     }
 
+    private fun List<Scenario>.addToDescriptor(
+        filters: ScenarioFilters,
+        featureId: UniqueId,
+        scenarioFile: File?,
+        descriptor: AbstractTestDescriptor,
+    ) = this
+        .flatMap { scenario -> expandScenarioIfOutline(scenario) }
+        .filter { scenario -> filters.matchesScenarioName(scenario.name) }
+        .map { scenario -> createScenarioDescriptor(featureId, scenario, scenarioFile) }
+        .forEach { descriptor.addChild(it) }
+
     /**
      * Expand a scenario outline into individual scenarios per example row.
      * Non-outline scenarios are returned as-is.
      */
-    private fun expandScenarioIfOutline(scenario: org.berrycrush.model.Scenario): List<org.berrycrush.model.Scenario> {
+    private fun expandScenarioIfOutline(scenario: Scenario): List<Scenario> {
         val examples = scenario.examples
         if (examples.isNullOrEmpty()) {
             return listOf(scenario)
@@ -150,7 +155,7 @@ object ScenarioTestDiscoverer {
 
     private fun createScenarioDescriptor(
         parentId: UniqueId,
-        scenario: org.berrycrush.model.Scenario,
+        scenario: Scenario,
         scenarioFile: File? = null,
     ): IndividualScenarioDescriptor {
         val scenarioId = parentId.append("scenario", scenario.name)
@@ -185,11 +190,7 @@ object ScenarioTestDiscoverer {
                 testSource = testSource,
             )
 
-        feature.scenarios
-            .filter { scenario -> filters.matchesScenarioName(scenario.name) }
-            .map { scenario -> createScenarioDescriptor(featureId, scenario, scenarioFile) }
-            .forEach { featureDescriptor.addChild(it) }
-
+        feature.scenarios.addToDescriptor(filters, featureId, scenarioFile, featureDescriptor)
         return featureDescriptor
     }
 
@@ -217,3 +218,6 @@ private fun URL.toFileOrNull(): File? =
     } else {
         null
     }
+
+private fun EngineDescriptor.alreadyDiscovered(testClass: Class<*>): Boolean =
+    children.any { it is ClassTestDescriptor && it.testClass == testClass }

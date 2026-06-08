@@ -1,4 +1,22 @@
 scenario: Simple passing scenario
   given a test condition
   then the scenario passes
-    assert status 200
+
+outline: Simple outline scenario
+  given test {{test}}
+  examples:
+    | test  |
+    | test1 |
+    | test2 |
+
+feature: Sample passing feature
+  scenario: Simple passing scenario
+    given a test condition
+    then the scenario passes
+
+  outline: Nested outline scenario
+    given test {{test}}
+    examples:
+      | test  |
+      | test1 |
+      | test2 |

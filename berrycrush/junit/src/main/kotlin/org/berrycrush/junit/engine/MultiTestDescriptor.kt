@@ -6,6 +6,7 @@ import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.TestSource
 import org.junit.platform.engine.UniqueId
 import org.junit.platform.engine.support.descriptor.AbstractTestDescriptor
+import java.util.Optional
 
 /**
  * Test descriptor for a multi-request idempotency test.
@@ -20,7 +21,7 @@ class MultiTestDescriptor(
 ) : AbstractTestDescriptor(uniqueId, displayName) {
     override fun getType(): TestDescriptor.Type = TestDescriptor.Type.TEST
 
-    override fun getSource(): java.util.Optional<TestSource> = java.util.Optional.empty()
+    override fun getSource(): Optional<TestSource> = Optional.empty()
 
     companion object {
         /**

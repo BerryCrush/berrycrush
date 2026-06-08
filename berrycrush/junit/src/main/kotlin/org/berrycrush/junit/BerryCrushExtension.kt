@@ -231,7 +231,7 @@ class BerryCrushExtension :
 
     override fun provideTestTemplateInvocationContexts(context: ExtensionContext): Stream<TestTemplateInvocationContext> =
         getSuite(context).allScenarios().stream().map { scenario ->
-            ScenarioInvocationContext(scenario, getOrCreateExecutor(context))
+            ScenarioInvocationContext(scenario)
         }
 
     private fun getSuite(context: ExtensionContext): BerryCrushSuite {
@@ -337,13 +337,12 @@ class BerryCrushExtension :
      */
     private class ScenarioInvocationContext(
         private val scenario: Scenario,
-        private val executor: BerryCrushScenarioExecutor,
     ) : TestTemplateInvocationContext {
         override fun getDisplayName(invocationIndex: Int): String = scenario.name
 
         override fun getAdditionalExtensions(): List<org.junit.jupiter.api.extension.Extension> =
             listOf(
-                ScenarioParameterResolver(scenario, executor),
+                ScenarioParameterResolver(scenario),
             )
     }
 
@@ -352,7 +351,6 @@ class BerryCrushExtension :
      */
     private class ScenarioParameterResolver(
         private val scenario: Scenario,
-        private val executor: BerryCrushScenarioExecutor,
     ) : ParameterResolver {
         override fun supportsParameter(
             parameterContext: ParameterContext,

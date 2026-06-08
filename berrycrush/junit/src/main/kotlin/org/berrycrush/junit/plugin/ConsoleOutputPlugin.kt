@@ -214,7 +214,7 @@ class ConsoleOutputPlugin(
                                 append("\n")
                                 append(formatter.formatRequest(req, errorConfig).prependIndent("    "))
                             }
-                            step.response?.let { resp ->
+                            step.response.let { resp ->
                                 append("\n")
                                 append(formatter.formatResponse(resp, errorConfig).prependIndent("    "))
                             }

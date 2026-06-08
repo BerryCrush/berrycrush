@@ -396,7 +396,7 @@ class ScenarioLoaderTest {
         val scenario = scenarios[0]
         assertEquals(90L, scenario.parameters["timeout"])
         assertNotNull(scenario.examples)
-        assertEquals(2, scenario.examples!!.size)
+        assertEquals(2, scenario.examples.size)
     }
 
     @Test

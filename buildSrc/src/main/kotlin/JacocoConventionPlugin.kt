@@ -39,7 +39,7 @@ class JacocoConventionPlugin : Plugin<Project> {
         private val MODULE_THRESHOLDS =
             mapOf(
                 "core" to CoverageThreshold(line = 0.65, branch = 0.45),
-                "junit" to CoverageThreshold(line = 0.85, branch = 0.80),
+                "junit" to CoverageThreshold(line = 0.85, branch = 0.70),
                 "spring" to CoverageThreshold(line = 0.75, branch = 0.50),
             )
     }

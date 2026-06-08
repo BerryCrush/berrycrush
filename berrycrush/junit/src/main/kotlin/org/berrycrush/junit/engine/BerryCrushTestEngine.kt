@@ -128,18 +128,12 @@ class BerryCrushTestEngine : TestEngine {
     ) {
         listener.executionStarted(classDescriptor)
 
-        val result =
-            runCatching {
-                executor.executeClassTests(classDescriptor, listener, filters)
-            }
-
-        result.fold(
-            onSuccess = {
-                listener.executionFinished(classDescriptor, TestExecutionResult.successful())
-            },
-            onFailure = { e ->
-                listener.executionFinished(classDescriptor, TestExecutionResult.failed(e))
-            },
-        )
+        runCatching {
+            executor.executeClassTests(classDescriptor, listener, filters)
+        }.onSuccess {
+            listener.executionFinished(classDescriptor, TestExecutionResult.successful())
+        }.onFailure { e ->
+            listener.executionFinished(classDescriptor, TestExecutionResult.failed(e))
+        }
     }
 }

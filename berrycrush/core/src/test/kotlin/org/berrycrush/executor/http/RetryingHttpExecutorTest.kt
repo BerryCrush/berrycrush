@@ -207,6 +207,7 @@ class RetryingHttpExecutorTest {
             return createMockResponse(200)
         }
 
+        @Deprecated(message = "Will be removed")
         override fun resolveBody(
             step: Step,
             operation: ResolvedOperation?,

@@ -8,6 +8,7 @@ junit-platform = "6.0.3"
 jackson = "3.1.1"
 spring-boot = "4.0.5"
 h2 = "2.3.232"
+mockito = "6.3.0"
 
 # SAST tool versions
 detekt = "2.0.0-alpha.3"
@@ -45,9 +46,13 @@ r2dbc-h2 = { module = "io.r2dbc:r2dbc-h2", version = "1.0.0.RELEASE" }
 # Kotlin test
 kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin" }
 
+# Mockito
+mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockito" }
+
 [bundles]
 junit = ["junit-jupiter-api", "junit-jupiter-engine", "junit-jupiter-params"]
 junit-platform = ["junit-platform-engine", "junit-platform-commons"]
+mockito = ["mockito-kotlin"]
 spring-boot = ["spring-boot-starter-web", "spring-boot-starter-data-jpa", "spring-boot-starter-validation"]
 spring-boot-webflux = ["spring-boot-starter-webflux", "spring-boot-starter-data-r2dbc", "spring-boot-starter-validation", "spring-boot-starter-actuator"]
 

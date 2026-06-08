@@ -83,7 +83,7 @@ class ScenarioParametersIntegrationTest {
 
         // Should have examples
         assertNotNull(outline.examples)
-        assertEquals(3, outline.examples!!.size)
+        assertEquals(3, outline.examples.size)
 
         // Should have scenario parameters
         assertEquals(90L, outline.parameters["timeout"])

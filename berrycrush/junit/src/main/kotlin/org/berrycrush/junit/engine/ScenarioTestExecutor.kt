@@ -1,35 +1,22 @@
 package org.berrycrush.junit.engine
 
 import org.berrycrush.assertion.AssertionRegistry
-import org.berrycrush.autotest.AutoTestCase
-import org.berrycrush.autotest.MultiMode
-import org.berrycrush.autotest.MultiTestResult
 import org.berrycrush.config.OpenApiSpecValue
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.dsl.BerryCrushSuite
-import org.berrycrush.exception.ErrorContextConfig
-import org.berrycrush.executor.BerryCrushExecutionListener
-import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.junit.BerryCrushBindings
 import org.berrycrush.junit.BerryCrushConfiguration
 import org.berrycrush.junit.DefaultBindings
 import org.berrycrush.junit.ParallelExecutionMode
 import org.berrycrush.junit.discovery.FragmentDiscovery
+import org.berrycrush.junit.engine.context.TestExecutionContext
 import org.berrycrush.junit.spi.BindingsProvider
-import org.berrycrush.model.AutoTestResult
 import org.berrycrush.model.FragmentRegistry
-import org.berrycrush.model.ResultStatus
-import org.berrycrush.model.Scenario
-import org.berrycrush.model.ScenarioResult
-import org.berrycrush.model.Step
-import org.berrycrush.model.StepResult
 import org.berrycrush.plugin.PluginRegistry
 import org.berrycrush.runner.ScenarioRunner
 import org.berrycrush.scenario.ScenarioLoader
 import org.berrycrush.step.StepRegistry
 import org.junit.platform.engine.EngineExecutionListener
-import org.junit.platform.engine.TestExecutionResult
-import java.io.File
 import java.util.logging.Logger
 
 /**
@@ -52,8 +39,6 @@ import java.util.logging.Logger
 class ScenarioTestExecutor(
     private val bindingsProviders: List<BindingsProvider>,
 ) {
-    private val logger = Logger.getLogger(ScenarioTestExecutor::class.java.name)
-
     /**
      * Execute all tests for a class descriptor.
      *
@@ -78,7 +63,7 @@ class ScenarioTestExecutor(
             executeWithContext(classDescriptor, listener, provider)
         } finally {
             runCatching { provider?.cleanup(classDescriptor.testClass) }
-                .onFailure { System.err.println("Warning: BindingsProvider cleanup failed: ${it.message}") }
+                .onFailure { logger.severe("Warning: BindingsProvider cleanup failed: ${it.message}") }
         }
     }
 
@@ -91,320 +76,14 @@ class ScenarioTestExecutor(
     ) {
         val context = buildExecutionContext(classDescriptor, provider)
 
-        context.runner.beginExecution()
+        context.beginExecution()
         try {
-            executeFileDescriptors(classDescriptor, context, listener)
-            executeScenarioMethods(classDescriptor, context, listener, provider)
+            context.executeFileDescriptors(classDescriptor, listener)
+            context.executeScenarioMethods(classDescriptor, listener, provider)
         } finally {
-            context.runner.endExecution()
+            context.endExecution()
         }
     }
-
-    /**
-     * Execute @Scenario methods.
-     */
-    private fun executeScenarioMethods(
-        classDescriptor: ClassTestDescriptor,
-        context: TestExecutionContext,
-        listener: EngineExecutionListener,
-        provider: BindingsProvider?,
-    ) {
-        classDescriptor.children
-            .filterIsInstance<ScenarioMethodDescriptor>()
-            .forEach { scenarioDescriptor ->
-                executeScenarioMethod(scenarioDescriptor, classDescriptor, context, listener, provider)
-            }
-    }
-
-    /**
-     * Execute a single @Scenario method.
-     */
-    private fun executeScenarioMethod(
-        scenarioDescriptor: ScenarioMethodDescriptor,
-        classDescriptor: ClassTestDescriptor,
-        context: TestExecutionContext,
-        listener: EngineExecutionListener,
-        provider: BindingsProvider?,
-    ) {
-        listener.executionStarted(scenarioDescriptor)
-
-        val result =
-            runCatching {
-                // Create test instance - use Spring-managed instance if available
-                val testInstance =
-                    provider?.createTestInstance(classDescriptor.testClass)
-                        ?: classDescriptor.testClass.getDeclaredConstructor().newInstance()
-
-                // Invoke the @Scenario method to get the Scenario
-                val scenario = scenarioDescriptor.invokeMethod(testInstance, context.suite)
-
-                // Check if scenario should be skipped based on tags
-                if (!classDescriptor.shouldExecuteScenario(scenario.tags)) {
-                    return@runCatching ResultStatus.SKIPPED
-                }
-
-                // Create executor for scenario
-                val executor =
-                    BerryCrushScenarioExecutor(
-                        context.suite.specRegistry,
-                        context.suite.configuration,
-                        context.pluginRegistry,
-                        context.fragmentRegistry,
-                        context.stepRegistry,
-                        context.assertionRegistry,
-                    )
-
-                // Execute the scenario
-                val scenarioResult = executor.execute(scenario)
-                scenarioResult.status
-            }
-
-        result.fold(
-            onSuccess = { status ->
-                val testResult =
-                    when (status) {
-                        ResultStatus.PASSED -> TestExecutionResult.successful()
-                        ResultStatus.SKIPPED -> TestExecutionResult.aborted(null)
-                        ResultStatus.FAILED,
-                        ResultStatus.ERROR,
-                        -> TestExecutionResult.failed(AssertionError("Scenario failed"))
-                        ResultStatus.PENDING -> TestExecutionResult.aborted(null)
-                    }
-                listener.executionFinished(scenarioDescriptor, testResult)
-            },
-            onFailure = { e ->
-                listener.executionFinished(scenarioDescriptor, TestExecutionResult.failed(e))
-            },
-        )
-    }
-
-    private fun executeFileDescriptors(
-        classDescriptor: ClassTestDescriptor,
-        context: TestExecutionContext,
-        listener: EngineExecutionListener,
-    ) {
-        classDescriptor.children
-            .filterIsInstance<ScenarioFileDescriptor>()
-            .forEach { fileDescriptor ->
-                executeFileDescriptor(fileDescriptor, classDescriptor, context, listener)
-            }
-    }
-
-    private fun executeFileDescriptor(
-        fileDescriptor: ScenarioFileDescriptor,
-        classDescriptor: ClassTestDescriptor,
-        context: TestExecutionContext,
-        listener: EngineExecutionListener,
-    ) {
-        listener.executionStarted(fileDescriptor)
-
-        val result =
-            runCatching {
-                val fileContext = buildFileContext(fileDescriptor, classDescriptor, context)
-                executeFileChildren(fileDescriptor, classDescriptor, fileContext, listener)
-            }
-
-        result.fold(
-            onSuccess = { hasFailure ->
-                val testResult =
-                    if (hasFailure) {
-                        TestExecutionResult.failed(AssertionError("One or more scenarios failed"))
-                    } else {
-                        TestExecutionResult.successful()
-                    }
-                listener.executionFinished(fileDescriptor, testResult)
-            },
-            onFailure = { e ->
-                listener.executionFinished(fileDescriptor, TestExecutionResult.failed(e))
-            },
-        )
-    }
-
-    private fun executeFileChildren(
-        fileDescriptor: ScenarioFileDescriptor,
-        classDescriptor: ClassTestDescriptor,
-        fileContext: FileExecutionContext,
-        listener: EngineExecutionListener,
-    ): Boolean {
-        check(fileDescriptor.children.isNotEmpty()) {
-            "No scenarios found in ${fileDescriptor.scenarioPath}"
-        }
-
-        return fileDescriptor.children
-            .map { child ->
-                when (child) {
-                    is IndividualScenarioDescriptor ->
-                        executeScenario(child, classDescriptor, fileContext, listener)
-                    is FeatureDescriptor ->
-                        executeFeature(child, classDescriptor, fileContext, listener)
-                    else -> false
-                }
-            }.any { it }
-    }
-
-    private fun executeFeature(
-        featureDescriptor: FeatureDescriptor,
-        classDescriptor: ClassTestDescriptor,
-        fileContext: FileExecutionContext,
-        listener: EngineExecutionListener,
-    ): Boolean {
-        listener.executionStarted(featureDescriptor)
-
-        // Check if feature has its own shareVariablesAcrossScenarios setting
-        val featureShareVariables =
-            featureDescriptor.parameters["shareVariablesAcrossScenarios"] as? Boolean ?: false
-
-        // Create context with feature parameters pre-loaded
-        fun createFeatureContext(): ExecutionContext {
-            val ctx = ExecutionContext()
-            // Inject feature-level parameters into the context
-            // This makes them available via context.allVariables() for multi-test config etc.
-            featureDescriptor.parameters.forEach { (key, value) ->
-                ctx[key] = value
-            }
-            return ctx
-        }
-
-        // Use feature-level shared context if enabled, otherwise fall back to file-level
-        val effectiveContext =
-            if (featureShareVariables && fileContext.sharedContext == null) {
-                // Feature enables sharing, but file doesn't - create feature-level context
-                fileContext.copy(sharedContext = createFeatureContext())
-            } else if (!featureShareVariables && fileContext.sharedContext != null) {
-                // Feature disables sharing while file enables it - use isolated context
-                // Still inject feature parameters into a fresh context for the feature
-                fileContext.copy(sharedContext = createFeatureContext())
-            } else if (featureShareVariables) {
-                // Feature enables sharing, create separate context to isolate from other features
-                fileContext.copy(sharedContext = createFeatureContext())
-            } else {
-                // Use file-level context but with feature parameters
-                // Create a new shared context with feature params if feature has any
-                if (featureDescriptor.parameters.isNotEmpty()) {
-                    fileContext.copy(sharedContext = createFeatureContext())
-                } else {
-                    fileContext
-                }
-            }
-
-        val hasFailure =
-            featureDescriptor.children
-                .filterIsInstance<IndividualScenarioDescriptor>()
-                .map { executeScenario(it, classDescriptor, effectiveContext, listener) }
-                .any { it }
-
-        val result =
-            if (hasFailure) {
-                TestExecutionResult.failed(
-                    AssertionError("One or more scenarios in feature '${featureDescriptor.featureName}' failed"),
-                )
-            } else {
-                TestExecutionResult.successful()
-            }
-        listener.executionFinished(featureDescriptor, result)
-
-        return hasFailure
-    }
-
-    /**
-     * Execute a single scenario and report results.
-     * @return true if the scenario failed
-     */
-    private fun executeScenario(
-        scenarioDescriptor: IndividualScenarioDescriptor,
-        classDescriptor: ClassTestDescriptor,
-        fileContext: FileExecutionContext,
-        listener: EngineExecutionListener,
-    ): Boolean {
-        // Check if scenario should be skipped based on tags
-        if (!classDescriptor.shouldExecuteScenario(scenarioDescriptor.scenario.tags)) {
-            listener.executionStarted(scenarioDescriptor)
-            listener.executionFinished(scenarioDescriptor, TestExecutionResult.aborted(null))
-            return false
-        }
-
-        // Create execution listener adapter for real-time event reporting
-        // This handles scenario start/end as well as auto-test events
-        val executionListener = JUnitExecutionListenerAdapter(scenarioDescriptor, listener)
-
-        val sourceFile = File(fileContext.scenarioPath)
-
-        return runCatching {
-            // Create execution context - use shared context if available,
-            // or create one for outline scenarios with examples
-            val executionContext =
-                fileContext.sharedContext
-                    ?: if (scenarioDescriptor.scenario.examples?.isNotEmpty() == true) {
-                        ExecutionContext()
-                    } else {
-                        null
-                    }
-
-            // Add example row values to context if this is an outline scenario
-            initializeContext(scenarioDescriptor.scenario, executionContext)
-
-            // Execute with execution listener for real-time event reporting
-            // All JUnit events (scenario start/end, auto-test start/end) are handled by the listener
-            fileContext.executor.execute(
-                scenarioDescriptor.scenario,
-                executionContext,
-                sourceFile,
-                executionListener,
-            )
-        }.fold(
-            onSuccess = { executionListener.hasFailure() },
-            onFailure = { e ->
-                // Ensure scenario is started before reporting failure
-                if (!executionListener.scenarioStarted) {
-                    listener.executionStarted(scenarioDescriptor)
-                }
-                listener.executionFinished(scenarioDescriptor, TestExecutionResult.failed(e))
-                true
-            },
-        )
-    }
-
-    /**
-     * Initialize execution context with example row values for scenario outlines.
-     * For non-outline scenarios, this is a no-op.
-     */
-    private fun initializeContext(
-        scenario: Scenario,
-        context: ExecutionContext?,
-    ) {
-        context ?: return
-        val examples = scenario.examples ?: return
-        if (examples.isEmpty()) return
-
-        // Use the first (and only) example row - outlines are expanded to one row per scenario
-        val row = examples.first()
-        row.values.forEach { (key, value) ->
-            // Interpolate any variables in example values using existing context
-            val resolvedValue =
-                when (value) {
-                    is String -> context.interpolate(value)
-                    else -> value
-                }
-            context[key] = resolvedValue
-        }
-    }
-
-    private fun buildAutoTestFailureMessage(autoResult: AutoTestResult): String =
-        buildString {
-            append(AutoTestDescriptor.createDisplayName(autoResult.testCase))
-            append("\n")
-            if (autoResult.error != null) {
-                append("  Error: ${autoResult.error}")
-            } else {
-                append("  Status: ${autoResult.statusCode ?: "N/A"}")
-                autoResult.assertionResults.filter { !it.passed }.forEach { assertion ->
-                    append("\n  - ${assertion.message}")
-                }
-            }
-            if (autoResult.responseBody != null) {
-                append("\n  Response: ${autoResult.responseBody}")
-            }
-        }
 
     // Context building methods
 
@@ -431,64 +110,6 @@ class ScenarioTestExecutor(
             stepRegistry = stepRegistry,
             assertionRegistry = assertionRegistry,
             runner = runner,
-        )
-    }
-
-    private fun buildFileContext(
-        fileDescriptor: ScenarioFileDescriptor,
-        classDescriptor: ClassTestDescriptor,
-        context: TestExecutionContext,
-    ): FileExecutionContext {
-        val scenarioLoader = ScenarioLoader()
-        val fileContent = ScenarioTestDiscoverer.loadScenarioFromUrl(scenarioLoader, fileDescriptor.scenarioSource)
-
-        val fileConfig =
-            if (fileContent.parameters.isNotEmpty()) {
-                context.suite.configuration.withParameters(fileContent.parameters)
-            } else {
-                context.suite.configuration
-            }
-
-        // Apply per-spec base URL overrides from file parameters
-        fileContent.parameters
-            .filterKeys { it.startsWith("baseUrl.") }
-            .forEach { (key, value) ->
-                val specName = key.removePrefix("baseUrl.")
-                if (context.suite.specRegistry
-                        .specNames()
-                        .contains(specName)
-                ) {
-                    context.suite.specRegistry.updateBaseUrl(specName, value.toString())
-                }
-            }
-
-        val executor =
-            BerryCrushScenarioExecutor(
-                context.suite.specRegistry,
-                fileConfig,
-                context.pluginRegistry,
-                context.fragmentRegistry,
-                context.stepRegistry,
-                context.assertionRegistry,
-            )
-
-        val sharedContext =
-            if (fileConfig.shareVariablesAcrossScenarios) ExecutionContext() else null
-
-        // Warn if sharing variables across scenarios with concurrent execution mode
-        if (sharedContext != null && classDescriptor.parallelExecution == ParallelExecutionMode.CONCURRENT) {
-            logger.warning {
-                "File '${fileDescriptor.scenarioPath}' uses shareVariablesAcrossScenarios=true " +
-                    "but test class '${classDescriptor.testClass.name}' has CONCURRENT parallel execution. " +
-                    "Consider using @BerryCrushConfiguration(parallelExecution = SAME_THREAD) " +
-                    "to ensure scenarios execute sequentially."
-            }
-        }
-
-        return FileExecutionContext(
-            executor = executor,
-            sharedContext = sharedContext,
-            scenarioPath = fileDescriptor.scenarioPath,
         )
     }
 
@@ -532,15 +153,7 @@ class ScenarioTestExecutor(
         classDescriptor.specs.forEach { (name, spec) ->
             spec.paths.forEach { path ->
                 val resolvedPath = resolvePath(path, classDescriptor.testClass)
-                if (name == "default") {
-                    suite.spec(resolvedPath) {
-                        spec.baseUrl.takeIf { it.isNotBlank() }?.let { baseUrl = it }
-                    }
-                } else {
-                    suite.spec(name, resolvedPath) {
-                        spec.baseUrl.takeIf { it.isNotBlank() }?.let { baseUrl = it }
-                    }
-                }
+                suite.setBaseUrl(name, resolvedPath, spec.baseUrl)
             }
         }
     }
@@ -558,19 +171,27 @@ class ScenarioTestExecutor(
         bindings.forEach { (name, value) ->
             if (value is OpenApiSpecValue) {
                 val resolvedPath = resolvePath(value.location, classDescriptor.testClass)
-                if (name == "default") {
-                    suite.spec(resolvedPath) {
-                        value.baseUrl?.let { baseUrl = it }
-                    }
-                } else {
-                    suite.spec(name, resolvedPath) {
-                        value.baseUrl?.let { baseUrl = it }
-                    }
-                }
+                suite.setBaseUrl(name, resolvedPath, value.baseUrl)
                 configuredSpecs.add(name)
             }
         }
         return configuredSpecs
+    }
+
+    private fun BerryCrushSuite.setBaseUrl(
+        name: String,
+        resolvedPath: String,
+        value: String?,
+    ) {
+        if (name == "default") {
+            spec(resolvedPath) {
+                value.takeIf { it?.isNotBlank() ?: false }?.let { baseUrl = it }
+            }
+        } else {
+            spec(name, resolvedPath) {
+                value.takeIf { it?.isNotBlank() ?: false }?.let { baseUrl = it }
+            }
+        }
     }
 
     /**
@@ -683,267 +304,8 @@ class ScenarioTestExecutor(
     private fun createAssertionRegistry(classDescriptor: ClassTestDescriptor): AssertionRegistry? =
         RegistryFactory.createAssertionRegistry(classDescriptor.testClass)
 
-    /**
-     * Adapter that bridges [BerryCrushExecutionListener] to JUnit's [EngineExecutionListener].
-     *
-     * This adapter centralizes all JUnit event reporting by implementing the
-     * [BerryCrushExecutionListener] interface and firing corresponding JUnit events:
-     * - [onScenarioStarting] → `executionStarted(scenarioDescriptor)`
-     * - [onScenarioCompleted] → `executionFinished(scenarioDescriptor, result)`
-     * - [onAutoTestStarting] → `dynamicTestRegistered`, `executionStarted`
-     * - [onAutoTestCompleted] → `executionFinished`
-     *
-     * This allows IDEs like IntelliJ to show test output in real-time.
-     */
-    private inner class JUnitExecutionListenerAdapter(
-        private val scenarioDescriptor: IndividualScenarioDescriptor,
-        private val listener: EngineExecutionListener,
-    ) : BerryCrushExecutionListener {
-        private var testIndex = 0
-        private val descriptors = mutableMapOf<AutoTestCase, AutoTestDescriptor>()
-        private val multiDescriptors = mutableMapOf<MultiMode, MultiTestDescriptor>()
-        private var autoTestFailureCount = 0
-        private var multiTestFailureCount = 0
-        private var lastScenarioResult: ScenarioResult? = null
-
-        /**
-         * Returns true if the scenario execution started.
-         */
-        var scenarioStarted = false
-            private set
-
-        /**
-         * Returns true if there were any failures (auto-test, multi-test, or scenario).
-         */
-        fun hasFailure(): Boolean =
-            autoTestFailureCount > 0 ||
-                multiTestFailureCount > 0 ||
-                lastScenarioResult?.status != ResultStatus.PASSED
-
-        override fun onScenarioStarting(scenario: Scenario) {
-            scenarioStarted = true
-            listener.executionStarted(scenarioDescriptor)
-        }
-
-        override fun onScenarioCompleted(
-            scenario: Scenario,
-            result: ScenarioResult,
-        ) {
-            lastScenarioResult = result
-
-            // Determine the appropriate result to report
-            val autoTestResults = result.stepResults.flatMap { it.autoTestResults }
-            val multiTestResults = result.stepResults.flatMap { it.multiTestResults }
-            val totalFailures = autoTestFailureCount + multiTestFailureCount
-
-            val testResult =
-                when {
-                    // Auto-test or multi-test failures
-                    totalFailures > 0 -> {
-                        val totalTests = autoTestResults.size + multiTestResults.size
-                        TestExecutionResult.failed(
-                            AssertionError("$totalFailures/$totalTests auto/multi-tests failed"),
-                        )
-                    }
-                    // Scenario passed
-                    result.status == ResultStatus.PASSED -> {
-                        TestExecutionResult.successful()
-                    }
-                    // Scenario skipped
-                    result.status == ResultStatus.SKIPPED -> {
-                        TestExecutionResult.aborted(null)
-                    }
-                    // Scenario failed
-                    else -> {
-                        val message = buildFailedStepsMessage(scenario.name, result)
-                        TestExecutionResult.failed(AssertionError(message))
-                    }
-                }
-
-            listener.executionFinished(scenarioDescriptor, testResult)
-        }
-
-        override fun onStepStarting(step: Step) {
-            // Step-level reporting not currently used in JUnit
-            // Future: Could create step descriptors for fine-grained progress
-        }
-
-        override fun onStepCompleted(
-            step: Step,
-            result: StepResult,
-        ) {
-            // Step-level reporting not currently used in JUnit
-        }
-
-        override fun onAutoTestStarting(testCase: AutoTestCase) {
-            val displayName = AutoTestDescriptor.createDisplayName(testCase)
-            val testId = scenarioDescriptor.uniqueId.append("auto-test", "${++testIndex}")
-
-            val descriptor =
-                AutoTestDescriptor(
-                    uniqueId = testId,
-                    displayName = displayName,
-                    testCase = testCase,
-                    stepDescription = testCase.description,
-                )
-
-            // Register the dynamic test with JUnit
-            scenarioDescriptor.addChild(descriptor)
-            listener.dynamicTestRegistered(descriptor)
-
-            // Start execution immediately for real-time output
-            listener.executionStarted(descriptor)
-
-            descriptors[testCase] = descriptor
-        }
-
-        override fun onAutoTestCompleted(
-            testCase: AutoTestCase,
-            result: AutoTestResult,
-        ) {
-            val descriptor =
-                checkNotNull(descriptors[testCase]) {
-                    "onAutoTestCompleted called without matching onAutoTestStarting"
-                }
-
-            if (result.passed) {
-                listener.executionFinished(descriptor, TestExecutionResult.successful())
-            } else {
-                autoTestFailureCount++
-                val errorMessage = buildAutoTestFailureMessage(result)
-                listener.executionFinished(
-                    descriptor,
-                    TestExecutionResult.failed(AssertionError(errorMessage)),
-                )
-            }
-        }
-
-        override fun onMultiTestStarting(
-            mode: MultiMode,
-            requestCount: Int,
-        ) {
-            val displayName = MultiTestDescriptor.createDisplayName(mode, requestCount)
-            val testId = scenarioDescriptor.uniqueId.append("multi-test", "${++testIndex}")
-
-            val descriptor =
-                MultiTestDescriptor(
-                    uniqueId = testId,
-                    displayName = displayName,
-                    mode = mode,
-                    requestCount = requestCount,
-                )
-
-            // Register the dynamic test with JUnit
-            scenarioDescriptor.addChild(descriptor)
-            listener.dynamicTestRegistered(descriptor)
-
-            // Start execution immediately for real-time output
-            listener.executionStarted(descriptor)
-
-            multiDescriptors[mode] = descriptor
-        }
-
-        override fun onMultiTestCompleted(result: MultiTestResult) {
-            val descriptor =
-                checkNotNull(multiDescriptors[result.mode]) {
-                    "onMultiTestCompleted called without matching onMultiTestStarting"
-                }
-
-            if (result.passed) {
-                listener.executionFinished(descriptor, TestExecutionResult.successful())
-            } else {
-                multiTestFailureCount++
-                val errorMessage = MultiTestDescriptor.buildFailureMessage(result)
-                listener.executionFinished(
-                    descriptor,
-                    TestExecutionResult.failed(AssertionError(errorMessage)),
-                )
-            }
-        }
-    }
-
     companion object {
         private const val CLASSPATH_PREFIX = "classpath:"
-
-        /**
-         * Builds a formatted error message for failed steps in a scenario.
-         */
-        fun buildFailedStepsMessage(
-            scenarioName: String,
-            result: ScenarioResult,
-        ): String {
-            val failedSteps =
-                result.stepResults
-                    .filter { it.status != ResultStatus.PASSED }
-                    .mapIndexed { index, step ->
-                        val keyword =
-                            step.step.type.name
-                                .lowercase()
-                        val locationInfo =
-                            step.step.sourceLocation?.let { " at $it" } ?: ""
-                        val header = "  Step ${index + 1} ($keyword): ${step.step.description}$locationInfo"
-                        val details =
-                            step.assertionResults
-                                .filter { !it.passed }
-                                .takeIf { it.isNotEmpty() }
-                                ?.joinToString("\n") { "      - ${it.message}" }
-                                ?: "      - ${step.error?.message ?: "Assertion failed"}"
-
-                        // Build HTTP context for failed steps with responses
-                        val httpContext = buildHttpContext(step)
-
-                        "$header\n$details$httpContext"
-                    }.joinToString("\n")
-
-            return "Scenario '$scenarioName' failed:\n$failedSteps"
-        }
-
-        /**
-         * Build HTTP response context for a failed step.
-         */
-        private fun buildHttpContext(step: StepResult): String {
-            val statusCode = step.statusCode ?: return ""
-            val responseBody = step.responseBody
-
-            return buildString {
-                append("\n      ━━━ HTTP Response ━━━")
-                append("\n      Status: $statusCode")
-                step.responseHeaders.forEach { (name, values) ->
-                    append("\n      $name: ${values.joinToString(", ")}")
-                }
-                if (responseBody != null) {
-                    val maxSize = ErrorContextConfig().maxBodySize
-                    val displayBody =
-                        if (responseBody.length > maxSize) {
-                            "${responseBody.take(maxSize)}... (truncated)"
-                        } else {
-                            responseBody
-                        }
-                    append("\n      Body: $displayBody")
-                }
-            }
-        }
+        private val logger = Logger.getLogger(ScenarioTestExecutor::class.java.name)
     }
 }
-
-/**
- * Holds the execution context for a test class.
- */
-private data class TestExecutionContext(
-    val suite: BerryCrushSuite,
-    val bindings: BerryCrushBindings,
-    val pluginRegistry: PluginRegistry,
-    val fragmentRegistry: FragmentRegistry,
-    val stepRegistry: StepRegistry?,
-    val assertionRegistry: AssertionRegistry?,
-    val runner: ScenarioRunner,
-)
-
-/**
- * Holds the execution context for a scenario file.
- */
-private data class FileExecutionContext(
-    val executor: BerryCrushScenarioExecutor,
-    val sharedContext: ExecutionContext?,
-    val scenarioPath: String,
-)
