@@ -12,7 +12,6 @@ import org.berrycrush.model.AutoTestResult
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Scenario
 import org.berrycrush.model.ScenarioResult
-import org.berrycrush.model.Step
 import org.berrycrush.model.StepResult
 import org.junit.platform.engine.EngineExecutionListener
 import org.junit.platform.engine.TestExecutionResult
@@ -97,18 +96,6 @@ internal class JUnitExecutionListenerAdapter(
         listener.executionFinished(scenarioDescriptor, testResult)
     }
 
-    override fun onStepStarting(step: Step) {
-        // Step-level reporting not currently used in JUnit
-        // Future: Could create step descriptors for fine-grained progress
-    }
-
-    override fun onStepCompleted(
-        step: Step,
-        result: StepResult,
-    ) {
-        // Step-level reporting not currently used in JUnit
-    }
-
     override fun onAutoTestStarting(testCase: AutoTestCase) {
         val displayName = AutoTestDescriptor.createDisplayName(testCase)
         val testId = scenarioDescriptor.uniqueId.append("auto-test", "${++testIndex}")
@@ -131,10 +118,8 @@ internal class JUnitExecutionListenerAdapter(
         descriptors[testCase] = descriptor
     }
 
-    override fun onAutoTestCompleted(
-        testCase: AutoTestCase,
-        result: AutoTestResult,
-    ) {
+    override fun onAutoTestCompleted(result: AutoTestResult) {
+        val testCase = result.testCase
         val descriptor =
             checkNotNull(descriptors[testCase]) {
                 "onAutoTestCompleted called without matching onAutoTestStarting"

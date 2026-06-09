@@ -89,13 +89,9 @@ interface BerryCrushExecutionListener {
     /**
      * Called immediately after a step finishes execution.
      *
-     * @param step The step that just finished
      * @param result The result of the step execution
      */
-    fun onStepCompleted(
-        step: Step,
-        result: StepResult,
-    ) {
+    fun onStepCompleted(result: StepResult) {
         // do nothing by default
     }
 
@@ -111,13 +107,9 @@ interface BerryCrushExecutionListener {
     /**
      * Called immediately after an auto-test case finishes execution.
      *
-     * @param testCase The test case that just finished
      * @param result The result of the test execution
      */
-    fun onAutoTestCompleted(
-        testCase: AutoTestCase,
-        result: AutoTestResult,
-    ) {
+    fun onAutoTestCompleted(result: AutoTestResult) {
         // do nothing by default
     }
 

@@ -12,15 +12,6 @@ import org.berrycrush.openapi.SchemaSpec
 import org.berrycrush.util.FileLoader
 import tools.jackson.databind.ObjectMapper
 
-private fun ExecutionContext.resolveParam(value: Any): Any =
-    when (value) {
-        is String -> this.interpolate(value)
-        else -> value
-    }
-
-private fun ExecutionContext.resolveParams(params: Map<String, Any>): Map<String, Any> =
-    params.mapValues { (_, value) -> resolveParam(value) }
-
 fun interface UrlResolver {
     fun resolve(
         step: Step,

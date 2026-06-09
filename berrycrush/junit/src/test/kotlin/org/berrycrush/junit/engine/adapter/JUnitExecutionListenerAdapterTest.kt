@@ -100,8 +100,11 @@ internal class JUnitExecutionListenerAdapterTest {
 
     @Test
     fun `on step completed`() {
-        val result = mock<StepResult>()
-        listenerAdapter.onStepCompleted(step, result)
+        val result =
+            mock<StepResult> {
+                on { this.step } doReturn step
+            }
+        listenerAdapter.onStepCompleted(result)
     }
 
     @ParameterizedTest
@@ -134,7 +137,7 @@ internal class JUnitExecutionListenerAdapterTest {
                 on { testCase } doReturn autoTestCase
                 on { error } doReturn "error"
             }
-        listenerAdapter.onAutoTestCompleted(autoTestCase, result)
+        listenerAdapter.onAutoTestCompleted(result)
         if (passed) {
             verify(listener).executionFinished(eq(v), eq(TestExecutionResult.successful()))
         } else {
@@ -146,7 +149,11 @@ internal class JUnitExecutionListenerAdapterTest {
 
     @Test
     fun `on auto test completed (invalid)`() {
-        assertThrows<IllegalStateException> { listenerAdapter.onAutoTestCompleted(autoTestCase, mock()) }
+        val testResult =
+            mock<AutoTestResult> {
+                on { testCase } doReturn autoTestCase
+            }
+        assertThrows<IllegalStateException> { listenerAdapter.onAutoTestCompleted(testResult) }
     }
 
     @ParameterizedTest

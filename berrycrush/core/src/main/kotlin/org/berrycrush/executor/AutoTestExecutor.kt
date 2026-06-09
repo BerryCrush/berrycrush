@@ -133,7 +133,7 @@ class AutoTestExecutor(
             allResults.add(testResult)
 
             // Notify listener that test finished
-            listener.onAutoTestCompleted(testCase, testResult)
+            listener.onAutoTestCompleted(testResult)
 
             // Log the test case execution
             logAutoTestCase(testCase, testResult)

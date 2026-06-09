@@ -207,23 +207,30 @@ class BerryCrushScenarioExecutor(
         listener: BerryCrushExecutionListener,
     ): List<StepResult> {
         val stepResults = mutableListOf<StepResult>()
-        var stepIndex = 0
-        // Execute background steps
-        var continueExecution =
-            executeStepsWithContinuation(
-                scenario.background,
-                context,
-                scenarioContext,
-                stepResults,
-                stepIndex,
-                listener,
-            ) { stepIndex++ }
+        val (stepIndex, continueExecution) = executeSteps(scenario.background, context, scenarioContext, stepResults, 0, listener)
+        if (continueExecution) {
+            // Execute scenario steps
+            executeSteps(scenario.steps, context, scenarioContext, stepResults, stepIndex, listener)
+        }
+        return stepResults
+    }
 
-        // Execute scenario steps
-        for (step in scenario.steps) {
+    /**
+     * Execute a list of steps with continuation control.
+     */
+    private fun executeSteps(
+        steps: List<Step>,
+        context: ExecutionContext,
+        scenarioContext: ScenarioContextAdapter,
+        results: MutableList<StepResult>,
+        startIndex: Int,
+        listener: BerryCrushExecutionListener,
+    ): Pair<Int, Boolean> {
+        var continueExecution = true
+        var stepIndex = startIndex
+        for (step in steps) {
             if (!continueExecution) {
-                // Skip remaining steps
-                stepResults.add(StepResult(step = step, status = ResultStatus.SKIPPED))
+                results.add(StepResult(step = step, status = ResultStatus.SKIPPED))
                 continue
             }
 
@@ -233,49 +240,12 @@ class BerryCrushScenarioExecutor(
             val expandedSteps = fragmentExecutor.expand(step)
             for (expandedStep in expandedSteps) {
                 if (!continueExecution) {
-                    stepResults.add(StepResult(step = expandedStep, status = ResultStatus.SKIPPED))
+                    results.add(StepResult(step = expandedStep, status = ResultStatus.SKIPPED))
                     continue
                 }
 
                 val result = executeStepWithPlugins(expandedStep, context, scenarioContext, stepIndex++, listener)
-                stepResults.add(result)
-
-                if (result.status != ResultStatus.PASSED) {
-                    continueExecution = false
-                }
-            }
-        }
-
-        return stepResults
-    }
-
-    /**
-     * Execute a list of steps with continuation control.
-     */
-    private fun executeStepsWithContinuation(
-        steps: List<Step>,
-        context: ExecutionContext,
-        scenarioContext: ScenarioContextAdapter,
-        results: MutableList<StepResult>,
-        startIndex: Int,
-        listener: BerryCrushExecutionListener,
-        onStepExecuted: () -> Unit,
-    ): Boolean {
-        var continueExecution = true
-
-        for (step in steps) {
-            if (!continueExecution) break
-
-            // Inject include parameters into context before expanding
-            fragmentExecutor.injectParameters(step, context)
-
-            val expandedSteps = fragmentExecutor.expand(step)
-            for (expandedStep in expandedSteps) {
-                if (!continueExecution) break
-
-                val result = executeStepWithPlugins(expandedStep, context, scenarioContext, startIndex, listener)
                 results.add(result)
-                onStepExecuted()
 
                 if (result.status != ResultStatus.PASSED) {
                     continueExecution = false
@@ -283,7 +253,7 @@ class BerryCrushScenarioExecutor(
             }
         }
 
-        return continueExecution
+        return stepIndex to continueExecution
     }
 
     /**
@@ -321,7 +291,7 @@ class BerryCrushScenarioExecutor(
         pluginRegistry?.dispatchStepEnd(stepContext, StepResultAdapter(result))
 
         // Notify listener that step completed
-        listener.onStepCompleted(step, result)
+        listener.onStepCompleted(result)
 
         return result
     }
@@ -362,7 +332,7 @@ class BerryCrushScenarioExecutor(
 
         // Check if this is a custom step
         stepRegistry?.let { registry ->
-            val resolvedDescription = resolveVariables(step.description, context)
+            val resolvedDescription = context.interpolate(step.description)
             val match = registry.findMatch(resolvedDescription)
             if (match != null) {
                 return executeCustomStep(step, match, context, stepStartTime)
@@ -504,20 +474,6 @@ class BerryCrushScenarioExecutor(
                 error = e as? Exception ?: RuntimeException(e),
             )
         }
-
-    /**
-     * Resolve variables in a string.
-     */
-    private fun resolveVariables(
-        text: String,
-        context: ExecutionContext,
-    ): String {
-        val regex = """\{\{(\w+)}}""".toRegex()
-        return regex.replace(text) { matchResult ->
-            val varName = matchResult.groupValues[1]
-            context.get<Any>(varName)?.toString() ?: matchResult.value
-        }
-    }
 
     /**
      * Execute a step with an operationId (HTTP request).

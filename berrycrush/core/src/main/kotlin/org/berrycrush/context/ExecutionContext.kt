@@ -226,13 +226,16 @@ class ExecutionContext {
      * create its own webhook servers to avoid port conflicts.
      *
      * This is the recommended method for parallel scenario execution.
+     *
+     * @param overwriting a map to overwrite the variable
      */
-    fun createIsolatedCopy(): ExecutionContext {
+    fun createIsolatedCopy(overwriting: Map<String, Any>? = null): ExecutionContext {
         val copy = ExecutionContext()
         // Copy all variables
         variables.forEach { (key, value) ->
             copy.variables[key] = value
         }
+        overwriting?.forEach { (key, value) -> copy.variables[key] = value }
         // Copy volatile state using update methods
         lastResponse?.let { copy.updateLastResponse(it) }
         copy.updateCurrentOperation(currentOperation)

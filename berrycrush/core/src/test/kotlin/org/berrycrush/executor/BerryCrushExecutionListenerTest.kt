@@ -62,10 +62,10 @@ class BerryCrushExecutionListenerTest {
                 listener.onScenarioStarting(scenario)
                 listener.onStepStarting(step)
                 listener.onAutoTestStarting(testCase)
-                listener.onAutoTestCompleted(testCase, autoTestResult)
+                listener.onAutoTestCompleted(autoTestResult)
                 listener.onMultiTestStarting(MultiMode.SEQUENTIAL, 1)
                 listener.onMultiTestCompleted(multiTestResult)
-                listener.onStepCompleted(step, stepResult)
+                listener.onStepCompleted(stepResult)
                 listener.onScenarioCompleted(scenario, scenarioResult)
             }.exceptionOrNull()
 
@@ -96,11 +96,8 @@ class BerryCrushExecutionListenerTest {
                     events += "step:start:${step.description}"
                 }
 
-                override fun onStepCompleted(
-                    step: Step,
-                    result: StepResult,
-                ) {
-                    events += "step:end:${step.description}:${result.status}"
+                override fun onStepCompleted(result: StepResult) {
+                    events += "step:end:${result.step.description}:${result.status}"
                 }
 
                 override fun onScenarioCompleted(
