@@ -41,22 +41,4 @@ class DefaultFragmentExecutor(
 
         return fragment.steps
     }
-
-    /**
-     * Inject include parameters into the execution context.
-     *
-     * When a step has include parameters, they become available as variables
-     * for interpolation in the included fragment's steps.
-     *
-     * @param step The include step with parameters
-     * @param context The execution context to inject parameters into
-     */
-    override fun injectParameters(
-        step: Step,
-        context: ExecutionContext,
-    ) {
-        if (step.includeParameters.isEmpty()) return
-
-        context.resolveParams(step.includeParameters).forEach { (key, value) -> context[key] = value }
-    }
 }

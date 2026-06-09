@@ -9,7 +9,7 @@ import org.berrycrush.model.Step
  * Fragments are reusable step groups that can be included in scenarios
  * using the `include` directive.
  */
-interface FragmentExecutor {
+fun interface FragmentExecutor {
     /**
      * Expand a step that may include a fragment reference.
      *
@@ -21,18 +21,4 @@ interface FragmentExecutor {
      * @return A list of steps after expansion (single item if no fragment)
      */
     fun expand(step: Step): List<Step>
-
-    /**
-     * Inject include parameters into the execution context.
-     *
-     * When a step has include parameters, they become available as variables
-     * for interpolation in the included fragment's steps.
-     *
-     * @param step The include step with parameters
-     * @param context The execution context to inject parameters into
-     */
-    fun injectParameters(
-        step: Step,
-        context: ExecutionContext,
-    )
 }

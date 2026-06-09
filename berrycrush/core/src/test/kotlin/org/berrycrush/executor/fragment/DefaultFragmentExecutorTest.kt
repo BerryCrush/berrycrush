@@ -2,6 +2,7 @@ package org.berrycrush.executor.fragment
 
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.exception.ConfigurationException
+import org.berrycrush.executor.withIncludeParameters
 import org.berrycrush.model.Fragment
 import org.berrycrush.model.FragmentRegistry
 import org.berrycrush.model.Step
@@ -74,119 +75,33 @@ class DefaultFragmentExecutorTest {
     // --- injectParameters() Tests ---
 
     @Test
-    fun `injectParameters - injects simple string parameters`() {
+    fun `ExecutionContext#withIncludeParameters - injects simple string parameters`() {
         val executor = DefaultFragmentExecutor(null)
         val step =
             createStep(
                 fragmentName = "createEntity",
-                includeParameters = mapOf("entityName" to "Pet"),
-            )
-        val context = ExecutionContext()
-
-        executor.injectParameters(step, context)
-
-        assertEquals("Pet", context.get<String>("entityName"))
-    }
-
-    @Test
-    fun `injectParameters - injects numeric parameters`() {
-        val executor = DefaultFragmentExecutor(null)
-        val step =
-            createStep(
-                fragmentName = "paginateResults",
                 includeParameters =
                     mapOf(
-                        "page" to 1,
-                        "limit" to 10,
+                        "entityName" to "Pet",
+                        "userId" to $$"${currentUserId}",
+                        "name" to "NewValue",
+                        "message" to $$"Hello, ${userName}!",
                     ),
             )
         val context = ExecutionContext()
-
-        executor.injectParameters(step, context)
-
-        assertEquals(1, context.get<Int>("page"))
-        assertEquals(10, context.get<Int>("limit"))
-    }
-
-    @Test
-    fun `injectParameters - interpolates variable references`() {
-        val executor = DefaultFragmentExecutor(null)
-        val step =
-            createStep(
-                fragmentName = "createEntity",
-                includeParameters = mapOf("userId" to $$"${currentUserId}"),
-            )
-        val context = ExecutionContext()
         context["currentUserId"] = "user123"
-
-        executor.injectParameters(step, context)
-
-        assertEquals("user123", context.get<String>("userId"))
-    }
-
-    @Test
-    fun `injectParameters - handles mustache-style variable references`() {
-        val executor = DefaultFragmentExecutor(null)
-        val step =
-            createStep(
-                fragmentName = "createEntity",
-                includeParameters = mapOf("userId" to "{{currentUserId}}"),
-            )
-        val context = ExecutionContext()
-        context["currentUserId"] = "user456"
-
-        executor.injectParameters(step, context)
-
-        assertEquals("user456", context.get<String>("userId"))
-    }
-
-    @Test
-    fun `injectParameters - empty parameters does nothing`() {
-        val executor = DefaultFragmentExecutor(null)
-        val step =
-            createStep(
-                fragmentName = "createEntity",
-                includeParameters = emptyMap(),
-            )
-        val context = ExecutionContext()
-        context["existing"] = "value"
-
-        executor.injectParameters(step, context)
-
-        // Context should remain unchanged
-        assertEquals("value", context.get<String>("existing"))
-    }
-
-    @Test
-    fun `injectParameters - overwrites existing variables`() {
-        val executor = DefaultFragmentExecutor(null)
-        val step =
-            createStep(
-                fragmentName = "createEntity",
-                includeParameters = mapOf("name" to "NewValue"),
-            )
-        val context = ExecutionContext()
         context["name"] = "OldValue"
-
-        executor.injectParameters(step, context)
-
-        assertEquals("NewValue", context.get<String>("name"))
-    }
-
-    @Test
-    fun `injectParameters - interpolates embedded variables in strings`() {
-        val executor = DefaultFragmentExecutor(null)
-        val step =
-            createStep(
-                fragmentName = "createEntity",
-                includeParameters = mapOf("message" to $$"Hello, ${userName}!"),
-            )
-        val context = ExecutionContext()
+        context["existing"] = "value"
         context["userName"] = "World"
 
-        executor.injectParameters(step, context)
-
-        assertEquals("Hello, World!", context.get<String>("message"))
+        context.withIncludeParameters(step) {
+            assertEquals("Pet", context.get<String>("entityName"))
+            assertEquals("user123", context.get<String>("userId"))
+            assertEquals("NewValue", context.get<String>("name"))
+            assertEquals("value", context.get<String>("existing"))
+            assertEquals("Hello, World!", context.get<String>("message"))
+        }
+        assertEquals("OldValue", context.get<String>("name"))
     }
 
     // --- Helper Functions ---

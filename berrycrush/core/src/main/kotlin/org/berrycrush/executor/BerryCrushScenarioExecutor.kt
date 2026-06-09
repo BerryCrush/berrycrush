@@ -13,6 +13,7 @@ import org.berrycrush.executor.fragment.FragmentExecutor
 import org.berrycrush.executor.http.DefaultHttpExecutor
 import org.berrycrush.executor.http.HttpExecutor
 import org.berrycrush.executor.http.RetryingHttpExecutor
+import org.berrycrush.executor.resolvers.resolveParams
 import org.berrycrush.model.Assertion
 import org.berrycrush.model.AssertionResult
 import org.berrycrush.model.AutoTestConfig
@@ -235,20 +236,20 @@ class BerryCrushScenarioExecutor(
             }
 
             // Inject include parameters into context before expanding
-            fragmentExecutor.injectParameters(step, context)
+            context.withIncludeParameters(step) {
+                val expandedSteps = fragmentExecutor.expand(step)
+                for (expandedStep in expandedSteps) {
+                    if (!continueExecution) {
+                        results.add(StepResult(step = expandedStep, status = ResultStatus.SKIPPED))
+                        continue
+                    }
 
-            val expandedSteps = fragmentExecutor.expand(step)
-            for (expandedStep in expandedSteps) {
-                if (!continueExecution) {
-                    results.add(StepResult(step = expandedStep, status = ResultStatus.SKIPPED))
-                    continue
-                }
+                    val result = executeStepWithPlugins(expandedStep, context, scenarioContext, stepIndex++, listener)
+                    results.add(result)
 
-                val result = executeStepWithPlugins(expandedStep, context, scenarioContext, stepIndex++, listener)
-                results.add(result)
-
-                if (result.status != ResultStatus.PASSED) {
-                    continueExecution = false
+                    if (result.status != ResultStatus.PASSED) {
+                        continueExecution = false
+                    }
                 }
             }
         }
@@ -1054,6 +1055,29 @@ class BerryCrushScenarioExecutor(
                 message = actualException.message ?: "Custom assertion failed: ${customAssertion.description}",
                 actual = actualException.message,
             )
+        }
+    }
+}
+
+internal inline fun ExecutionContext.withIncludeParameters(
+    step: Step,
+    block: () -> Unit,
+) {
+    if (step.includeParameters.isEmpty()) {
+        block()
+    } else {
+        val saved =
+            step.includeParameters.keys
+                .filter { this.contains(it) }
+                .associateWith { this.get<Any>(it) as Any }
+        try {
+            this.resolveParams(step.includeParameters).forEach { (key, value) -> this[key] = value }
+            block()
+        } finally {
+            // Restore original values
+            for ((key, value) in saved) {
+                this[key] = value
+            }
         }
     }
 }
