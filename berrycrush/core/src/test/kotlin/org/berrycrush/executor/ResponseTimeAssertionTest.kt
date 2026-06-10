@@ -34,7 +34,7 @@ class ResponseTimeAssertionTest {
                 baseUrl = "https://httpbin.org"
             }
 
-        return BerryCrushScenarioExecutor(registry, config)
+        return BerryCrushScenarioExecutor(registry, BerryCrushConfigurationProvider.from(config))
     }
 
     /**

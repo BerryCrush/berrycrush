@@ -26,7 +26,7 @@ import kotlin.test.assertTrue
 class WebhookStepExecutorTest {
     private val httpClient = HttpClient.newHttpClient()
     private val specRegistry = SpecRegistry()
-    private val config = BerryCrushConfiguration()
+    private val config = BerryCrushConfigurationProvider.from(BerryCrushConfiguration())
     private val executor = BerryCrushScenarioExecutor(specRegistry, config)
     private val context = ExecutionContext()
 

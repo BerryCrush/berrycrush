@@ -2,6 +2,7 @@ package org.berrycrush.integration
 
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
+import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.openapi.SpecRegistry
@@ -20,7 +21,7 @@ import kotlin.test.assertTrue
  */
 class WebhookDslIntegrationTest {
     private val specRegistry = SpecRegistry()
-    private val config = BerryCrushConfiguration()
+    private val config = BerryCrushConfigurationProvider.from(BerryCrushConfiguration())
     private val loader = ScenarioLoader()
 
     @Test

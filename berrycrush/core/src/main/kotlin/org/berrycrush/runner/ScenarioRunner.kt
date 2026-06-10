@@ -3,6 +3,7 @@ package org.berrycrush.runner
 import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
+import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.BerryCrushExecutionListener
 import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.model.FragmentRegistry
@@ -105,8 +106,9 @@ class ScenarioRunner(
     private val stepRegistry: StepRegistry? = null,
     private val assertionRegistry: AssertionRegistry? = null,
 ) {
+    private val configurationProvider = BerryCrushConfigurationProvider.from(configuration)
     private val executor by lazy {
-        BerryCrushScenarioExecutor(specRegistry, configuration, pluginRegistry, fragmentRegistry, stepRegistry, assertionRegistry)
+        BerryCrushScenarioExecutor(specRegistry, configurationProvider, pluginRegistry, fragmentRegistry, stepRegistry, assertionRegistry)
     }
     private typealias ContextInitializer = (ExecutionContext) -> Unit
 
@@ -297,35 +299,34 @@ class ScenarioRunner(
         val startTime = Instant.now()
         val results = mutableListOf<Pair<Scenario, ScenarioResult>>()
 
-        // Create a modified configuration with parameters applied
-        val modifiedConfig = configuration.withParameters(parameters)
-        val modifiedExecutor = BerryCrushScenarioExecutor(specRegistry, modifiedConfig, pluginRegistry, fragmentRegistry)
+        // Override the configuration with the parameters
+        return configurationProvider.withParameters(parameters) {
+            // Initialize shared context for modified config if needed
+            val localSharedContext =
+                if (configurationProvider.shareVariablesAcrossScenarios) {
+                    ExecutionContext()
+                } else {
+                    null
+                }
 
-        // Initialize shared context for modified config if needed
-        val localSharedContext =
-            if (modifiedConfig.shareVariablesAcrossScenarios) {
-                ExecutionContext()
-            } else {
-                null
+            runCatching { pluginRegistry?.dispatchTestExecutionStart() }
+                .onFailure { e ->
+                    System.err.println("Warning: Plugin test execution start hook failed: ${e.message}")
+                }
+
+            // Execute all scenarios with modified executor
+            for (scenario in scenarios) {
+                val result = executor.execute(scenario, localSharedContext)
+                results.add(scenario to result)
             }
 
-        runCatching { pluginRegistry?.dispatchTestExecutionStart() }
-            .onFailure { e ->
-                System.err.println("Warning: Plugin test execution start hook failed: ${e.message}")
-            }
+            runCatching { pluginRegistry?.dispatchTestExecutionEnd() }
+                .onFailure { e ->
+                    System.err.println("Warning: Plugin test execution end hook failed: ${e.message}")
+                }
 
-        // Execute all scenarios with modified executor
-        for (scenario in scenarios) {
-            val result = modifiedExecutor.execute(scenario, localSharedContext)
-            results.add(scenario to result)
+            buildRunResult(startTime, results)
         }
-
-        runCatching { pluginRegistry?.dispatchTestExecutionEnd() }
-            .onFailure { e ->
-                System.err.println("Warning: Plugin test execution end hook failed: ${e.message}")
-            }
-
-        return buildRunResult(startTime, results)
     }
 
     private fun buildRunResult(

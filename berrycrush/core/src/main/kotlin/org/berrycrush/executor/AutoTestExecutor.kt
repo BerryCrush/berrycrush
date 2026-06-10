@@ -7,7 +7,6 @@ import org.berrycrush.autotest.MultiTestParameters
 import org.berrycrush.autotest.MultiTestResult
 import org.berrycrush.autotest.RequestResult
 import org.berrycrush.autotest.provider.AutoTestProviderRegistry
-import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.executor.resolvers.RequestResolver
 import org.berrycrush.executor.resolvers.ResolvedRequest
@@ -48,7 +47,7 @@ private const val RESPONSE_BODY_PREVIEW_LENGTH = 500
 @Suppress("TooManyFunctions")
 class AutoTestExecutor(
     private val specRegistry: SpecRegistry,
-    private val configuration: BerryCrushConfiguration,
+    private val configuration: BerryCrushConfigurationProvider,
     private val httpBuilder: HttpRequestBuilder,
     private val assertionRunner: (HttpResponse<String>, List<Assertion>, ExecutionContext) -> List<AssertionResult>,
     private val requestLogger: (String, String, Map<String, String>, String?) -> Unit,

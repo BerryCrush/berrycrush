@@ -24,7 +24,7 @@ class BerryCrushScenarioExecutorTest {
                 baseUrl = "https://httpbin.org" // Use httpbin for testing
             }
 
-        return BerryCrushScenarioExecutor(registry, config)
+        return BerryCrushScenarioExecutor(registry, BerryCrushConfigurationProvider.from(config))
     }
 
     @Test
@@ -35,7 +35,7 @@ class BerryCrushScenarioExecutorTest {
 
         val registry = SpecRegistry()
         registry.registerDefault(specPath)
-        val executor = BerryCrushScenarioExecutor(registry, BerryCrushConfiguration())
+        val executor = BerryCrushScenarioExecutor(registry, BerryCrushConfigurationProvider.from(BerryCrushConfiguration()))
 
         val scenario =
             Scenario(
@@ -72,7 +72,7 @@ class BerryCrushScenarioExecutorTest {
             BerryCrushConfiguration().apply {
                 baseUrl = "http://nonexistent.invalid"
             }
-        val executor = BerryCrushScenarioExecutor(registry, config)
+        val executor = BerryCrushScenarioExecutor(registry, BerryCrushConfigurationProvider.from(config))
 
         val scenario =
             Scenario(
@@ -107,7 +107,7 @@ class BerryCrushScenarioExecutorTest {
 
         val registry = SpecRegistry()
         registry.registerDefault(specPath)
-        val executor = BerryCrushScenarioExecutor(registry, BerryCrushConfiguration())
+        val executor = BerryCrushScenarioExecutor(registry, BerryCrushConfigurationProvider.from(BerryCrushConfiguration()))
 
         val scenario =
             Scenario(
@@ -139,7 +139,7 @@ class BerryCrushScenarioExecutorTest {
             BerryCrushConfiguration().apply {
                 baseUrl = "https://httpbin.org"
             }
-        val executor = BerryCrushScenarioExecutor(registry, config)
+        val executor = BerryCrushScenarioExecutor(registry, BerryCrushConfigurationProvider.from(config))
 
         // This will fail because httpbin won't match petstore schema,
         // but we can test that assertion mechanics work

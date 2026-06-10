@@ -16,13 +16,13 @@ import kotlin.test.assertNull
 @DisplayName("StepContextImpl")
 class StepContextImplTest {
     private lateinit var executionContext: ExecutionContext
-    private lateinit var configuration: BerryCrushConfiguration
+    private lateinit var configuration: BerryCrushConfigurationProvider
     private lateinit var stepContext: StepContextImpl
 
     @BeforeEach
     fun setUp() {
         executionContext = ExecutionContext()
-        configuration = BerryCrushConfiguration()
+        configuration = BerryCrushConfigurationProvider.from(BerryCrushConfiguration())
         stepContext =
             StepContextImpl(
                 executionContext = executionContext,

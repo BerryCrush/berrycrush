@@ -33,7 +33,7 @@ class BerryCrushScenarioExecutorBranchTest {
         val executor =
             BerryCrushScenarioExecutor(
                 specRegistry = SpecRegistry(),
-                configuration = BerryCrushConfiguration(),
+                configuration = BerryCrushConfigurationProvider.from(BerryCrushConfiguration()),
                 fragmentRegistry = registry,
             )
 
@@ -63,7 +63,7 @@ class BerryCrushScenarioExecutorBranchTest {
         val executor =
             BerryCrushScenarioExecutor(
                 specRegistry = SpecRegistry(),
-                configuration = BerryCrushConfiguration(),
+                configuration = BerryCrushConfigurationProvider.from(BerryCrushConfiguration()),
                 fragmentRegistry = FragmentRegistry(),
             )
         val scenario =
@@ -88,7 +88,7 @@ class BerryCrushScenarioExecutorBranchTest {
         val executor =
             BerryCrushScenarioExecutor(
                 specRegistry = SpecRegistry(),
-                configuration = BerryCrushConfiguration(),
+                configuration = BerryCrushConfigurationProvider.from(BerryCrushConfiguration()),
             )
         val scenario =
             Scenario(

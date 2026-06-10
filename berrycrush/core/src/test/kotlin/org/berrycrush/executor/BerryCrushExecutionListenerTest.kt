@@ -83,7 +83,7 @@ class BerryCrushExecutionListenerTest {
     fun `executor should notify listener in scenario and step order`() {
         val registry = SpecRegistry()
         registry.registerDefault(petstoreSpecPath())
-        val executor = BerryCrushScenarioExecutor(registry, BerryCrushConfiguration())
+        val executor = BerryCrushScenarioExecutor(registry, BerryCrushConfigurationProvider.from(BerryCrushConfiguration()))
         val events = mutableListOf<String>()
 
         val listener =

@@ -10,7 +10,7 @@ class HttpRequestBuilderConfigTest {
     @Test
     fun `constructor accepts configuration timeout`() {
         val config = BerryCrushConfiguration(timeout = Duration.ofSeconds(45))
-        val builder = HttpRequestBuilder(config)
+        val builder = HttpRequestBuilder(BerryCrushConfigurationProvider.from(config))
 
         // The builder is created without errors
         assertNotNull(builder)
@@ -23,7 +23,7 @@ class HttpRequestBuilderConfigTest {
                 timeout = Duration.ofSeconds(30),
                 followRedirects = false,
             )
-        val builder = HttpRequestBuilder(config)
+        val builder = HttpRequestBuilder(BerryCrushConfigurationProvider.from(config))
         assertNotNull(builder)
     }
 

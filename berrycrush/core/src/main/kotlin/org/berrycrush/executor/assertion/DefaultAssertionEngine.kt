@@ -3,7 +3,6 @@ package org.berrycrush.executor.assertion
 import com.jayway.jsonpath.JsonPath
 import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.assertion.SchemaValidator
-import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.model.Condition
 import org.berrycrush.model.ConditionOperator
 import org.berrycrush.model.LogicalOperator
@@ -33,12 +32,10 @@ private const val MS_PER_SECOND = 1000L
  * - Compound conditions (AND/OR)
  * - Negated conditions
  *
- * @property configuration Optional configuration for custom assertion execution
  * @property assertionRegistry Optional registry for custom assertion definitions
  */
 @Suppress("TooManyFunctions") // Dispatcher pattern with many condition type handlers
 class DefaultAssertionEngine(
-    private val configuration: BerryCrushConfiguration? = null,
     private val assertionRegistry: AssertionRegistry? = null,
 ) : AssertionEngine {
     private val objectMapper = ObjectMapper()
@@ -285,14 +282,12 @@ class DefaultAssertionEngine(
         context: AssertionContext,
     ): Boolean {
         val registry = assertionRegistry ?: return false
-        val config = configuration ?: return false
 
         val match = registry.findMatch(condition.pattern) ?: return false
 
         val assertionContext =
             org.berrycrush.assertion.AssertionContextImpl(
                 executionContext = context.executionContext,
-                configuration = config,
                 sharedVariables = null,
                 sharingEnabled = false,
             )

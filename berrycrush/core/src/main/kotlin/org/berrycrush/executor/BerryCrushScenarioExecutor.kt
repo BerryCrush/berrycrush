@@ -1,7 +1,7 @@
 package org.berrycrush.executor
 
 import com.jayway.jsonpath.JsonPath
-import org.berrycrush.config.BerryCrushConfiguration
+import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.context.MutableTestExecutionContext
 import org.berrycrush.context.resolveParams
@@ -62,12 +62,12 @@ import org.berrycrush.executor.assertion.AssertionContext as ExecutorAssertionCo
  */
 class BerryCrushScenarioExecutor(
     private val specRegistry: SpecRegistry,
-    private val configuration: BerryCrushConfiguration,
+    private val configuration: BerryCrushConfigurationProvider,
     private val pluginRegistry: PluginRegistry? = null,
     private val fragmentRegistry: FragmentRegistry? = null,
     private val stepRegistry: StepRegistry? = null,
-    private val assertionRegistry: org.berrycrush.assertion.AssertionRegistry? = null,
-    private val assertionEngine: AssertionEngine = DefaultAssertionEngine(configuration, assertionRegistry),
+    private val assertionRegistry: AssertionRegistry? = null,
+    private val assertionEngine: AssertionEngine = DefaultAssertionEngine(assertionRegistry),
     private val httpExecutor: HttpExecutor = createHttpExecutor(configuration),
     private val fragmentExecutor: FragmentExecutor = DefaultFragmentExecutor(fragmentRegistry),
 ) {
@@ -80,7 +80,7 @@ class BerryCrushScenarioExecutor(
          * If retry is enabled in the configuration, wraps the default executor
          * with a [RetryingHttpExecutor].
          */
-        private fun createHttpExecutor(configuration: BerryCrushConfiguration): HttpExecutor {
+        private fun createHttpExecutor(configuration: BerryCrushConfigurationProvider): HttpExecutor {
             val baseExecutor = DefaultHttpExecutor(configuration)
             return if (configuration.retryConfig.isEnabled) {
                 RetryingHttpExecutor(
@@ -124,80 +124,55 @@ class BerryCrushScenarioExecutor(
         sharedContext: ExecutionContext? = null,
         sourceFile: File? = null,
         executionListener: BerryCrushExecutionListener? = null,
-    ): ScenarioResult {
-        // If scenario has configuration-affecting parameters, delegate to a modified executor
-        if (scenario.parameters.isNotEmpty()) {
-            val modifiedConfig = configuration.withParameters(scenario.parameters)
-            // Only create new executor if configuration actually changed
-            if (modifiedConfig != configuration) {
-                val modifiedExecutor =
-                    BerryCrushScenarioExecutor(
-                        specRegistry,
-                        modifiedConfig,
-                        pluginRegistry,
-                        fragmentRegistry,
-                        stepRegistry,
-                        assertionRegistry,
-                        DefaultAssertionEngine(modifiedConfig, assertionRegistry),
-                        DefaultHttpExecutor(modifiedConfig),
-                    )
-                // Execute with modified executor but clear scenario parameters to avoid recursion
-                return modifiedExecutor.execute(
-                    scenario.copy(parameters = emptyMap()),
-                    sharedContext,
-                    sourceFile,
-                    executionListener,
+    ): ScenarioResult =
+        configuration.withParameters(scenario.parameters) {
+            val listener = executionListener ?: BerryCrushExecutionListener.NOOP
+
+            // Notify listener that scenario is starting
+            listener.onScenarioStarting(scenario)
+
+            val startTime = Instant.now()
+            val context = sharedContext?.createChild() ?: ExecutionContext()
+
+            // Store scenario parameters in context for variable resolution
+            for ((key, value) in scenario.parameters) {
+                context["param.$key"] = value
+            }
+
+            val scenarioContext = ScenarioContextAdapter(scenario, context, startTime, sourceFile)
+
+            pluginRegistry?.dispatchScenarioStart(scenarioContext)
+
+            val stepResults = executeAllSteps(scenario, context, scenarioContext, listener)
+            val overallStatus = determineOverallStatus(stepResults)
+            val duration = Duration.between(startTime, Instant.now())
+
+            val scenarioResult =
+                ScenarioResult(
+                    scenario = scenario,
+                    status = overallStatus,
+                    stepResults = stepResults,
+                    startTime = startTime,
+                    duration = duration,
                 )
+
+            pluginRegistry?.dispatchScenarioEnd(scenarioContext, ScenarioResultAdapter(scenarioResult))
+
+            // Cleanup scenario-scoped webhook servers
+            context.cleanupWebhookServers()
+
+            // Copy extracted variables back to shared context for cross-scenario sharing
+            if (sharedContext != null && scenarioResult.status == ResultStatus.PASSED) {
+                context.allVariables().forEach { (name, value) ->
+                    value?.let { sharedContext[name] = it }
+                }
             }
+
+            // Notify listener that scenario completed
+            listener.onScenarioCompleted(scenario, scenarioResult)
+
+            scenarioResult
         }
-
-        val listener = executionListener ?: BerryCrushExecutionListener.NOOP
-
-        // Notify listener that scenario is starting
-        listener.onScenarioStarting(scenario)
-
-        val startTime = Instant.now()
-        val context = sharedContext?.createChild() ?: ExecutionContext()
-
-        // Store scenario parameters in context for variable resolution
-        for ((key, value) in scenario.parameters) {
-            context["param.$key"] = value
-        }
-
-        val scenarioContext = ScenarioContextAdapter(scenario, context, startTime, sourceFile)
-
-        pluginRegistry?.dispatchScenarioStart(scenarioContext)
-
-        val stepResults = executeAllSteps(scenario, context, scenarioContext, listener)
-        val overallStatus = determineOverallStatus(stepResults)
-        val duration = Duration.between(startTime, Instant.now())
-
-        val scenarioResult =
-            ScenarioResult(
-                scenario = scenario,
-                status = overallStatus,
-                stepResults = stepResults,
-                startTime = startTime,
-                duration = duration,
-            )
-
-        pluginRegistry?.dispatchScenarioEnd(scenarioContext, ScenarioResultAdapter(scenarioResult))
-
-        // Cleanup scenario-scoped webhook servers
-        context.cleanupWebhookServers()
-
-        // Copy extracted variables back to shared context for cross-scenario sharing
-        if (sharedContext != null && scenarioResult.status == ResultStatus.PASSED) {
-            context.allVariables().forEach { (name, value) ->
-                value?.let { sharedContext[name] = it }
-            }
-        }
-
-        // Notify listener that scenario completed
-        listener.onScenarioCompleted(scenario, scenarioResult)
-
-        return scenarioResult
-    }
 
     /**
      * Execute all steps (background + scenario) and return results.
@@ -746,7 +721,7 @@ class BerryCrushScenarioExecutor(
         assertionResults.addAll(conditionalResults.assertionResults)
 
         // Run custom assertions (DSL assert blocks)
-        val customAssertionResults = runCustomAssertions(response, step.customAssertions, context)
+        val customAssertionResults = runCustomAssertions(step.customAssertions, context)
         assertionResults.addAll(customAssertionResults)
 
         // Check for conditional fail
@@ -1003,19 +978,17 @@ class BerryCrushScenarioExecutor(
      * (including AssertionError from require/check/assert) to indicate failure.
      */
     private fun runCustomAssertions(
-        response: HttpResponse<String>,
         customAssertions: List<CustomAssertionDefinition>,
         context: ExecutionContext,
     ): List<AssertionResult> =
         customAssertions.map { customAssertion ->
-            runCustomAssertion(response, customAssertion, context)
+            runCustomAssertion(customAssertion, context)
         }
 
     /**
      * Run a single custom assertion.
      */
     private fun runCustomAssertion(
-        response: HttpResponse<String>,
         customAssertion: CustomAssertionDefinition,
         context: ExecutionContext,
     ): AssertionResult {

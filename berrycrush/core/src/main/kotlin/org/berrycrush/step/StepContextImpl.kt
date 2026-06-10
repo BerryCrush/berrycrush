@@ -1,7 +1,7 @@
 package org.berrycrush.step
 
-import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
+import org.berrycrush.executor.BerryCrushConfigurationProvider
 import java.net.http.HttpResponse
 
 /**
@@ -17,7 +17,7 @@ import java.net.http.HttpResponse
  */
 class StepContextImpl(
     private val executionContext: ExecutionContext,
-    override val configuration: BerryCrushConfiguration,
+    override val configuration: BerryCrushConfigurationProvider,
     private val sharedVariables: MutableMap<String, Any?>? = null,
     private val sharingEnabled: Boolean = false,
 ) : StepContext {

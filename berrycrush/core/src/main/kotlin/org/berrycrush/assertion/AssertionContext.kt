@@ -1,6 +1,5 @@
 package org.berrycrush.assertion
 
-import org.berrycrush.config.BerryCrushConfiguration
 import java.net.http.HttpResponse
 
 /**
@@ -69,12 +68,4 @@ interface AssertionContext {
      * or if the assertion is evaluated before any API calls.
      */
     val lastResponse: HttpResponse<String>?
-
-    /**
-     * The current execution configuration.
-     *
-     * Provides read-only access to the configuration settings like
-     * base URL, timeout, and other execution parameters.
-     */
-    val configuration: BerryCrushConfiguration
 }

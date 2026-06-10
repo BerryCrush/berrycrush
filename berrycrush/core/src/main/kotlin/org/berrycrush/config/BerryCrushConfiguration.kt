@@ -4,7 +4,6 @@ import org.berrycrush.autotest.MultiTestParameters
 import org.berrycrush.exception.ErrorContextConfig
 import org.berrycrush.logging.HttpLogFormatter
 import org.berrycrush.logging.HttpLogger
-import org.berrycrush.logging.HttpLoggerFactory
 import java.time.Duration
 
 private const val DEFAULT_TIMEOUT_SECONDS = 30L
@@ -92,12 +91,6 @@ data class BerryCrushConfiguration(
      */
     var retryConfig: RetryConfig = RetryConfig.DISABLED,
 ) {
-    /**
-     * Get the effective HTTP logger.
-     * Returns the custom logger if set, otherwise creates one from the factory.
-     */
-    fun getEffectiveHttpLogger(): HttpLogger = httpLogger ?: HttpLoggerFactory.create()
-
     /**
      * DSL helper to set timeout in seconds.
      */
@@ -288,17 +281,6 @@ data class BerryCrushConfiguration(
             is String -> value.toIntOrNull() ?: default
             else -> default
         }
-
-    /**
-     * Get multi-test parameters as a map for executor use.
-     *
-     * @return Map containing multi-test configuration parameters
-     */
-    fun getMultiTestParameters(): Map<String, Int> =
-        mapOf(
-            MultiTestParameters.SEQUENTIAL_COUNT to multiTestSequentialCount,
-            MultiTestParameters.CONCURRENT_COUNT to multiTestConcurrentCount,
-        )
 }
 
 /**

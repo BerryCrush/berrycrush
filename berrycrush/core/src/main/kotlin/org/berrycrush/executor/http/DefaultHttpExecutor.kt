@@ -1,7 +1,7 @@
 package org.berrycrush.executor.http
 
-import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
+import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.HttpRequestBuilder
 import org.berrycrush.executor.resolvers.RequestResolver
 import org.berrycrush.executor.resolvers.ResolvedRequest
@@ -25,7 +25,7 @@ import java.net.http.HttpResponse
  * @property httpBuilder Builder for constructing and executing HTTP requests
  */
 class DefaultHttpExecutor(
-    private val configuration: BerryCrushConfiguration,
+    private val configuration: BerryCrushConfigurationProvider,
     private val httpBuilder: HttpRequestBuilder = HttpRequestBuilder(configuration),
     objectMapper: ObjectMapper = ObjectMapper(),
 ) : HttpExecutor {

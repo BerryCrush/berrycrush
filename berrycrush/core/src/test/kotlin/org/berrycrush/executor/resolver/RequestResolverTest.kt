@@ -2,6 +2,7 @@ package org.berrycrush.executor.resolver
 
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
+import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.HttpRequestBuilder
 import org.berrycrush.executor.resolvers.RequestResolver
 import org.berrycrush.model.BodyProperty
@@ -13,7 +14,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class RequestResolverTest {
-    private val configuration = BerryCrushConfiguration()
+    private val configuration = BerryCrushConfigurationProvider.from(BerryCrushConfiguration())
     private val httpBuilder = HttpRequestBuilder()
     private val resolver = RequestResolver(configuration, httpBuilder)
 

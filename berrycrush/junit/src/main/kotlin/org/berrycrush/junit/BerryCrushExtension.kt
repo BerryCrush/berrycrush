@@ -4,6 +4,7 @@ import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.dsl.BerryCrushSuite
 import org.berrycrush.exception.ConfigurationException
+import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.junit.engine.RegistryFactory
 import org.berrycrush.model.Scenario
@@ -249,21 +250,21 @@ class BerryCrushExtension :
      * Get or create the executor. Creating lazily allows test's @BeforeEach
      * to configure dynamic values before the executor is created.
      */
-    private fun getOrCreateExecutor(context: ExtensionContext): BerryCrushScenarioExecutor {
-        var executor = context.getStore(NAMESPACE).get(EXECUTOR_KEY, BerryCrushScenarioExecutor::class.java)
-        if (executor == null) {
-            val suite = getSuite(context)
-            val stepRegistry = getOrCreateStepRegistry(context)
-            val assertionRegistry = getOrCreateAssertionRegistry(context)
-            executor =
-                BerryCrushScenarioExecutor(
-                    specRegistry = suite.specRegistry,
-                    configuration = suite.configuration,
-                    stepRegistry = stepRegistry,
-                    assertionRegistry = assertionRegistry,
-                )
-            context.getStore(NAMESPACE).put(EXECUTOR_KEY, executor)
-        }
+    private fun getOrCreateExecutor(context: ExtensionContext): BerryCrushScenarioExecutor =
+        context.getStore(NAMESPACE).get(EXECUTOR_KEY, BerryCrushScenarioExecutor::class.java) ?: createExecutor(context)
+
+    private fun createExecutor(context: ExtensionContext): BerryCrushScenarioExecutor {
+        val suite = getSuite(context)
+        val stepRegistry = getOrCreateStepRegistry(context)
+        val assertionRegistry = getOrCreateAssertionRegistry(context)
+        val executor =
+            BerryCrushScenarioExecutor(
+                specRegistry = suite.specRegistry,
+                configuration = BerryCrushConfigurationProvider.from(suite.configuration),
+                stepRegistry = stepRegistry,
+                assertionRegistry = assertionRegistry,
+            )
+        context.getStore(NAMESPACE).put(EXECUTOR_KEY, executor)
         return executor
     }
 

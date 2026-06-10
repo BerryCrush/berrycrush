@@ -6,7 +6,6 @@ import org.berrycrush.assertion.AssertionDefinition
 import org.berrycrush.assertion.AssertionMatch
 import org.berrycrush.assertion.AssertionResult
 import org.berrycrush.assertion.DefaultAssertionRegistry
-import org.berrycrush.config.BerryCrushConfiguration
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -23,12 +22,10 @@ import kotlin.test.assertTrue
  */
 class CustomAssertionExecutionTest {
     private lateinit var assertionRegistry: DefaultAssertionRegistry
-    private lateinit var config: BerryCrushConfiguration
 
     @BeforeEach
     fun setup() {
         assertionRegistry = DefaultAssertionRegistry()
-        config = BerryCrushConfiguration()
     }
 
     @Nested
@@ -377,7 +374,6 @@ class CustomAssertionExecutionTest {
 
         return org.berrycrush.assertion.AssertionContextImpl(
             executionContext = executionContext,
-            configuration = config,
             sharedVariables = null,
             sharingEnabled = false,
         )

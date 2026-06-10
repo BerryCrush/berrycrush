@@ -16,7 +16,7 @@ import kotlin.test.assertTrue
  */
 class DefaultAssertionEngineTest {
     private val configuration = BerryCrushConfiguration()
-    private val engine = DefaultAssertionEngine(configuration)
+    private val engine = DefaultAssertionEngine()
 
     // --- JsonPath Condition Tests ---
 

@@ -1,9 +1,9 @@
 package org.berrycrush.executor.resolvers
 
-import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.context.resolveParam
 import org.berrycrush.context.resolveParams
+import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.HttpRequestBuilder
 import org.berrycrush.model.BodyProperty
 import org.berrycrush.model.Step
@@ -64,7 +64,11 @@ class RequestResolver(
     private val objectMapper: ObjectMapper = ObjectMapper(),
 ) {
     @JvmOverloads
-    constructor(configuration: BerryCrushConfiguration, httpBuilder: HttpRequestBuilder, objectMapper: ObjectMapper = ObjectMapper()) :
+    constructor(
+        configuration: BerryCrushConfigurationProvider,
+        httpBuilder: HttpRequestBuilder,
+        objectMapper: ObjectMapper = ObjectMapper(),
+    ) :
         this(
             DefaultUrlResolver(configuration, httpBuilder),
             DefaultHeaderResolver(configuration),
@@ -106,7 +110,7 @@ class RequestResolver(
 // default implementations of the resolvers
 
 private class DefaultUrlResolver(
-    private val configuration: BerryCrushConfiguration,
+    private val configuration: BerryCrushConfigurationProvider,
     private val httpBuilder: HttpRequestBuilder,
 ) : UrlResolver {
     override fun resolve(
@@ -124,7 +128,7 @@ private class DefaultUrlResolver(
 }
 
 private class DefaultHeaderResolver(
-    private val configuration: BerryCrushConfiguration,
+    private val configuration: BerryCrushConfigurationProvider,
 ) : HeaderResolver {
     override fun resolve(
         step: Step,

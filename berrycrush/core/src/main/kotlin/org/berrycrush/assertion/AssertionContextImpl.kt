@@ -1,6 +1,5 @@
 package org.berrycrush.assertion
 
-import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
 import java.net.http.HttpResponse
 
@@ -11,13 +10,11 @@ import java.net.http.HttpResponse
  * for custom assertion implementations.
  *
  * @property executionContext The underlying execution context
- * @property configuration The BerryCrush configuration
  * @property sharedVariables Optional shared variables map
  * @property sharingEnabled Whether variable sharing is enabled
  */
 class AssertionContextImpl(
     private val executionContext: ExecutionContext,
-    override val configuration: BerryCrushConfiguration,
     private val sharedVariables: Map<String, Any?>? = null,
     private val sharingEnabled: Boolean = false,
 ) : AssertionContext {

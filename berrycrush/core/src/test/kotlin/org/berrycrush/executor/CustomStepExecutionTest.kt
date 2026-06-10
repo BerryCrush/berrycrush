@@ -43,7 +43,7 @@ class CustomStepExecutionTest {
     private fun createExecutor(): BerryCrushScenarioExecutor =
         BerryCrushScenarioExecutor(
             specRegistry = specRegistry,
-            configuration = config,
+            configuration = BerryCrushConfigurationProvider.from(config),
             stepRegistry = stepRegistry,
         )
 

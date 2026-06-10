@@ -246,6 +246,7 @@ class BerryCrushExtensionInternalTest {
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
     private fun handleStoreCompute(
         storeData: MutableMap<Any, Any>,
         args: Array<Any?>?,

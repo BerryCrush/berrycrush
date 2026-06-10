@@ -2,6 +2,7 @@ package org.berrycrush.step
 
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
+import org.berrycrush.executor.BerryCrushConfigurationProvider
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -142,7 +143,7 @@ class StepContextImplTest {
             }
         return StepContextImpl(
             executionContext = executionContext,
-            configuration = config,
+            configuration = BerryCrushConfigurationProvider.from(config),
             sharedVariables = sharedVariables,
             sharingEnabled = sharingEnabled,
         )

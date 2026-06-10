@@ -1,6 +1,6 @@
 package org.berrycrush.step
 
-import org.berrycrush.config.BerryCrushConfiguration
+import org.berrycrush.executor.BerryCrushConfigurationProvider
 import java.net.http.HttpResponse
 
 /**
@@ -106,7 +106,7 @@ interface StepContext {
      * Provides read-only access to the configuration settings like
      * base URL, timeout, and other execution parameters.
      */
-    val configuration: BerryCrushConfiguration
+    val configuration: BerryCrushConfigurationProvider
 }
 
 /**
