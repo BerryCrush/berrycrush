@@ -4,6 +4,7 @@ import com.jayway.jsonpath.JsonPath
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.context.MutableTestExecutionContext
+import org.berrycrush.context.resolveParams
 import org.berrycrush.exception.HttpExecutionException
 import org.berrycrush.exception.ScenarioErrorContext
 import org.berrycrush.executor.assertion.AssertionEngine
@@ -13,7 +14,6 @@ import org.berrycrush.executor.fragment.FragmentExecutor
 import org.berrycrush.executor.http.DefaultHttpExecutor
 import org.berrycrush.executor.http.HttpExecutor
 import org.berrycrush.executor.http.RetryingHttpExecutor
-import org.berrycrush.executor.resolvers.resolveParams
 import org.berrycrush.model.Assertion
 import org.berrycrush.model.AssertionResult
 import org.berrycrush.model.AutoTestConfig
@@ -41,6 +41,7 @@ import org.berrycrush.step.StepContextImpl
 import org.berrycrush.step.StepMatch
 import org.berrycrush.step.StepRegistry
 import org.berrycrush.webhook.MockWebhookServer
+import java.io.File
 import java.net.http.HttpResponse
 import java.time.Duration
 import java.time.Instant
@@ -121,7 +122,7 @@ class BerryCrushScenarioExecutor(
     fun execute(
         scenario: Scenario,
         sharedContext: ExecutionContext? = null,
-        sourceFile: java.io.File? = null,
+        sourceFile: File? = null,
         executionListener: BerryCrushExecutionListener? = null,
     ): ScenarioResult {
         // If scenario has configuration-affecting parameters, delegate to a modified executor
@@ -244,7 +245,7 @@ class BerryCrushScenarioExecutor(
                         continue
                     }
 
-                    val result = executeStepWithPlugins(expandedStep, context, scenarioContext, stepIndex++, listener)
+                    val result = executeStep(expandedStep, context, scenarioContext, stepIndex++, listener)
                     results.add(result)
 
                     if (result.status != ResultStatus.PASSED) {
@@ -269,7 +270,7 @@ class BerryCrushScenarioExecutor(
             else -> ResultStatus.PASSED
         }
 
-    private fun executeStepWithPlugins(
+    private fun executeStep(
         step: Step,
         context: ExecutionContext,
         scenarioContext: ScenarioContextAdapter,
@@ -286,7 +287,11 @@ class BerryCrushScenarioExecutor(
         pluginRegistry?.dispatchStepStart(stepContext)
 
         // Execute the actual step with scenario context for error enrichment
-        val result = executeStep(step, context, scenarioContext, stepIndex, listener)
+        val stepStartTime = Instant.now()
+        val result = // If no operation to call, check for custom step or assertions
+            step.operationId?.let {
+                executeOperationStep(step, context, stepStartTime, scenarioContext, stepIndex, listener)
+            } ?: executeNonOperationStep(step, context, stepStartTime)
 
         // Dispatch plugin: onStepEnd
         pluginRegistry?.dispatchStepEnd(stepContext, StepResultAdapter(result))
@@ -295,21 +300,6 @@ class BerryCrushScenarioExecutor(
         listener.onStepCompleted(result)
 
         return result
-    }
-
-    private fun executeStep(
-        step: Step,
-        context: ExecutionContext,
-        scenarioContext: ScenarioContextAdapter,
-        stepIndex: Int,
-        listener: BerryCrushExecutionListener,
-    ): StepResult {
-        val stepStartTime = Instant.now()
-
-        // If no operation to call, check for custom step or assertions
-        return step.operationId?.let {
-            executeOperationStep(step, context, stepStartTime, scenarioContext, stepIndex, listener)
-        } ?: executeNonOperationStep(step, context, stepStartTime)
     }
 
     /**

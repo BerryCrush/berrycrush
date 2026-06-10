@@ -455,3 +455,11 @@ class ExecutionContext {
         return builder.toString()
     }
 }
+
+fun ExecutionContext.resolveParam(value: Any): Any =
+    when (value) {
+        is String -> this.interpolate(value)
+        else -> value
+    }
+
+fun ExecutionContext.resolveParams(params: Map<String, Any>): Map<String, Any> = params.mapValues { (_, value) -> resolveParam(value) }

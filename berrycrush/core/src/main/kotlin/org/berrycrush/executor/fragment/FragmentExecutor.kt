@@ -1,6 +1,5 @@
 package org.berrycrush.executor.fragment
 
-import org.berrycrush.context.ExecutionContext
 import org.berrycrush.model.Step
 
 /**

@@ -1,8 +1,6 @@
 package org.berrycrush.executor.fragment
 
-import org.berrycrush.context.ExecutionContext
 import org.berrycrush.exception.ConfigurationException
-import org.berrycrush.executor.resolvers.resolveParams
 import org.berrycrush.model.FragmentRegistry
 import org.berrycrush.model.Step
 

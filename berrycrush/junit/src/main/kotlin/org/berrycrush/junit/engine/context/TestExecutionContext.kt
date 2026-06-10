@@ -3,7 +3,6 @@ package org.berrycrush.junit.engine.context
 import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.dsl.BerryCrushSuite
-import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.junit.BerryCrushBindings
 import org.berrycrush.junit.ParallelExecutionMode
 import org.berrycrush.junit.engine.ClassTestDescriptor
@@ -145,7 +144,7 @@ private fun TestExecutionContext.buildFileContext(
         } else {
             suite.configuration
         }
-
+    val newRunner = runner.from(fileConfig)
     // Apply per-spec base URL overrides from file parameters
     fileContent.parameters
         .filterKeys { it.startsWith("baseUrl.") }
@@ -158,16 +157,6 @@ private fun TestExecutionContext.buildFileContext(
                 suite.specRegistry.updateBaseUrl(specName, value.toString())
             }
         }
-
-    val executor =
-        BerryCrushScenarioExecutor(
-            suite.specRegistry,
-            fileConfig,
-            pluginRegistry,
-            fragmentRegistry,
-            stepRegistry,
-            assertionRegistry,
-        )
 
     val sharedContext =
         if (fileConfig.shareVariablesAcrossScenarios) ExecutionContext() else null
@@ -183,7 +172,7 @@ private fun TestExecutionContext.buildFileContext(
     }
 
     return FileExecutionContext(
-        executor = executor,
+        runner = newRunner,
         sharedContext = sharedContext,
         scenarioPath = fileDescriptor.scenarioPath,
     )

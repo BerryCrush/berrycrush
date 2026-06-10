@@ -1,13 +1,14 @@
 package org.berrycrush.junit.engine.context
 
 import org.berrycrush.context.ExecutionContext
-import org.berrycrush.executor.BerryCrushScenarioExecutor
+import org.berrycrush.context.resolveParams
 import org.berrycrush.junit.engine.ClassTestDescriptor
 import org.berrycrush.junit.engine.FeatureDescriptor
 import org.berrycrush.junit.engine.IndividualScenarioDescriptor
 import org.berrycrush.junit.engine.ScenarioFileDescriptor
 import org.berrycrush.junit.engine.adapter.JUnitExecutionListenerAdapter
 import org.berrycrush.model.Scenario
+import org.berrycrush.runner.ScenarioRunner
 import org.junit.platform.engine.EngineExecutionListener
 import org.junit.platform.engine.TestExecutionResult
 import java.io.File
@@ -16,8 +17,8 @@ import java.io.File
  * Holds the execution context for a scenario file.
  */
 internal data class FileExecutionContext(
-    val executor: BerryCrushScenarioExecutor,
-    val sharedContext: ExecutionContext?,
+    val runner: ScenarioRunner,
+    var sharedContext: ExecutionContext?,
     val scenarioPath: String,
 ) {
     fun executeFileChildren(
@@ -67,34 +68,21 @@ private fun FileExecutionContext.executeFeature(
     // Use feature-level shared context if enabled, otherwise fall back to file-level
     val effectiveContext =
         when {
-            featureShareVariables && sharedContext == null -> {
-                // Feature enables sharing, but file doesn't - create feature-level context
-                copy(sharedContext = createFeatureContext())
-            }
-            !featureShareVariables && sharedContext != null -> {
-                // Feature disables sharing while file enables it - use isolated context
-                // Still inject feature parameters into a fresh context for the feature
-                copy(sharedContext = createFeatureContext())
-            }
-            featureShareVariables -> {
-                // Feature enables sharing, create separate context to isolate from other features
-                copy(sharedContext = createFeatureContext())
-            }
-            else -> {
-                // Use file-level context but with feature parameters
-                // Create a new shared context with feature params if feature has any
-                if (featureDescriptor.parameters.isNotEmpty()) {
-                    copy(sharedContext = createFeatureContext())
-                } else {
-                    this
-                }
-            }
+            // Feature enables sharing, but file doesn't - create feature-level context
+            featureShareVariables -> createFeatureContext()
+            // Feature disables sharing while file enables it - use isolated context
+            // Still inject feature parameters into a fresh context for the feature
+            sharedContext != null -> createFeatureContext()
+            // Use file-level context but with feature parameters
+            // Create a new shared context with feature params if feature has any
+            featureDescriptor.parameters.isNotEmpty() -> createFeatureContext()
+            else -> null
         }
-
+    sharedContext = effectiveContext
     val hasFailure =
         featureDescriptor.children
             .filterIsInstance<IndividualScenarioDescriptor>()
-            .map { effectiveContext.executeScenario(it, classDescriptor, listener) }
+            .map { executeScenario(it, classDescriptor, listener) }
             .any { it }
 
     val result =
@@ -135,22 +123,17 @@ private fun FileExecutionContext.executeScenario(
     return runCatching {
         // Create execution context - use shared context if available,
         // or create one for outline scenarios with examples
-        val executionContext =
-            sharedContext
-                ?: if (scenarioDescriptor.scenario.examples?.isNotEmpty() == true) {
-                    ExecutionContext()
-                } else {
-                    null
-                }
-
-        // Add example row values to context if this is an outline scenario
-        initializeContext(scenarioDescriptor.scenario, executionContext)
+        if (sharedContext != null || scenarioDescriptor.scenario.examples?.isNotEmpty() == true) {
+            runner.initializeContext(sharedContext) {
+                // Add example row values to context if this is an outline scenario
+                it.initializeContext(scenarioDescriptor.scenario)
+            }
+        }
 
         // Execute with execution listener for real-time event reporting
         // All JUnit events (scenario start/end, auto-test start/end) are handled by the listener
-        executor.execute(
+        runner.executeScenario(
             scenarioDescriptor.scenario,
-            executionContext,
             sourceFile,
             executionListener,
         )
@@ -171,23 +154,11 @@ private fun FileExecutionContext.executeScenario(
  * Initialize execution context with example row values for scenario outlines.
  * For non-outline scenarios, this is a no-op.
  */
-private fun initializeContext(
-    scenario: Scenario,
-    context: ExecutionContext?,
-) {
-    context ?: return
+private fun ExecutionContext.initializeContext(scenario: Scenario) {
     val examples = scenario.examples ?: return
     if (examples.isEmpty()) return
 
     // Use the first (and only) example row - outlines are expanded to one row per scenario
     val row = examples.first()
-    row.values.forEach { (key, value) ->
-        // Interpolate any variables in example values using existing context
-        val resolvedValue =
-            when (value) {
-                is String -> context.interpolate(value)
-                else -> value
-            }
-        context[key] = resolvedValue
-    }
+    this.resolveParams(row.values).forEach { (key, value) -> this[key] = value }
 }

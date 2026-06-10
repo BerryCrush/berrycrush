@@ -2,6 +2,8 @@ package org.berrycrush.executor.resolvers
 
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
+import org.berrycrush.context.resolveParam
+import org.berrycrush.context.resolveParams
 import org.berrycrush.executor.HttpRequestBuilder
 import org.berrycrush.model.BodyProperty
 import org.berrycrush.model.Step

@@ -1,7 +1,9 @@
 package org.berrycrush.runner
 
+import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
+import org.berrycrush.executor.BerryCrushExecutionListener
 import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.model.FragmentRegistry
 import org.berrycrush.model.ResultStatus
@@ -10,6 +12,8 @@ import org.berrycrush.model.ScenarioResult
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.plugin.PluginRegistry
 import org.berrycrush.report.ReportPlugin
+import org.berrycrush.step.StepRegistry
+import java.io.File
 import java.time.Duration
 import java.time.Instant
 
@@ -98,16 +102,35 @@ class ScenarioRunner(
     private val configuration: BerryCrushConfiguration,
     private val pluginRegistry: PluginRegistry? = null,
     private val fragmentRegistry: FragmentRegistry? = null,
+    private val stepRegistry: StepRegistry? = null,
+    private val assertionRegistry: AssertionRegistry? = null,
 ) {
     private val executor by lazy {
-        BerryCrushScenarioExecutor(specRegistry, configuration, pluginRegistry, fragmentRegistry)
+        BerryCrushScenarioExecutor(specRegistry, configuration, pluginRegistry, fragmentRegistry, stepRegistry, assertionRegistry)
     }
+    private typealias ContextInitializer = (ExecutionContext) -> Unit
 
     /**
      * Shared execution context for cross-scenario variable sharing.
      * Only used when [BerryCrushConfiguration.shareVariablesAcrossScenarios] is true.
      */
     private var sharedContext: ExecutionContext? = null
+
+    fun from(configuration: BerryCrushConfiguration): ScenarioRunner =
+        if (this.configuration == configuration) {
+            this
+        } else {
+            ScenarioRunner(specRegistry, configuration, pluginRegistry, fragmentRegistry, stepRegistry, assertionRegistry)
+        }
+
+    fun initializeContext(
+        context: ExecutionContext?,
+        contextInitializer: ContextInitializer,
+    ) {
+        val newContext = context ?: ExecutionContext()
+        contextInitializer(newContext)
+        sharedContext = newContext
+    }
 
     /**
      * Begin test execution lifecycle.
@@ -161,9 +184,15 @@ class ScenarioRunner(
      * variables extracted in this scenario will be available to subsequent scenarios.
      *
      * @param scenario Scenario to execute
+     * @param sourceFile Optional source file for the scenario
+     * @param executionListener Optional listener for real-time execution events
      * @return Execution result for the scenario
      */
-    fun executeScenario(scenario: Scenario): ScenarioResult = executor.execute(scenario, sharedContext)
+    fun executeScenario(
+        scenario: Scenario,
+        sourceFile: File? = null,
+        executionListener: BerryCrushExecutionListener? = null,
+    ): ScenarioResult = executor.execute(scenario, sharedContext, sourceFile, executionListener)
 
     /**
      * Run all provided scenarios and return aggregated results.

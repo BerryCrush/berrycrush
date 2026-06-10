@@ -100,7 +100,8 @@ class ScenarioTestExecutor(
         val fragmentRegistry = loadFragments(classDescriptor)
         val stepRegistry = createStepRegistry(classDescriptor)
         val assertionRegistry = createAssertionRegistry(classDescriptor)
-        val runner = ScenarioRunner(suite.specRegistry, suite.configuration, pluginRegistry, fragmentRegistry)
+        val runner =
+            ScenarioRunner(suite.specRegistry, suite.configuration, pluginRegistry, fragmentRegistry, stepRegistry, assertionRegistry)
 
         return TestExecutionContext(
             suite = suite,
