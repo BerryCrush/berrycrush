@@ -3,6 +3,7 @@ package org.berrycrush.samples.petstore.dsl
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.dsl.BerryCrushSuite
 import org.berrycrush.dsl.berrycrush
+import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.junit.BerryCrushExtension
 import org.berrycrush.junit.BerryCrushSpec
@@ -739,7 +740,11 @@ class PetstoreDslTest {
                         baseUrl = "http://localhost:$port/api/v1"
                     }
                 }
-            val multiSpecExecutor = BerryCrushScenarioExecutor(multiSpecSuite.specRegistry, multiSpecSuite.configuration)
+            val multiSpecExecutor =
+                BerryCrushScenarioExecutor(
+                    multiSpecSuite.specRegistry,
+                    BerryCrushConfigurationProvider.from(multiSpecSuite.configuration),
+                )
 
             val scenario =
                 multiSpecSuite.scenario("Use specific spec") {
