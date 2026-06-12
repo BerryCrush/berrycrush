@@ -740,12 +740,7 @@ class PetstoreDslTest {
                         baseUrl = "http://localhost:$port/api/v1"
                     }
                 }
-            val multiSpecExecutor =
-                BerryCrushScenarioExecutor(
-                    multiSpecSuite.specRegistry,
-                    BerryCrushConfigurationProvider.from(multiSpecSuite.configuration),
-                )
-
+            val multiSpecExecutor = multiSpecSuite.toScenarioExecutor()
             val scenario =
                 multiSpecSuite.scenario("Use specific spec") {
                     whenever("I call using petstore spec") {

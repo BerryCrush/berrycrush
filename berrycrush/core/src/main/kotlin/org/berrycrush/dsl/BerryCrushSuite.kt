@@ -2,6 +2,8 @@ package org.berrycrush.dsl
 
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.config.SpecConfiguration
+import org.berrycrush.executor.BerryCrushConfigurationProvider
+import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.model.Fragment
 import org.berrycrush.model.Scenario
 import org.berrycrush.openapi.SpecRegistry
@@ -106,6 +108,8 @@ class BerryCrushSuite internal constructor() {
      * Get all defined scenarios.
      */
     fun allScenarios(): List<Scenario> = scenarios.toList()
+
+    fun toScenarioExecutor() = BerryCrushScenarioExecutor(specRegistry, BerryCrushConfigurationProvider.from(configuration))
 }
 
 /**
