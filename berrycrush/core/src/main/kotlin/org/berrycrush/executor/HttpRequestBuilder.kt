@@ -7,6 +7,8 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
+import java.util.concurrent.ConcurrentHashMap
+import java.util.function.Supplier
 
 private const val DEFAULT_TIMEOUT_SECONDS = 30L
 private const val CONNECT_TIMEOUT_SECONDS = 10L
@@ -18,7 +20,7 @@ private const val CONNECT_TIMEOUT_SECONDS = 10L
  * @property timeout Request timeout (overrides default)
  */
 class HttpRequestBuilder(
-    private val client: HttpClient = createDefaultClient(),
+    private val client: Supplier<HttpClient> = { createDefaultClient() },
     private val timeout: Duration = Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS),
 ) {
     /**
@@ -27,7 +29,7 @@ class HttpRequestBuilder(
      * @param configuration The test configuration
      */
     constructor(configuration: BerryCrushConfigurationProvider) : this(
-        client = createClient(configuration.followRedirects),
+        client = { createClient(configuration.followRedirects) },
         timeout = configuration.timeout,
     )
 
@@ -64,7 +66,7 @@ class HttpRequestBuilder(
             }
 
             val request = requestBuilder.build()
-            client.send(request, HttpResponse.BodyHandlers.ofString())
+            client.get().send(request, HttpResponse.BodyHandlers.ofString())
         }.getOrElse { e ->
             throw HttpExecutionException(url, method.name, e)
         }
@@ -118,6 +120,8 @@ class HttpRequestBuilder(
     private fun encode(value: String): String = java.net.URLEncoder.encode(value, Charsets.UTF_8)
 
     companion object {
+        private val cachedClients = ConcurrentHashMap<CacheKey, HttpClient>()
+
         fun createDefaultClient(): HttpClient = createClient(followRedirects = true)
 
         /**
@@ -126,12 +130,21 @@ class HttpRequestBuilder(
          * @param followRedirects Whether to follow HTTP redirects
          */
         fun createClient(followRedirects: Boolean): HttpClient =
-            HttpClient
-                .newBuilder()
-                .version(HttpClient.Version.HTTP_2)
-                .followRedirects(
-                    if (followRedirects) HttpClient.Redirect.NORMAL else HttpClient.Redirect.NEVER,
-                ).connectTimeout(Duration.ofSeconds(CONNECT_TIMEOUT_SECONDS))
-                .build()
+            CacheKey(HttpClient.Version.HTTP_2, followRedirects).let { key ->
+                cachedClients.computeIfAbsent(key) {
+                    val policy = if (followRedirects) HttpClient.Redirect.NORMAL else HttpClient.Redirect.NEVER
+                    HttpClient
+                        .newBuilder()
+                        .version(HttpClient.Version.HTTP_2)
+                        .followRedirects(policy)
+                        .connectTimeout(Duration.ofSeconds(CONNECT_TIMEOUT_SECONDS))
+                        .build()
+                }
+            }
     }
+
+    private data class CacheKey(
+        val version: HttpClient.Version,
+        val followRedirects: Boolean,
+    )
 }
