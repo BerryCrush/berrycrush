@@ -45,6 +45,7 @@ import java.io.File
 import java.net.http.HttpResponse
 import java.time.Duration
 import java.time.Instant
+import org.berrycrush.context.ValueExtractor
 import org.berrycrush.executor.assertion.AssertionContext as ExecutorAssertionContext
 
 /**
@@ -793,9 +794,7 @@ class BerryCrushScenarioExecutor(
             val value =
                 runCatching {
                     val body = response.body() ?: ""
-                    JsonPath.read<Any>(body, extraction.jsonPath).also {
-                        context[extraction.variableName] = it
-                    }
+                    ValueExtractor.extractTo(body, extraction, context)
                 }.getOrNull()
             extraction.variableName to value
         }
@@ -941,9 +940,7 @@ class BerryCrushScenarioExecutor(
             val value =
                 runCatching {
                     val body = response.body() ?: ""
-                    JsonPath.read<Any>(body, extraction.jsonPath).also {
-                        context[extraction.variableName] = it
-                    }
+                    ValueExtractor.extractTo(body, extraction, context)
                 }.getOrNull()
             extractedValues[extraction.variableName] = value
         }

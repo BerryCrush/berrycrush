@@ -7,7 +7,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ValueExtractorTest {
-    private val extractor = ValueExtractor()
+    private val extractor = ValueExtractor
 
     private val sampleJson =
         """

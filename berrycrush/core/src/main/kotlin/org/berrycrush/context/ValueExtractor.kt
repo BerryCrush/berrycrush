@@ -9,7 +9,7 @@ import org.berrycrush.model.ExtractionSource
 /**
  * Extracts values from API responses using JSONPath.
  */
-class ValueExtractor {
+object ValueExtractor {
     /**
      * Extract a value from a response body using JSONPath.
      *
