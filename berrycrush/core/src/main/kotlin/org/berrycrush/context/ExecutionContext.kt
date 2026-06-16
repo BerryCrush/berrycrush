@@ -49,9 +49,33 @@ private val segmentPattern = Regex("""(\w+)((?:\[\d+])*)""")
  * ```
  */
 @Suppress("TooManyFunctions")
-class ExecutionContext {
-    private val variables = ConcurrentHashMap<String, Any>()
-    private val webhookServers = ConcurrentHashMap<String, MockWebhookServer>()
+class ExecutionContext(
+    val shareVariablesAcrossScenarios: Boolean = false,
+    val parameters: Map<String, Any> = emptyMap(),
+    val parent: ExecutionContext? = null,
+) {
+    private val variables: MutableMap<String, Any> =
+        ConcurrentHashMap<String, Any>().apply {
+            parent?.let {
+                putAll(it.variables)
+            }
+        }
+    private val webhookServers: MutableMap<String, MockWebhookServer> =
+        ConcurrentHashMap<String, MockWebhookServer>().apply {
+            parent?.let {
+                putAll(it.webhookServers)
+            }
+        }
+
+    val mergedParameters: Map<String, Any> by lazy {
+        val mutableMap = mutableMapOf<String, Any>()
+        var context: ExecutionContext? = this
+        while (context != null) {
+            mutableMap.putAll(parameters)
+            context = context.parent
+        }
+        mutableMap.toMap()
+    }
 
     /**
      * The last HTTP response received.
@@ -212,12 +236,7 @@ class ExecutionContext {
      * Webhook servers are shared between parent and child.
      * Use [createIsolatedCopy] for fully isolated parallel execution.
      */
-    fun createChild(): ExecutionContext {
-        val child = ExecutionContext()
-        child.variables.putAll(variables)
-        child.webhookServers.putAll(webhookServers)
-        return child
-    }
+    fun createChild(): ExecutionContext = ExecutionContext(shareVariablesAcrossScenarios, parameters, this)
 
     /**
      * Create a fully isolated copy of this context for parallel execution.
@@ -230,11 +249,7 @@ class ExecutionContext {
      * @param overwriting a map to overwrite the variable
      */
     fun createIsolatedCopy(overwriting: Map<String, Any>? = null): ExecutionContext {
-        val copy = ExecutionContext()
-        // Copy all variables
-        variables.forEach { (key, value) ->
-            copy.variables[key] = value
-        }
+        val copy = createChild()
         overwriting?.forEach { (key, value) -> copy.variables[key] = value }
         // Copy volatile state using update methods
         lastResponse?.let { copy.updateLastResponse(it) }
@@ -463,3 +478,9 @@ fun ExecutionContext.resolveParam(value: Any): Any =
     }
 
 fun ExecutionContext.resolveParams(params: Map<String, Any>): Map<String, Any> = params.mapValues { (_, value) -> resolveParam(value) }
+
+fun ExecutionContext?.propagate(other: ExecutionContext) {
+    if (this != null && this.shareVariablesAcrossScenarios) {
+        other.allVariables().forEach { (name, value) -> value?.let { this[name] = it } }
+    }
+}

@@ -1,6 +1,7 @@
 package org.berrycrush.runner
 
 import org.berrycrush.config.BerryCrushConfiguration
+import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Scenario
 import org.berrycrush.openapi.SpecRegistry
@@ -34,7 +35,7 @@ class ScenarioRunnerTest {
     @Test
     fun `returns passed status for empty scenario list`() {
         val specRegistry = SpecRegistry()
-        val configuration = BerryCrushConfiguration()
+        val configuration = BerryCrushConfigurationProvider.from(BerryCrushConfiguration())
         val runner = ScenarioRunner(specRegistry, configuration)
 
         val result = runner.run(emptyList())
@@ -50,7 +51,7 @@ class ScenarioRunnerTest {
     @Test
     fun `invokes plugin lifecycle hooks in correct order`() {
         val specRegistry = SpecRegistry()
-        val configuration = BerryCrushConfiguration()
+        val configuration = BerryCrushConfigurationProvider.from(BerryCrushConfiguration())
         val pluginRegistry = PluginRegistry()
 
         val events = mutableListOf<String>()
@@ -65,7 +66,7 @@ class ScenarioRunnerTest {
     @Test
     fun `runs single scenario and returns result`() {
         val specRegistry = SpecRegistry()
-        val configuration = BerryCrushConfiguration()
+        val configuration = BerryCrushConfigurationProvider.from(BerryCrushConfiguration())
         val runner = ScenarioRunner(specRegistry, configuration)
 
         val scenario =
@@ -85,7 +86,7 @@ class ScenarioRunnerTest {
     @Test
     fun `aggregates results from multiple scenarios`() {
         val specRegistry = SpecRegistry()
-        val configuration = BerryCrushConfiguration()
+        val configuration = BerryCrushConfigurationProvider.from(BerryCrushConfiguration())
         val runner = ScenarioRunner(specRegistry, configuration)
 
         val scenarios =
@@ -124,7 +125,7 @@ class ScenarioRunnerTest {
 
         val events = mutableListOf<String>()
         pluginRegistry.register(createTrackingPlugin(events))
-        val runner = ScenarioRunner(specRegistry, configuration, pluginRegistry)
+        val runner = ScenarioRunner(specRegistry, BerryCrushConfigurationProvider.from(configuration), pluginRegistry)
 
         runner.run(emptyList())
 
@@ -140,7 +141,7 @@ class ScenarioRunnerTest {
                 shareVariablesAcrossScenarios = true
             }
 
-        val runner = ScenarioRunner(specRegistry, configuration)
+        val runner = ScenarioRunner(specRegistry, BerryCrushConfigurationProvider.from(configuration))
 
         // Create two scenarios - first one should set a variable,
         // second one should be able to access it (indirectly through the shared context)

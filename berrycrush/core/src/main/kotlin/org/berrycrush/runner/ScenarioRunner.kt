@@ -100,17 +100,15 @@ data class RunResult(
  */
 class ScenarioRunner(
     private val specRegistry: SpecRegistry,
-    private val configuration: BerryCrushConfiguration,
+    private val configuration: BerryCrushConfigurationProvider,
     private val pluginRegistry: PluginRegistry? = null,
     private val fragmentRegistry: FragmentRegistry? = null,
     private val stepRegistry: StepRegistry? = null,
     private val assertionRegistry: AssertionRegistry? = null,
 ) {
-    private val configurationProvider = BerryCrushConfigurationProvider.from(configuration)
     private val executor by lazy {
-        BerryCrushScenarioExecutor(specRegistry, configurationProvider, pluginRegistry, fragmentRegistry, stepRegistry, assertionRegistry)
+        BerryCrushScenarioExecutor(specRegistry, configuration, pluginRegistry, fragmentRegistry, stepRegistry, assertionRegistry)
     }
-    private typealias ContextInitializer = (ExecutionContext) -> Unit
 
     /**
      * Shared execution context for cross-scenario variable sharing.
@@ -118,21 +116,12 @@ class ScenarioRunner(
      */
     private var sharedContext: ExecutionContext? = null
 
-    fun from(configuration: BerryCrushConfiguration): ScenarioRunner =
+    fun from(configuration: BerryCrushConfigurationProvider): ScenarioRunner =
         if (this.configuration == configuration) {
             this
         } else {
             ScenarioRunner(specRegistry, configuration, pluginRegistry, fragmentRegistry, stepRegistry, assertionRegistry)
         }
-
-    fun initializeContext(
-        context: ExecutionContext?,
-        contextInitializer: ContextInitializer,
-    ) {
-        val newContext = context ?: ExecutionContext()
-        contextInitializer(newContext)
-        sharedContext = newContext
-    }
 
     /**
      * Begin test execution lifecycle.
@@ -142,9 +131,7 @@ class ScenarioRunner(
      */
     fun beginExecution() {
         // Initialize shared context if cross-scenario variable sharing is enabled
-        if (configuration.shareVariablesAcrossScenarios) {
-            sharedContext = ExecutionContext()
-        }
+        sharedContext = ExecutionContext(configuration.shareVariablesAcrossScenarios)
 
         // Set environment name on report plugins
         configuration.environment?.let { env ->
@@ -194,7 +181,8 @@ class ScenarioRunner(
         scenario: Scenario,
         sourceFile: File? = null,
         executionListener: BerryCrushExecutionListener? = null,
-    ): ScenarioResult = executor.execute(scenario, sharedContext, sourceFile, executionListener)
+        context: ExecutionContext? = sharedContext,
+    ): ScenarioResult = executor.execute(scenario, context, sourceFile, executionListener)
 
     /**
      * Run all provided scenarios and return aggregated results.
@@ -291,24 +279,15 @@ class ScenarioRunner(
     fun runWithParameters(
         scenarios: List<Scenario>,
         parameters: Map<String, Any>,
-    ): RunResult {
+    ): RunResult =
         if (parameters.isEmpty()) {
-            return run(scenarios)
-        }
+            run(scenarios)
+        } else {
+            val startTime = Instant.now()
+            val results = mutableListOf<Pair<Scenario, ScenarioResult>>()
 
-        val startTime = Instant.now()
-        val results = mutableListOf<Pair<Scenario, ScenarioResult>>()
-
-        // Override the configuration with the parameters
-        return configurationProvider.withParameters(parameters) {
-            // Initialize shared context for modified config if needed
-            val localSharedContext =
-                if (configurationProvider.shareVariablesAcrossScenarios) {
-                    ExecutionContext()
-                } else {
-                    null
-                }
-
+            // Initialize execution context for modified config if needed
+            val localSharedContext = ExecutionContext(configuration.shareVariablesAcrossScenarios, parameters)
             runCatching { pluginRegistry?.dispatchTestExecutionStart() }
                 .onFailure { e ->
                     System.err.println("Warning: Plugin test execution start hook failed: ${e.message}")
@@ -324,10 +303,8 @@ class ScenarioRunner(
                 .onFailure { e ->
                     System.err.println("Warning: Plugin test execution end hook failed: ${e.message}")
                 }
-
             buildRunResult(startTime, results)
         }
-    }
 
     private fun buildRunResult(
         startTime: Instant,

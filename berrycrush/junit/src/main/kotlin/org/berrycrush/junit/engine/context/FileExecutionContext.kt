@@ -1,13 +1,12 @@
 package org.berrycrush.junit.engine.context
 
 import org.berrycrush.context.ExecutionContext
-import org.berrycrush.context.resolveParams
+import org.berrycrush.context.propagate
 import org.berrycrush.junit.engine.ClassTestDescriptor
 import org.berrycrush.junit.engine.FeatureDescriptor
 import org.berrycrush.junit.engine.IndividualScenarioDescriptor
 import org.berrycrush.junit.engine.ScenarioFileDescriptor
 import org.berrycrush.junit.engine.adapter.JUnitExecutionListenerAdapter
-import org.berrycrush.model.Scenario
 import org.berrycrush.runner.ScenarioRunner
 import org.junit.platform.engine.EngineExecutionListener
 import org.junit.platform.engine.TestExecutionResult
@@ -18,7 +17,7 @@ import java.io.File
  */
 internal data class FileExecutionContext(
     val runner: ScenarioRunner,
-    var sharedContext: ExecutionContext?,
+    val fileContext: ExecutionContext,
     val scenarioPath: String,
 ) {
     fun executeFileChildren(
@@ -34,9 +33,9 @@ internal data class FileExecutionContext(
             .map { child ->
                 when (child) {
                     is IndividualScenarioDescriptor ->
-                        executeScenario(child, classDescriptor, listener)
+                        executeScenario(child, classDescriptor, listener, fileContext)
                     is FeatureDescriptor ->
-                        executeFeature(child, classDescriptor, listener)
+                        executeFeature(child, classDescriptor, listener, fileContext)
                     else -> false
                 }
             }.any { it }
@@ -47,6 +46,7 @@ private fun FileExecutionContext.executeFeature(
     featureDescriptor: FeatureDescriptor,
     classDescriptor: ClassTestDescriptor,
     listener: EngineExecutionListener,
+    parentContext: ExecutionContext,
 ): Boolean {
     listener.executionStarted(featureDescriptor)
 
@@ -54,36 +54,15 @@ private fun FileExecutionContext.executeFeature(
     val featureShareVariables =
         featureDescriptor.parameters["shareVariablesAcrossScenarios"] as? Boolean ?: false
 
-    // Create context with feature parameters pre-loaded
-    fun createFeatureContext(): ExecutionContext {
-        val ctx = ExecutionContext()
-        // Inject feature-level parameters into the context
-        // This makes them available via context.allVariables() for multi-test config etc.
-        featureDescriptor.parameters.forEach { (key, value) ->
-            ctx[key] = value
-        }
-        return ctx
-    }
-
-    // Use feature-level shared context if enabled, otherwise fall back to file-level
-    val effectiveContext =
-        when {
-            // Feature enables sharing, but file doesn't - create feature-level context
-            featureShareVariables -> createFeatureContext()
-            // Feature disables sharing while file enables it - use isolated context
-            // Still inject feature parameters into a fresh context for the feature
-            sharedContext != null -> createFeatureContext()
-            // Use file-level context but with feature parameters
-            // Create a new shared context with feature params if feature has any
-            featureDescriptor.parameters.isNotEmpty() -> createFeatureContext()
-            else -> null
-        }
-    sharedContext = effectiveContext
+    val featureContext = ExecutionContext(featureShareVariables, featureDescriptor.parameters, parentContext)
     val hasFailure =
         featureDescriptor.children
             .filterIsInstance<IndividualScenarioDescriptor>()
-            .map { executeScenario(it, classDescriptor, listener) }
+            .map { executeScenario(it, classDescriptor, listener, featureContext) }
             .any { it }
+    if (!hasFailure) {
+        parentContext.propagate(featureContext)
+    }
 
     val result =
         if (hasFailure) {
@@ -106,6 +85,7 @@ private fun FileExecutionContext.executeScenario(
     scenarioDescriptor: IndividualScenarioDescriptor,
     classDescriptor: ClassTestDescriptor,
     listener: EngineExecutionListener,
+    parentContext: ExecutionContext,
 ): Boolean {
     // Check if scenario should be skipped based on tags
     if (!classDescriptor.shouldExecuteScenario(scenarioDescriptor.scenario.tags)) {
@@ -119,26 +99,22 @@ private fun FileExecutionContext.executeScenario(
     val executionListener = JUnitExecutionListenerAdapter(scenarioDescriptor, listener)
 
     val sourceFile = File(scenarioPath)
-
+    val scenarioContext =
+        ExecutionContext(parentContext.shareVariablesAcrossScenarios, scenarioDescriptor.scenario.parameters, parentContext)
     return runCatching {
-        // Create execution context - use shared context if available,
-        // or create one for outline scenarios with examples
-        if (sharedContext != null || scenarioDescriptor.scenario.examples?.isNotEmpty() == true) {
-            runner.initializeContext(sharedContext) {
-                // Add example row values to context if this is an outline scenario
-                it.initializeContext(scenarioDescriptor.scenario)
-            }
-        }
-
         // Execute with execution listener for real-time event reporting
         // All JUnit events (scenario start/end, auto-test start/end) are handled by the listener
         runner.executeScenario(
             scenarioDescriptor.scenario,
             sourceFile,
             executionListener,
+            scenarioContext,
         )
     }.fold(
-        onSuccess = { executionListener.hasFailure() },
+        onSuccess = {
+            parentContext.propagate(scenarioContext)
+            executionListener.hasFailure()
+        },
         onFailure = { e ->
             // Ensure scenario is started before reporting failure
             if (!executionListener.scenarioStarted) {
@@ -148,17 +124,4 @@ private fun FileExecutionContext.executeScenario(
             true
         },
     )
-}
-
-/**
- * Initialize execution context with example row values for scenario outlines.
- * For non-outline scenarios, this is a no-op.
- */
-private fun ExecutionContext.initializeContext(scenario: Scenario) {
-    val examples = scenario.examples ?: return
-    if (examples.isEmpty()) return
-
-    // Use the first (and only) example row - outlines are expanded to one row per scenario
-    val row = examples.first()
-    this.resolveParams(row.values).forEach { (key, value) -> this[key] = value }
 }

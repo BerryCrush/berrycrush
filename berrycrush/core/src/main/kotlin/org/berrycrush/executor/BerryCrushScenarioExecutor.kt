@@ -1,9 +1,10 @@
 package org.berrycrush.executor
 
-import com.jayway.jsonpath.JsonPath
 import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.context.MutableTestExecutionContext
+import org.berrycrush.context.ValueExtractor
+import org.berrycrush.context.propagate
 import org.berrycrush.context.resolveParams
 import org.berrycrush.exception.HttpExecutionException
 import org.berrycrush.exception.ScenarioErrorContext
@@ -45,7 +46,6 @@ import java.io.File
 import java.net.http.HttpResponse
 import java.time.Duration
 import java.time.Instant
-import org.berrycrush.context.ValueExtractor
 import org.berrycrush.executor.assertion.AssertionContext as ExecutorAssertionContext
 
 /**
@@ -133,12 +133,21 @@ class BerryCrushScenarioExecutor(
             listener.onScenarioStarting(scenario)
 
             val startTime = Instant.now()
-            val context = sharedContext?.createChild() ?: ExecutionContext()
+            var context = sharedContext?.createChild() ?: ExecutionContext(true, scenario.parameters)
 
-            // Store scenario parameters in context for variable resolution
-            for ((key, value) in scenario.parameters) {
-                context["param.$key"] = value
+            // Create execution context - use shared context if available,
+            // or create one for outline scenarios with examples
+            if (scenario.examples?.isNotEmpty() == true) {
+                if (!context.shareVariablesAcrossScenarios) context = ExecutionContext(true, scenario.parameters)
+                val row = scenario.examples.first()
+                context.resolveParams(row.values).forEach { (key, value) -> context[key] = value }
             }
+
+            if (sharedContext?.mergedParameters != null) {
+                setupParameters(sharedContext.mergedParameters, context)
+            }
+            // Store scenario parameters in context for variable resolution
+            setupParameters(scenario.parameters, context)
 
             val scenarioContext = ScenarioContextAdapter(scenario, context, startTime, sourceFile)
 
@@ -163,10 +172,8 @@ class BerryCrushScenarioExecutor(
             context.cleanupWebhookServers()
 
             // Copy extracted variables back to shared context for cross-scenario sharing
-            if (sharedContext != null && scenarioResult.status == ResultStatus.PASSED) {
-                context.allVariables().forEach { (name, value) ->
-                    value?.let { sharedContext[name] = it }
-                }
+            if (scenarioResult.status == ResultStatus.PASSED) {
+                sharedContext.propagate(context)
             }
 
             // Notify listener that scenario completed
@@ -174,6 +181,15 @@ class BerryCrushScenarioExecutor(
 
             scenarioResult
         }
+
+    private fun setupParameters(
+        parameters: Map<String, Any>,
+        context: ExecutionContext,
+    ) {
+        for ((key, value) in parameters) {
+            context["param.$key"] = value
+        }
+    }
 
     /**
      * Execute all steps (background + scenario) and return results.

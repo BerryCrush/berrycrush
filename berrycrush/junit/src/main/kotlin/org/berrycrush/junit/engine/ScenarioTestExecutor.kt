@@ -4,6 +4,7 @@ import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.config.OpenApiSpecValue
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.dsl.BerryCrushSuite
+import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.junit.BerryCrushBindings
 import org.berrycrush.junit.BerryCrushConfiguration
 import org.berrycrush.junit.DefaultBindings
@@ -100,8 +101,16 @@ class ScenarioTestExecutor(
         val fragmentRegistry = loadFragments(classDescriptor)
         val stepRegistry = createStepRegistry(classDescriptor)
         val assertionRegistry = createAssertionRegistry(classDescriptor)
+        val configuration = BerryCrushConfigurationProvider.from(suite.configuration)
         val runner =
-            ScenarioRunner(suite.specRegistry, suite.configuration, pluginRegistry, fragmentRegistry, stepRegistry, assertionRegistry)
+            ScenarioRunner(
+                suite.specRegistry,
+                configuration,
+                pluginRegistry,
+                fragmentRegistry,
+                stepRegistry,
+                assertionRegistry,
+            )
 
         return TestExecutionContext(
             suite = suite,

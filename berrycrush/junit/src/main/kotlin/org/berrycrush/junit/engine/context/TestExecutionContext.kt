@@ -3,6 +3,7 @@ package org.berrycrush.junit.engine.context
 import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.dsl.BerryCrushSuite
+import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.junit.BerryCrushBindings
 import org.berrycrush.junit.ParallelExecutionMode
 import org.berrycrush.junit.engine.ClassTestDescriptor
@@ -144,25 +145,11 @@ private fun TestExecutionContext.buildFileContext(
         } else {
             suite.configuration
         }
-    val newRunner = runner.from(fileConfig)
-    // Apply per-spec base URL overrides from file parameters
-    fileContent.parameters
-        .filterKeys { it.startsWith("baseUrl.") }
-        .forEach { (key, value) ->
-            val specName = key.removePrefix("baseUrl.")
-            if (suite.specRegistry
-                    .specNames()
-                    .contains(specName)
-            ) {
-                suite.specRegistry.updateBaseUrl(specName, value.toString())
-            }
-        }
-
-    val sharedContext =
-        if (fileConfig.shareVariablesAcrossScenarios) ExecutionContext() else null
+    val executionContext = ExecutionContext(fileConfig.shareVariablesAcrossScenarios, fileContent.parameters)
+    val newRunner = runner.from(BerryCrushConfigurationProvider.from(fileConfig))
 
     // Warn if sharing variables across scenarios with concurrent execution mode
-    if (sharedContext != null && classDescriptor.parallelExecution == ParallelExecutionMode.CONCURRENT) {
+    if (classDescriptor.parallelExecution == ParallelExecutionMode.CONCURRENT) {
         logger.warning {
             "File '${fileDescriptor.scenarioPath}' uses shareVariablesAcrossScenarios=true " +
                 "but test class '${classDescriptor.testClass.name}' has CONCURRENT parallel execution. " +
@@ -173,7 +160,7 @@ private fun TestExecutionContext.buildFileContext(
 
     return FileExecutionContext(
         runner = newRunner,
-        sharedContext = sharedContext,
+        fileContext = executionContext,
         scenarioPath = fileDescriptor.scenarioPath,
     )
 }
