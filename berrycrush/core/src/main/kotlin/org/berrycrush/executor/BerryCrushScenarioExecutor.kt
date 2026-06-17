@@ -2,113 +2,85 @@ package org.berrycrush.executor
 
 import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.context.ExecutionContext
-import org.berrycrush.context.MutableTestExecutionContext
-import org.berrycrush.context.ValueExtractor
 import org.berrycrush.context.propagate
 import org.berrycrush.context.resolveParams
-import org.berrycrush.exception.HttpExecutionException
-import org.berrycrush.exception.ScenarioErrorContext
-import org.berrycrush.executor.assertion.AssertionEngine
+import org.berrycrush.executor.assertion.AssertionExecutor
 import org.berrycrush.executor.assertion.DefaultAssertionEngine
+import org.berrycrush.executor.enricher.ErrorEnricher
 import org.berrycrush.executor.fragment.DefaultFragmentExecutor
-import org.berrycrush.executor.fragment.FragmentExecutor
-import org.berrycrush.executor.http.DefaultHttpExecutor
-import org.berrycrush.executor.http.HttpExecutor
-import org.berrycrush.executor.http.RetryingHttpExecutor
-import org.berrycrush.model.Assertion
-import org.berrycrush.model.AssertionResult
-import org.berrycrush.model.AutoTestConfig
-import org.berrycrush.model.Condition
-import org.berrycrush.model.ConditionalActions
-import org.berrycrush.model.ConditionalAssertion
-import org.berrycrush.model.CustomAssertionDefinition
+import org.berrycrush.executor.response.ResponseProcessor
+import org.berrycrush.executor.step.OperationStepExecutor
+import org.berrycrush.executor.step.StepExecutor
 import org.berrycrush.model.FragmentRegistry
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Scenario
 import org.berrycrush.model.ScenarioResult
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepResult
-import org.berrycrush.model.WebhookConfig
-import org.berrycrush.openapi.HttpMethod
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.plugin.PluginRegistry
+import org.berrycrush.plugin.StepContext
 import org.berrycrush.plugin.adapter.ScenarioContextAdapter
 import org.berrycrush.plugin.adapter.ScenarioResultAdapter
-import org.berrycrush.plugin.adapter.StepContextAdapter
-import org.berrycrush.plugin.adapter.StepResultAdapter
-import org.berrycrush.scenario.AutoTestType
-import org.berrycrush.step.StepContext
-import org.berrycrush.step.StepContextImpl
-import org.berrycrush.step.StepMatch
 import org.berrycrush.step.StepRegistry
-import org.berrycrush.webhook.MockWebhookServer
 import java.io.File
-import java.net.http.HttpResponse
 import java.time.Duration
 import java.time.Instant
-import org.berrycrush.executor.assertion.AssertionContext as ExecutorAssertionContext
 
 /**
  * Executes BDD scenarios against API endpoints.
  *
- * @property specRegistry Registry for OpenAPI specifications
  * @property configuration Execution configuration
  * @property pluginRegistry Optional plugin registry for lifecycle hooks
- * @property fragmentRegistry Optional registry for reusable fragments
- * @property stepRegistry Optional registry for custom step definitions
- * @property assertionRegistry Optional registry for custom assertion definitions
- * @property assertionEngine Engine for evaluating assertions and conditions
- * @property httpExecutor Executor for HTTP requests
- * @property fragmentExecutor Executor for fragment expansion
  */
 class BerryCrushScenarioExecutor(
-    private val specRegistry: SpecRegistry,
     private val configuration: BerryCrushConfigurationProvider,
+    private val stepExecutor: StepExecutor,
     private val pluginRegistry: PluginRegistry? = null,
-    private val fragmentRegistry: FragmentRegistry? = null,
-    private val stepRegistry: StepRegistry? = null,
-    private val assertionRegistry: AssertionRegistry? = null,
-    private val assertionEngine: AssertionEngine = DefaultAssertionEngine(assertionRegistry),
-    private val httpExecutor: HttpExecutor = createHttpExecutor(configuration),
-    private val fragmentExecutor: FragmentExecutor = DefaultFragmentExecutor(fragmentRegistry),
 ) {
-    private val httpBuilder = HttpRequestBuilder(configuration)
-
     companion object {
-        /**
-         * Create the appropriate HTTP executor based on configuration.
-         *
-         * If retry is enabled in the configuration, wraps the default executor
-         * with a [RetryingHttpExecutor].
-         */
-        private fun createHttpExecutor(configuration: BerryCrushConfigurationProvider): HttpExecutor {
-            val baseExecutor = DefaultHttpExecutor(configuration)
-            return if (configuration.retryConfig.isEnabled) {
-                RetryingHttpExecutor(
-                    delegate = baseExecutor,
-                    config = configuration.retryConfig,
+        private fun createStepExecutor(
+            specRegistry: SpecRegistry,
+            configuration: BerryCrushConfigurationProvider,
+            pluginRegistry: PluginRegistry?,
+            fragmentRegistry: FragmentRegistry?,
+            stepRegistry: StepRegistry?,
+            assertionRegistry: AssertionRegistry?,
+        ): StepExecutor {
+            val fragmentExecutor = DefaultFragmentExecutor(fragmentRegistry)
+            val assertionExecutor = AssertionExecutor(DefaultAssertionEngine(assertionRegistry))
+            val responseProcessor = ResponseProcessor(assertionExecutor)
+            val operationStepExecutor =
+                OperationStepExecutor(
+                    specRegistry,
+                    configuration,
+                    assertionExecutor,
+                    responseProcessor,
+                    ErrorEnricher(configuration),
                 )
-            } else {
-                baseExecutor
-            }
+            return StepExecutor(
+                fragmentExecutor,
+                operationStepExecutor,
+                responseProcessor,
+                stepRegistry,
+                pluginRegistry,
+            )
         }
     }
 
-    // Lazy-initialized auto-test executor - created on first use to avoid circular dependencies
-    private val autoTestExecutor: AutoTestExecutor by lazy {
-        AutoTestExecutor(
-            specRegistry = specRegistry,
-            configuration = configuration,
-            httpBuilder = httpBuilder,
-            assertionRunner = ::runAssertions,
-            requestLogger = { method, url, headers, body ->
-                logRequest(HttpMethod.valueOf(method), url, headers, body)
-            },
-            responseLogger = { method, url, response, startTime ->
-                logResponse(HttpMethod.valueOf(method), url, response, startTime)
-            },
+    constructor(
+        specRegistry: SpecRegistry,
+        configuration: BerryCrushConfigurationProvider,
+        pluginRegistry: PluginRegistry? = null,
+        fragmentRegistry: FragmentRegistry? = null,
+        stepRegistry: StepRegistry? = null,
+        assertionRegistry: AssertionRegistry? = null,
+    ) :
+        this(
+            configuration,
+            createStepExecutor(specRegistry, configuration, pluginRegistry, fragmentRegistry, stepRegistry, assertionRegistry),
+            pluginRegistry,
         )
-    }
 
     /**
      * Execute a single scenario.
@@ -126,7 +98,7 @@ class BerryCrushScenarioExecutor(
         sourceFile: File? = null,
         executionListener: BerryCrushExecutionListener? = null,
     ): ScenarioResult =
-        configuration.withParameters(scenario.parameters) {
+        configuration.withParameters((sharedContext?.mergedParameters ?: emptyMap()) + scenario.parameters) {
             val listener = executionListener ?: BerryCrushExecutionListener.NOOP
 
             // Notify listener that scenario is starting
@@ -152,8 +124,7 @@ class BerryCrushScenarioExecutor(
             val scenarioContext = ScenarioContextAdapter(scenario, context, startTime, sourceFile)
 
             pluginRegistry?.dispatchScenarioStart(scenarioContext)
-
-            val stepResults = executeAllSteps(scenario, context, scenarioContext, listener)
+            val stepResults = stepExecutor.execute(scenario, scenarioContext, listener)
             val overallStatus = determineOverallStatus(stepResults)
             val duration = Duration.between(startTime, Instant.now())
 
@@ -192,65 +163,6 @@ class BerryCrushScenarioExecutor(
     }
 
     /**
-     * Execute all steps (background + scenario) and return results.
-     */
-    private fun executeAllSteps(
-        scenario: Scenario,
-        context: ExecutionContext,
-        scenarioContext: ScenarioContextAdapter,
-        listener: BerryCrushExecutionListener,
-    ): List<StepResult> {
-        val stepResults = mutableListOf<StepResult>()
-        val (stepIndex, continueExecution) = executeSteps(scenario.background, context, scenarioContext, stepResults, 0, listener)
-        if (continueExecution) {
-            // Execute scenario steps
-            executeSteps(scenario.steps, context, scenarioContext, stepResults, stepIndex, listener)
-        }
-        return stepResults
-    }
-
-    /**
-     * Execute a list of steps with continuation control.
-     */
-    private fun executeSteps(
-        steps: List<Step>,
-        context: ExecutionContext,
-        scenarioContext: ScenarioContextAdapter,
-        results: MutableList<StepResult>,
-        startIndex: Int,
-        listener: BerryCrushExecutionListener,
-    ): Pair<Int, Boolean> {
-        var continueExecution = true
-        var stepIndex = startIndex
-        for (step in steps) {
-            if (!continueExecution) {
-                results.add(StepResult(step = step, status = ResultStatus.SKIPPED))
-                continue
-            }
-
-            // Inject include parameters into context before expanding
-            context.withIncludeParameters(step) {
-                val expandedSteps = fragmentExecutor.expand(step)
-                for (expandedStep in expandedSteps) {
-                    if (!continueExecution) {
-                        results.add(StepResult(step = expandedStep, status = ResultStatus.SKIPPED))
-                        continue
-                    }
-
-                    val result = executeStep(expandedStep, context, scenarioContext, stepIndex++, listener)
-                    results.add(result)
-
-                    if (result.status != ResultStatus.PASSED) {
-                        continueExecution = false
-                    }
-                }
-            }
-        }
-
-        return stepIndex to continueExecution
-    }
-
-    /**
      * Determine overall status from step results.
      */
     private fun determineOverallStatus(stepResults: List<StepResult>): ResultStatus =
@@ -262,38 +174,6 @@ class BerryCrushScenarioExecutor(
             else -> ResultStatus.PASSED
         }
 
-    private fun executeStep(
-        step: Step,
-        context: ExecutionContext,
-        scenarioContext: ScenarioContextAdapter,
-        stepIndex: Int,
-        listener: BerryCrushExecutionListener,
-    ): StepResult {
-        // Create step context
-        val stepContext = StepContextAdapter(step, stepIndex, scenarioContext)
-
-        // Notify listener that step is starting
-        listener.onStepStarting(step)
-
-        // Dispatch plugin: onStepStart
-        pluginRegistry?.dispatchStepStart(stepContext)
-
-        // Execute the actual step with scenario context for error enrichment
-        val stepStartTime = Instant.now()
-        val result = // If no operation to call, check for custom step or assertions
-            step.operationId?.let {
-                executeOperationStep(step, context, stepStartTime, scenarioContext, stepIndex, listener)
-            } ?: executeNonOperationStep(step, context, stepStartTime)
-
-        // Dispatch plugin: onStepEnd
-        pluginRegistry?.dispatchStepEnd(stepContext, StepResultAdapter(result))
-
-        // Notify listener that step completed
-        listener.onStepCompleted(result)
-
-        return result
-    }
-
     /**
      * Execute a step that has no operationId.
      *
@@ -303,736 +183,14 @@ class BerryCrushScenarioExecutor(
      * 3. Assertions/extractions against last response
      * 4. No-op (just pass)
      */
-    internal fun executeNonOperationStep(
+    internal fun executeWebhookStep(
         step: Step,
-        context: ExecutionContext,
-        stepStartTime: Instant,
-    ): StepResult {
-        // First, check if this is a webhook step
+        context: StepContext,
+        startTime: Instant,
+    ): StepResult? =
         step.webhookConfig?.let { config ->
-            return executeWebhookStep(step, config, context, stepStartTime)
+            stepExecutor.executeWebhookStep(step, config, context, startTime)
         }
-
-        // Check if this is a custom step
-        stepRegistry?.let { registry ->
-            val resolvedDescription = context.interpolate(step.description)
-            val match = registry.findMatch(resolvedDescription)
-            if (match != null) {
-                return executeCustomStep(step, match, context, stepStartTime)
-            }
-        }
-
-        // Not a custom step - check for assertions/extractions
-        return if (step.assertions.isEmpty() && step.extractions.isEmpty()) {
-            // No operation and no assertions - just pass
-            StepResult(
-                step = step,
-                status = ResultStatus.PASSED,
-                duration = Duration.between(stepStartTime, Instant.now()),
-            )
-        } else {
-            // Run assertions/extractions against last response
-            context.lastResponse?.let { response ->
-                buildResultFromResponse(step, response, stepStartTime, context)
-            } ?: StepResult(
-                step = step,
-                status = ResultStatus.ERROR,
-                duration = Duration.between(stepStartTime, Instant.now()),
-                error = IllegalStateException("No previous response to run assertions/extractions against"),
-            )
-        }
-    }
-
-    /**
-     * Execute a custom step definition.
-     */
-    private fun executeCustomStep(
-        step: Step,
-        match: StepMatch,
-        context: ExecutionContext,
-        stepStartTime: Instant,
-    ): StepResult =
-        runCatching {
-            val stepContext =
-                StepContextImpl(
-                    executionContext = context,
-                    configuration = configuration,
-                    sharedVariables = context.allVariables().toMutableMap(),
-                    sharingEnabled = configuration.shareVariablesAcrossScenarios,
-                )
-
-            // Invoke the custom step method with extracted parameters and context
-            val method = match.definition.method
-            val parameters = match.parameters.toTypedArray()
-
-            // Check if method accepts StepContext as last parameter
-            val methodParams = method.parameters
-            val args =
-                if (methodParams.isNotEmpty() &&
-                    methodParams.last().type.isAssignableFrom(StepContext::class.java)
-                ) {
-                    // Append StepContext to parameters
-                    arrayOf(*parameters, stepContext)
-                } else {
-                    parameters
-                }
-
-            // Invoke the method
-            val result = method.invoke(match.definition.instance, *args)
-
-            // Check if the method returned a StepResult
-            if (result is StepResult) {
-                // Ensure custom step flag is set
-                result.copy(isCustomStep = true)
-            } else {
-                StepResult(
-                    step = step,
-                    status = ResultStatus.PASSED,
-                    duration = Duration.between(stepStartTime, Instant.now()),
-                    isCustomStep = true,
-                )
-            }
-        }.getOrElse { e ->
-            // Unwrap InvocationTargetException to get the actual exception
-            val actualException =
-                when (e) {
-                    is java.lang.reflect.InvocationTargetException -> e.cause ?: e
-                    else -> e
-                }
-
-            // Determine status based on exception type
-            val status =
-                when (actualException) {
-                    is AssertionError -> ResultStatus.FAILED
-                    else -> ResultStatus.ERROR
-                }
-
-            StepResult(
-                step = step,
-                status = status,
-                duration = Duration.between(stepStartTime, Instant.now()),
-                error = actualException as? Exception ?: RuntimeException(actualException),
-                isCustomStep = true,
-            )
-        }
-
-    /**
-     * Execute a webhook step that starts a mock webhook server.
-     *
-     * This creates a MockWebhookServer, registers expected webhook operations,
-     * starts the server, and registers it in the execution context for
-     * variable interpolation (e.g., {{serverName.hookName}}).
-     */
-    private fun executeWebhookStep(
-        step: Step,
-        config: WebhookConfig,
-        context: ExecutionContext,
-        stepStartTime: Instant,
-    ): StepResult =
-        runCatching {
-            // Create and configure the webhook server
-            val server = MockWebhookServer(config.port)
-
-            // Register expected webhook operations
-            config.hooks.forEach { hookName ->
-                server.expect(hookName)
-            }
-
-            // Start the server
-            server.start()
-
-            // Register the server in the context for variable interpolation
-            context.registerWebhookServer(config.name, server)
-
-            StepResult(
-                step = step,
-                status = ResultStatus.PASSED,
-                duration = Duration.between(stepStartTime, Instant.now()),
-            )
-        }.getOrElse { e ->
-            StepResult(
-                step = step,
-                status = ResultStatus.ERROR,
-                duration = Duration.between(stepStartTime, Instant.now()),
-                error = e as? Exception ?: RuntimeException(e),
-            )
-        }
-
-    /**
-     * Execute a step with an operationId (HTTP request).
-     */
-    private fun executeOperationStep(
-        step: Step,
-        context: ExecutionContext,
-        stepStartTime: Instant,
-        scenarioContext: ScenarioContextAdapter,
-        stepIndex: Int,
-        listener: BerryCrushExecutionListener,
-    ): StepResult =
-        runCatching {
-            // Check if this step has auto-test configuration
-            val autoTestConfig = step.autoTestConfig
-            if (autoTestConfig != null) {
-                executeAutoTestStep(step, context, stepStartTime, autoTestConfig, listener)
-            } else {
-                executeHttpRequest(step, context, stepStartTime)
-            }
-        }.getOrElse { e ->
-            // Create enriched error context for debugging
-            val errorContext = buildScenarioErrorContext(scenarioContext, step, stepIndex)
-            val enrichedError = enrichException(e, errorContext, context)
-
-            StepResult(
-                step = step,
-                status = ResultStatus.ERROR,
-                duration = Duration.between(stepStartTime, Instant.now()),
-                error = enrichedError,
-            )
-        }
-
-    /**
-     * Build scenario error context from current execution state.
-     */
-    private fun buildScenarioErrorContext(
-        scenarioContext: ScenarioContextAdapter,
-        step: Step,
-        stepIndex: Int,
-    ): ScenarioErrorContext =
-        ScenarioErrorContext(
-            scenarioName = scenarioContext.scenarioName,
-            scenarioFile = scenarioContext.scenarioFile.toString(),
-            stepDescription = step.description,
-            stepIndex = stepIndex,
-            stepLine = step.sourceLocation?.line,
-            operationId = step.operationId,
-        )
-
-    /**
-     * Enrich an exception with scenario/step context for better debugging.
-     */
-    private fun enrichException(
-        original: Throwable,
-        errorContext: ScenarioErrorContext,
-        executionContext: ExecutionContext,
-    ): Exception {
-        // For HTTP-related exceptions, wrap with full context
-        val exception = original as? Exception ?: RuntimeException(original)
-
-        // If this is already an HttpExecutionException with context, return as-is
-        if (exception is HttpExecutionException && exception.scenarioContext != null) {
-            return exception
-        }
-
-        // Create response snapshot from context
-        val lastResponse = executionContext.lastResponse
-        val responseSnapshot =
-            lastResponse?.let { resp ->
-                org.berrycrush.plugin.HttpResponse(
-                    statusCode = resp.statusCode(),
-                    statusMessage = "",
-                    headers = resp.headers().map(),
-                    body = resp.body(),
-                    duration = Duration.ofMillis(executionContext.lastResponseTimeMs ?: 0L),
-                    timestamp = Instant.now(),
-                )
-            }
-
-        // Return enhanced exception with context
-        return HttpExecutionException(
-            url = lastResponse?.uri()?.toString() ?: "unknown",
-            method = lastResponse?.request()?.method() ?: "UNKNOWN",
-            cause = exception,
-            response = responseSnapshot,
-            scenarioContext = errorContext,
-            config = configuration.errorContextConfig,
-        )
-    }
-
-    /**
-     * Execute auto-test step with configured test types.
-     */
-    private fun executeAutoTestStep(
-        step: Step,
-        context: ExecutionContext,
-        stepStartTime: Instant,
-        autoTestConfig: AutoTestConfig,
-        listener: BerryCrushExecutionListener,
-    ): StepResult {
-        val hasMulti = AutoTestType.MULTI in autoTestConfig.types
-        val hasInvalidOrSecurity =
-            autoTestConfig.types.any {
-                it == AutoTestType.INVALID || it == AutoTestType.SECURITY
-            }
-
-        // Extract step-level multi-test parameters from pathParams
-        val stepMultiTestParams = step.pathParams.filterKeys { it.startsWith("multiTest") }
-
-        // Merge configuration defaults -> context params -> step params (step wins)
-        val multiTestParams =
-            configuration.getMultiTestParameters() +
-                context.allVariables() +
-                stepMultiTestParams
-
-        return when {
-            // Both MULTI and INVALID/SECURITY - run both
-            hasMulti && hasInvalidOrSecurity -> {
-                val multiResult =
-                    autoTestExecutor.executeMultiTests(
-                        step,
-                        context,
-                        stepStartTime,
-                        multiTestParams,
-                        listener,
-                    )
-                val autoResult =
-                    autoTestExecutor.executeAutoTests(
-                        step,
-                        context,
-                        stepStartTime,
-                        listener,
-                    )
-                combineAutoTestResults(step, stepStartTime, multiResult, autoResult)
-            }
-            // Only MULTI
-            hasMulti ->
-                autoTestExecutor.executeMultiTests(
-                    step,
-                    context,
-                    stepStartTime,
-                    multiTestParams,
-                    listener,
-                )
-            // Only INVALID/SECURITY
-            else -> autoTestExecutor.executeAutoTests(step, context, stepStartTime, listener)
-        }
-    }
-
-    /**
-     * Combine multi-test and auto-test results into a single StepResult.
-     */
-    private fun combineAutoTestResults(
-        step: Step,
-        stepStartTime: Instant,
-        multiResult: StepResult,
-        autoResult: StepResult,
-    ): StepResult {
-        val passed =
-            multiResult.status == ResultStatus.PASSED &&
-                autoResult.status == ResultStatus.PASSED
-        return StepResult(
-            step = step,
-            status = if (passed) ResultStatus.PASSED else ResultStatus.FAILED,
-            duration = Duration.between(stepStartTime, Instant.now()),
-            message = "${multiResult.message}; ${autoResult.message}",
-            multiTestResults = multiResult.multiTestResults,
-            autoTestResults = autoResult.autoTestResults,
-        )
-    }
-
-    /**
-     * Build request context and execute HTTP request.
-     */
-    private fun executeHttpRequest(
-        step: Step,
-        context: ExecutionContext,
-        stepStartTime: Instant,
-    ): StepResult {
-        // Resolve the operation
-        val (spec, resolvedOp) = specRegistry.resolve(step.operationId!!, step.specName)
-
-        // Store the resolved operation for schema validation
-        context.updateCurrentOperation(resolvedOp)
-
-        // Record request start time
-        val requestStartTime = System.currentTimeMillis()
-
-        // Execute the HTTP request using the HttpExecutor
-        val response = httpExecutor.execute(step, spec, resolvedOp, context)
-
-        // Calculate and store response time
-        val responseTimeMs = System.currentTimeMillis() - requestStartTime
-        context.updateLastResponseTime(responseTimeMs)
-
-        // Update context with response
-        context.updateLastResponse(response)
-
-        return buildResultFromResponse(step, response, stepStartTime, context)
-    }
-
-    /**
-     * Check if a step contains any custom assertions.
-     */
-    private fun hasCustomAssertion(step: Step): Boolean {
-        // Check direct assertions
-        if (step.assertions.any { it.condition is Condition.CustomAssertion }) {
-            return true
-        }
-        // Check conditional assertions
-        return step.conditionals.any { conditional ->
-            hasCustomAssertionInConditional(conditional)
-        }
-    }
-
-    /**
-     * Check if a conditional contains any custom assertions.
-     */
-    private fun hasCustomAssertionInConditional(conditional: ConditionalAssertion): Boolean {
-        // Check if branch
-        if (conditional.ifBranch.actions.assertions
-                .any { it.condition is Condition.CustomAssertion }
-        ) {
-            return true
-        }
-        // Check else if branches
-        if (conditional.elseIfBranches.any { branch ->
-                branch.actions.assertions.any { it.condition is Condition.CustomAssertion }
-            }
-        ) {
-            return true
-        }
-        // Check else actions
-        if (conditional.elseActions?.assertions?.any { it.condition is Condition.CustomAssertion } == true) {
-            return true
-        }
-        // Check nested conditionals
-        val hasNestedCustom =
-            conditional.ifBranch.actions.nestedConditionals
-                .any { hasCustomAssertionInConditional(it) } ||
-                conditional.elseIfBranches.any { branch ->
-                    branch.actions.nestedConditionals.any { hasCustomAssertionInConditional(it) }
-                } ||
-                (conditional.elseActions?.nestedConditionals?.any { hasCustomAssertionInConditional(it) } == true)
-        return hasNestedCustom
-    }
-
-    /**
-     * Build a StepResult from an HTTP response.
-     */
-    private fun buildResultFromResponse(
-        step: Step,
-        response: HttpResponse<String>,
-        stepStartTime: Instant,
-        context: ExecutionContext,
-    ): StepResult {
-        val isCustom = hasCustomAssertion(step)
-
-        // Check for unconditional fail
-        if (step.failMessage != null) {
-            return StepResult(
-                step = step,
-                status = ResultStatus.FAILED,
-                statusCode = response.statusCode(),
-                responseBody = response.body(),
-                responseHeaders = response.headers().map(),
-                duration = Duration.between(stepStartTime, Instant.now()),
-                error = AssertionError(step.failMessage),
-                isCustomStep = isCustom,
-            )
-        }
-
-        val extractedValues = extractValues(response, step, context)
-        val assertionResults = runAssertions(response, step.assertions, context).toMutableList()
-
-        // Run conditional assertions
-        val conditionalResults = runConditionals(response, step.conditionals, context)
-        assertionResults.addAll(conditionalResults.assertionResults)
-
-        // Run custom assertions (DSL assert blocks)
-        val customAssertionResults = runCustomAssertions(step.customAssertions, context)
-        assertionResults.addAll(customAssertionResults)
-
-        // Check for conditional fail
-        if (conditionalResults.failMessage != null) {
-            return StepResult(
-                step = step,
-                status = ResultStatus.FAILED,
-                statusCode = response.statusCode(),
-                responseBody = response.body(),
-                responseHeaders = response.headers().map(),
-                duration = Duration.between(stepStartTime, Instant.now()),
-                extractedValues = extractedValues + conditionalResults.extractedValues,
-                assertionResults = assertionResults,
-                error = AssertionError(conditionalResults.failMessage),
-                isCustomStep = isCustom,
-            )
-        }
-
-        val allPassed = assertionResults.all { it.passed }
-
-        return StepResult(
-            step = step,
-            status = if (allPassed) ResultStatus.PASSED else ResultStatus.FAILED,
-            statusCode = response.statusCode(),
-            responseBody = response.body(),
-            responseHeaders = response.headers().map(),
-            duration = Duration.between(stepStartTime, Instant.now()),
-            extractedValues = extractedValues + conditionalResults.extractedValues,
-            assertionResults = assertionResults,
-            isCustomStep = isCustom,
-        )
-    }
-
-    /**
-     * Log HTTP request if enabled.
-     */
-    private fun logRequest(
-        method: HttpMethod,
-        url: String,
-        headers: Map<String, String>,
-        body: String?,
-    ) {
-        if (configuration.logRequests) {
-            configuration.getEffectiveHttpLogger().logRequest(method, url, headers, body)
-        }
-    }
-
-    /**
-     * Log HTTP response if enabled.
-     */
-    private fun logResponse(
-        method: HttpMethod,
-        url: String,
-        response: HttpResponse<String>,
-        requestStartTime: Long,
-    ) {
-        if (configuration.logResponses) {
-            val durationMs = System.currentTimeMillis() - requestStartTime
-            configuration.getEffectiveHttpLogger().logResponse(method, url, response, durationMs)
-        }
-    }
-
-    private fun extractValues(
-        response: HttpResponse<String>,
-        step: Step,
-        context: ExecutionContext,
-    ): Map<String, Any?> =
-        step.extractions.associate { extraction ->
-            val value =
-                runCatching {
-                    val body = response.body() ?: ""
-                    ValueExtractor.extractTo(body, extraction, context)
-                }.getOrNull()
-            extraction.variableName to value
-        }
-
-    private fun runAssertions(
-        response: HttpResponse<String>,
-        assertions: List<Assertion>,
-        context: ExecutionContext,
-    ): List<AssertionResult> = assertions.map { assertion -> runAssertion(response, assertion, context) }
-
-    /**
-     * Run a single assertion using the AssertionEngine.
-     *
-     * Delegates condition evaluation and message generation to the assertion engine,
-     * ensuring consistent behavior between `assert` and `if` conditions.
-     */
-    private fun runAssertion(
-        response: HttpResponse<String>,
-        assertion: Assertion,
-        context: ExecutionContext,
-    ): AssertionResult {
-        val assertionContext = buildAssertionContext(response, context)
-        val result = assertionEngine.evaluate(assertion.condition, assertionContext)
-
-        return AssertionResult(
-            assertion = assertion,
-            passed = result.passed,
-            message = result.message,
-            actual = result.actual,
-        )
-    }
-
-    /**
-     * Build an AssertionContext from the current execution state.
-     */
-    private fun buildAssertionContext(
-        response: HttpResponse<String>,
-        context: ExecutionContext,
-    ): ExecutorAssertionContext {
-        val headers = response.headers().map().mapValues { it.value.toList() }
-        return ExecutorAssertionContext(
-            response = response,
-            responseBody = response.body(),
-            responseHeaders = headers,
-            statusCode = response.statusCode(),
-            responseTimeMs = context.lastResponseTimeMs,
-            variables = context.allVariables(),
-            executionContext = context,
-            currentOperation = context.currentOperation,
-        )
-    }
-
-    /**
-     * Result of running conditional assertions.
-     */
-    private data class ConditionalRunResult(
-        val assertionResults: List<AssertionResult> = emptyList(),
-        val extractedValues: Map<String, Any?> = emptyMap(),
-        val failMessage: String? = null,
-    )
-
-    /**
-     * Run conditional assertions against the response.
-     *
-     * Evaluates each conditional's conditions in order and runs the actions
-     * for the first matching branch.
-     */
-    private fun runConditionals(
-        response: HttpResponse<String>,
-        conditionals: List<ConditionalAssertion>,
-        context: ExecutionContext,
-    ): ConditionalRunResult {
-        val allResults = mutableListOf<AssertionResult>()
-        val allExtracted = mutableMapOf<String, Any?>()
-        var failMessage: String? = null
-
-        for (conditional in conditionals) {
-            val result = runConditional(response, conditional, context)
-            allResults.addAll(result.assertionResults)
-            allExtracted.putAll(result.extractedValues)
-            if (result.failMessage != null) {
-                failMessage = result.failMessage
-                break // Stop on first fail
-            }
-        }
-
-        return ConditionalRunResult(
-            assertionResults = allResults,
-            extractedValues = allExtracted,
-            failMessage = failMessage,
-        )
-    }
-
-    /**
-     * Run a single conditional assertion.
-     */
-    private fun runConditional(
-        response: HttpResponse<String>,
-        conditional: ConditionalAssertion,
-        context: ExecutionContext,
-    ): ConditionalRunResult {
-        val assertionContext = buildAssertionContext(response, context)
-
-        // Try if branch
-        if (assertionEngine.evaluate(conditional.ifBranch.condition, assertionContext).passed) {
-            return runConditionalActions(response, conditional.ifBranch.actions, context)
-        }
-
-        // Try else-if branches
-        for (elseIfBranch in conditional.elseIfBranches) {
-            if (assertionEngine.evaluate(elseIfBranch.condition, assertionContext).passed) {
-                return runConditionalActions(response, elseIfBranch.actions, context)
-            }
-        }
-
-        // Run else branch if present
-        if (conditional.elseActions != null) {
-            return runConditionalActions(response, conditional.elseActions, context)
-        }
-
-        // No branch matched - that's OK, no assertions to run
-        return ConditionalRunResult()
-    }
-
-    /**
-     * Run actions within a conditional branch.
-     */
-    private fun runConditionalActions(
-        response: HttpResponse<String>,
-        actions: ConditionalActions,
-        context: ExecutionContext,
-    ): ConditionalRunResult {
-        // Check for fail first
-        if (actions.failMessage != null) {
-            return ConditionalRunResult(failMessage = actions.failMessage)
-        }
-
-        val assertionResults = mutableListOf<AssertionResult>()
-        val extractedValues = mutableMapOf<String, Any?>()
-
-        // Run extractions
-        for (extraction in actions.extractions) {
-            val value =
-                runCatching {
-                    val body = response.body() ?: ""
-                    ValueExtractor.extractTo(body, extraction, context)
-                }.getOrNull()
-            extractedValues[extraction.variableName] = value
-        }
-
-        // Run assertions
-        assertionResults.addAll(runAssertions(response, actions.assertions, context))
-
-        // Run nested conditionals
-        for (nested in actions.nestedConditionals) {
-            val nestedResult = runConditional(response, nested, context)
-            assertionResults.addAll(nestedResult.assertionResults)
-            extractedValues.putAll(nestedResult.extractedValues)
-            if (nestedResult.failMessage != null) {
-                return ConditionalRunResult(
-                    assertionResults = assertionResults,
-                    extractedValues = extractedValues,
-                    failMessage = nestedResult.failMessage,
-                )
-            }
-        }
-
-        return ConditionalRunResult(
-            assertionResults = assertionResults,
-            extractedValues = extractedValues,
-        )
-    }
-
-    /**
-     * Run custom assertions defined via DSL assert blocks.
-     *
-     * Custom assertions receive a TestExecutionContext and can throw any exception
-     * (including AssertionError from require/check/assert) to indicate failure.
-     */
-    private fun runCustomAssertions(
-        customAssertions: List<CustomAssertionDefinition>,
-        context: ExecutionContext,
-    ): List<AssertionResult> =
-        customAssertions.map { customAssertion ->
-            runCustomAssertion(customAssertion, context)
-        }
-
-    /**
-     * Run a single custom assertion.
-     */
-    private fun runCustomAssertion(
-        customAssertion: CustomAssertionDefinition,
-        context: ExecutionContext,
-    ): AssertionResult {
-        val testContext = MutableTestExecutionContext(context)
-        val assertion =
-            Assertion(
-                condition = Condition.CustomAssertion(customAssertion.description),
-                description = customAssertion.description,
-            )
-        return runCatching {
-            customAssertion.assertion(testContext)
-            AssertionResult(
-                assertion = assertion,
-                passed = true,
-                message = "Custom assertion passed: ${customAssertion.description}",
-            )
-        }.getOrElse { e ->
-            // Unwrap AssertionFailureException if present
-            val actualException =
-                when (e) {
-                    is org.berrycrush.exception.AssertionFailureException -> e.cause ?: e
-                    else -> e
-                }
-            AssertionResult(
-                assertion = assertion,
-                passed = false,
-                message = actualException.message ?: "Custom assertion failed: ${customAssertion.description}",
-                actual = actualException.message,
-            )
-        }
-    }
 }
 
 internal inline fun ExecutionContext.withIncludeParameters(

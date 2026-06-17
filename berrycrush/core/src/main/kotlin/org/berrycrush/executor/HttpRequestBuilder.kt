@@ -1,7 +1,7 @@
 package org.berrycrush.executor
 
 import org.berrycrush.exception.HttpExecutionException
-import org.berrycrush.openapi.HttpMethod
+import org.berrycrush.plugin.HttpMethod
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -68,7 +68,7 @@ class HttpRequestBuilder(
             val request = requestBuilder.build()
             client.get().send(request, HttpResponse.BodyHandlers.ofString())
         }.getOrElse { e ->
-            throw HttpExecutionException(url, method.name, e)
+            throw HttpExecutionException(url, method, e)
         }
 
     /**

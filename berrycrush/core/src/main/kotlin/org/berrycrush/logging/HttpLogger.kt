@@ -1,7 +1,7 @@
 package org.berrycrush.logging
 
-import org.berrycrush.openapi.HttpMethod
-import java.net.http.HttpResponse
+import org.berrycrush.plugin.HttpMethod
+import org.berrycrush.plugin.HttpResponse
 
 /**
  * Interface for logging HTTP requests and responses.
@@ -36,7 +36,7 @@ interface HttpLogger {
     fun logResponse(
         method: HttpMethod,
         url: String,
-        response: HttpResponse<String>,
+        response: HttpResponse,
         durationMs: Long,
     )
 }

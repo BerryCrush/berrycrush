@@ -1,8 +1,6 @@
 package org.berrycrush.step
 
-import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
-import org.berrycrush.executor.BerryCrushConfigurationProvider
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -136,16 +134,10 @@ class StepContextImplTest {
         executionContext: ExecutionContext,
         sharedVariables: MutableMap<String, Any?>? = null,
         sharingEnabled: Boolean = false,
-    ): StepContextImpl {
-        val config =
-            BerryCrushConfiguration().apply {
-                shareVariablesAcrossScenarios = sharingEnabled
-            }
-        return StepContextImpl(
+    ): StepContextImpl =
+        StepContextImpl(
             executionContext = executionContext,
-            configuration = BerryCrushConfigurationProvider.from(config),
             sharedVariables = sharedVariables,
             sharingEnabled = sharingEnabled,
         )
-    }
 }

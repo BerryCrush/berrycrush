@@ -1,8 +1,7 @@
 package org.berrycrush.step
 
 import org.berrycrush.context.ExecutionContext
-import org.berrycrush.executor.BerryCrushConfigurationProvider
-import java.net.http.HttpResponse
+import org.berrycrush.plugin.HttpResponse
 
 /**
  * Default implementation of [StepContext] that wraps an [ExecutionContext].
@@ -11,13 +10,11 @@ import java.net.http.HttpResponse
  * for custom step implementations.
  *
  * @property executionContext The underlying execution context
- * @property configuration The BerryCrush configuration
  * @property sharedVariables Optional shared variables map for suite-scoped variables
  * @property sharingEnabled Whether variable sharing is enabled
  */
 class StepContextImpl(
     private val executionContext: ExecutionContext,
-    override val configuration: BerryCrushConfigurationProvider,
     private val sharedVariables: MutableMap<String, Any?>? = null,
     private val sharingEnabled: Boolean = false,
 ) : StepContext {
@@ -71,6 +68,6 @@ class StepContextImpl(
         return allVars
     }
 
-    override val lastResponse: HttpResponse<String>?
+    override val lastResponse: HttpResponse?
         get() = executionContext.lastResponse
 }

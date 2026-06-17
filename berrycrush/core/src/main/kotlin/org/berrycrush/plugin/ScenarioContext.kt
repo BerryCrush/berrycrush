@@ -1,5 +1,6 @@
 package org.berrycrush.plugin
 
+import org.berrycrush.context.ExecutionContext
 import java.nio.file.Path
 import java.time.Instant
 
@@ -23,4 +24,16 @@ interface ScenarioContext {
     val metadata: Map<String, String>
     val startTime: Instant
     val tags: Set<String>
+    val audits: List<HttpAudit>
+    val executionContext: ExecutionContext
+
+    data class HttpAudit(
+        val request: HttpRequest,
+        val response: HttpResponse,
+    )
+
+    fun addAudit(
+        request: HttpRequest,
+        response: HttpResponse,
+    )
 }

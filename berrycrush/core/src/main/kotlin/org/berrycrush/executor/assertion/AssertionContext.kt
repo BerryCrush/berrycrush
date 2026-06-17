@@ -2,7 +2,7 @@ package org.berrycrush.executor.assertion
 
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.openapi.ResolvedOperation
-import java.net.http.HttpResponse
+import org.berrycrush.plugin.HttpResponse
 
 /**
  * Context for assertion evaluation, encapsulating all data needed
@@ -13,7 +13,7 @@ import java.net.http.HttpResponse
  */
 data class AssertionContext(
     /** The HTTP response to evaluate assertions against. */
-    val response: HttpResponse<String>?,
+    val response: HttpResponse?,
     /** The response body as a string, cached for convenience. */
     val responseBody: String?,
     /** Response headers mapped to their values. */
@@ -36,7 +36,7 @@ data class AssertionContext(
          */
         fun from(executionContext: ExecutionContext): AssertionContext {
             val response = executionContext.lastResponse
-            val headers = response?.headers()?.map()?.mapValues { it.value.toList() } ?: emptyMap()
+            val headers = response?.headers?.mapValues { it.value.toList() } ?: emptyMap()
 
             return AssertionContext(
                 response = response,

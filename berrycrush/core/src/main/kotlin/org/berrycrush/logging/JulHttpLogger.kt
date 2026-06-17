@@ -1,7 +1,7 @@
 package org.berrycrush.logging
 
 import org.berrycrush.openapi.HttpMethod
-import java.net.http.HttpResponse
+import org.berrycrush.plugin.HttpResponse
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -35,7 +35,7 @@ class JulHttpLogger(
     override fun logResponse(
         method: HttpMethod,
         url: String,
-        response: HttpResponse<String>,
+        response: HttpResponse,
         durationMs: Long,
     ) {
         if (!logger.isLoggable(logLevel)) return

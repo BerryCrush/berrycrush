@@ -1,10 +1,13 @@
 package org.berrycrush.executor.response
 
-import org.berrycrush.context.ExecutionContext
+import org.berrycrush.context.ValueExtractor
+import org.berrycrush.executor.assertion.AssertionExecutor
+import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepResult
-import java.net.http.HttpResponse
-import java.time.Instant
+import org.berrycrush.plugin.HttpResponse
+import org.berrycrush.plugin.StepContext
+import java.time.Duration
 
 /**
  * Processor for HTTP responses during scenario execution.
@@ -12,7 +15,9 @@ import java.time.Instant
  * Handles assertion evaluation, variable extraction, and result
  * building after HTTP requests complete.
  */
-interface ResponseProcessor {
+class ResponseProcessor(
+    private val assertionExecutor: AssertionExecutor,
+) {
     /**
      * Process an HTTP response for a step.
      *
@@ -24,14 +29,81 @@ interface ResponseProcessor {
      *
      * @param response The HTTP response to process
      * @param step The step containing assertions and extractions
-     * @param stepStartTime The time when the step started executing
      * @param context The execution context for state management
      * @return The complete step result
      */
     fun process(
-        response: HttpResponse<String>,
         step: Step,
-        stepStartTime: Instant,
-        context: ExecutionContext,
-    ): StepResult
+        response: HttpResponse,
+        context: StepContext,
+    ): StepResult {
+        val isCustom = assertionExecutor.hasCustomAssertion(step)
+
+        // Check for unconditional fail
+        if (step.failMessage != null) {
+            return StepResult(
+                step = step,
+                status = ResultStatus.FAILED,
+                response = response,
+                duration = context.response?.duration ?: Duration.ZERO,
+                error = AssertionError(step.failMessage),
+                isCustomStep = isCustom,
+            )
+        }
+
+        val extractedValues = extractValues(step, context)
+        val assertionResults =
+            assertionExecutor
+                .runAssertions(
+                    response,
+                    step.assertions,
+                    context,
+                ).toMutableList()
+
+        // Run conditional assertions
+        val conditionalResults = assertionExecutor.runConditionals(response, step.conditionals, context)
+        assertionResults.addAll(conditionalResults.assertionResults)
+
+        // Run custom assertions (DSL assert blocks)
+        val customAssertionResults = assertionExecutor.runCustomAssertions(step.customAssertions, context)
+        assertionResults.addAll(customAssertionResults)
+
+        // Check for conditional fail
+        if (conditionalResults.failMessage != null) {
+            return StepResult(
+                step = step,
+                status = ResultStatus.FAILED,
+                response = response,
+                duration = context.response?.duration ?: Duration.ZERO,
+                extractedValues = extractedValues + conditionalResults.extractedValues,
+                assertionResults = assertionResults,
+                error = AssertionError(conditionalResults.failMessage),
+                isCustomStep = isCustom,
+            )
+        }
+        val allPassed = assertionResults.all { it.passed }
+
+        return StepResult(
+            step = step,
+            status = if (allPassed) ResultStatus.PASSED else ResultStatus.FAILED,
+            response = response,
+            duration = context.response?.duration ?: Duration.ZERO,
+            extractedValues = extractedValues + conditionalResults.extractedValues,
+            assertionResults = assertionResults,
+            isCustomStep = isCustom,
+        )
+    }
+
+    private fun extractValues(
+        step: Step,
+        context: StepContext,
+    ): Map<String, Any?> =
+        step.extractions.associate { extraction ->
+            val value =
+                runCatching {
+                    val body = context.response?.body ?: ""
+                    ValueExtractor.extractTo(body, extraction, context.scenarioContext.executionContext)
+                }.getOrNull()
+            extraction.variableName to value
+        }
 }

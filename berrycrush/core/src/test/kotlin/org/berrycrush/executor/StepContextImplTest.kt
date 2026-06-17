@@ -26,7 +26,6 @@ class StepContextImplTest {
         stepContext =
             StepContextImpl(
                 executionContext = executionContext,
-                configuration = configuration,
                 sharedVariables = null,
                 sharingEnabled = false,
             )
@@ -103,7 +102,6 @@ class StepContextImplTest {
             val ctxWithSharing =
                 StepContextImpl(
                     executionContext = executionContext,
-                    configuration = configuration,
                     sharedVariables = sharedVars,
                     sharingEnabled = true,
                 )
@@ -137,18 +135,6 @@ class StepContextImplTest {
     }
 
     @Nested
-    @DisplayName("configuration")
-    inner class ConfigurationTests {
-        @Test
-        @DisplayName("should return configuration")
-        fun returnConfiguration() {
-            val result = stepContext.configuration
-
-            assertEquals(configuration, result)
-        }
-    }
-
-    @Nested
     @DisplayName("variable scoping with shared variables")
     inner class VariableScopingTests {
         @Test
@@ -158,7 +144,6 @@ class StepContextImplTest {
             val ctxWithSharing =
                 StepContextImpl(
                     executionContext = executionContext,
-                    configuration = configuration,
                     sharedVariables = sharedVars,
                     sharingEnabled = true,
                 )
@@ -178,7 +163,6 @@ class StepContextImplTest {
             val ctxWithSharing =
                 StepContextImpl(
                     executionContext = executionContext,
-                    configuration = configuration,
                     sharedVariables = sharedVars,
                     sharingEnabled = true,
                 )
@@ -196,7 +180,6 @@ class StepContextImplTest {
             val ctxWithSharing =
                 StepContextImpl(
                     executionContext = executionContext,
-                    configuration = configuration,
                     sharedVariables = sharedVars,
                     sharingEnabled = true,
                 )
@@ -213,7 +196,6 @@ class StepContextImplTest {
             val ctxWithoutSharing =
                 StepContextImpl(
                     executionContext = executionContext,
-                    configuration = configuration,
                     sharedVariables = sharedVars, // Map provided but sharing disabled
                     sharingEnabled = false,
                 )
@@ -247,7 +229,6 @@ class StepContextImplTest {
             val ctxWithSharing =
                 StepContextImpl(
                     executionContext = executionContext,
-                    configuration = configuration,
                     sharedVariables = sharedVars,
                     sharingEnabled = true,
                 )
@@ -266,7 +247,6 @@ class StepContextImplTest {
             val ctxWithSharing =
                 StepContextImpl(
                     executionContext = executionContext,
-                    configuration = configuration,
                     sharedVariables = sharedVars,
                     sharingEnabled = true,
                 )

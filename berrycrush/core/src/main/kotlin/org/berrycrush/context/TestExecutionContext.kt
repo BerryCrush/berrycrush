@@ -1,14 +1,14 @@
 package org.berrycrush.context
 
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
+import org.berrycrush.plugin.HttpRequest
+import org.berrycrush.plugin.HttpResponse
 
 /**
  * Represents a request-response pair in the execution history.
  */
 data class RequestResponsePair(
     val request: HttpRequest,
-    val response: HttpResponse<String>,
+    val response: HttpResponse,
 )
 
 /**
@@ -33,7 +33,7 @@ interface TestExecutionContext {
     /**
      * The most recent HTTP response, or null if no request has been made yet.
      */
-    val response: HttpResponse<String>?
+    val response: HttpResponse?
 
     /**
      * The most recent HTTP request, or null if no request has been made yet.
@@ -54,13 +54,13 @@ interface TestExecutionContext {
      * The response body as a string, or null if no response.
      */
     val responseBody: String?
-        get() = response?.body()
+        get() = response?.body
 
     /**
      * The response status code, or null if no response.
      */
     val statusCode: Int?
-        get() = response?.statusCode()
+        get() = response?.statusCode
 
     /**
      * Get a previously extracted value by name.
@@ -116,11 +116,11 @@ internal class MutableTestExecutionContext(
 ) : TestExecutionContext {
     private val requestHistory = mutableListOf<RequestResponsePair>()
 
-    override val response: HttpResponse<String>?
+    override val response: HttpResponse?
         get() = executionContext.lastResponse
 
     override val request: HttpRequest?
-        get() = executionContext.lastResponse?.request()
+        get() = executionContext.lastResponse?.request
 
     override val history: List<RequestResponsePair>
         get() = requestHistory.toList()
@@ -152,7 +152,7 @@ internal class MutableTestExecutionContext(
      */
     internal fun recordRequestResponse(
         request: HttpRequest,
-        response: HttpResponse<String>,
+        response: HttpResponse,
     ) {
         requestHistory.add(RequestResponsePair(request, response))
         executionContext.updateLastResponse(response)

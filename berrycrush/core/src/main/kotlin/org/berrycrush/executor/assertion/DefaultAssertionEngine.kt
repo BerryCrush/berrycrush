@@ -9,8 +9,8 @@ import org.berrycrush.model.LogicalOperator
 import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.openapi.SchemaSpec
 import org.berrycrush.openapi.findResponse
+import org.berrycrush.plugin.HttpResponse
 import tools.jackson.databind.ObjectMapper
-import java.net.http.HttpResponse
 import io.swagger.v3.oas.models.media.Schema as SwaggerSchema
 
 private const val BODY_PREVIEW_LENGTH = 200
@@ -64,7 +64,7 @@ class DefaultAssertionEngine(
      */
     @Suppress("CyclomaticComplexMethod") // Dispatcher pattern - complexity from many condition types
     private fun evaluateCondition(
-        response: HttpResponse<String>?,
+        response: HttpResponse?,
         condition: Condition,
         context: AssertionContext,
     ): Boolean =
@@ -86,10 +86,10 @@ class DefaultAssertionEngine(
      * Evaluate a status code condition.
      */
     private fun evaluateStatusCondition(
-        response: HttpResponse<String>?,
+        response: HttpResponse?,
         condition: Condition.Status,
     ): Boolean {
-        val actual = response?.statusCode() ?: return false
+        val actual = response?.statusCode ?: return false
         return when (val expected = condition.expected) {
             is Number -> actual == expected.toInt()
             is IntRange -> actual in expected
@@ -130,11 +130,11 @@ class DefaultAssertionEngine(
      */
     @Suppress("CyclomaticComplexMethod") // Many operators need handling
     private fun evaluateHeaderCondition(
-        response: HttpResponse<String>?,
+        response: HttpResponse?,
         condition: Condition.Header,
         context: AssertionContext,
     ): Boolean {
-        val headerValues = response?.headers()?.allValues(condition.name) ?: emptyList()
+        val headerValues = response?.headers?.get(condition.name) ?: emptyList()
         val actualValue = headerValues.firstOrNull()
         val expectedValue = condition.expected?.let { resolveConditionValue(it, context) }
 
@@ -177,7 +177,7 @@ class DefaultAssertionEngine(
      * Evaluate a compound condition (AND/OR).
      */
     private fun evaluateCompoundCondition(
-        response: HttpResponse<String>?,
+        response: HttpResponse?,
         condition: Condition.Compound,
         context: AssertionContext,
     ): Boolean {
@@ -205,14 +205,14 @@ class DefaultAssertionEngine(
      */
     @Suppress("ReturnCount") // Multiple early returns for validation guards
     private fun evaluateSchemaCondition(
-        response: HttpResponse<String>?,
+        response: HttpResponse?,
         context: AssertionContext,
     ): Boolean {
         val operation = context.currentOperation ?: return true // Can't validate without operation
-        val responseBody = response?.body() ?: return true // Empty body passes validation
+        val responseBody = response?.body ?: return true // Empty body passes validation
 
         // Find the schema for this response status code
-        val schemaSpec = findResponseSchema(operation, response.statusCode()) ?: return true
+        val schemaSpec = findResponseSchema(operation, response.statusCode) ?: return true
 
         // Get raw swagger schema for validation
         @Suppress("UNCHECKED_CAST")

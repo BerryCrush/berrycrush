@@ -1,15 +1,16 @@
 package org.berrycrush.executor.http
 
-import org.berrycrush.context.ExecutionContext
 import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.HttpRequestBuilder
+import org.berrycrush.executor.resolvers.DefaultRequestResolver
 import org.berrycrush.executor.resolvers.RequestResolver
-import org.berrycrush.executor.resolvers.ResolvedRequest
-import org.berrycrush.model.Step
-import org.berrycrush.openapi.LoadedSpec
-import org.berrycrush.openapi.ResolvedOperation
+import org.berrycrush.plugin.HttpRequest
+import org.berrycrush.plugin.HttpResponse
+import org.berrycrush.plugin.StepContext
+import org.berrycrush.plugin.adapter.StepContextAdapter
 import tools.jackson.databind.ObjectMapper
-import java.net.http.HttpResponse
+import java.time.Duration
+import java.time.Instant
 
 /**
  * Default implementation of [HttpExecutor] for executing HTTP requests.
@@ -28,53 +29,58 @@ class DefaultHttpExecutor(
     private val configuration: BerryCrushConfigurationProvider,
     private val httpBuilder: HttpRequestBuilder = HttpRequestBuilder(configuration),
     objectMapper: ObjectMapper = ObjectMapper(),
-) : HttpExecutor {
-    private val requestResolver = RequestResolver(configuration, httpBuilder, objectMapper)
-
+    private val requestResolver: RequestResolver = DefaultRequestResolver(configuration, httpBuilder, objectMapper),
+) : HttpExecutor,
+    RequestResolver by requestResolver {
     override fun execute(
-        step: Step,
-        spec: LoadedSpec,
-        operation: ResolvedOperation,
-        context: ExecutionContext,
-    ): HttpResponse<String> {
-        val resolvedRequest = requestResolver.resolve(step, spec, operation, context)
-        // Log request if enabled
-        logRequest(resolvedRequest)
+        request: HttpRequest,
+        context: StepContext,
+    ): HttpResponse {
+        if (context is StepContextAdapter) {
+            context.setRequest(request)
+        }
+        logRequest(request)
 
         // Record request start time for logging
-        val requestStartTime = System.currentTimeMillis()
+        val requestStartTime = Instant.now()
 
         // Execute the HTTP request
-        val response =
+        val rawResponse =
             httpBuilder.execute(
-                method = resolvedRequest.method,
-                url = resolvedRequest.url,
-                headers = resolvedRequest.headers,
-                body = resolvedRequest.body,
+                method = request.method,
+                url = request.url,
+                headers = request.headers,
+                body = request.body,
             )
-
+        val requestEndTime = Instant.now()
+        val duration = Duration.between(requestStartTime, requestEndTime)
+        val response =
+            HttpResponse(
+                statusCode = rawResponse.statusCode(),
+                statusMessage = HTTP_STATUS_MESSAGES[rawResponse.statusCode()] ?: "",
+                headers = rawResponse.headers().map(),
+                body = rawResponse.body(),
+                duration = duration,
+                timestamp = requestEndTime,
+                request = request,
+            )
         // Log response if enabled
-        logResponse(resolvedRequest, response, requestStartTime)
+        logResponse(request, response, duration)
+
+        if (context is StepContextAdapter) {
+            context.setResponse(response)
+        }
+        context.scenarioContext.addAudit(request, response)
 
         return response
     }
-
-    @Deprecated(
-        level = DeprecationLevel.ERROR,
-        message = "resolveBody is deprecated and will be removed in 2.0.0.",
-    )
-    override fun resolveBody(
-        step: Step,
-        operation: ResolvedOperation?,
-        context: ExecutionContext,
-    ): String? = requestResolver.resolveBody(step, operation, context)
 
     // ========== Logging ==========
 
     /**
      * Log HTTP request if enabled.
      */
-    private fun logRequest(request: ResolvedRequest) {
+    private fun logRequest(request: HttpRequest) {
         if (configuration.logRequests) {
             configuration.getEffectiveHttpLogger().logRequest(request.method, request.url, request.headers, request.body)
         }
@@ -84,13 +90,33 @@ class DefaultHttpExecutor(
      * Log HTTP response if enabled.
      */
     private fun logResponse(
-        request: ResolvedRequest,
-        response: HttpResponse<String>,
-        requestStartTime: Long,
+        request: HttpRequest,
+        response: HttpResponse,
+        duration: Duration,
     ) {
         if (configuration.logResponses) {
-            val durationMs = System.currentTimeMillis() - requestStartTime
-            configuration.getEffectiveHttpLogger().logResponse(request.method, request.url, response, durationMs)
+            configuration.getEffectiveHttpLogger().logResponse(request.method, request.url, response, duration.toMillis())
         }
     }
 }
+
+/**
+ * HTTP status code to message mapping.
+ */
+@Suppress("MagicNumber")
+private val HTTP_STATUS_MESSAGES =
+    mapOf(
+        200 to "OK",
+        201 to "Created",
+        204 to "No Content",
+        400 to "Bad Request",
+        401 to "Unauthorized",
+        403 to "Forbidden",
+        404 to "Not Found",
+        405 to "Method Not Allowed",
+        409 to "Conflict",
+        422 to "Unprocessable Entity",
+        500 to "Internal Server Error",
+        502 to "Bad Gateway",
+        503 to "Service Unavailable",
+    )

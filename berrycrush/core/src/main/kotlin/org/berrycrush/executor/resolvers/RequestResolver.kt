@@ -1,68 +1,78 @@
 package org.berrycrush.executor.resolvers
 
-import org.berrycrush.context.ExecutionContext
-import org.berrycrush.context.resolveParam
-import org.berrycrush.context.resolveParams
 import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.HttpRequestBuilder
 import org.berrycrush.model.BodyProperty
 import org.berrycrush.model.Step
-import org.berrycrush.openapi.HttpMethod
 import org.berrycrush.openapi.LoadedSpec
 import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.openapi.SchemaSpec
+import org.berrycrush.plugin.HttpRequest
+import org.berrycrush.plugin.StepContext
 import org.berrycrush.util.FileLoader
 import tools.jackson.databind.ObjectMapper
 
-fun interface UrlResolver {
-    fun resolve(
+interface UrlResolver {
+    fun resolveUrl(
         step: Step,
         spec: LoadedSpec,
         operation: ResolvedOperation,
-        context: ExecutionContext,
+        context: StepContext,
+        pathParams: Map<String, Any>? = null,
+        queryParams: Map<String, Any>? = null,
     ): String
 }
 
 fun interface HeaderResolver {
-    fun resolve(
+    fun resolveHeader(
         step: Step,
         spec: LoadedSpec,
-        context: ExecutionContext,
+        context: StepContext,
     ): Map<String, String>
 }
 
 interface BodyResolver {
-    fun resolve(
+    fun resolveBody(
         properties: Map<String, BodyProperty>,
         operation: ResolvedOperation?,
-        context: ExecutionContext,
+        context: StepContext,
     ): Map<String, Any>
 
-    fun resolve(
+    fun resolveBody(
         properties: Map<String, BodyProperty>,
-        context: ExecutionContext,
-    ): Map<String, Any> = resolve(properties, null, context)
+        context: StepContext,
+    ): Map<String, Any> = resolveBody(properties, null, context)
+
+    fun resolveBody(
+        step: Step,
+        operation: ResolvedOperation?,
+        context: StepContext,
+    ): String?
 }
 
-/**
- * Resolved request
- */
-data class ResolvedRequest(
-    val method: HttpMethod,
-    val url: String,
-    val headers: Map<String, String>,
-    val body: String? = null,
-)
+interface RequestResolver :
+    UrlResolver,
+    HeaderResolver,
+    BodyResolver {
+    fun resolve(
+        step: Step,
+        spec: LoadedSpec,
+        operation: ResolvedOperation,
+        context: StepContext,
+    ): HttpRequest
+}
 
 /**
  * Request resolver.
  */
-class RequestResolver(
+class DefaultRequestResolver(
     private val urlResolver: UrlResolver,
     private val headerResolver: HeaderResolver,
     private val bodyResolver: BodyResolver,
-    private val objectMapper: ObjectMapper = ObjectMapper(),
-) {
+) : RequestResolver,
+    UrlResolver by urlResolver,
+    HeaderResolver by headerResolver,
+    BodyResolver by bodyResolver {
     @JvmOverloads
     constructor(
         configuration: BerryCrushConfigurationProvider,
@@ -73,38 +83,20 @@ class RequestResolver(
             DefaultUrlResolver(configuration, httpBuilder),
             DefaultHeaderResolver(configuration),
             DefaultBodyResolver(objectMapper),
-            objectMapper,
         )
 
-    fun resolve(
+    override fun resolve(
         step: Step,
         spec: LoadedSpec,
         operation: ResolvedOperation,
-        context: ExecutionContext,
-    ): ResolvedRequest =
-        ResolvedRequest(
+        context: StepContext,
+    ): HttpRequest =
+        HttpRequest(
             operation.method,
-            urlResolver.resolve(step, spec, operation, context),
-            headerResolver.resolve(step, spec, context),
+            resolveUrl(step, spec, operation, context),
+            resolveHeader(step, spec, context),
             resolveBody(step, operation, context),
         )
-
-    fun resolveBody(
-        step: Step,
-        operation: ResolvedOperation?,
-        context: ExecutionContext,
-    ): String? {
-        // Inline body takes precedence
-        step.body?.let { return context.interpolate(it) }
-
-        // Structured body properties - generate from schema and merge
-        step.bodyProperties?.let { props ->
-            return objectMapper.writeValueAsString(bodyResolver.resolve(props, operation, context))
-        }
-        return step.bodyFile?.let { file ->
-            context.interpolate(FileLoader.load(file))
-        }
-    }
 }
 
 // default implementations of the resolvers
@@ -113,27 +105,29 @@ private class DefaultUrlResolver(
     private val configuration: BerryCrushConfigurationProvider,
     private val httpBuilder: HttpRequestBuilder,
 ) : UrlResolver {
-    override fun resolve(
+    override fun resolveUrl(
         step: Step,
         spec: LoadedSpec,
         operation: ResolvedOperation,
-        context: ExecutionContext,
+        context: StepContext,
+        pathParams: Map<String, Any>?,
+        queryParams: Map<String, Any>?,
     ): String =
         httpBuilder.buildUrl(
             baseUrl = configuration.baseUrl ?: spec.baseUrl,
             path = operation.path,
-            pathParams = context.resolveParams(step.pathParams),
-            queryParams = context.resolveParams(step.queryParams),
+            pathParams = context.resolveParams(pathParams ?: step.pathParams),
+            queryParams = context.resolveParams(queryParams ?: step.queryParams),
         )
 }
 
 private class DefaultHeaderResolver(
     private val configuration: BerryCrushConfigurationProvider,
 ) : HeaderResolver {
-    override fun resolve(
+    override fun resolveHeader(
         step: Step,
         spec: LoadedSpec,
-        context: ExecutionContext,
+        context: StepContext,
     ): Map<String, String> =
         (configuration.defaultHeaders + spec.defaultHeaders + step.headers).mapValues { (_, value) -> context.interpolate(value) }
 }
@@ -141,14 +135,31 @@ private class DefaultHeaderResolver(
 private class DefaultBodyResolver(
     private val objectMapper: ObjectMapper = ObjectMapper(),
 ) : BodyResolver {
-    override fun resolve(
+    override fun resolveBody(
         properties: Map<String, BodyProperty>,
         operation: ResolvedOperation?,
-        context: ExecutionContext,
+        context: StepContext,
     ): Map<String, Any> {
         val schemaDefaults = operation?.let { getSchemaDefaults(it) } ?: emptyMap()
         val merged = if (schemaDefaults.isEmpty()) properties else mergeBodyProperties(schemaDefaults, properties)
         return merged.mapValues { (_, value) -> resolveProperty(value, context) }
+    }
+
+    override fun resolveBody(
+        step: Step,
+        operation: ResolvedOperation?,
+        context: StepContext,
+    ): String? {
+        // Inline body takes precedence
+        step.body?.let { return context.interpolate(it) }
+
+        // Structured body properties - generate from schema and merge
+        step.bodyProperties?.let { props ->
+            return objectMapper.writeValueAsString(resolveBody(props, operation, context))
+        }
+        return step.bodyFile?.let { file ->
+            context.interpolate(FileLoader.load(file))
+        }
     }
 
     @Suppress("ReturnCount") // Multiple early returns for validation guards
@@ -228,7 +239,7 @@ private class DefaultBodyResolver(
 
     private fun resolveProperty(
         value: BodyProperty,
-        context: ExecutionContext,
+        context: StepContext,
     ): Any =
         when (value) {
             is BodyProperty.Simple -> context.resolveParam(value.value)

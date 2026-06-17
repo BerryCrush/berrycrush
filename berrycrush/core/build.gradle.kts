@@ -19,6 +19,7 @@ dependencies {
     // Testing
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.bundles.junit)
+    testImplementation(libs.bundles.mockito)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 

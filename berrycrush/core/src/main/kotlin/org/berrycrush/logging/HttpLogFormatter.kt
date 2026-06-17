@@ -1,7 +1,7 @@
 package org.berrycrush.logging
 
-import org.berrycrush.openapi.HttpMethod
-import java.net.http.HttpResponse
+import org.berrycrush.plugin.HttpMethod
+import org.berrycrush.plugin.HttpResponse
 
 /**
  * Interface for formatting HTTP request/response log messages.
@@ -37,7 +37,7 @@ interface HttpLogFormatter {
     fun formatResponse(
         method: HttpMethod,
         url: String,
-        response: HttpResponse<String>,
+        response: HttpResponse,
         durationMs: Long,
     ): String
 }
@@ -108,24 +108,24 @@ class DefaultHttpLogFormatter(
     override fun formatResponse(
         method: HttpMethod,
         url: String,
-        response: HttpResponse<String>,
+        response: HttpResponse,
         durationMs: Long,
     ): String {
         val sb = StringBuilder()
-        val statusText = getStatusText(response.statusCode())
-        sb.appendLine("◀ HTTP Response [${response.statusCode()} $statusText] (${durationMs}ms)")
+        val statusText = getStatusText(response.statusCode)
+        sb.appendLine("◀ HTTP Response [${response.statusCode} $statusText] (${durationMs}ms)")
         sb.appendLine("  $method $url")
 
         if (includeHeaders) {
-            val responseHeaders = response.headers().map().mapValues { it.value.joinToString(", ") }
+            val responseHeaders = response.headers.mapValues { it.value.joinToString(", ") }
             if (responseHeaders.isNotEmpty()) {
                 val maskedHeaders = maskHeaders(responseHeaders)
                 sb.appendLine("  Headers: $maskedHeaders")
             }
         }
 
-        if (includeBody && response.body().isNotEmpty()) {
-            val truncatedBody = truncateBody(response.body())
+        if (includeBody && !response.body.isNullOrEmpty()) {
+            val truncatedBody = truncateBody(response.body)
             sb.append("  Body: $truncatedBody")
         }
 
@@ -189,10 +189,10 @@ class CompactHttpLogFormatter : HttpLogFormatter {
     override fun formatResponse(
         method: HttpMethod,
         url: String,
-        response: HttpResponse<String>,
+        response: HttpResponse,
         durationMs: Long,
     ): String {
-        val bodyInfo = response.body().takeIf { it.isNotEmpty() }?.let { " {body: ${it.length} chars}" } ?: ""
-        return "◀ ${response.statusCode()} (${durationMs}ms) $method $url$bodyInfo"
+        val bodyInfo = response.body.takeIf { !it.isNullOrEmpty() }?.let { " {body: ${it.length} chars}" } ?: ""
+        return "◀ ${response.statusCode} (${durationMs}ms) $method $url$bodyInfo"
     }
 }

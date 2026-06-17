@@ -2,6 +2,8 @@ package org.berrycrush.plugin.adapter
 
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.model.Scenario
+import org.berrycrush.plugin.HttpRequest
+import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.ScenarioContext
 import java.io.File
 import java.nio.file.Path
@@ -14,11 +16,12 @@ import java.time.Instant
  */
 class ScenarioContextAdapter(
     private val scenario: Scenario,
-    executionContext: ExecutionContext,
+    override val executionContext: ExecutionContext,
     override val startTime: Instant,
     private val sourceFile: File? = null,
     private val scenarioMetadata: Map<String, String> = emptyMap(),
 ) : ScenarioContext {
+    private val mutableAudits = mutableListOf<ScenarioContext.HttpAudit>()
     override val scenarioName: String
         get() = scenario.name
 
@@ -33,6 +36,16 @@ class ScenarioContextAdapter(
 
     override val tags: Set<String>
         get() = scenario.tags
+
+    override val audits: List<ScenarioContext.HttpAudit>
+        get() = mutableAudits
+
+    override fun addAudit(
+        request: HttpRequest,
+        response: HttpResponse,
+    ) {
+        mutableAudits.add(ScenarioContext.HttpAudit(request, response))
+    }
 }
 
 /**

@@ -13,6 +13,7 @@ import org.berrycrush.junit.engine.ScenarioTestDiscoverer
 import org.berrycrush.junit.spi.BindingsProvider
 import org.berrycrush.model.FragmentRegistry
 import org.berrycrush.model.ResultStatus
+import org.berrycrush.model.ScenarioResult
 import org.berrycrush.plugin.PluginRegistry
 import org.berrycrush.runner.ScenarioRunner
 import org.berrycrush.scenario.ScenarioLoader
@@ -87,20 +88,18 @@ private fun TestExecutionContext.executeScenarioMethod(
 
         // Check if scenario should be skipped based on tags
         if (!classDescriptor.shouldExecuteScenario(scenario.tags)) {
-            ResultStatus.SKIPPED
+            ScenarioResult(scenario, ResultStatus.SKIPPED)
         } else {
             // Execute the scenario
-            val scenarioResult = runner.executeScenario(scenario)
-            scenarioResult.status
+            runner.executeScenario(scenario)
         }
-    }.onSuccess { status ->
+    }.onSuccess { result ->
         val testResult =
-            when (status) {
+            when (result.status) {
                 ResultStatus.PASSED -> TestExecutionResult.successful()
                 ResultStatus.SKIPPED -> TestExecutionResult.aborted(null)
-                ResultStatus.FAILED,
-                ResultStatus.ERROR,
-                -> TestExecutionResult.failed(AssertionError("Scenario failed"))
+                ResultStatus.FAILED -> TestExecutionResult.failed(AssertionError("Scenario failed"))
+                ResultStatus.ERROR -> TestExecutionResult.failed(AssertionError("Scenario got error", result.stepResults.last().error))
                 ResultStatus.PENDING -> TestExecutionResult.aborted(null)
             }
         listener.executionFinished(scenarioDescriptor, testResult)

@@ -1,10 +1,13 @@
 package org.berrycrush.executor.http
 
-import org.berrycrush.context.ExecutionContext
+import org.berrycrush.executor.resolvers.RequestResolver
 import org.berrycrush.model.Step
 import org.berrycrush.openapi.LoadedSpec
 import org.berrycrush.openapi.ResolvedOperation
-import java.net.http.HttpResponse
+import org.berrycrush.openapi.SpecRegistry
+import org.berrycrush.plugin.HttpRequest
+import org.berrycrush.plugin.HttpResponse
+import org.berrycrush.plugin.StepContext
 
 /**
  * Executor for HTTP requests during scenario execution.
@@ -12,7 +15,34 @@ import java.net.http.HttpResponse
  * This interface abstracts HTTP request building and execution from
  * the main scenario executor.
  */
-interface HttpExecutor {
+interface HttpExecutor : RequestResolver {
+    fun execute(
+        step: Step,
+        specRegistry: SpecRegistry,
+        stepContext: StepContext,
+    ): HttpResponse {
+        val context = stepContext.scenarioContext.executionContext
+        // Resolve the operation
+        val (spec, resolvedOp) = specRegistry.resolve(step.operationId!!, step.specName)
+
+        // Store the resolved operation for schema validation
+        context.updateCurrentOperation(resolvedOp)
+
+        // Record request start time
+        val requestStartTime = System.currentTimeMillis()
+
+        // Execute the HTTP request using the HttpExecutor
+        val response = execute(step, spec, resolvedOp, stepContext)
+
+        // Calculate and store response time
+        val responseTimeMs = System.currentTimeMillis() - requestStartTime
+        context.updateLastResponseTime(responseTimeMs)
+
+        // Update context with response
+        context.updateLastResponse(response)
+        return response
+    }
+
     /**
      * Execute an HTTP request for the given step.
      *
@@ -26,21 +56,11 @@ interface HttpExecutor {
         step: Step,
         spec: LoadedSpec,
         operation: ResolvedOperation,
-        context: ExecutionContext,
-    ): HttpResponse<String>
+        context: StepContext,
+    ): HttpResponse = execute(resolve(step, spec, operation, context), context)
 
-    /**
-     * Resolve the request body for a step.
-     *
-     * @param step The step containing body configuration
-     * @param operation The resolved OpenAPI operation (for schema defaults)
-     * @param context The execution context with variables
-     * @return The resolved body string, or null if no body is required
-     */
-    @Deprecated(level = DeprecationLevel.ERROR, message = "Will be removed in 2.0.0")
-    fun resolveBody(
-        step: Step,
-        operation: ResolvedOperation?,
-        context: ExecutionContext,
-    ): String?
+    fun execute(
+        request: HttpRequest,
+        context: StepContext,
+    ): HttpResponse
 }

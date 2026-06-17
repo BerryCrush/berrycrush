@@ -9,6 +9,7 @@ import org.berrycrush.model.StepType
 import org.berrycrush.model.WebhookConfig
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.scenario.WebhookScope
+import org.berrycrush.util.createStepContext
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -29,6 +30,7 @@ class WebhookStepExecutorTest {
     private val config = BerryCrushConfigurationProvider.from(BerryCrushConfiguration())
     private val executor = BerryCrushScenarioExecutor(specRegistry, config)
     private val context = ExecutionContext()
+    private val stepContext = createStepContext(context)
 
     @AfterTest
     fun cleanup() {
@@ -46,7 +48,7 @@ class WebhookStepExecutorTest {
 
         val result = executeWebhookStep(step)
 
-        assertEquals(ResultStatus.PASSED, result.status)
+        assertEquals(ResultStatus.PASSED, result?.status)
         assertNotNull(context.getWebhookServer("testServer"))
         assertTrue(context.getWebhookServer("testServer")!!.getPort() > 0)
     }
@@ -62,7 +64,7 @@ class WebhookStepExecutorTest {
 
         val result = executeWebhookStep(step)
 
-        assertEquals(ResultStatus.PASSED, result.status)
+        assertEquals(ResultStatus.PASSED, result?.status)
         val server = context.getWebhookServer("multiHook")
         assertNotNull(server)
 
@@ -156,5 +158,5 @@ class WebhookStepExecutorTest {
                 ),
         )
 
-    private fun executeWebhookStep(step: Step): StepResult = executor.executeNonOperationStep(step, context, Instant.now())
+    private fun executeWebhookStep(step: Step): StepResult? = executor.executeWebhookStep(step, stepContext, Instant.now())
 }

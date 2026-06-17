@@ -1,7 +1,7 @@
 package org.berrycrush.logging
 
-import org.berrycrush.openapi.HttpMethod
-import java.net.http.HttpResponse
+import org.berrycrush.plugin.HttpMethod
+import org.berrycrush.plugin.HttpResponse
 
 /**
  * Simple console-based HttpLogger that prints to stdout.
@@ -27,7 +27,7 @@ class ConsoleHttpLogger(
     override fun logResponse(
         method: HttpMethod,
         url: String,
-        response: HttpResponse<String>,
+        response: HttpResponse,
         durationMs: Long,
     ) {
         val message = formatter.formatResponse(method, url, response, durationMs)

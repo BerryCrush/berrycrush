@@ -17,9 +17,10 @@ class StepContextAdapter(
     private val step: Step,
     override val stepIndex: Int,
     override val scenarioContext: ScenarioContext,
-    private var httpRequest: HttpRequest? = null,
-    private var httpResponse: HttpResponse? = null,
 ) : StepContext {
+    private var httpRequest: HttpRequest? = scenarioContext.audits.lastOrNull()?.request
+    private var httpResponse: HttpResponse? = scenarioContext.audits.lastOrNull()?.response
+
     override val stepDescription: String
         get() = step.description
 

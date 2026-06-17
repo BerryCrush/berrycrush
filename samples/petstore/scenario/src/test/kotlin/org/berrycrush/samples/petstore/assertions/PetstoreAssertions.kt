@@ -30,7 +30,7 @@ class PetstoreAssertions {
                 ?: return AssertionResult.failed("No HTTP response available")
 
         return try {
-            val actualStatus: String = JsonPath.read(response.body(), "$.status")
+            val actualStatus: String = JsonPath.read(response.body, "$.status")
             if (actualStatus == expectedStatus) {
                 AssertionResult.passed()
             } else {
@@ -63,7 +63,7 @@ class PetstoreAssertions {
                 ?: return AssertionResult.failed("No HTTP response available")
 
         return try {
-            val actualName: String = JsonPath.read(response.body(), "$.name")
+            val actualName: String = JsonPath.read(response.body, "$.name")
             if (actualName == expectedName) {
                 AssertionResult.passed()
             } else {
@@ -96,7 +96,7 @@ class PetstoreAssertions {
                 ?: return AssertionResult.failed("No HTTP response available")
 
         return try {
-            val items = JsonPath.read<List<*>>(response.body(), "$")
+            val items = JsonPath.read<List<*>>(response.body, "$")
             val actualCount = items.size
             if (actualCount == expectedCount) {
                 AssertionResult.passed()
@@ -129,14 +129,14 @@ class PetstoreAssertions {
             context.lastResponse
                 ?: return AssertionResult.failed("No HTTP response available")
 
-        val body = response.body()
-        return if (body.contains(expected)) {
+        val body = response.body
+        return if (body != null && body.contains(expected)) {
             AssertionResult.passed()
         } else {
             AssertionResult.failed(
                 message = "Response body does not contain expected string",
                 expectedValue = expected,
-                actualValue = body.take(200) + if (body.length > 200) "..." else "",
+                actualValue = body?.take(200) + if (body != null && body.length > 200) "..." else "",
             )
         }
     }
@@ -163,7 +163,7 @@ class PetstoreAssertions {
                 ?: return AssertionResult.failed("No HTTP response available")
 
         return try {
-            val actualName: String = JsonPath.read(response.body(), "$.name")
+            val actualName: String = JsonPath.read(response.body, "$.name")
             if (actualName == expectedName) {
                 AssertionResult.passed()
             } else {
@@ -192,7 +192,7 @@ class PetstoreAssertions {
             context.lastResponse
                 ?: return AssertionResult.failed("No HTTP response available")
 
-        val statusCode = response.statusCode()
+        val statusCode = response.statusCode
         return if (statusCode in 200..299) {
             AssertionResult.passed()
         } else {
@@ -219,7 +219,7 @@ class PetstoreAssertions {
                 ?: return AssertionResult.failed("No HTTP response available")
 
         return try {
-            val id: Long = JsonPath.read(response.body(), "$.id")
+            val id: Long = JsonPath.read(response.body, "$.id")
             if (id > 0) {
                 AssertionResult.passed()
             } else {

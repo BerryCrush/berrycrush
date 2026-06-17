@@ -47,10 +47,6 @@ class BerryCrushExecutionListenerTest {
                     listOf(
                         RequestResult.create(
                             requestIndex = 0,
-                            statusCode = 200,
-                            body = "{}",
-                            headers = emptyMap(),
-                            durationMs = 10,
                         ),
                     ),
                 totalDurationMs = 10,

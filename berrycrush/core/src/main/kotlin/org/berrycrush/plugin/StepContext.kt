@@ -1,5 +1,8 @@
 package org.berrycrush.plugin
 
+import org.berrycrush.context.resolveParam
+import org.berrycrush.context.resolveParams
+
 /**
  * Execution context for a single step within a scenario.
  *
@@ -22,4 +25,21 @@ interface StepContext {
     val request: HttpRequest?
     val response: HttpResponse?
     val operationId: String?
+
+    fun <T : Any> resolveParam(param: T) = scenarioContext.executionContext.resolveParam(param)
+
+    fun <T : Any> resolveParams(params: Map<String, T>) = scenarioContext.executionContext.resolveParams(params)
+
+    fun interpolate(v: String) = scenarioContext.executionContext.interpolate(v)
+
+    fun allExecutionVariables() = scenarioContext.executionContext.allVariables()
+
+    operator fun set(
+        key: String,
+        value: Any,
+    ) {
+        scenarioContext.executionContext[key] = value
+    }
+
+    operator fun <T> get(key: String): T? = scenarioContext.executionContext[key]
 }

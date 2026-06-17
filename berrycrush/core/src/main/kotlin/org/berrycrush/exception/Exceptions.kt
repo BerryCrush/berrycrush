@@ -1,5 +1,6 @@
 package org.berrycrush.exception
 
+import org.berrycrush.plugin.HttpMethod
 import org.berrycrush.plugin.HttpRequest
 import org.berrycrush.plugin.HttpResponse
 
@@ -128,7 +129,7 @@ class ExtractionException(
  */
 class HttpExecutionException(
     val url: String,
-    val method: String,
+    val method: HttpMethod,
     cause: Throwable,
     val request: HttpRequest? = null,
     val response: HttpResponse? = null,
@@ -140,7 +141,7 @@ class HttpExecutionException(
     ) {
     companion object {
         private fun buildDetailedMessage(
-            method: String,
+            method: HttpMethod,
             url: String,
             cause: Throwable,
             request: HttpRequest?,
@@ -182,7 +183,7 @@ class HttpExecutionException(
             }
 
         private fun StringBuilder.appendMaskedHeaders(
-            headers: Map<String, List<String>>,
+            headers: Map<String, String>,
             maskedHeaders: Set<String>,
         ) {
             headers.forEach { (name, values) ->
@@ -192,7 +193,7 @@ class HttpExecutionException(
                     } else {
                         values
                     }
-                append("\n  $name: ${displayValues.joinToString(", ")}")
+                append("\n  $name: $displayValues")
             }
         }
 

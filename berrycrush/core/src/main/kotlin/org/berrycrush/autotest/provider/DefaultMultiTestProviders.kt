@@ -100,7 +100,7 @@ private fun buildResult(
     totalDurationMs: Long,
 ): MultiTestResult {
     // Default verification: all responses should have the same status code
-    val statusCodes = results.map { it.statusCode }.distinct()
+    val statusCodes = results.mapNotNull { it.response?.statusCode }.distinct()
     val passed = statusCodes.size == 1
     val failureReason =
         if (!passed) {

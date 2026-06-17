@@ -234,13 +234,13 @@ internal class JUnitExecutionListenerAdapter(
      * Build HTTP response context for a failed step.
      */
     private fun buildHttpContext(step: StepResult): String {
-        val statusCode = step.statusCode ?: return ""
-        val responseBody = step.responseBody
+        val statusCode = step.response?.statusCode ?: return ""
+        val responseBody = step.response?.body
 
         return buildString {
             append("\n      ━━━ HTTP Response ━━━")
             append("\n      Status: $statusCode")
-            step.responseHeaders.forEach { (name, values) ->
+            step.response?.headers?.forEach { (name, values) ->
                 append("\n      $name: ${values.joinToString(", ")}")
             }
             if (responseBody != null) {

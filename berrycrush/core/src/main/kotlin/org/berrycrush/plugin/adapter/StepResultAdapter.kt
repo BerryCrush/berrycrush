@@ -2,6 +2,7 @@ package org.berrycrush.plugin.adapter
 
 import org.berrycrush.model.Condition
 import org.berrycrush.plugin.AssertionFailure
+import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.ResultStatus
 import org.berrycrush.plugin.StepResult
 import java.time.Duration
@@ -22,14 +23,8 @@ class StepResultAdapter(
     override val stepDescription: String
         get() = modelResult.step.description
 
-    override val httpStatusCode: Int?
-        get() = modelResult.statusCode
-
-    override val responseBody: String?
-        get() = modelResult.responseBody
-
-    override val responseHeaders: Map<String, List<String>>
-        get() = modelResult.responseHeaders
+    override val response: HttpResponse?
+        get() = modelResult.response
 
     override val failure: AssertionFailure?
         get() =

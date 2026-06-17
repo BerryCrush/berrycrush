@@ -1,0 +1,293 @@
+package org.berrycrush.executor.step
+
+import org.berrycrush.context.resolveParams
+import org.berrycrush.executor.BerryCrushExecutionListener
+import org.berrycrush.executor.fragment.FragmentExecutor
+import org.berrycrush.executor.response.ResponseProcessor
+import org.berrycrush.model.ResultStatus
+import org.berrycrush.model.Scenario
+import org.berrycrush.model.Step
+import org.berrycrush.model.StepResult
+import org.berrycrush.model.WebhookConfig
+import org.berrycrush.plugin.PluginRegistry
+import org.berrycrush.plugin.ScenarioContext
+import org.berrycrush.plugin.StepContext
+import org.berrycrush.plugin.adapter.StepContextAdapter
+import org.berrycrush.plugin.adapter.StepResultAdapter
+import org.berrycrush.step.StepContextImpl
+import org.berrycrush.step.StepMatch
+import org.berrycrush.step.StepRegistry
+import org.berrycrush.webhook.MockWebhookServer
+import java.time.Duration
+import java.time.Instant
+
+class StepExecutor(
+    private val fragmentExecutor: FragmentExecutor,
+    private val operationStepExecutor: OperationStepExecutor,
+    private val responseProcessor: ResponseProcessor,
+    private val stepRegistry: StepRegistry? = null,
+    private val pluginRegistry: PluginRegistry? = null,
+) {
+    fun execute(
+        scenario: Scenario,
+        scenarioContext: ScenarioContext,
+        listener: BerryCrushExecutionListener,
+    ): List<StepResult> {
+        val stepResults = mutableListOf<StepResult>()
+        val (stepIndex, continueExecution) = executeSteps(scenario.background, scenarioContext, stepResults, 0, listener)
+        if (continueExecution) {
+            // Execute scenario steps
+            executeSteps(scenario.steps, scenarioContext, stepResults, stepIndex, listener)
+        }
+        return stepResults
+    }
+
+    /**
+     * Execute a list of steps with continuation control.
+     */
+    private fun executeSteps(
+        steps: List<Step>,
+        scenarioContext: ScenarioContext,
+        results: MutableList<StepResult>,
+        startIndex: Int,
+        listener: BerryCrushExecutionListener,
+    ): Pair<Int, Boolean> {
+        var continueExecution = true
+        var stepIndex = startIndex
+        for (step in steps) {
+            if (!continueExecution) {
+                results.add(StepResult(step = step, status = ResultStatus.SKIPPED))
+                continue
+            }
+
+            // Inject include parameters into context before expanding
+            scenarioContext.withIncludeParameters(step) {
+                val expandedSteps = fragmentExecutor.expand(step)
+                for (expandedStep in expandedSteps) {
+                    if (!continueExecution) {
+                        results.add(StepResult(step = expandedStep, status = ResultStatus.SKIPPED))
+                        continue
+                    }
+
+                    val result = executeStep(expandedStep, scenarioContext, stepIndex++, listener)
+                    results.add(result)
+
+                    if (result.status != ResultStatus.PASSED) {
+                        continueExecution = false
+                    }
+                }
+            }
+        }
+
+        return stepIndex to continueExecution
+    }
+
+    private fun executeStep(
+        step: Step,
+        scenarioContext: ScenarioContext,
+        stepIndex: Int,
+        listener: BerryCrushExecutionListener,
+    ): StepResult {
+        // Create step context
+        val stepContext = StepContextAdapter(step, stepIndex, scenarioContext)
+
+        // Notify listener that step is starting
+        listener.onStepStarting(step)
+
+        // Dispatch plugin: onStepStart
+        pluginRegistry?.dispatchStepStart(stepContext)
+
+        // Execute the actual step with scenario context for error enrichment
+        val result = // If no operation to call, check for custom step or assertions
+            step.operationId?.let {
+                operationStepExecutor.execute(step, stepContext, stepIndex, listener)
+            } ?: executeNonOperationStep(step, stepContext)
+
+        // Dispatch plugin: onStepEnd
+        pluginRegistry?.dispatchStepEnd(stepContext, StepResultAdapter(result))
+
+        // Notify listener that step completed
+        listener.onStepCompleted(result)
+
+        return result
+    }
+
+    private fun executeNonOperationStep(
+        step: Step,
+        stepContext: StepContext,
+    ): StepResult {
+        val stepStartTime = Instant.now()
+        // First, check if this is a webhook step
+        step.webhookConfig?.let { config ->
+            return executeWebhookStep(step, config, stepContext, stepStartTime)
+        }
+
+        // Check if this is a custom step
+        stepRegistry?.let { registry ->
+            val resolvedDescription = stepContext.interpolate(step.description)
+            val match = registry.findMatch(resolvedDescription)
+            if (match != null) {
+                return executeCustomStep(step, match, stepContext, stepStartTime)
+            }
+        }
+
+        // Not a custom step - check for assertions/extractions
+        return if (step.assertions.isEmpty() && step.extractions.isEmpty()) {
+            // No operation and no assertions - just pass
+            StepResult(
+                step = step,
+                status = ResultStatus.PASSED,
+                duration = Duration.between(stepStartTime, Instant.now()),
+            )
+        } else {
+            // Run assertions/extractions against last response
+            stepContext.response?.let { response ->
+                responseProcessor.process(step, response, stepContext)
+            } ?: StepResult(
+                step = step,
+                status = ResultStatus.ERROR,
+                duration = Duration.between(stepStartTime, Instant.now()),
+                error = IllegalStateException("No previous response to run assertions/extractions against"),
+            )
+        }
+    }
+
+    /**
+     * Execute a custom step definition.
+     */
+    private fun executeCustomStep(
+        step: Step,
+        match: StepMatch,
+        scenarioContext: StepContext,
+        stepStartTime: Instant,
+    ): StepResult =
+        runCatching {
+            val context = scenarioContext.scenarioContext.executionContext
+            val stepContext =
+                StepContextImpl(
+                    executionContext = context,
+                    sharedVariables = context.allVariables().toMutableMap(),
+                    sharingEnabled = context.shareVariablesAcrossScenarios,
+                )
+
+            // Invoke the custom step method with extracted parameters and context
+            val method = match.definition.method
+            val parameters = match.parameters.toTypedArray()
+
+            // Check if method accepts StepContext as last parameter
+            val methodParams = method.parameters
+            val args =
+                if (methodParams.isNotEmpty() &&
+                    methodParams.last().type.isAssignableFrom(org.berrycrush.step.StepContext::class.java)
+                ) {
+                    // Append StepContext to parameters
+                    arrayOf(*parameters, stepContext)
+                } else {
+                    parameters
+                }
+
+            // Invoke the method
+            val result = method.invoke(match.definition.instance, *args)
+
+            // Check if the method returned a StepResult
+            if (result is StepResult) {
+                // Ensure custom step flag is set
+                result.copy(isCustomStep = true)
+            } else {
+                StepResult(
+                    step = step,
+                    status = ResultStatus.PASSED,
+                    duration = Duration.between(stepStartTime, Instant.now()),
+                    isCustomStep = true,
+                )
+            }
+        }.getOrElse { e ->
+            // Unwrap InvocationTargetException to get the actual exception
+            val actualException =
+                when (e) {
+                    is java.lang.reflect.InvocationTargetException -> e.cause ?: e
+                    else -> e
+                }
+
+            // Determine status based on exception type
+            val status =
+                when (actualException) {
+                    is AssertionError -> ResultStatus.FAILED
+                    else -> ResultStatus.ERROR
+                }
+
+            StepResult(
+                step = step,
+                status = status,
+                duration = Duration.between(stepStartTime, Instant.now()),
+                error = actualException as? Exception ?: RuntimeException(actualException),
+                isCustomStep = true,
+            )
+        }
+
+    /**
+     * Execute a webhook step that starts a mock webhook server.
+     *
+     * This creates a MockWebhookServer, registers expected webhook operations,
+     * starts the server, and registers it in the execution context for
+     * variable interpolation (e.g., {{serverName.hookName}}).
+     */
+    internal fun executeWebhookStep(
+        step: Step,
+        config: WebhookConfig,
+        context: StepContext,
+        stepStartTime: Instant,
+    ): StepResult =
+        runCatching {
+            // Create and configure the webhook server
+            val server = MockWebhookServer(config.port)
+
+            // Register expected webhook operations
+            config.hooks.forEach { hookName ->
+                server.expect(hookName)
+            }
+
+            // Start the server
+            server.start()
+
+            // Register the server in the context for variable interpolation
+            context.scenarioContext.executionContext.registerWebhookServer(config.name, server)
+
+            StepResult(
+                step = step,
+                status = ResultStatus.PASSED,
+                duration = Duration.between(stepStartTime, Instant.now()),
+            )
+        }.getOrElse { e ->
+            StepResult(
+                step = step,
+                status = ResultStatus.ERROR,
+                duration = Duration.between(stepStartTime, Instant.now()),
+                error = e as? Exception ?: RuntimeException(e),
+            )
+        }
+}
+
+internal inline fun ScenarioContext.withIncludeParameters(
+    step: Step,
+    block: () -> Unit,
+) {
+    if (step.includeParameters.isEmpty()) {
+        block()
+    } else {
+        val context = this.executionContext
+        val saved =
+            step.includeParameters.keys
+                .filter { context.contains(it) }
+                .associateWith { context.get<Any>(it) as Any }
+        try {
+            context.resolveParams(step.includeParameters).forEach { (key, value) -> context[key] = value }
+            block()
+        } finally {
+            // Restore original values
+            for ((key, value) in saved) {
+                context[key] = value
+            }
+        }
+    }
+}

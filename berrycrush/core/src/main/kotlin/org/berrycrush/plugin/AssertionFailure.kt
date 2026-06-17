@@ -1,5 +1,6 @@
 package org.berrycrush.plugin
 
+import java.time.Duration
 import java.time.Instant
 
 /**
@@ -40,11 +41,11 @@ data class AssertionFailure(
  * @property timestamp When the request was sent
  */
 data class HttpRequest(
-    val method: String,
+    val method: HttpMethod,
     val url: String,
-    val headers: Map<String, List<String>>,
+    val headers: Map<String, String>,
     val body: String? = null,
-    val timestamp: Instant,
+    val timestamp: Instant = Instant.now(),
 )
 
 /**
@@ -64,8 +65,9 @@ data class HttpResponse(
     val statusMessage: String,
     val headers: Map<String, List<String>>,
     val body: String? = null,
-    val duration: java.time.Duration,
+    val duration: Duration,
     val timestamp: Instant,
+    val request: HttpRequest,
 )
 
 /**

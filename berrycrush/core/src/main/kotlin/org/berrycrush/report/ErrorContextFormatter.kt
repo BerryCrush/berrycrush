@@ -219,7 +219,7 @@ class ErrorContextFormatter(
                     if (config.maskedHeaders.any { it.equals(name, ignoreCase = true) }) {
                         colorize("[MASKED]", AnsiColors.YELLOW)
                     } else {
-                        values.joinToString(", ")
+                        values
                     }
                 appendLine("  $name: $displayValue")
             }

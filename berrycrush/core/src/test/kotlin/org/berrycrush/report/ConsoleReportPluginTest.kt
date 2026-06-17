@@ -1,5 +1,8 @@
 package org.berrycrush.report
 
+import org.berrycrush.context.ExecutionContext
+import org.berrycrush.plugin.HttpRequest
+import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.ResultStatus
 import org.berrycrush.plugin.ScenarioContext
 import org.berrycrush.plugin.ScenarioResult
@@ -229,6 +232,16 @@ class ConsoleReportPluginTest {
             override val variables: MutableMap<String, Any> = mutableMapOf()
             override val metadata: Map<String, String> = emptyMap()
             override val tags: Set<String> = emptySet()
+            override val audits: List<ScenarioContext.HttpAudit> = emptyList()
+            override val executionContext: ExecutionContext
+                get() = TODO("Not yet implemented")
+
+            override fun addAudit(
+                request: HttpRequest,
+                response: HttpResponse,
+            ) {
+                TODO("Not yet implemented")
+            }
         }
 
     private fun createMockScenarioResult(
@@ -254,9 +267,7 @@ class ConsoleReportPluginTest {
             override val failure: org.berrycrush.plugin.AssertionFailure? = null
             override val error: Throwable? = null
             override val stepDescription: String = description
-            override val httpStatusCode: Int? = null
-            override val responseBody: String? = null
-            override val responseHeaders: Map<String, List<String>> = emptyMap()
+            override val response: HttpResponse? = null
             override val isCustomStep: Boolean = isCustom
         }
 }

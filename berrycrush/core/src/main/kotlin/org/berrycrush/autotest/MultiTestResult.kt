@@ -1,5 +1,8 @@
 package org.berrycrush.autotest
 
+import org.berrycrush.plugin.HttpResponse
+import java.time.Duration
+
 /**
  * Result of a multi-request idempotency test.
  *
@@ -24,27 +27,27 @@ data class MultiTestResult(
     /**
      * Check if all responses have the same status code.
      */
-    fun hasConsistentStatusCodes(): Boolean = results.map { it.statusCode }.distinct().size == 1
+    fun hasConsistentStatusCodes(): Boolean = results.map { it.response?.statusCode }.distinct().size == 1
 
     /**
      * Get all unique status codes from the responses.
      */
-    fun getStatusCodes(): Set<Int> = results.map { it.statusCode }.toSet()
+    fun getStatusCodes(): Set<Int> = results.mapNotNull { it.response?.statusCode }.toSet()
 
     /**
      * Get the average response time in milliseconds.
      */
-    fun averageResponseTimeMs(): Double = if (results.isEmpty()) 0.0 else results.map { it.durationMs }.average()
+    fun averageResponseTimeMs(): Double = if (results.isEmpty()) 0.0 else results.mapNotNull { it.response?.duration?.toMillis() }.average()
 
     /**
      * Get the minimum response time in milliseconds.
      */
-    fun minResponseTimeMs(): Long = results.minOfOrNull { it.durationMs } ?: 0L
+    fun minResponseTimeMs(): Long = results.mapNotNull { it.response?.duration?.toMillis() }.minOrNull() ?: 0L
 
     /**
      * Get the maximum response time in milliseconds.
      */
-    fun maxResponseTimeMs(): Long = results.maxOfOrNull { it.durationMs } ?: 0L
+    fun maxResponseTimeMs(): Long = results.mapNotNull { it.response?.duration?.toMillis() }.maxOrNull() ?: 0L
 }
 
 /**
@@ -54,21 +57,15 @@ data class MultiTestResult(
  * for comparison and verification.
  *
  * @property requestIndex Zero-based index of this request in the sequence
- * @property statusCode HTTP status code of the response
- * @property body Response body (parsed or raw)
- * @property headers Response headers
- * @property durationMs Time taken for this request in milliseconds
+ * @property response HTTP response (if available)
+ * @property duration Time taken for this request
  * @property threadName Name of the thread that executed this request (for concurrent tests)
- * @property timestamp Unix timestamp when the request completed
  */
 data class RequestResult(
     val requestIndex: Int,
-    val statusCode: Int,
-    val body: Any?,
-    val headers: Map<String, String>,
-    val durationMs: Long,
+    val response: HttpResponse?,
     val threadName: String? = null,
-    val timestamp: Long,
+    val duration: Duration,
 ) {
     companion object {
         /**
@@ -76,19 +73,14 @@ data class RequestResult(
          */
         fun create(
             requestIndex: Int,
-            statusCode: Int,
-            body: Any?,
-            headers: Map<String, String>,
-            durationMs: Long,
+            response: HttpResponse? = null,
+            duration: Duration? = null,
         ): RequestResult =
             RequestResult(
                 requestIndex = requestIndex,
-                statusCode = statusCode,
-                body = body,
-                headers = headers,
-                durationMs = durationMs,
+                response = response,
                 threadName = Thread.currentThread().name,
-                timestamp = System.currentTimeMillis(),
+                duration = response?.duration ?: duration ?: Duration.ZERO,
             )
     }
 }

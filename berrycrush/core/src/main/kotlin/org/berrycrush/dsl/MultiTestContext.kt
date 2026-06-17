@@ -43,25 +43,25 @@ data class MultiTestContext(
      * Number of successful requests (status code 2xx).
      */
     val successCount: Int
-        get() = responses.count { it.statusCode in 200..299 }
+        get() = responses.count { it.response?.statusCode in 200..299 }
 
     /**
      * Number of failed requests (status code not 2xx).
      */
     val failureCount: Int
-        get() = responses.count { it.statusCode !in 200..299 }
+        get() = responses.count { it.response?.statusCode !in 200..299 }
 
     /**
      * Average response time in milliseconds.
      */
     val avgResponseTimeMs: Long
-        get() = if (responses.isEmpty()) 0 else responses.sumOf { it.durationMs } / responses.size
+        get() = if (responses.isEmpty()) 0 else responses.sumOf { it.response?.duration?.toMillis() ?: 0 } / responses.size
 
     /**
      * Get all unique status codes from responses.
      */
     val uniqueStatusCodes: Set<Int>
-        get() = responses.map { it.statusCode }.toSet()
+        get() = responses.mapNotNull { it.response?.statusCode }.toSet()
 
     /**
      * Whether all responses have the same status code.

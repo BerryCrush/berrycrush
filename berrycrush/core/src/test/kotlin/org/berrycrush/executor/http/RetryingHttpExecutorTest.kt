@@ -1,23 +1,27 @@
 package org.berrycrush.executor.http
 
 import org.berrycrush.config.RetryConfig
-import org.berrycrush.context.ExecutionContext
 import org.berrycrush.exception.RetryExhaustedException
+import org.berrycrush.executor.resolvers.RequestResolver
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepType
 import org.berrycrush.openapi.HttpMethod
 import org.berrycrush.openapi.LoadedSpec
+import org.berrycrush.openapi.OpenApiSpec
 import org.berrycrush.openapi.OpenApiVersion
 import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.openapi.ServerInfo
 import org.berrycrush.openapi.SpecInfo
+import org.berrycrush.plugin.HttpRequest
+import org.berrycrush.plugin.HttpResponse
+import org.berrycrush.plugin.StepContext
+import org.berrycrush.util.createStepContext
+import org.mockito.kotlin.any
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.mock
 import java.net.ConnectException
-import java.net.http.HttpClient
-import java.net.http.HttpHeaders
-import java.net.http.HttpResponse
 import java.time.Duration
-import java.util.Optional
-import javax.net.ssl.SSLSession
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -29,8 +33,7 @@ import kotlin.test.assertTrue
  * Tests for [RetryingHttpExecutor].
  */
 class RetryingHttpExecutorTest {
-    private val context = ExecutionContext()
-
+    private val context = createStepContext()
     private val step =
         Step(
             type = StepType.WHEN,
@@ -46,7 +49,7 @@ class RetryingHttpExecutorTest {
 
         val result = executor.execute(step, delegate.mockSpec, delegate.mockOperation, context)
 
-        assertEquals(200, result.statusCode())
+        assertEquals(200, result.statusCode)
         assertEquals(1, delegate.callCount)
     }
 
@@ -58,7 +61,7 @@ class RetryingHttpExecutorTest {
 
         val result = executor.execute(step, delegate.mockSpec, delegate.mockOperation, context)
 
-        assertEquals(200, result.statusCode())
+        assertEquals(200, result.statusCode)
         assertEquals(1, delegate.callCount)
     }
 
@@ -76,7 +79,7 @@ class RetryingHttpExecutorTest {
 
         val result = executor.execute(step, delegate.mockSpec, delegate.mockOperation, context)
 
-        assertEquals(200, result.statusCode())
+        assertEquals(200, result.statusCode)
         assertEquals(3, delegate.callCount)
     }
 
@@ -97,7 +100,7 @@ class RetryingHttpExecutorTest {
 
         val result = executor.execute(step, delegate.mockSpec, delegate.mockOperation, context)
 
-        assertEquals(200, result.statusCode())
+        assertEquals(200, result.statusCode)
         assertEquals(2, delegate.callCount)
     }
 
@@ -120,7 +123,7 @@ class RetryingHttpExecutorTest {
 
         assertEquals(3, exception.attempts) // 1 initial + 2 retries
         assertNotNull(exception.lastResponse)
-        assertEquals(503, exception.lastResponse.statusCode())
+        assertEquals(503, exception.lastResponse.statusCode)
         assertNull(exception.lastException)
     }
 
@@ -158,7 +161,7 @@ class RetryingHttpExecutorTest {
 
         val result = executor.execute(step, delegate.mockSpec, delegate.mockOperation, context)
 
-        assertEquals(400, result.statusCode())
+        assertEquals(400, result.statusCode)
         assertEquals(1, delegate.callCount)
     }
 
@@ -167,11 +170,9 @@ class RetryingHttpExecutorTest {
         val delegate =
             object : TestHttpExecutor() {
                 override fun execute(
-                    step: Step,
-                    spec: LoadedSpec,
-                    operation: ResolvedOperation,
-                    context: ExecutionContext,
-                ): HttpResponse<String> {
+                    request: HttpRequest,
+                    context: StepContext,
+                ): HttpResponse {
                     callCount++
                     throw IllegalArgumentException("Bad argument")
                 }
@@ -191,28 +192,25 @@ class RetryingHttpExecutorTest {
     /**
      * Base test HTTP executor with mock spec and operation.
      */
-    abstract class TestHttpExecutor : HttpExecutor {
+    abstract class TestHttpExecutor(
+        private val requestResolver: RequestResolver =
+            mock {
+                on { resolve(any(), any(), any(), any()) } doReturn createHttpRequest()
+            },
+    ) : HttpExecutor,
+        RequestResolver by requestResolver {
         var callCount = 0
 
         val mockSpec: LoadedSpec by lazy { createMockSpec() }
         val mockOperation: ResolvedOperation by lazy { createMockOperation() }
 
         override fun execute(
-            step: Step,
-            spec: LoadedSpec,
-            operation: ResolvedOperation,
-            context: ExecutionContext,
-        ): HttpResponse<String> {
+            request: HttpRequest,
+            context: StepContext,
+        ): HttpResponse {
             callCount++
             return createMockResponse(200)
         }
-
-        @Deprecated(message = "Will be removed")
-        override fun resolveBody(
-            step: Step,
-            operation: ResolvedOperation?,
-            context: ExecutionContext,
-        ): String? = null
     }
 
     /**
@@ -222,11 +220,9 @@ class RetryingHttpExecutorTest {
         private val statusCodes: List<Int>,
     ) : TestHttpExecutor() {
         override fun execute(
-            step: Step,
-            spec: LoadedSpec,
-            operation: ResolvedOperation,
-            context: ExecutionContext,
-        ): HttpResponse<String> {
+            request: HttpRequest,
+            context: StepContext,
+        ): HttpResponse {
             val statusCode = statusCodes.getOrElse(callCount) { statusCodes.last() }
             callCount++
             return createMockResponse(statusCode)
@@ -241,11 +237,9 @@ class RetryingHttpExecutorTest {
         private val successStatusCode: Int,
     ) : TestHttpExecutor() {
         override fun execute(
-            step: Step,
-            spec: LoadedSpec,
-            operation: ResolvedOperation,
-            context: ExecutionContext,
-        ): HttpResponse<String> {
+            request: HttpRequest,
+            context: StepContext,
+        ): HttpResponse {
             callCount++
             if (callCount <= exceptionsToThrow) {
                 throw ConnectException("Connection refused")
@@ -255,13 +249,15 @@ class RetryingHttpExecutorTest {
     }
 
     companion object {
+        fun createHttpRequest() = HttpRequest(HttpMethod.GET, "http://localhost/test", emptyMap())
+
         /**
          * Create a minimal LoadedSpec for testing.
          */
         fun createMockSpec(): LoadedSpec {
             // Create a minimal OpenApiSpec for testing
             val emptyOpenApiSpec =
-                object : org.berrycrush.openapi.OpenApiSpec {
+                object : OpenApiSpec {
                     override val rawModel: Any = Any()
                     override val version: OpenApiVersion = OpenApiVersion.V3_0_X
                     override val specVersion: String = "3.0.0"
@@ -320,23 +316,15 @@ class RetryingHttpExecutorTest {
             )
         }
 
-        fun createMockResponse(statusCode: Int): HttpResponse<String> =
-            object : HttpResponse<String> {
-                override fun statusCode(): Int = statusCode
-
-                override fun body(): String = "{}"
-
-                override fun headers(): HttpHeaders = HttpHeaders.of(emptyMap()) { _, _ -> true }
-
-                override fun request(): java.net.http.HttpRequest = throw UnsupportedOperationException()
-
-                override fun previousResponse(): Optional<HttpResponse<String>> = Optional.empty()
-
-                override fun sslSession(): Optional<SSLSession> = Optional.empty()
-
-                override fun uri(): java.net.URI = java.net.URI.create("http://localhost/test")
-
-                override fun version(): HttpClient.Version = HttpClient.Version.HTTP_1_1
-            }
+        fun createMockResponse(statusCode: Int): HttpResponse =
+            HttpResponse(
+                statusCode = statusCode,
+                statusMessage = "",
+                body = "{}",
+                headers = emptyMap(),
+                duration = Duration.ofMillis(10),
+                timestamp = Instant.now(),
+                request = mock(),
+            )
     }
 }

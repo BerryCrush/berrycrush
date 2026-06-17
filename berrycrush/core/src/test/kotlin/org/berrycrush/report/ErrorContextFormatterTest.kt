@@ -5,6 +5,7 @@ import org.berrycrush.exception.ErrorContextConfig
 import org.berrycrush.exception.HttpExecutionException
 import org.berrycrush.exception.ScenarioErrorContext
 import org.berrycrush.exception.SchemaValidationException
+import org.berrycrush.openapi.HttpMethod
 import org.berrycrush.plugin.HttpRequest
 import org.berrycrush.plugin.HttpResponse
 import org.junit.jupiter.api.Nested
@@ -59,13 +60,13 @@ class ErrorContextFormatterTest {
         @Test
         fun `formats HTTP exception with full context`() {
             val request = createTestRequest()
-            val response = createTestResponse()
+            val response = createTestResponse(request)
             val scenarioContext = createTestScenarioContext()
 
             val exception =
                 HttpExecutionException(
                     url = "https://api.example.com/pets/1",
-                    method = "GET",
+                    method = HttpMethod.GET,
                     cause = RuntimeException("Connection timeout"),
                     request = request,
                     response = response,
@@ -86,11 +87,10 @@ class ErrorContextFormatterTest {
         fun `masks sensitive headers in request`() {
             val request =
                 HttpRequest(
-                    method = "POST",
+                    method = HttpMethod.POST,
                     url = "https://api.example.com/login",
-                    headers = mapOf("Authorization" to listOf("Bearer secret-token")),
+                    headers = mapOf("Authorization" to "Bearer secret-token"),
                     body = """{"user":"test"}""",
-                    timestamp = Instant.now(),
                 )
 
             val result = formatter.formatRequest(request)
@@ -110,6 +110,7 @@ class ErrorContextFormatterTest {
                     body = largeBody,
                     duration = Duration.ofMillis(100),
                     timestamp = Instant.now(),
+                    request = createTestRequest(),
                 )
 
             val config = ErrorContextConfig(maxBodySize = 1024)
@@ -247,7 +248,7 @@ class ErrorContextFormatterTest {
             val httpException =
                 HttpExecutionException(
                     url = "https://api.example.com",
-                    method = "GET",
+                    method = HttpMethod.GET,
                     cause = RuntimeException("error"),
                 )
 
@@ -261,14 +262,12 @@ class ErrorContextFormatterTest {
 
     private fun createTestRequest(): HttpRequest =
         HttpRequest(
-            method = "GET",
+            method = HttpMethod.GET,
             url = "https://api.example.com/pets/1",
-            headers = mapOf("Accept" to listOf("application/json")),
-            body = null,
-            timestamp = Instant.now(),
+            headers = mapOf("Accept" to "application/json"),
         )
 
-    private fun createTestResponse(): HttpResponse =
+    private fun createTestResponse(request: HttpRequest): HttpResponse =
         HttpResponse(
             statusCode = 200,
             statusMessage = "OK",
@@ -276,6 +275,7 @@ class ErrorContextFormatterTest {
             body = """{"id":1,"name":"Max"}""",
             duration = Duration.ofMillis(150),
             timestamp = Instant.now(),
+            request = request,
         )
 
     private fun createTestScenarioContext(): ScenarioErrorContext =

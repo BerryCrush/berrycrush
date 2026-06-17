@@ -1,5 +1,6 @@
 package org.berrycrush.exception
 
+import org.berrycrush.openapi.HttpMethod
 import org.berrycrush.plugin.HttpRequest
 import org.berrycrush.plugin.HttpResponse
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -8,6 +9,7 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.mock
 import java.time.Duration
 import java.time.Instant
 
@@ -80,15 +82,14 @@ class ExceptionsTest {
     inner class HttpExecutionExceptionTest {
         private val sampleRequest =
             HttpRequest(
-                method = "POST",
+                method = HttpMethod.GET,
                 url = "https://api.example.com/pets",
                 headers =
                     mapOf(
-                        "Content-Type" to listOf("application/json"),
-                        "Authorization" to listOf("Bearer secret-token"),
+                        "Content-Type" to "application/json",
+                        "Authorization" to "Bearer secret-token",
                     ),
                 body = """{"name": "Fluffy", "type": "cat"}""",
-                timestamp = Instant.now(),
             )
 
         private val sampleResponse =
@@ -99,6 +100,7 @@ class ExceptionsTest {
                 body = """{"error": "Database connection failed"}""",
                 duration = Duration.ofMillis(150),
                 timestamp = Instant.now(),
+                request = sampleRequest,
             )
 
         @Test
@@ -106,7 +108,7 @@ class ExceptionsTest {
             val exception =
                 HttpExecutionException(
                     url = "https://api.example.com/pets",
-                    method = "POST",
+                    method = HttpMethod.POST,
                     cause = RuntimeException("Connection timeout"),
                 )
 
@@ -302,6 +304,7 @@ class ExceptionsTest {
                     body = """{"invalid": "data"}""",
                     duration = Duration.ofMillis(50),
                     timestamp = Instant.now(),
+                    request = mock(),
                 )
 
             val exception =

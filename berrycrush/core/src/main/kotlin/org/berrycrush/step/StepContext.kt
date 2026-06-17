@@ -1,7 +1,6 @@
 package org.berrycrush.step
 
-import org.berrycrush.executor.BerryCrushConfigurationProvider
-import java.net.http.HttpResponse
+import org.berrycrush.plugin.HttpResponse
 
 /**
  * Context provided to custom step implementations.
@@ -98,15 +97,7 @@ interface StepContext {
      * May be null if no HTTP request has been made yet in the scenario,
      * or if the step is executed before any API calls.
      */
-    val lastResponse: HttpResponse<String>?
-
-    /**
-     * The current execution configuration.
-     *
-     * Provides read-only access to the configuration settings like
-     * base URL, timeout, and other execution parameters.
-     */
-    val configuration: BerryCrushConfigurationProvider
+    val lastResponse: HttpResponse?
 }
 
 /**

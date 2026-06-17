@@ -1,7 +1,7 @@
 package org.berrycrush.assertion
 
 import org.berrycrush.context.ExecutionContext
-import java.net.http.HttpResponse
+import org.berrycrush.plugin.HttpResponse
 
 /**
  * Default implementation of [AssertionContext] that wraps an [ExecutionContext].
@@ -46,6 +46,6 @@ class AssertionContextImpl(
         return allVars
     }
 
-    override val lastResponse: HttpResponse<String>?
+    override val lastResponse: HttpResponse?
         get() = executionContext.lastResponse
 }

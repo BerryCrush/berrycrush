@@ -28,7 +28,11 @@ data class ConditionalAssertion(
     val elseIfBranches: List<ConditionBranch> = emptyList(),
     val elseActions: ConditionalActions? = null,
     val sourceLocation: SourceLocation? = null,
-)
+) {
+    val branches: List<ConditionBranch> by lazy {
+        listOf(ifBranch) + elseIfBranches
+    }
+}
 
 /**
  * A condition with associated actions.

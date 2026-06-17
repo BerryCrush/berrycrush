@@ -119,3 +119,5 @@ data class ServerVariable(
     val enum: List<String>?,
     val description: String?,
 )
+
+typealias HttpMethod = org.berrycrush.plugin.HttpMethod

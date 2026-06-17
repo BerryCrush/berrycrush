@@ -1,4 +1,4 @@
-package org.berrycrush.executor
+package org.berrycrush.executor.step
 
 import org.berrycrush.autotest.AutoTestCase
 import org.berrycrush.autotest.AutoTestGenerator
@@ -7,9 +7,10 @@ import org.berrycrush.autotest.MultiTestParameters
 import org.berrycrush.autotest.MultiTestResult
 import org.berrycrush.autotest.RequestResult
 import org.berrycrush.autotest.provider.AutoTestProviderRegistry
-import org.berrycrush.context.ExecutionContext
-import org.berrycrush.executor.resolvers.RequestResolver
-import org.berrycrush.executor.resolvers.ResolvedRequest
+import org.berrycrush.autotest.provider.MultiTestProvider
+import org.berrycrush.executor.BerryCrushConfigurationProvider
+import org.berrycrush.executor.BerryCrushExecutionListener
+import org.berrycrush.executor.http.HttpExecutor
 import org.berrycrush.model.Assertion
 import org.berrycrush.model.AssertionResult
 import org.berrycrush.model.AutoTestResult
@@ -18,9 +19,11 @@ import org.berrycrush.model.Step
 import org.berrycrush.model.StepResult
 import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.openapi.SpecRegistry
+import org.berrycrush.plugin.HttpRequest
+import org.berrycrush.plugin.HttpResponse
+import org.berrycrush.plugin.StepContext
 import org.berrycrush.scenario.AutoTestType
 import tools.jackson.databind.ObjectMapper
-import java.net.http.HttpResponse
 import java.time.Duration
 import java.time.Instant
 
@@ -41,21 +44,16 @@ private const val RESPONSE_BODY_PREVIEW_LENGTH = 500
  *
  * @property specRegistry Registry for OpenAPI specifications
  * @property configuration Execution configuration
- * @property httpBuilder HTTP request builder for executing requests
  * @property assertionRunner Function to run assertions against responses
  */
 @Suppress("TooManyFunctions")
 class AutoTestExecutor(
     private val specRegistry: SpecRegistry,
     private val configuration: BerryCrushConfigurationProvider,
-    private val httpBuilder: HttpRequestBuilder,
-    private val assertionRunner: (HttpResponse<String>, List<Assertion>, ExecutionContext) -> List<AssertionResult>,
-    private val requestLogger: (String, String, Map<String, String>, String?) -> Unit,
-    private val responseLogger: (String, String, HttpResponse<String>, Long) -> Unit,
+    private val httpExecutor: HttpExecutor,
+    private val assertionRunner: (HttpResponse, List<Assertion>, StepContext) -> List<AssertionResult>,
     private val objectMapper: ObjectMapper = ObjectMapper(),
 ) {
-    private val requestResolver = RequestResolver(configuration, httpBuilder, objectMapper)
-
     /**
      * Execute auto-generated tests for a step with autoTestConfig.
      *
@@ -70,7 +68,7 @@ class AutoTestExecutor(
      */
     fun executeAutoTests(
         step: Step,
-        context: ExecutionContext,
+        context: StepContext,
         stepStartTime: Instant,
         listener: BerryCrushExecutionListener = BerryCrushExecutionListener.NOOP,
     ): StepResult {
@@ -87,16 +85,9 @@ class AutoTestExecutor(
         val baseBody = extractBaseBody(step, operation, context)
 
         // Extract base path params from step
-        val basePathParams =
-            step.pathParams.mapValues { (_, v) ->
-                when (v) {
-                    is String -> context.interpolate(v)
-                    else -> v
-                }
-            }
-
+        val basePathParams = context.resolveParams(step.pathParams)
         // Extract base headers from step
-        val baseHeaders = step.headers.mapValues { (_, v) -> context.interpolate(v) }
+        val baseHeaders = context.resolveParams(step.headers)
 
         // Generate test cases
         val allTestCases =
@@ -162,9 +153,9 @@ class AutoTestExecutor(
     private fun extractBaseBody(
         step: Step,
         operation: ResolvedOperation?,
-        context: ExecutionContext,
+        context: StepContext,
     ): Map<String, Any>? =
-        requestResolver.resolveBody(step, operation, context)?.let { body ->
+        httpExecutor.resolveBody(step, operation, context)?.let { body ->
             objectMapper.readValue(body, Map::class.java) as Map<String, Any>
         }
 
@@ -204,7 +195,7 @@ class AutoTestExecutor(
 
     private fun setupTestCaseContext(
         testCase: AutoTestCase,
-        context: ExecutionContext,
+        context: StepContext,
     ) {
         context["test.type"] = testCase.type.name.lowercase()
         context["test.field"] = testCase.fieldName
@@ -238,14 +229,13 @@ class AutoTestExecutor(
     private fun executeAutoTestCase(
         step: Step,
         testCase: AutoTestCase,
-        context: ExecutionContext,
+        context: StepContext,
     ): AutoTestResult {
         setupTestCaseContext(testCase, context)
         val testStartTime = Instant.now()
-        val params = buildTestCaseParams(step, testCase)
 
         return runCatching {
-            executeAndAssert(step, testCase, params, context, testStartTime)
+            executeAndAssert(step, testCase, context, testStartTime)
         }.getOrElse { e ->
             AutoTestResult(
                 testCase = testCase,
@@ -259,42 +249,29 @@ class AutoTestExecutor(
     private fun executeAndAssert(
         step: Step,
         testCase: AutoTestCase,
-        params: TestCaseParams,
-        context: ExecutionContext,
+        context: StepContext,
         testStartTime: Instant,
     ): AutoTestResult {
-        val request = extractUrlHeaderOp(step, context)
-        requestLogger(request.method.name, request.url, request.headers, params.body)
-
-        val requestStartTime = System.currentTimeMillis()
-        val response =
-            httpBuilder.execute(
-                method = request.method,
-                url = request.url,
-                headers = request.headers,
-                body = params.body,
+        val params = buildTestCaseParams(step, testCase)
+        val (spec, operation) = specRegistry.resolve(step.operationId!!, step.specName)
+        val request =
+            HttpRequest(
+                operation.method,
+                httpExecutor.resolveUrl(step, spec, operation, context, params.pathParams),
+                params.headers,
+                params.body,
             )
-        responseLogger(request.method.name, request.url, response, requestStartTime)
-
-        context.updateLastResponse(response)
+        val response = httpExecutor.execute(request, context)
         val assertionResults = assertionRunner(response, step.assertions, context)
 
         return AutoTestResult(
             testCase = testCase,
             passed = assertionResults.all { it.passed },
-            statusCode = response.statusCode(),
-            responseBody = response.body()?.take(RESPONSE_BODY_PREVIEW_LENGTH),
+            statusCode = response.statusCode,
+            responseBody = response.body?.take(RESPONSE_BODY_PREVIEW_LENGTH),
             assertionResults = assertionResults,
             duration = Duration.between(testStartTime, Instant.now()),
         )
-    }
-
-    private fun extractUrlHeaderOp(
-        step: Step,
-        context: ExecutionContext,
-    ): ResolvedRequest {
-        val (spec, resolvedOp) = specRegistry.resolve(step.operationId!!, step.specName)
-        return requestResolver.resolve(step, spec, resolvedOp, context)
     }
 
     /**
@@ -406,7 +383,7 @@ class AutoTestExecutor(
      */
     fun executeMultiTests(
         step: Step,
-        context: ExecutionContext,
+        context: StepContext,
         stepStartTime: Instant,
         parameters: Map<String, Any?>,
         listener: BerryCrushExecutionListener = BerryCrushExecutionListener.NOOP,
@@ -468,7 +445,7 @@ class AutoTestExecutor(
         mode: MultiMode,
         count: Int,
         step: Step,
-        context: ExecutionContext,
+        context: StepContext,
         listener: BerryCrushExecutionListener,
         results: MutableList<MultiTestResult>,
     ) {
@@ -495,17 +472,11 @@ class AutoTestExecutor(
         // Extract reference response from first successful result for assertions
         val firstResult = multiTestResults.firstOrNull()
         val firstResponse = firstResult?.results?.firstOrNull()
-        val referenceStatusCode = firstResponse?.statusCode
-        val referenceBody = firstResponse?.body?.toString()
-        val referenceHeaders =
-            firstResponse?.headers?.mapValues { listOf(it.value) } ?: emptyMap()
 
         return StepResult(
             step = step,
             status = if (allPassed) ResultStatus.PASSED else ResultStatus.FAILED,
-            statusCode = referenceStatusCode,
-            responseBody = referenceBody,
-            responseHeaders = referenceHeaders,
+            response = firstResponse?.response,
             duration = Duration.between(stepStartTime, Instant.now()),
             message = "Multi-tests: $totalModes modes executed, $failedCount failed",
             multiTestResults = multiTestResults,
@@ -517,8 +488,8 @@ class AutoTestExecutor(
      */
     private fun executeMultiTestMode(
         step: Step,
-        context: ExecutionContext,
-        provider: org.berrycrush.autotest.provider.MultiTestProvider,
+        context: StepContext,
+        provider: MultiTestProvider,
         count: Int,
     ): MultiTestResult =
         provider.executeMultiTest(count) { requestIndex ->
@@ -530,48 +501,22 @@ class AutoTestExecutor(
      */
     private fun executeRequestForMultiTest(
         step: Step,
-        context: ExecutionContext,
+        context: StepContext,
         requestIndex: Int,
     ): RequestResult {
-        val requestStartTime = System.currentTimeMillis()
+        val requestStartTime = Instant.now()
 
         return runCatching {
-            val request = extractUrlHeaderOp(step, context)
-            // Log request if enabled
-            requestLogger(request.method.name, request.url, request.headers, request.body)
-
-            // Execute the request
-            val response =
-                httpBuilder.execute(
-                    method = request.method,
-                    url = request.url,
-                    headers = request.headers,
-                    body = request.body,
-                )
-
-            // Log response if enabled
-            responseLogger(request.method.name, request.url, response, requestStartTime)
-
-            // Update context with response for subsequent assertions
-            context.updateLastResponse(response)
-
-            val durationMs = System.currentTimeMillis() - requestStartTime
+            val response = httpExecutor.execute(step, specRegistry, context)
 
             RequestResult.create(
                 requestIndex = requestIndex,
-                statusCode = response.statusCode(),
-                body = response.body(),
-                headers = response.headers().map().mapValues { it.value.firstOrNull() ?: "" },
-                durationMs = durationMs,
+                response = response,
             )
         }.getOrElse { e ->
-            val durationMs = System.currentTimeMillis() - requestStartTime
             RequestResult.create(
                 requestIndex = requestIndex,
-                statusCode = -1,
-                body = e.message,
-                headers = emptyMap(),
-                durationMs = durationMs,
+                duration = Duration.between(requestStartTime, Instant.now()),
             )
         }
     }

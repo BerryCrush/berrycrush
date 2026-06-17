@@ -1,6 +1,8 @@
 package org.berrycrush.junit.plugin
 
+import org.berrycrush.context.ExecutionContext
 import org.berrycrush.plugin.AssertionFailure
+import org.berrycrush.plugin.HttpRequest
 import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.ResultStatus
 import org.berrycrush.plugin.ScenarioContext
@@ -15,6 +17,7 @@ import org.junit.platform.engine.TestExecutionResult
 import org.junit.platform.engine.UniqueId
 import org.junit.platform.engine.reporting.ReportEntry
 import org.junit.platform.engine.support.descriptor.EngineDescriptor
+import org.mockito.Mockito.mock
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 import java.nio.file.Path
@@ -201,6 +204,18 @@ class ConsoleOutputPluginTest {
             override val metadata: Map<String, String> = emptyMap()
             override val startTime: Instant = Instant.now()
             override val tags: Set<String> = emptySet()
+            override val audits: List<ScenarioContext.HttpAudit>
+                get() = TODO("Not yet implemented")
+
+            override val executionContext: ExecutionContext
+                get() = TODO("Not yet implemented")
+
+            override fun addAudit(
+                request: HttpRequest,
+                response: HttpResponse,
+            ) {
+                TODO("Not yet implemented")
+            }
         }
 
     private fun testStepContext(
@@ -222,6 +237,7 @@ class ConsoleOutputPluginTest {
                     body = null,
                     duration = Duration.ofMillis(10),
                     timestamp = Instant.now(),
+                    request = mock(),
                 )
             override val operationId: String = "listPets"
         }
@@ -251,9 +267,7 @@ class ConsoleOutputPluginTest {
             override val failure: AssertionFailure? = failure
             override val error: Throwable? = error
             override val stepDescription: String = "step"
-            override val httpStatusCode: Int? = null
-            override val responseBody: String? = null
-            override val responseHeaders: Map<String, List<String>> = emptyMap()
+            override val response: HttpResponse? = null
             override val isCustomStep: Boolean = false
         }
 

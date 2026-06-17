@@ -1,6 +1,6 @@
 package org.berrycrush.exception
 
-import java.net.http.HttpResponse
+import org.berrycrush.plugin.HttpResponse
 
 /**
  * Exception thrown when all retry attempts have been exhausted.
@@ -14,19 +14,19 @@ import java.net.http.HttpResponse
  */
 class RetryExhaustedException(
     val attempts: Int,
-    val lastResponse: HttpResponse<String>? = null,
+    val lastResponse: HttpResponse? = null,
     val lastException: Exception? = null,
 ) : BerryCrushException(buildMessage(attempts, lastResponse, lastException), lastException) {
     companion object {
         private fun buildMessage(
             attempts: Int,
-            lastResponse: HttpResponse<String>?,
+            lastResponse: HttpResponse?,
             lastException: Exception?,
         ): String {
             val builder = StringBuilder("Retry exhausted after $attempts attempt(s)")
 
             lastResponse?.let {
-                builder.append(". Last response: HTTP ${it.statusCode()}")
+                builder.append(". Last response: HTTP ${it.statusCode}")
             }
 
             lastException?.let {

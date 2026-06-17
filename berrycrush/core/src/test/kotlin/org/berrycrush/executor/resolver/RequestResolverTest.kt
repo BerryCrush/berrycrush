@@ -1,13 +1,13 @@
 package org.berrycrush.executor.resolver
 
 import org.berrycrush.config.BerryCrushConfiguration
-import org.berrycrush.context.ExecutionContext
 import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.HttpRequestBuilder
-import org.berrycrush.executor.resolvers.RequestResolver
+import org.berrycrush.executor.resolvers.DefaultRequestResolver
 import org.berrycrush.model.BodyProperty
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepType
+import org.berrycrush.util.createStepContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -16,7 +16,7 @@ import kotlin.test.assertNull
 class RequestResolverTest {
     private val configuration = BerryCrushConfigurationProvider.from(BerryCrushConfiguration())
     private val httpBuilder = HttpRequestBuilder()
-    private val resolver = RequestResolver(configuration, httpBuilder)
+    private val resolver = DefaultRequestResolver(configuration, httpBuilder)
 
     // --- resolveBody Tests ---
 
@@ -27,7 +27,7 @@ class RequestResolverTest {
                 operationId = "createPet",
                 body = """{"name": "Fluffy"}""",
             )
-        val context = ExecutionContext()
+        val context = createStepContext()
 
         val body = resolver.resolveBody(step, null, context)
 
@@ -41,7 +41,7 @@ class RequestResolverTest {
                 operationId = "createPet",
                 body = $$"""{"name": "${petName}"}""",
             )
-        val context = ExecutionContext()
+        val context = createStepContext()
         context["petName"] = "Max"
 
         val body = resolver.resolveBody(step, null, context)
@@ -52,7 +52,7 @@ class RequestResolverTest {
     @Test
     fun `resolveBody - returns null when no body configured`() {
         val step = createStep(operationId = "getPets")
-        val context = ExecutionContext()
+        val context = createStepContext()
 
         val body = resolver.resolveBody(step, null, context)
 
@@ -70,7 +70,7 @@ class RequestResolverTest {
                         "age" to BodyProperty.Simple(3),
                     ),
             )
-        val context = ExecutionContext()
+        val context = createStepContext()
 
         val body = resolver.resolveBody(step, null, context)
 
@@ -98,7 +98,7 @@ class RequestResolverTest {
                             ),
                     ),
             )
-        val context = ExecutionContext()
+        val context = createStepContext()
 
         val body = resolver.resolveBody(step, null, context)
 
@@ -118,7 +118,7 @@ class RequestResolverTest {
                         "name" to BodyProperty.Simple($$"${petName}"),
                     ),
             )
-        val context = ExecutionContext()
+        val context = createStepContext()
         context["petName"] = "Max"
 
         val body = resolver.resolveBody(step, null, context)
@@ -137,7 +137,7 @@ class RequestResolverTest {
                         "available" to BodyProperty.Simple(true),
                     ),
             )
-        val context = ExecutionContext()
+        val context = createStepContext()
 
         val body = resolver.resolveBody(step, null, context)
 
@@ -155,7 +155,7 @@ class RequestResolverTest {
                         "tags" to BodyProperty.Simple(listOf("cat", "fluffy")),
                     ),
             )
-        val context = ExecutionContext()
+        val context = createStepContext()
 
         val body = resolver.resolveBody(step, null, context)
 

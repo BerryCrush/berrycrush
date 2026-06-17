@@ -2,8 +2,8 @@ package org.berrycrush.context
 
 import com.jayway.jsonpath.JsonPath
 import org.berrycrush.openapi.ResolvedOperation
+import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.webhook.MockWebhookServer
-import java.net.http.HttpResponse
 import java.util.concurrent.ConcurrentHashMap
 
 private val mustachePattern = Regex("""\{\{([\w.\[\]0-9]+)}}""")
@@ -81,7 +81,7 @@ class ExecutionContext(
      * The last HTTP response received.
      */
     @Volatile
-    var lastResponse: HttpResponse<String>? = null
+    var lastResponse: HttpResponse? = null
         private set
 
     /**
@@ -104,13 +104,13 @@ class ExecutionContext(
      * The last response body (cached for convenience).
      */
     val lastResponseBody: String?
-        get() = lastResponse?.body()
+        get() = lastResponse?.body
 
     /**
      * The last response status code.
      */
     val lastStatusCode: Int?
-        get() = lastResponse?.statusCode()
+        get() = lastResponse?.statusCode
 
     /**
      * Store a variable value.
@@ -155,7 +155,7 @@ class ExecutionContext(
     /**
      * Update the last response.
      */
-    fun updateLastResponse(response: HttpResponse<String>) {
+    fun updateLastResponse(response: HttpResponse) {
         lastResponse = response
     }
 
@@ -471,13 +471,15 @@ class ExecutionContext(
     }
 }
 
-fun ExecutionContext.resolveParam(value: Any): Any =
+@Suppress("UNCHECKED_CAST")
+fun <T : Any> ExecutionContext.resolveParam(value: T): T =
     when (value) {
-        is String -> this.interpolate(value)
+        is String -> this.interpolate(value) as T
         else -> value
     }
 
-fun ExecutionContext.resolveParams(params: Map<String, Any>): Map<String, Any> = params.mapValues { (_, value) -> resolveParam(value) }
+fun <T : Any> ExecutionContext.resolveParams(params: Map<String, T>): Map<String, T> =
+    params.mapValues { (_, value) -> resolveParam(value) }
 
 fun ExecutionContext?.propagate(other: ExecutionContext) {
     if (this != null && this.shareVariablesAcrossScenarios) {

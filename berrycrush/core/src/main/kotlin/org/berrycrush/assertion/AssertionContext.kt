@@ -1,6 +1,6 @@
 package org.berrycrush.assertion
 
-import java.net.http.HttpResponse
+import org.berrycrush.plugin.HttpResponse
 
 /**
  * Context provided to custom assertion implementations.
@@ -67,5 +67,5 @@ interface AssertionContext {
      * May be null if no HTTP request has been made yet in the scenario,
      * or if the assertion is evaluated before any API calls.
      */
-    val lastResponse: HttpResponse<String>?
+    val lastResponse: HttpResponse?
 }

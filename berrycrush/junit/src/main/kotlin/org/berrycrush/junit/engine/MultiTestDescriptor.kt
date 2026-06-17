@@ -53,8 +53,8 @@ class MultiTestDescriptor(
                 append("\n  Results:")
                 result.results.forEach { requestResult ->
                     append("\n    Request #${requestResult.requestIndex + 1}: ")
-                    append("status=${requestResult.statusCode}, ")
-                    append("time=${requestResult.durationMs}ms")
+                    append("status=${requestResult.response?.statusCode}, ")
+                    append("time=${requestResult.response?.duration?.toMillis() ?: 0}ms")
                     requestResult.threadName?.let { append(", thread=$it") }
                 }
             }

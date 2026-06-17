@@ -1,6 +1,7 @@
 package org.berrycrush.model
 
 import org.berrycrush.autotest.MultiTestResult
+import org.berrycrush.plugin.HttpResponse
 import java.time.Duration
 
 /**
@@ -23,9 +24,7 @@ import java.time.Duration
 data class StepResult(
     val step: Step,
     val status: ResultStatus,
-    val statusCode: Int? = null,
-    val responseBody: String? = null,
-    val responseHeaders: Map<String, List<String>> = emptyMap(),
+    val response: HttpResponse? = null,
     val duration: Duration = Duration.ZERO,
     val extractedValues: Map<String, Any?> = emptyMap(),
     val assertionResults: List<AssertionResult> = emptyList(),

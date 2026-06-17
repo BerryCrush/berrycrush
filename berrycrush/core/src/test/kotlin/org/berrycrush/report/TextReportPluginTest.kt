@@ -3,6 +3,7 @@ package org.berrycrush.report
 import org.berrycrush.plugin.ResultStatus
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import org.mockito.kotlin.mock
 import java.nio.file.Path
 import java.time.Duration
 import java.time.Instant
@@ -93,6 +94,7 @@ class TextReportPluginTest {
                                         body = """{"id": 1, "name": "Max"}""",
                                         duration = Duration.ofMillis(100),
                                         timestamp = Instant.now(),
+                                        request = mock(),
                                     ),
                             ),
                         ),

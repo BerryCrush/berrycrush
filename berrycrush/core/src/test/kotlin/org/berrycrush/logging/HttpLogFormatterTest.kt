@@ -1,17 +1,14 @@
 package org.berrycrush.logging
 
 import org.berrycrush.openapi.HttpMethod
+import org.berrycrush.plugin.HttpResponse
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpHeaders
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
-import java.util.Optional
-import javax.net.ssl.SSLSession
+import org.mockito.kotlin.mock
+import java.time.Duration
+import java.time.Instant
 
 class HttpLogFormatterTest {
     private val formatter = DefaultHttpLogFormatter()
@@ -69,7 +66,16 @@ class HttpLogFormatterTest {
 
     @Test
     fun `formatResponse includes status code and duration`() {
-        val mockResponse = MockHttpResponse(200, """{"id": 1}""")
+        val mockResponse =
+            HttpResponse(
+                200,
+                "",
+                mapOf("content-type" to listOf("application/json")),
+                """"{"id": 1}""",
+                Duration.ZERO,
+                Instant.now(),
+                mock(),
+            )
 
         val result =
             formatter.formatResponse(
@@ -99,33 +105,6 @@ class HttpLogFormatterTest {
         // Single line, no newlines except possibly at start/end
         assertTrue(request.lines().size <= 1)
         assertTrue(request.contains("16 chars"))
-    }
-
-    /**
-     * Mock HttpResponse for testing purposes.
-     */
-    class MockHttpResponse(
-        private val statusCodeVal: Int,
-        private val bodyVal: String,
-    ) : HttpResponse<String> {
-        override fun statusCode(): Int = statusCodeVal
-
-        override fun request(): HttpRequest = throw NotImplementedError()
-
-        override fun previousResponse(): Optional<HttpResponse<String>> = Optional.empty()
-
-        override fun headers(): HttpHeaders =
-            HttpHeaders.of(
-                mapOf("content-type" to listOf("application/json")),
-            ) { _, _ -> true }
-
-        override fun body(): String = bodyVal
-
-        override fun sslSession(): Optional<SSLSession> = Optional.empty()
-
-        override fun uri(): URI = URI.create("http://localhost")
-
-        override fun version(): HttpClient.Version = HttpClient.Version.HTTP_1_1
     }
 }
 
@@ -164,7 +143,7 @@ class HttpLoggerFactoryTest {
                 override fun logResponse(
                     method: HttpMethod,
                     url: String,
-                    response: HttpResponse<String>,
+                    response: HttpResponse,
                     durationMs: Long,
                 ) = Unit
             }
