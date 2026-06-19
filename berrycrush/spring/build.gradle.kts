@@ -1,4 +1,5 @@
 plugins {
+    id("kotlin-conventions")
     id("org.jetbrains.dokka")
     id("org.jetbrains.dokka-javadoc")
     `maven-publish`

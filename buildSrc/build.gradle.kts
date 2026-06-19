@@ -31,5 +31,10 @@ gradlePlugin {
             id = "berrycrush.jacoco"
             implementationClass = "JacocoConventionPlugin"
         }
+        // internal purpose, see kotlin-convensions.gradle.kts
+        register("build-time-dependency-convention") {
+            id = "berrycrush.dependency"
+            implementationClass = "BuildTimeDependencyPlugin"
+        }
     }
 }
