@@ -14,13 +14,9 @@ plugins {
 
 // OWASP Dependency Check configuration
 dependencyCheck {
-    // Scan all subprojects
     scanConfigurations = listOf("runtimeClasspath", "compileClasspath")
-    // Output formats
     formats = listOf("HTML", "JSON")
-    // Output directory
-    outputDirectory = "build/reports/dependency-check"
-    // Skip if NVD API key is not configured (optional for local development)
+    outputDirectory = layout.buildDirectory.dir("reports/dependency-check")
     nvd {
         apiKey = System.getenv("NVD_API_KEY") ?: ""
     }
