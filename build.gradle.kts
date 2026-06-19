@@ -1,15 +1,8 @@
 plugins {
-    alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.kotlin.plugin.spring)
     alias(libs.plugins.dokka.core)
     alias(libs.plugins.dokka.javadoc)
-    alias(libs.plugins.ktlint) apply false
     alias(libs.plugins.owasp.dependency.check)
-
-    // SAST plugins
-    alias(libs.plugins.detekt) apply false
-    alias(libs.plugins.spotbugs) apply false
-    alias(libs.plugins.cpd) apply false
 }
 
 // OWASP Dependency Check configuration
@@ -36,17 +29,15 @@ val libsCatalog: VersionCatalog = extensions
     .named("libs")
 
 subprojects {
+    if (project.displayName.contains(":samples")) return@subprojects
+
     // Skip BOM module - it uses java-platform which conflicts with java plugins
     if (name == "bom") {
-        apply(plugin = "berrycrush.jacoco")
+        pluginManager.apply("berrycrush.jacoco")
         return@subprojects
     }
-    apply(plugin = "org.jetbrains.kotlin.jvm")
-    apply(plugin = "org.jlleitschuh.gradle.ktlint")
-    apply(plugin = "dev.detekt")
-    apply(plugin = "com.github.spotbugs")
-    apply(plugin = "de.aaschmid.cpd")
-    apply(plugin = "berrycrush.jacoco")
+    pluginManager.apply("kotlin-conventions")
+    pluginManager.apply("berrycrush.jacoco")
 
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
         compilerOptions {
@@ -110,9 +101,7 @@ subprojects {
 
     // Add Find Security Bugs to SpotBugs
     dependencies {
-        //"spotbugsPlugins"("com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0")
-        //add("spotbugsPlugins", libs.findsecbugs.plugin)
-        add("spotbugsPlugins", libsCatalog.findLibrary("findsecbugs-plugin").get())
+        add("spotbugsPlugins", libsCatalog.findLibrary("findsecbugs-gradle-plugin").get())
     }
 
     // SAST aggregate task
