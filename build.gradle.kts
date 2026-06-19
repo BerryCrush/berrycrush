@@ -1,14 +1,15 @@
 plugins {
-    kotlin("jvm") version "2.3.21" apply false
-    id("org.jlleitschuh.gradle.ktlint") version "14.0.1" apply false
-    id("org.jetbrains.dokka") version "2.2.0"
-    id("org.jetbrains.dokka-javadoc") version "2.2.0"
-    id("org.owasp.dependencycheck") version "12.1.1"
-    kotlin("plugin.spring") version "2.3.21"
+    alias(libs.plugins.kotlin.jvm) apply false
+    alias(libs.plugins.kotlin.plugin.spring)
+    alias(libs.plugins.dokka.core)
+    alias(libs.plugins.dokka.javadoc)
+    alias(libs.plugins.ktlint) apply false
+    alias(libs.plugins.owasp.dependency.check)
+
     // SAST plugins
-    id("dev.detekt") version "2.0.0-alpha.3" apply false
-    id("com.github.spotbugs") version "6.5.1" apply false
-    id("de.aaschmid.cpd") version "3.5" apply false
+    alias(libs.plugins.detekt) apply false
+    alias(libs.plugins.spotbugs) apply false
+    alias(libs.plugins.cpd) apply false
 }
 
 // OWASP Dependency Check configuration
@@ -34,13 +35,16 @@ allprojects {
     }
 }
 
+val libsCatalog: VersionCatalog = extensions
+    .getByType<VersionCatalogsExtension>()
+    .named("libs")
+
 subprojects {
     // Skip BOM module - it uses java-platform which conflicts with java plugins
     if (name == "bom") {
         apply(plugin = "berrycrush.jacoco")
         return@subprojects
     }
-
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
     apply(plugin = "dev.detekt")
@@ -110,7 +114,9 @@ subprojects {
 
     // Add Find Security Bugs to SpotBugs
     dependencies {
-        "spotbugsPlugins"("com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0")
+        //"spotbugsPlugins"("com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0")
+        //add("spotbugsPlugins", libs.findsecbugs.plugin)
+        add("spotbugsPlugins", libsCatalog.findLibrary("findsecbugs-plugin").get())
     }
 
     // SAST aggregate task

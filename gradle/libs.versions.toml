@@ -1,6 +1,7 @@
 [versions]
 kotlin = "2.3.21"
-swagger-parser = "2.1.39"
+dokka = "2.2.0"
+swagger-parser = "2.1.42"
 json-path = "3.0.0"
 json-schema-validator = "3.0.1"
 junit = "6.0.3"
@@ -10,9 +11,11 @@ spring-boot = "4.0.5"
 h2 = "2.3.232"
 mockito = "6.3.0"
 
+ktlint = "14.2.0"
 # SAST tool versions
+owasp-dependency-check = "12.1.6"
 detekt = "2.0.0-alpha.3"
-spotbugs-gradle = "6.5.1"
+spotbugs = "6.5.1"
 cpd = "3.5"
 findsecbugs = "1.14.0"
 
@@ -49,6 +52,9 @@ kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5", versi
 # Mockito
 mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockito" }
 
+# SAST plugins
+findsecbugs-plugin = { module = "com.h3xstream.findsecbugs:findsecbugs-plugin", version.ref = "findsecbugs" }
+
 [bundles]
 junit = ["junit-jupiter-api", "junit-jupiter-engine", "junit-jupiter-params"]
 junit-platform = ["junit-platform-engine", "junit-platform-commons"]
@@ -58,5 +64,13 @@ spring-boot-webflux = ["spring-boot-starter-webflux", "spring-boot-starter-data-
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-plugin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
+dokka-core = { id = "org.jetbrains.dokka", version.ref = "dokka" }
+dokka-javadoc = { id = "org.jetbrains.dokka-javadoc", version.ref = "dokka" }
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 spring-dependency-management = { id = "io.spring.dependency-management", version = "1.1.7" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
+owasp-dependency-check = { id = "org.owasp.dependencycheck", version.ref = "owasp-dependency-check" }
+detekt = { id = "dev.detekt", version.ref = "detekt" }
+spotbugs = { id = "com.github.spotbugs", version.ref = "spotbugs" }
+cpd = { id = "de.aaschmid.cpd", version.ref = "cpd" }
