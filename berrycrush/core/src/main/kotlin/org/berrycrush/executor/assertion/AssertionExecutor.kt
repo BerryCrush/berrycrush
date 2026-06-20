@@ -185,16 +185,11 @@ class AssertionExecutor(
             )
         }.getOrElse { e ->
             // Unwrap AssertionFailureException if present
-            val actualException =
-                when (e) {
-                    is org.berrycrush.exception.AssertionFailureException -> e.cause ?: e
-                    else -> e
-                }
             AssertionResult(
                 assertion = assertion,
                 passed = false,
-                message = actualException.message ?: "Custom assertion failed: ${customAssertion.description}",
-                actual = actualException.message,
+                message = e.message ?: "Custom assertion failed: ${customAssertion.description}",
+                actual = e.message,
             )
         }
     }

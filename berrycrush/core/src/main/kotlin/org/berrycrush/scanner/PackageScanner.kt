@@ -121,6 +121,8 @@ internal fun findClasses(
         }.toList()
 }
 
+private const val CLASS_FILE_EXTENSION = ".class"
+
 private fun findClassesInDirectory(
     directory: File,
     packageName: String,
@@ -134,8 +136,8 @@ private fun findClassesInDirectory(
         when {
             file.isDirectory ->
                 findClassesInDirectory(file, "$packageName.${file.name}", classLoader)
-            file.name.endsWith(".class") -> {
-                val className = "$packageName.${file.name.removeSuffix(".class")}"
+            file.name.endsWith(CLASS_FILE_EXTENSION) -> {
+                val className = "$packageName.${file.name.removeSuffix(CLASS_FILE_EXTENSION)}"
                 listOfNotNull(
                     runCatching { classLoader.loadClass(className) }.getOrNull(),
                 )
@@ -155,9 +157,9 @@ private fun findClassesInJar(
     return jarFile
         .entries()
         .asSequence()
-        .filter { it.name.startsWith(path) && it.name.endsWith(".class") }
+        .filter { it.name.startsWith(path) && it.name.endsWith(CLASS_FILE_EXTENSION) }
         .mapNotNull { entry ->
-            val className = entry.name.removeSuffix(".class").replace('/', '.')
+            val className = entry.name.removeSuffix(CLASS_FILE_EXTENSION).replace('/', '.')
             runCatching { classLoader.loadClass(className) }.getOrNull()
         }.toList()
 }

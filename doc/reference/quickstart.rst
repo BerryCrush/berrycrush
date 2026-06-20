@@ -131,7 +131,7 @@ Create a bindings class to provide configuration:
 
 .. code-block:: kotlin
 
-    import org.berrycrush.config.OpenApiSpecValue
+    import org.berrycrush.junit.binding.OpenApiSpecValue
     import org.berrycrush.junit.BerryCrushBindings
 
     class PetStoreBindings : BerryCrushBindings {

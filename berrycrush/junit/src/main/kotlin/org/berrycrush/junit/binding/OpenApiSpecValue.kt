@@ -1,4 +1,4 @@
-package org.berrycrush.config
+package org.berrycrush.junit.binding
 
 /**
  * Configuration for an OpenAPI specification.

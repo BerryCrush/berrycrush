@@ -1,7 +1,7 @@
 package org.berrycrush.junit
 
 import org.berrycrush.config.BerryCrushConfiguration
-import org.berrycrush.config.OpenApiSpecValue
+import org.berrycrush.junit.binding.OpenApiSpecValue
 
 /**
  * Interface for providing runtime bindings to scenario execution.

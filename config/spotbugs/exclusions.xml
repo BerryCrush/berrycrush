@@ -83,13 +83,7 @@
     <Match>
         <Bug pattern="NM_FUTURE_KEYWORD_USED_AS_MEMBER_IDENTIFIER"/>
     </Match>
-    
-    <!-- AssertionFailureException is named for clarity, not inheritance -->
-    <Match>
-        <Bug pattern="NM_CLASS_NOT_EXCEPTION"/>
-        <Class name="org.berrycrush.exception.AssertionFailureException"/>
-    </Match>
-    
+
     <!-- Singleton objects in Kotlin have public constructors by design -->
     <Match>
         <Bug pattern="MS_SHOULD_BE_REFACTORED_TO_BE_FINAL"/>

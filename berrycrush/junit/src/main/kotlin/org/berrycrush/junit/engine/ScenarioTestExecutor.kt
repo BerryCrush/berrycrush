@@ -1,7 +1,6 @@
 package org.berrycrush.junit.engine
 
 import org.berrycrush.assertion.AssertionRegistry
-import org.berrycrush.config.OpenApiSpecValue
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.dsl.BerryCrushSuite
 import org.berrycrush.executor.BerryCrushConfigurationProvider
@@ -9,6 +8,7 @@ import org.berrycrush.junit.BerryCrushBindings
 import org.berrycrush.junit.BerryCrushConfiguration
 import org.berrycrush.junit.DefaultBindings
 import org.berrycrush.junit.ParallelExecutionMode
+import org.berrycrush.junit.binding.OpenApiSpecValue
 import org.berrycrush.junit.discovery.FragmentDiscovery
 import org.berrycrush.junit.engine.context.TestExecutionContext
 import org.berrycrush.junit.spi.BindingsProvider

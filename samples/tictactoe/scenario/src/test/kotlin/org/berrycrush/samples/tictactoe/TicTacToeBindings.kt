@@ -1,6 +1,6 @@
 package org.berrycrush.samples.tictactoe
 
-import org.berrycrush.config.OpenApiSpecValue
+import org.berrycrush.junit.binding.OpenApiSpecValue
 import org.berrycrush.junit.BerryCrushBindings
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.context.annotation.Lazy
