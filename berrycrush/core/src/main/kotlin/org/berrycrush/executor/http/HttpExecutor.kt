@@ -8,6 +8,8 @@ import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.plugin.HttpRequest
 import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.StepContext
+import java.time.Duration
+import java.time.Instant
 
 /**
  * Executor for HTTP requests during scenario execution.
@@ -29,14 +31,14 @@ interface HttpExecutor : RequestResolver {
         context.updateCurrentOperation(resolvedOp)
 
         // Record request start time
-        val requestStartTime = System.currentTimeMillis()
+        val requestStartTime = Instant.now()
 
         // Execute the HTTP request using the HttpExecutor
         val response = execute(step, spec, resolvedOp, stepContext)
 
         // Calculate and store response time
-        val responseTimeMs = System.currentTimeMillis() - requestStartTime
-        context.updateLastResponseTime(responseTimeMs)
+        val responseTime = Duration.between(requestStartTime, Instant.now())
+        stepContext.updateResponseTime(responseTime)
 
         // Update context with response
         context.updateLastResponse(response)

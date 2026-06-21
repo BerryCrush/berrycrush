@@ -6,6 +6,7 @@ import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.ScenarioContext
 import org.berrycrush.plugin.StepContext
 import java.nio.file.Path
+import java.time.Duration
 import java.time.Instant
 
 fun createStepContext(context: ExecutionContext = ExecutionContext()) =
@@ -50,4 +51,10 @@ fun createStepContext(context: ExecutionContext = ExecutionContext()) =
             get() = TODO("Not yet implemented")
         override val operationId: String?
             get() = TODO("Not yet implemented")
+        override val responseTime: Duration?
+            get() = TODO("Not yet implemented")
+
+        override fun updateResponseTime(responseTime: Duration) {
+            TODO("Not yet implemented")
+        }
     }

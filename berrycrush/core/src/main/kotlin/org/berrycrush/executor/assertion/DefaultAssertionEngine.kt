@@ -244,10 +244,10 @@ class DefaultAssertionEngine(
         condition: Condition.ResponseTime,
         context: AssertionContext,
     ): Boolean {
-        val actualMs = context.responseTimeMs ?: return true
+        val actualMs = context.responseTime ?: return true
         val maxMs = condition.maxMs
         val threshold = parseTimeToMs(maxMs, context)
-        return actualMs <= threshold
+        return actualMs.toMillis() <= threshold
     }
 
     /**
@@ -511,7 +511,7 @@ class DefaultAssertionEngine(
         passed: Boolean,
         context: AssertionContext,
     ): String {
-        val actualMs = context.responseTimeMs
+        val actualMs = context.responseTime?.toMillis()
         return if (passed) {
             "Response time ${actualMs}ms is under ${condition.maxMs}"
         } else {
@@ -575,7 +575,7 @@ class DefaultAssertionEngine(
             is Condition.Header -> context.responseHeaders[condition.name]?.firstOrNull()
             is Condition.BodyContains -> context.responseBody?.take(BODY_PREVIEW_LENGTH)
             is Condition.Variable -> context.variables[condition.name]
-            is Condition.ResponseTime -> context.responseTimeMs
+            is Condition.ResponseTime -> context.responseTime
             is Condition.Negated -> getActualValueForCondition(context, condition.condition)
             else -> null
         }

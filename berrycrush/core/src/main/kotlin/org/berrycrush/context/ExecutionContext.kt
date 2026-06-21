@@ -101,18 +101,6 @@ class ExecutionContext(
         private set
 
     /**
-     * The last response body (cached for convenience).
-     */
-    val lastResponseBody: String?
-        get() = lastResponse?.body
-
-    /**
-     * The last response status code.
-     */
-    val lastStatusCode: Int?
-        get() = lastResponse?.statusCode
-
-    /**
      * Store a variable value.
      */
     operator fun set(

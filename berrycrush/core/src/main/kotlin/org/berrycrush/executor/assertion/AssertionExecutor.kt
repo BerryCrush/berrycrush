@@ -237,14 +237,10 @@ class AssertionExecutor(
         response: HttpResponse,
         context: StepContext,
     ): AssertionContext {
-        val headers = response.headers.mapValues { it.value.toList() }
         val executionContext = context.scenarioContext.executionContext
         return AssertionContext(
             response = response,
-            responseBody = response.body,
-            responseHeaders = headers,
-            statusCode = response.statusCode,
-            responseTimeMs = executionContext.lastResponseTimeMs,
+            responseTime = context.responseTime,
             variables = executionContext.allVariables(),
             executionContext = executionContext,
             currentOperation = executionContext.currentOperation,

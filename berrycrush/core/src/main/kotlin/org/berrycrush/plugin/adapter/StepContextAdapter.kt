@@ -6,6 +6,7 @@ import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.ScenarioContext
 import org.berrycrush.plugin.StepContext
 import org.berrycrush.plugin.StepType
+import java.time.Duration
 import org.berrycrush.model.StepType as ModelStepType
 
 /**
@@ -20,6 +21,7 @@ class StepContextAdapter(
 ) : StepContext {
     private var httpRequest: HttpRequest? = scenarioContext.audits.lastOrNull()?.request
     private var httpResponse: HttpResponse? = scenarioContext.audits.lastOrNull()?.response
+    override lateinit var responseTime: Duration
 
     override val stepDescription: String
         get() = step.description
@@ -48,6 +50,10 @@ class StepContextAdapter(
      */
     fun setResponse(response: HttpResponse) {
         this.httpResponse = response
+    }
+
+    override fun updateResponseTime(responseTime: Duration) {
+        this.responseTime = responseTime
     }
 
     private fun mapStepType(modelType: ModelStepType): StepType =
