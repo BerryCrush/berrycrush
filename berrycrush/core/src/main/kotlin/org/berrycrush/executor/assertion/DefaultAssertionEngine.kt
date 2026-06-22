@@ -1,8 +1,10 @@
 package org.berrycrush.executor.assertion
 
 import com.jayway.jsonpath.JsonPath
+import org.berrycrush.assertion.AssertionContextImpl
 import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.assertion.SchemaValidator
+import org.berrycrush.context.MutableTestExecutionContext
 import org.berrycrush.model.Condition
 import org.berrycrush.model.ConditionOperator
 import org.berrycrush.model.LogicalOperator
@@ -165,7 +167,7 @@ class DefaultAssertionEngine(
         val actual: Any? =
             context.variables[condition.name]
                 ?: run {
-                    val interpolated = context.executionContext.interpolate("{{${condition.name}}}")
+                    val interpolated = context.stepContext.interpolate("{{${condition.name}}}")
                     // If interpolation returns the same string, the variable wasn't found
                     if (interpolated == "{{${condition.name}}}") null else interpolated
                 }
@@ -244,10 +246,10 @@ class DefaultAssertionEngine(
         condition: Condition.ResponseTime,
         context: AssertionContext,
     ): Boolean {
-        val actualMs = context.responseTimeMs ?: return true
+        val actualMs = context.responseTime ?: return true
         val maxMs = condition.maxMs
         val threshold = parseTimeToMs(maxMs, context)
-        return actualMs <= threshold
+        return actualMs.toMillis() <= threshold
     }
 
     /**
@@ -261,7 +263,7 @@ class DefaultAssertionEngine(
         when (value) {
             is Number -> value.toLong()
             is String -> {
-                val resolved = context.executionContext.interpolate(value)
+                val resolved = context.stepContext.interpolate(value)
                 when {
                     resolved.endsWith("ms") -> resolved.dropLast(2).trim().toLongOrNull() ?: 0L
                     resolved.endsWith("s") -> {
@@ -285,12 +287,7 @@ class DefaultAssertionEngine(
 
         val match = registry.findMatch(condition.pattern) ?: return false
 
-        val assertionContext =
-            org.berrycrush.assertion.AssertionContextImpl(
-                executionContext = context.executionContext,
-                sharedVariables = null,
-                sharingEnabled = false,
-            )
+        val assertionContext = AssertionContextImpl(context.stepContext)
 
         return runCatching {
             val method = match.definition.method
@@ -334,7 +331,7 @@ class DefaultAssertionEngine(
         condition: Condition.Custom,
         context: AssertionContext,
     ): Boolean {
-        val testContext = org.berrycrush.context.MutableTestExecutionContext(context.executionContext)
+        val testContext = MutableTestExecutionContext(context.stepContext)
         return runCatching {
             condition.predicate(testContext)
         }.getOrElse { false }
@@ -429,7 +426,7 @@ class DefaultAssertionEngine(
         context: AssertionContext,
     ): Any =
         when (value) {
-            is String -> context.executionContext.interpolate(value)
+            is String -> context.stepContext.interpolate(value)
             else -> value
         }
 
@@ -511,7 +508,7 @@ class DefaultAssertionEngine(
         passed: Boolean,
         context: AssertionContext,
     ): String {
-        val actualMs = context.responseTimeMs
+        val actualMs = context.responseTime?.toMillis()
         return if (passed) {
             "Response time ${actualMs}ms is under ${condition.maxMs}"
         } else {
@@ -528,7 +525,7 @@ class DefaultAssertionEngine(
         val actual =
             context.variables[condition.name]
                 ?: run {
-                    val interpolated = context.executionContext.interpolate("{{${condition.name}}}")
+                    val interpolated = context.stepContext.interpolate("{{${condition.name}}}")
                     if (interpolated == "{{${condition.name}}}") null else interpolated
                 }
         return if (passed) {
@@ -575,7 +572,7 @@ class DefaultAssertionEngine(
             is Condition.Header -> context.responseHeaders[condition.name]?.firstOrNull()
             is Condition.BodyContains -> context.responseBody?.take(BODY_PREVIEW_LENGTH)
             is Condition.Variable -> context.variables[condition.name]
-            is Condition.ResponseTime -> context.responseTimeMs
+            is Condition.ResponseTime -> context.responseTime
             is Condition.Negated -> getActualValueForCondition(context, condition.condition)
             else -> null
         }

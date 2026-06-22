@@ -1,51 +1,23 @@
 package org.berrycrush.assertion
 
-import org.berrycrush.context.ExecutionContext
 import org.berrycrush.plugin.HttpResponse
+import org.berrycrush.plugin.StepContext
 
 /**
- * Default implementation of [AssertionContext] that wraps an [ExecutionContext].
+ * Default implementation of [AssertionContext] that wraps an [StepContext].
  *
  * Provides read-only access to test variables, last HTTP response, and configuration
  * for custom assertion implementations.
  *
- * @property executionContext The underlying execution context
- * @property sharedVariables Optional shared variables map
- * @property sharingEnabled Whether variable sharing is enabled
+ * @property stepContext The underlying execution context
  */
 class AssertionContextImpl(
-    private val executionContext: ExecutionContext,
-    private val sharedVariables: Map<String, Any?>? = null,
-    private val sharingEnabled: Boolean = false,
+    private val stepContext: StepContext,
 ) : AssertionContext {
-    override fun variable(name: String): Any? {
-        // First check scenario-scoped variables
-        val scenarioValue = executionContext.get<Any?>(name)
-        if (scenarioValue != null) {
-            return scenarioValue
-        }
+    override fun variable(name: String): Any? = stepContext[name]
 
-        // Then check shared variables if sharing is enabled
-        return if (sharingEnabled && sharedVariables != null) {
-            sharedVariables[name]
-        } else {
-            null
-        }
-    }
-
-    override fun allVariables(): Map<String, Any?> {
-        val allVars = executionContext.allVariables().toMutableMap()
-        if (sharingEnabled && sharedVariables != null) {
-            // Shared variables are included but can be overridden by scenario variables
-            sharedVariables.forEach { (key, value) ->
-                if (!allVars.containsKey(key)) {
-                    allVars[key] = value
-                }
-            }
-        }
-        return allVars
-    }
+    override fun allVariables(): Map<String, Any?> = stepContext.allVariables()
 
     override val lastResponse: HttpResponse?
-        get() = executionContext.lastResponse
+        get() = stepContext.response
 }

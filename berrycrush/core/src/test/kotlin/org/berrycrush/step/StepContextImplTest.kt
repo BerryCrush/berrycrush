@@ -1,6 +1,7 @@
 package org.berrycrush.step
 
-import org.berrycrush.context.ExecutionContext
+import org.berrycrush.plugin.StepContext
+import org.berrycrush.util.createStepContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -11,29 +12,29 @@ import kotlin.test.assertNull
 class StepContextImplTest {
     @Test
     fun `variable returns value from execution context`() {
-        val context = ExecutionContext()
+        val context = context()
         context["userId"] = "user-123"
 
-        val stepContext = createStepContext(context)
+        val stepContext = createStepContextImpl(context)
 
         assertEquals("user-123", stepContext.variable("userId"))
     }
 
     @Test
     fun `variable returns null for missing variable when sharing disabled`() {
-        val context = ExecutionContext()
-        val stepContext = createStepContext(context, sharingEnabled = false)
+        val context = context()
+        val stepContext = createStepContextImpl(context, sharingEnabled = false)
 
         assertNull(stepContext.variable("missing"))
     }
 
     @Test
     fun `variable returns shared value when sharing enabled`() {
-        val context = ExecutionContext()
+        val context = context()
         val sharedVariables = mutableMapOf<String, Any?>("sharedToken" to "token-abc")
 
         val stepContext =
-            createStepContext(
+            createStepContextImpl(
                 context,
                 sharedVariables = sharedVariables,
                 sharingEnabled = true,
@@ -44,12 +45,12 @@ class StepContextImplTest {
 
     @Test
     fun `scenario variable takes precedence over shared variable`() {
-        val context = ExecutionContext()
+        val context = context()
         context["key"] = "scenario-value"
         val sharedVariables = mutableMapOf<String, Any?>("key" to "shared-value")
 
         val stepContext =
-            createStepContext(
+            createStepContextImpl(
                 context,
                 sharedVariables = sharedVariables,
                 sharingEnabled = true,
@@ -60,8 +61,8 @@ class StepContextImplTest {
 
     @Test
     fun `setVariable updates execution context`() {
-        val context = ExecutionContext()
-        val stepContext = createStepContext(context)
+        val context = context()
+        val stepContext = createStepContextImpl(context)
 
         stepContext.setVariable("newVar", "new-value")
 
@@ -70,11 +71,11 @@ class StepContextImplTest {
 
     @Test
     fun `setSharedVariable updates shared variables when sharing enabled`() {
-        val context = ExecutionContext()
+        val context = context()
         val sharedVariables = mutableMapOf<String, Any?>()
 
         val stepContext =
-            createStepContext(
+            createStepContextImpl(
                 context,
                 sharedVariables = sharedVariables,
                 sharingEnabled = true,
@@ -87,8 +88,8 @@ class StepContextImplTest {
 
     @Test
     fun `setSharedVariable falls back to setVariable when sharing disabled`() {
-        val context = ExecutionContext()
-        val stepContext = createStepContext(context, sharingEnabled = false)
+        val context = context()
+        val stepContext = createStepContextImpl(context, sharingEnabled = false)
 
         stepContext.setSharedVariable("fallbackKey", "fallback-value")
 
@@ -97,12 +98,12 @@ class StepContextImplTest {
 
     @Test
     fun `allVariables includes both scenario and shared variables`() {
-        val context = ExecutionContext()
+        val context = context()
         context["scenarioVar"] = "scenario-value"
         val sharedVariables = mutableMapOf<String, Any?>("sharedVar" to "shared-value")
 
         val stepContext =
-            createStepContext(
+            createStepContextImpl(
                 context,
                 sharedVariables = sharedVariables,
                 sharingEnabled = true,
@@ -116,12 +117,12 @@ class StepContextImplTest {
 
     @Test
     fun `allVariables prioritizes scenario variables over shared`() {
-        val context = ExecutionContext()
+        val context = context()
         context["key"] = "scenario-wins"
         val sharedVariables = mutableMapOf<String, Any?>("key" to "shared-loses")
 
         val stepContext =
-            createStepContext(
+            createStepContextImpl(
                 context,
                 sharedVariables = sharedVariables,
                 sharingEnabled = true,
@@ -130,13 +131,15 @@ class StepContextImplTest {
         assertEquals("scenario-wins", stepContext.allVariables()["key"])
     }
 
-    private fun createStepContext(
-        executionContext: ExecutionContext,
+    private fun context(): StepContext = createStepContext()
+
+    private fun createStepContextImpl(
+        stepContext: StepContext,
         sharedVariables: MutableMap<String, Any?>? = null,
         sharingEnabled: Boolean = false,
     ): StepContextImpl =
         StepContextImpl(
-            executionContext = executionContext,
+            stepContext = stepContext,
             sharedVariables = sharedVariables,
             sharingEnabled = sharingEnabled,
         )

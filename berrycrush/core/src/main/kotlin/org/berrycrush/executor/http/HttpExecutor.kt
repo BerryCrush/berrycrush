@@ -27,17 +27,8 @@ interface HttpExecutor : RequestResolver {
 
         // Store the resolved operation for schema validation
         context.updateCurrentOperation(resolvedOp)
-
-        // Record request start time
-        val requestStartTime = System.currentTimeMillis()
-
         // Execute the HTTP request using the HttpExecutor
         val response = execute(step, spec, resolvedOp, stepContext)
-
-        // Calculate and store response time
-        val responseTimeMs = System.currentTimeMillis() - requestStartTime
-        context.updateLastResponseTime(responseTimeMs)
-
         // Update context with response
         context.updateLastResponse(response)
         return response

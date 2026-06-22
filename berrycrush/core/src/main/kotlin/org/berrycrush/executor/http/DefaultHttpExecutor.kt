@@ -7,6 +7,7 @@ import org.berrycrush.executor.resolvers.RequestResolver
 import org.berrycrush.plugin.HttpRequest
 import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.StepContext
+import org.berrycrush.plugin.adapter.ScenarioContextAdapter
 import org.berrycrush.plugin.adapter.StepContextAdapter
 import tools.jackson.databind.ObjectMapper
 import java.time.Duration
@@ -69,9 +70,12 @@ class DefaultHttpExecutor(
 
         if (context is StepContextAdapter) {
             context.setResponse(response)
+            context.updateResponseTime(duration)
         }
-        context.scenarioContext.addAudit(request, response)
-
+        val scenarioContext = context.scenarioContext
+        if (scenarioContext is ScenarioContextAdapter) {
+            scenarioContext.addAudit(request, response)
+        }
         return response
     }
 

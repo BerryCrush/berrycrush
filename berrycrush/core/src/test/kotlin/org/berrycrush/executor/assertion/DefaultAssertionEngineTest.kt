@@ -3,6 +3,11 @@ package org.berrycrush.executor.assertion
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.model.Condition
 import org.berrycrush.model.ConditionOperator
+import org.berrycrush.plugin.HttpResponse
+import org.berrycrush.util.createStepContext
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.mock
+import java.time.Duration
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -303,16 +308,19 @@ class DefaultAssertionEngineTest {
         responseTimeMs: Long = 0L,
         variables: Map<String, Any> = emptyMap(),
     ): AssertionContext {
-        val executionContext = org.berrycrush.context.ExecutionContext()
-        variables.forEach { (k, v) -> executionContext[k] = v }
+        val stepContext = createStepContext()
+        variables.forEach { (k, v) -> stepContext[k] = v }
+        val response =
+            mock<HttpResponse> {
+                on { statusCode } doReturn statusCode
+                on { body } doReturn responseBody
+                on { headers } doReturn responseHeaders
+            }
         return AssertionContext(
-            response = null,
-            responseBody = responseBody,
-            responseHeaders = responseHeaders,
-            statusCode = statusCode,
-            responseTimeMs = responseTimeMs,
+            response = response,
+            responseTime = Duration.ofMillis(responseTimeMs),
             variables = variables,
-            executionContext = executionContext,
+            stepContext = stepContext,
         )
     }
 }

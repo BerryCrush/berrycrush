@@ -31,9 +31,4 @@ interface ScenarioContext {
         val request: HttpRequest,
         val response: HttpResponse,
     )
-
-    fun addAudit(
-        request: HttpRequest,
-        response: HttpResponse,
-    )
 }

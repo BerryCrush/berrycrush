@@ -40,7 +40,7 @@ class ScenarioContextAdapter(
     override val audits: List<ScenarioContext.HttpAudit>
         get() = mutableAudits
 
-    override fun addAudit(
+    fun addAudit(
         request: HttpRequest,
         response: HttpResponse,
     ) {

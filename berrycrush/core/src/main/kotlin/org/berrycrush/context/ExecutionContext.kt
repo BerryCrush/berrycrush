@@ -101,18 +101,6 @@ class ExecutionContext(
         private set
 
     /**
-     * The last response body (cached for convenience).
-     */
-    val lastResponseBody: String?
-        get() = lastResponse?.body
-
-    /**
-     * The last response status code.
-     */
-    val lastStatusCode: Int?
-        get() = lastResponse?.statusCode
-
-    /**
      * Store a variable value.
      */
     operator fun set(
@@ -150,7 +138,7 @@ class ExecutionContext(
     /**
      * Get all variables as a map.
      */
-    fun allVariables(): Map<String, Any?> = variables.toMap()
+    fun allVariables(): Map<String, Any> = variables.toMap()
 
     /**
      * Update the last response.
@@ -483,6 +471,6 @@ fun <T : Any> ExecutionContext.resolveParams(params: Map<String, T>): Map<String
 
 fun ExecutionContext?.propagate(other: ExecutionContext) {
     if (this != null && this.shareVariablesAcrossScenarios) {
-        other.allVariables().forEach { (name, value) -> value?.let { this[name] = it } }
+        other.allVariables().forEach { (name, value) -> this[name] = value }
     }
 }
