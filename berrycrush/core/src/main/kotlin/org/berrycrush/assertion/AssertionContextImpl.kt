@@ -16,7 +16,7 @@ class AssertionContextImpl(
 ) : AssertionContext {
     override fun variable(name: String): Any? = stepContext[name]
 
-    override fun allVariables(): Map<String, Any?> = stepContext.allVariables().toMutableMap()
+    override fun allVariables(): Map<String, Any?> = stepContext.allVariables()
 
     override val lastResponse: HttpResponse?
         get() = stepContext.response

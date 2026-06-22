@@ -18,7 +18,7 @@ data class AssertionContext(
     /** Response time, if measured. */
     val responseTime: Duration?,
     /** All variables available in the current scope. */
-    val variables: Map<String, Any?>,
+    val variables: Map<String, Any>,
     /** Reference to the full execution context for advanced operations. */
     val stepContext: StepContext,
     /** Current operation being executed, for schema validation. */

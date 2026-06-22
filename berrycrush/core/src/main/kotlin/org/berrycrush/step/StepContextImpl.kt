@@ -9,28 +9,24 @@ import org.berrycrush.plugin.HttpResponse
  * Provides access to test variables, last HTTP response, and configuration
  * for custom step implementations.
  *
- * @property executionContext The underlying execution context
+ * @property stepContext The underlying execution context
  * @property sharedVariables Optional shared variables map for suite-scoped variables
  * @property sharingEnabled Whether variable sharing is enabled
  */
 class StepContextImpl(
-    private val executionContext: ExecutionContext,
-    private val sharedVariables: MutableMap<String, Any?>? = null,
+    private val stepContext: org.berrycrush.plugin.StepContext,
+    private val sharedVariables: MutableMap<String, Any?>? = mutableMapOf(),
     private val sharingEnabled: Boolean = false,
 ) : StepContext {
     override fun variable(name: String): Any? {
         // First check scenario-scoped variables
-        val scenarioValue = executionContext.get<Any?>(name)
-        if (scenarioValue != null) {
-            return scenarioValue
-        }
-
-        // Then check shared variables if sharing is enabled
-        return if (sharingEnabled && sharedVariables != null) {
-            sharedVariables[name]
-        } else {
-            null
-        }
+        return stepContext[name]
+            // Then check shared variables if sharing is enabled
+            ?: if (sharingEnabled && sharedVariables != null) {
+                sharedVariables[name]
+            } else {
+                null
+            }
     }
 
     override fun setVariable(
@@ -38,7 +34,7 @@ class StepContextImpl(
         value: Any?,
     ) {
         if (value != null) {
-            executionContext[name] = value
+            stepContext[name] = value
         }
         // Note: ExecutionContext doesn't support null values, so we just don't set
     }
@@ -56,18 +52,19 @@ class StepContextImpl(
     }
 
     override fun allVariables(): Map<String, Any?> {
-        val allVars = executionContext.allVariables().toMutableMap()
+        val result = mutableMapOf<String, Any?>()
+        result.putAll(stepContext.allVariables())
         if (sharingEnabled && sharedVariables != null) {
             // Shared variables are included but can be overridden by scenario variables
             sharedVariables.forEach { (key, value) ->
-                if (!allVars.containsKey(key)) {
-                    allVars[key] = value
+                if (!result.containsKey(key)) {
+                    result[key] = value
                 }
             }
         }
-        return allVars
+        return result
     }
 
     override val lastResponse: HttpResponse?
-        get() = executionContext.lastResponse
+        get() = stepContext.response
 }

@@ -47,8 +47,7 @@ fun createStepContext(context: ExecutionContext = ExecutionContext()) =
             get() = dummyScenarioContext
         override val request: HttpRequest
             get() = TODO("Not yet implemented")
-        override val response: HttpResponse
-            get() = TODO("Not yet implemented")
+        override val response: HttpResponse? = null
         override val operationId: String?
             get() = TODO("Not yet implemented")
         override val responseTime: Duration?

@@ -158,15 +158,14 @@ class StepExecutor(
     private fun executeCustomStep(
         step: Step,
         match: StepMatch,
-        scenarioContext: StepContext,
+        stepContext: StepContext,
         stepStartTime: Instant,
     ): StepResult =
         runCatching {
-            val context = scenarioContext.scenarioContext.executionContext
+            val context = stepContext.scenarioContext.executionContext
             val stepContext =
                 StepContextImpl(
-                    executionContext = context,
-                    sharedVariables = context.allVariables().toMutableMap(),
+                    stepContext = stepContext,
                     sharingEnabled = context.shareVariablesAcrossScenarios,
                 )
 
