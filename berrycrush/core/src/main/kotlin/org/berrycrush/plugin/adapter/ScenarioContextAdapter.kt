@@ -1,7 +1,8 @@
 package org.berrycrush.plugin.adapter
 
-import org.berrycrush.context.ExecutionContext
 import org.berrycrush.model.Scenario
+import org.berrycrush.openapi.ResolvedOperation
+import org.berrycrush.plugin.ExecutionContext
 import org.berrycrush.plugin.HttpRequest
 import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.ScenarioContext
@@ -22,6 +23,8 @@ class ScenarioContextAdapter(
     private val scenarioMetadata: Map<String, String> = emptyMap(),
 ) : ScenarioContext {
     private val mutableAudits = mutableListOf<ScenarioContext.HttpAudit>()
+    private val mutableOperations = mutableListOf<ResolvedOperation>()
+
     override val scenarioName: String
         get() = scenario.name
 
@@ -40,11 +43,18 @@ class ScenarioContextAdapter(
     override val audits: List<ScenarioContext.HttpAudit>
         get() = mutableAudits
 
+    override val operations: List<ResolvedOperation>
+        get() = mutableOperations
+
     fun addAudit(
         request: HttpRequest,
         response: HttpResponse,
     ) {
         mutableAudits.add(ScenarioContext.HttpAudit(request, response))
+    }
+
+    fun addOperation(operation: ResolvedOperation) {
+        mutableOperations.add(operation)
     }
 }
 

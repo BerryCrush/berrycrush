@@ -20,6 +20,7 @@ import org.berrycrush.model.StepResult
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.plugin.PluginRegistry
 import org.berrycrush.plugin.StepContext
+import org.berrycrush.plugin.adapter.ExecutionContextAdapter
 import org.berrycrush.plugin.adapter.ScenarioContextAdapter
 import org.berrycrush.plugin.adapter.ScenarioResultAdapter
 import org.berrycrush.step.StepRegistry
@@ -121,7 +122,7 @@ class BerryCrushScenarioExecutor(
             // Store scenario parameters in context for variable resolution
             setupParameters(scenario.parameters, context)
 
-            val scenarioContext = ScenarioContextAdapter(scenario, context, startTime, sourceFile)
+            val scenarioContext = ScenarioContextAdapter(scenario, ExecutionContextAdapter(context), startTime, sourceFile)
 
             pluginRegistry?.dispatchScenarioStart(scenarioContext)
             val stepResults = stepExecutor.execute(scenario, scenarioContext, listener)

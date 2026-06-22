@@ -1,7 +1,6 @@
 package org.berrycrush.report
 
-import org.berrycrush.context.ExecutionContext
-import org.berrycrush.plugin.HttpRequest
+import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.ResultStatus
 import org.berrycrush.plugin.ScenarioContext
@@ -233,15 +232,10 @@ class ConsoleReportPluginTest {
             override val metadata: Map<String, String> = emptyMap()
             override val tags: Set<String> = emptySet()
             override val audits: List<ScenarioContext.HttpAudit> = emptyList()
-            override val executionContext: ExecutionContext
-                get() = TODO("Not yet implemented")
-
-            override fun addAudit(
-                request: HttpRequest,
-                response: HttpResponse,
-            ) {
-                TODO("Not yet implemented")
-            }
+            override val executionContext
+                get() = TODO()
+            override val operations: List<ResolvedOperation>
+                get() = TODO()
         }
 
     private fun createMockScenarioResult(

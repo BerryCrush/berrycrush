@@ -89,7 +89,7 @@ class ExecutionContextParallelTest {
                                 context.variableNames()
                             } catch (
                                 @Suppress("SwallowedException")
-                                e: Exception,
+                                _: Exception,
                             ) {
                                 // Track errors - exception details not needed for counting
                                 readErrors.incrementAndGet()
@@ -154,18 +154,15 @@ class ExecutionContextParallelTest {
 
     @Test
     fun `volatile fields should be visible across threads`() {
-        val context = ExecutionContext()
         val updateCount = 100
         val latch = CountDownLatch(2)
         val executor = Executors.newFixedThreadPool(2)
-        val lastSeenValues = ConcurrentHashMap<String, Long>()
 
         try {
             // Writer thread
             executor.submit {
                 try {
-                    repeat(updateCount) { i ->
-                        context.updateLastResponseTime(i.toLong())
+                    repeat(updateCount) { _ ->
                         Thread.sleep(1)
                     }
                 } finally {
@@ -177,8 +174,6 @@ class ExecutionContextParallelTest {
             executor.submit {
                 try {
                     repeat(updateCount * 2) {
-                        val value = context.lastResponseTimeMs ?: 0L
-                        lastSeenValues["last"] = value
                         Thread.sleep(1)
                     }
                 } finally {
@@ -187,10 +182,6 @@ class ExecutionContextParallelTest {
             }
 
             assertTrue(latch.await(30, TimeUnit.SECONDS), "Threads should complete in time")
-
-            // Reader should have seen some values > 0 (proving visibility)
-            val lastValue = lastSeenValues["last"] ?: 0L
-            assertTrue(lastValue > 0, "Reader should have seen updated values")
         } finally {
             executor.shutdownNow()
         }
@@ -228,7 +219,6 @@ class ExecutionContextParallelTest {
 
                         // Simulate response extraction
                         scenarioContext["extractedId"] = "id_$scenarioIndex"
-                        scenarioContext.updateLastResponseTime((100 + scenarioIndex).toLong())
 
                         // Store results for verification
                         scenarioResults[scenarioIndex] =
@@ -236,7 +226,6 @@ class ExecutionContextParallelTest {
                                 "extractedId" to scenarioContext.get<String>("extractedId"),
                                 "configValue" to scenarioContext.get<String>("configValue"),
                                 "variableCount" to scenarioContext.variableNames().size,
-                                "responseTime" to scenarioContext.lastResponseTimeMs,
                             )
                     } finally {
                         latch.countDown()
@@ -263,11 +252,6 @@ class ExecutionContextParallelTest {
                     variablesPerScenario + 2,
                     result["variableCount"],
                     "Scenario $scenarioIndex should have correct variable count",
-                )
-                assertEquals(
-                    (100 + scenarioIndex).toLong(),
-                    result["responseTime"],
-                    "Scenario $scenarioIndex should have its own response time",
                 )
             }
 

@@ -146,22 +146,18 @@ class ExecutionContextTest {
     fun `should create isolated copy with all state`() {
         val original = ExecutionContext()
         original["variable"] = "originalValue"
-        original.updateLastResponseTime(100)
 
         val copy = original.createIsolatedCopy()
 
         // Copy should have all variables
         assertEquals("originalValue", copy.get<String>("variable"))
-        assertEquals(100L, copy.lastResponseTimeMs)
 
         // Modifying copy should not affect original
         copy["variable"] = "modifiedValue"
         copy["newVariable"] = "newValue"
-        copy.updateLastResponseTime(200)
 
         assertEquals("originalValue", original.get<String>("variable"))
         assertFalse(original.contains("newVariable"))
-        assertEquals(100L, original.lastResponseTimeMs)
 
         // Original modification should not affect copy
         original["variable"] = "remodified"

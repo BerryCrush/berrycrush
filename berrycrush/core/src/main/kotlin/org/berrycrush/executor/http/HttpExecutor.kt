@@ -8,6 +8,7 @@ import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.plugin.HttpRequest
 import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.StepContext
+import org.berrycrush.plugin.adapter.ScenarioContextAdapter
 
 /**
  * Executor for HTTP requests during scenario execution.
@@ -21,16 +22,11 @@ interface HttpExecutor : RequestResolver {
         specRegistry: SpecRegistry,
         stepContext: StepContext,
     ): HttpResponse {
-        val context = stepContext.scenarioContext.executionContext
         // Resolve the operation
         val (spec, resolvedOp) = specRegistry.resolve(step.operationId!!, step.specName)
-
-        // Store the resolved operation for schema validation
-        context.updateCurrentOperation(resolvedOp)
         // Execute the HTTP request using the HttpExecutor
         val response = execute(step, spec, resolvedOp, stepContext)
         // Update context with response
-        context.updateLastResponse(response)
         return response
     }
 
@@ -48,7 +44,14 @@ interface HttpExecutor : RequestResolver {
         spec: LoadedSpec,
         operation: ResolvedOperation,
         context: StepContext,
-    ): HttpResponse = execute(resolve(step, spec, operation, context), context)
+    ): HttpResponse =
+        run {
+            val scenarioContext = context.scenarioContext
+            if (scenarioContext is ScenarioContextAdapter) {
+                scenarioContext.addOperation(operation)
+            }
+            execute(resolve(step, spec, operation, context), context)
+        }
 
     fun execute(
         request: HttpRequest,
