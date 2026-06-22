@@ -53,8 +53,4 @@ fun createStepContext(context: ExecutionContext = ExecutionContext()) =
             get() = TODO("Not yet implemented")
         override val responseTime: Duration?
             get() = TODO("Not yet implemented")
-
-        override fun updateResponseTime(responseTime: Duration) {
-            TODO("Not yet implemented")
-        }
     }

@@ -69,6 +69,7 @@ class DefaultHttpExecutor(
 
         if (context is StepContextAdapter) {
             context.setResponse(response)
+            context.updateResponseTime(duration)
         }
         context.scenarioContext.addAudit(request, response)
 

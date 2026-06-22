@@ -240,6 +240,7 @@ class ConsoleOutputPluginTest {
                     request = mock(),
                 )
             override val operationId: String = "listPets"
+            override val responseTime: Duration? = null
         }
 
     private fun testStepContextWithoutResponse(
@@ -254,6 +255,7 @@ class ConsoleOutputPluginTest {
             override val request = null
             override val response = null
             override val operationId: String? = null
+            override val responseTime: Duration? = null
         }
 
     private fun testStepResult(

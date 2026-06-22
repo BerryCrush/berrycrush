@@ -1,6 +1,7 @@
 package org.berrycrush.executor.assertion
 
 import com.jayway.jsonpath.JsonPath
+import org.berrycrush.assertion.AssertionContextImpl
 import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.assertion.SchemaValidator
 import org.berrycrush.model.Condition
@@ -286,7 +287,7 @@ class DefaultAssertionEngine(
         val match = registry.findMatch(condition.pattern) ?: return false
 
         val assertionContext =
-            org.berrycrush.assertion.AssertionContextImpl(
+            AssertionContextImpl(
                 executionContext = context.executionContext,
                 sharedVariables = null,
                 sharingEnabled = false,

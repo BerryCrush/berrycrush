@@ -21,7 +21,9 @@ class StepContextAdapter(
 ) : StepContext {
     private var httpRequest: HttpRequest? = scenarioContext.audits.lastOrNull()?.request
     private var httpResponse: HttpResponse? = scenarioContext.audits.lastOrNull()?.response
-    override lateinit var responseTime: Duration
+    private var duration: Duration? = null
+    override val responseTime
+        get() = duration
 
     override val stepDescription: String
         get() = step.description
@@ -52,8 +54,8 @@ class StepContextAdapter(
         this.httpResponse = response
     }
 
-    override fun updateResponseTime(responseTime: Duration) {
-        this.responseTime = responseTime
+    fun updateResponseTime(responseTime: Duration) {
+        this.duration = responseTime
     }
 
     private fun mapStepType(modelType: ModelStepType): StepType =

@@ -36,8 +36,6 @@ interface StepContext {
 
     fun allExecutionVariables() = scenarioContext.executionContext.allVariables()
 
-    fun updateResponseTime(responseTime: Duration)
-
     operator fun set(
         key: String,
         value: Any,
