@@ -4,6 +4,7 @@ import com.jayway.jsonpath.JsonPath
 import org.berrycrush.assertion.AssertionContextImpl
 import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.assertion.SchemaValidator
+import org.berrycrush.context.MutableTestExecutionContext
 import org.berrycrush.model.Condition
 import org.berrycrush.model.ConditionOperator
 import org.berrycrush.model.LogicalOperator
@@ -166,7 +167,7 @@ class DefaultAssertionEngine(
         val actual: Any? =
             context.variables[condition.name]
                 ?: run {
-                    val interpolated = context.executionContext.interpolate("{{${condition.name}}}")
+                    val interpolated = context.stepContext.interpolate("{{${condition.name}}}")
                     // If interpolation returns the same string, the variable wasn't found
                     if (interpolated == "{{${condition.name}}}") null else interpolated
                 }
@@ -262,7 +263,7 @@ class DefaultAssertionEngine(
         when (value) {
             is Number -> value.toLong()
             is String -> {
-                val resolved = context.executionContext.interpolate(value)
+                val resolved = context.stepContext.interpolate(value)
                 when {
                     resolved.endsWith("ms") -> resolved.dropLast(2).trim().toLongOrNull() ?: 0L
                     resolved.endsWith("s") -> {
@@ -286,12 +287,7 @@ class DefaultAssertionEngine(
 
         val match = registry.findMatch(condition.pattern) ?: return false
 
-        val assertionContext =
-            AssertionContextImpl(
-                executionContext = context.executionContext,
-                sharedVariables = null,
-                sharingEnabled = false,
-            )
+        val assertionContext = AssertionContextImpl(context.stepContext)
 
         return runCatching {
             val method = match.definition.method
@@ -335,7 +331,7 @@ class DefaultAssertionEngine(
         condition: Condition.Custom,
         context: AssertionContext,
     ): Boolean {
-        val testContext = org.berrycrush.context.MutableTestExecutionContext(context.executionContext)
+        val testContext = MutableTestExecutionContext(context.stepContext)
         return runCatching {
             condition.predicate(testContext)
         }.getOrElse { false }
@@ -430,7 +426,7 @@ class DefaultAssertionEngine(
         context: AssertionContext,
     ): Any =
         when (value) {
-            is String -> context.executionContext.interpolate(value)
+            is String -> context.stepContext.interpolate(value)
             else -> value
         }
 
@@ -529,7 +525,7 @@ class DefaultAssertionEngine(
         val actual =
             context.variables[condition.name]
                 ?: run {
-                    val interpolated = context.executionContext.interpolate("{{${condition.name}}}")
+                    val interpolated = context.stepContext.interpolate("{{${condition.name}}}")
                     if (interpolated == "{{${condition.name}}}") null else interpolated
                 }
         return if (passed) {

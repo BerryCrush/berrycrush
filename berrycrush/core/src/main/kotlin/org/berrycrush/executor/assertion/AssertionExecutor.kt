@@ -170,7 +170,7 @@ class AssertionExecutor(
         customAssertion: CustomAssertionDefinition,
         context: StepContext,
     ): AssertionResult {
-        val testContext = MutableTestExecutionContext(context.scenarioContext.executionContext)
+        val testContext = MutableTestExecutionContext(context)
         val assertion =
             Assertion(
                 condition = Condition.CustomAssertion(customAssertion.description),
@@ -242,7 +242,7 @@ class AssertionExecutor(
             response = response,
             responseTime = context.responseTime,
             variables = executionContext.allVariables(),
-            executionContext = executionContext,
+            stepContext = context,
             currentOperation = executionContext.currentOperation,
         )
     }

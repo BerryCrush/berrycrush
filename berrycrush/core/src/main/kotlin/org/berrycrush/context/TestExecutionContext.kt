@@ -2,6 +2,7 @@ package org.berrycrush.context
 
 import org.berrycrush.plugin.HttpRequest
 import org.berrycrush.plugin.HttpResponse
+import org.berrycrush.plugin.StepContext
 
 /**
  * Represents a request-response pair in the execution history.
@@ -112,49 +113,37 @@ interface TestExecutionContext {
  * Mutable implementation of TestExecutionContext backed by ExecutionContext.
  */
 internal class MutableTestExecutionContext(
-    private val executionContext: ExecutionContext,
+    private val stepContext: StepContext,
 ) : TestExecutionContext {
-    private val requestHistory = mutableListOf<RequestResponsePair>()
-
     override val response: HttpResponse?
-        get() = executionContext.lastResponse
+        get() = stepContext.response
 
     override val request: HttpRequest?
-        get() = executionContext.lastResponse?.request
+        get() = stepContext.request
 
-    override val history: List<RequestResponsePair>
-        get() = requestHistory.toList()
+    override val history: List<RequestResponsePair> by lazy {
+        stepContext.scenarioContext.audits.map { RequestResponsePair(it.request, it.response) }
+    }
 
     override val variables: Map<String, Any?>
-        get() = executionContext.allVariables()
+        get() = stepContext.allVariables()
 
-    override fun extractedValue(name: String): Any? = executionContext[name]
+    override fun extractedValue(name: String): Any? = stepContext[name]
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T> get(key: String): T? = executionContext[key]
+    override fun <T> get(key: String): T? = stepContext[key]
 
     override fun <T : Any> set(
         key: String,
         value: T,
     ) {
-        executionContext[key] = value
+        stepContext[key] = value
     }
 
     override fun extract(
         name: String,
         value: Any,
     ) {
-        executionContext[name] = value
-    }
-
-    /**
-     * Record a request-response pair in the history.
-     */
-    internal fun recordRequestResponse(
-        request: HttpRequest,
-        response: HttpResponse,
-    ) {
-        requestHistory.add(RequestResponsePair(request, response))
-        executionContext.updateLastResponse(response)
+        stepContext[name] = value
     }
 }

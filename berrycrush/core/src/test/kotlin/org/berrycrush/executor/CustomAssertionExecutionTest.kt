@@ -2,10 +2,12 @@ package org.berrycrush.executor
 
 import org.berrycrush.assertion.Assertion
 import org.berrycrush.assertion.AssertionContext
+import org.berrycrush.assertion.AssertionContextImpl
 import org.berrycrush.assertion.AssertionDefinition
 import org.berrycrush.assertion.AssertionMatch
 import org.berrycrush.assertion.AssertionResult
 import org.berrycrush.assertion.DefaultAssertionRegistry
+import org.berrycrush.util.createStepContext
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -369,15 +371,10 @@ class CustomAssertionExecutionTest {
 
     // Helper functions
 
-    private fun createMockContext(): AssertionContext {
-        val executionContext = org.berrycrush.context.ExecutionContext()
-
-        return org.berrycrush.assertion.AssertionContextImpl(
-            executionContext = executionContext,
-            sharedVariables = null,
-            sharingEnabled = false,
+    private fun createMockContext(): AssertionContext =
+        AssertionContextImpl(
+            stepContext = createStepContext(),
         )
-    }
 
     private fun invokeAssertion(
         match: AssertionMatch,

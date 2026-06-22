@@ -1,8 +1,8 @@
 package org.berrycrush.executor.assertion
 
-import org.berrycrush.context.ExecutionContext
 import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.plugin.HttpResponse
+import org.berrycrush.plugin.StepContext
 import java.time.Duration
 
 /**
@@ -20,7 +20,7 @@ data class AssertionContext(
     /** All variables available in the current scope. */
     val variables: Map<String, Any?>,
     /** Reference to the full execution context for advanced operations. */
-    val executionContext: ExecutionContext,
+    val stepContext: StepContext,
     /** Current operation being executed, for schema validation. */
     val currentOperation: ResolvedOperation? = null,
 ) {

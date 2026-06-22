@@ -44,4 +44,6 @@ interface StepContext {
     }
 
     operator fun <T> get(key: String): T? = scenarioContext.executionContext[key]
+
+    fun allVariables() = scenarioContext.executionContext.allVariables()
 }
