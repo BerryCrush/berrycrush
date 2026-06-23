@@ -11,6 +11,7 @@ import org.berrycrush.model.CustomAssertionDefinition
 import org.berrycrush.model.Step
 import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.StepContext
+import org.berrycrush.plugin.adapter.StepOperationAdapter
 
 class AssertionExecutor(
     private val assertionEngine: AssertionEngine,
@@ -121,8 +122,9 @@ class AssertionExecutor(
             val value =
                 runCatching {
                     val body = response.body ?: ""
-                    ValueExtractor.extractTo(body, extraction, context.scenarioContext.executionContext)
+                    ValueExtractor.extract(body, extraction)
                 }.getOrNull()
+            value?.let { context[extraction.variableName] = it }
             extractedValues[extraction.variableName] = value
         }
 
@@ -236,14 +238,19 @@ class AssertionExecutor(
     private fun buildAssertionContext(
         response: HttpResponse,
         context: StepContext,
-    ): AssertionContext {
-        val executionContext = context.scenarioContext.executionContext
-        return AssertionContext(
+    ): AssertionContext =
+        AssertionContext(
             response = response,
             responseTime = context.responseTime,
-            variables = executionContext.allVariables(),
+            variables = context.allVariables(),
             stepContext = context,
-            currentOperation = executionContext.currentOperation,
+            currentOperation =
+                context.operation?.let {
+                    if (it is StepOperationAdapter) {
+                        it.operation
+                    } else {
+                        null
+                    }
+                },
         )
-    }
 }

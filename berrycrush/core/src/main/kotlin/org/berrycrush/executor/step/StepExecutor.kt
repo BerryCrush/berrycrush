@@ -12,6 +12,7 @@ import org.berrycrush.model.WebhookConfig
 import org.berrycrush.plugin.PluginRegistry
 import org.berrycrush.plugin.ScenarioContext
 import org.berrycrush.plugin.StepContext
+import org.berrycrush.plugin.adapter.ExecutionContextAdapter
 import org.berrycrush.plugin.adapter.StepContextAdapter
 import org.berrycrush.plugin.adapter.StepResultAdapter
 import org.berrycrush.step.StepContextImpl
@@ -249,8 +250,11 @@ class StepExecutor(
             // Start the server
             server.start()
 
-            // Register the server in the context for variable interpolation
-            context.scenarioContext.executionContext.registerWebhookServer(config.name, server)
+            val executionContext = context.scenarioContext.executionContext
+            if (executionContext is ExecutionContextAdapter) {
+                // Register the server in the context for variable interpolation
+                executionContext.context.registerWebhookServer(config.name, server)
+            }
 
             StepResult(
                 step = step,

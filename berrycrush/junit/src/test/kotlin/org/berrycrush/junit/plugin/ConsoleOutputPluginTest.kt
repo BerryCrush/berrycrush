@@ -1,13 +1,13 @@
 package org.berrycrush.junit.plugin
 
-import org.berrycrush.context.ExecutionContext
 import org.berrycrush.plugin.AssertionFailure
-import org.berrycrush.plugin.HttpRequest
+import org.berrycrush.plugin.ExecutionContext
 import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.ResultStatus
 import org.berrycrush.plugin.ScenarioContext
 import org.berrycrush.plugin.ScenarioResult
 import org.berrycrush.plugin.StepContext
+import org.berrycrush.plugin.StepOperation
 import org.berrycrush.plugin.StepResult
 import org.berrycrush.plugin.StepType
 import org.junit.jupiter.api.Test
@@ -209,13 +209,8 @@ class ConsoleOutputPluginTest {
 
             override val executionContext: ExecutionContext
                 get() = TODO("Not yet implemented")
-
-            override fun addAudit(
-                request: HttpRequest,
-                response: HttpResponse,
-            ) {
-                TODO("Not yet implemented")
-            }
+            override val operations: List<StepOperation>
+                get() = listOf()
         }
 
     private fun testStepContext(
@@ -241,6 +236,8 @@ class ConsoleOutputPluginTest {
                 )
             override val operationId: String = "listPets"
             override val responseTime: Duration? = null
+            override val operation: StepOperation?
+                get() = null
         }
 
     private fun testStepContextWithoutResponse(
@@ -256,6 +253,8 @@ class ConsoleOutputPluginTest {
             override val response = null
             override val operationId: String? = null
             override val responseTime: Duration? = null
+            override val operation: StepOperation?
+                get() = null
         }
 
     private fun testStepResult(

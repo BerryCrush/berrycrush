@@ -44,13 +44,11 @@ object ValueExtractor {
      *
      * @param body Response body (JSON)
      * @param extraction Extraction specification
-     * @param context Execution context to store the result
      * @return The extracted value
      */
-    fun extractTo(
+    fun extract(
         body: String,
         extraction: Extraction,
-        context: ExecutionContext,
     ): Any? {
         val value =
             when (extraction.source) {
@@ -58,9 +56,6 @@ object ValueExtractor {
                 ExtractionSource.HEADER -> throw UnsupportedOperationException("Header extraction requires response object")
                 ExtractionSource.STATUS -> throw UnsupportedOperationException("Status extraction requires response object")
             }
-        if (value != null) {
-            context[extraction.variableName] = value
-        }
         return value
     }
 
@@ -83,19 +78,16 @@ object ValueExtractor {
      *
      * @param body Response body (JSON)
      * @param extractions List of extraction specifications
-     * @param context Execution context to store results
      * @return Map of variable names to extracted values
      */
     fun extractAll(
         body: String,
         extractions: List<Extraction>,
-        context: ExecutionContext,
     ): Map<String, Any?> =
         extractions.associate { extraction ->
             val value =
                 runCatching { extract(body, extraction.jsonPath) }
                     .getOrNull()
-            value?.let { context[extraction.variableName] = it }
             extraction.variableName to value
         }
 

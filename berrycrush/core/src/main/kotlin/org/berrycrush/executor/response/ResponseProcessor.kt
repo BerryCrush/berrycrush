@@ -102,8 +102,9 @@ class ResponseProcessor(
             val value =
                 runCatching {
                     val body = context.response?.body ?: ""
-                    ValueExtractor.extractTo(body, extraction, context.scenarioContext.executionContext)
+                    ValueExtractor.extract(body, extraction)
                 }.getOrNull()
+            value?.let { context[extraction.variableName] = it }
             extraction.variableName to value
         }
 }

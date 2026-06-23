@@ -27,6 +27,7 @@ interface StepContext {
     val response: HttpResponse?
     val operationId: String?
     val responseTime: Duration?
+    val operation: StepOperation?
 
     fun <T : Any> resolveParam(param: T) = scenarioContext.executionContext.resolveParam(param)
 
@@ -46,4 +47,10 @@ interface StepContext {
     operator fun <T> get(key: String): T? = scenarioContext.executionContext[key]
 
     fun allVariables() = scenarioContext.executionContext.allVariables()
+}
+
+interface StepOperation {
+    val operationId: String
+    val path: String
+    val method: HttpMethod
 }

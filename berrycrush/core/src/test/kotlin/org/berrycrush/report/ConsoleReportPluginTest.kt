@@ -1,11 +1,10 @@
 package org.berrycrush.report
 
-import org.berrycrush.context.ExecutionContext
-import org.berrycrush.plugin.HttpRequest
 import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.ResultStatus
 import org.berrycrush.plugin.ScenarioContext
 import org.berrycrush.plugin.ScenarioResult
+import org.berrycrush.plugin.StepOperation
 import org.junit.jupiter.api.Test
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
@@ -233,15 +232,10 @@ class ConsoleReportPluginTest {
             override val metadata: Map<String, String> = emptyMap()
             override val tags: Set<String> = emptySet()
             override val audits: List<ScenarioContext.HttpAudit> = emptyList()
-            override val executionContext: ExecutionContext
-                get() = TODO("Not yet implemented")
-
-            override fun addAudit(
-                request: HttpRequest,
-                response: HttpResponse,
-            ) {
-                TODO("Not yet implemented")
-            }
+            override val executionContext
+                get() = TODO()
+            override val operations: List<StepOperation>
+                get() = TODO()
         }
 
     private fun createMockScenarioResult(

@@ -1,8 +1,6 @@
 package org.berrycrush.context
 
 import com.jayway.jsonpath.JsonPath
-import org.berrycrush.openapi.ResolvedOperation
-import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.webhook.MockWebhookServer
 import java.util.concurrent.ConcurrentHashMap
 
@@ -78,29 +76,6 @@ class ExecutionContext(
     }
 
     /**
-     * The last HTTP response received.
-     */
-    @Volatile
-    var lastResponse: HttpResponse? = null
-        private set
-
-    /**
-     * The current resolved operation for the executing step.
-     * Used for schema validation against the OpenAPI spec.
-     */
-    @Volatile
-    var currentOperation: ResolvedOperation? = null
-        private set
-
-    /**
-     * The last HTTP response time in milliseconds.
-     * Set after each HTTP request completes.
-     */
-    @Volatile
-    var lastResponseTimeMs: Long? = null
-        private set
-
-    /**
      * Store a variable value.
      */
     operator fun set(
@@ -138,28 +113,7 @@ class ExecutionContext(
     /**
      * Get all variables as a map.
      */
-    fun allVariables(): Map<String, Any> = variables.toMap()
-
-    /**
-     * Update the last response.
-     */
-    fun updateLastResponse(response: HttpResponse) {
-        lastResponse = response
-    }
-
-    /**
-     * Update the current operation being executed.
-     */
-    fun updateCurrentOperation(operation: ResolvedOperation?) {
-        currentOperation = operation
-    }
-
-    /**
-     * Update the last response time.
-     */
-    fun updateLastResponseTime(timeMs: Long) {
-        lastResponseTimeMs = timeMs
-    }
+    fun allVariables(): Map<String, Any> = variables
 
     /**
      * Clear all variables and state.
@@ -167,9 +121,6 @@ class ExecutionContext(
      */
     fun clear() {
         variables.clear()
-        lastResponse = null
-        currentOperation = null
-        lastResponseTimeMs = null
     }
 
     // ==================== Webhook Server Management ====================
@@ -239,10 +190,6 @@ class ExecutionContext(
     fun createIsolatedCopy(overwriting: Map<String, Any>? = null): ExecutionContext {
         val copy = createChild()
         overwriting?.forEach { (key, value) -> copy.variables[key] = value }
-        // Copy volatile state using update methods
-        lastResponse?.let { copy.updateLastResponse(it) }
-        copy.updateCurrentOperation(currentOperation)
-        lastResponseTimeMs?.let { copy.updateLastResponseTime(it) }
         // Note: webhook servers are NOT copied for isolation
         return copy
     }

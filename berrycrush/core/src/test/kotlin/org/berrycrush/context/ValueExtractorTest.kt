@@ -1,5 +1,6 @@
 package org.berrycrush.context
 
+import org.berrycrush.model.Extraction
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -74,42 +75,32 @@ class ValueExtractorTest {
     }
 
     @Test
-    fun `should extract to context`() {
-        val context = ExecutionContext()
+    fun `should extract`() {
         val extraction =
             org.berrycrush.model.Extraction(
                 variableName = "petId",
                 jsonPath = "$.pets[0].id",
             )
 
-        extractor.extractTo(sampleJson, extraction, context)
-
-        assertEquals(1, context.get<Int>("petId"))
+        val id = extractor.extract(sampleJson, extraction)
+        assertEquals(1, id)
     }
 
     @Test
     fun `should extract multiple values`() {
-        val context = ExecutionContext()
         val extractions =
             listOf(
-                org.berrycrush.model
-                    .Extraction("total", "$.total"),
-                org.berrycrush.model
-                    .Extraction("storeName", "$.store.name"),
-                org.berrycrush.model
-                    .Extraction("firstPet", "$.pets[0].name"),
+                Extraction("total", "$.total"),
+                Extraction("storeName", "$.store.name"),
+                Extraction("firstPet", "$.pets[0].name"),
             )
 
-        val results = extractor.extractAll(sampleJson, extractions, context)
+        val results = extractor.extractAll(sampleJson, extractions)
 
         assertEquals(3, results.size)
         assertEquals(3, results["total"])
         assertEquals("Pet Paradise", results["storeName"])
         assertEquals("Rex", results["firstPet"])
-
-        // Verify context was also populated
-        assertEquals(3, context.get<Int>("total"))
-        assertEquals("Pet Paradise", context.get<String>("storeName"))
     }
 
     @Test

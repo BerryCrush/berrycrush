@@ -8,6 +8,7 @@ import org.berrycrush.model.StepResult
 import org.berrycrush.model.StepType
 import org.berrycrush.model.WebhookConfig
 import org.berrycrush.openapi.SpecRegistry
+import org.berrycrush.plugin.adapter.ExecutionContextAdapter
 import org.berrycrush.scenario.WebhookScope
 import org.berrycrush.util.createStepContext
 import java.net.URI
@@ -30,7 +31,7 @@ class WebhookStepExecutorTest {
     private val config = BerryCrushConfigurationProvider.from(BerryCrushConfiguration())
     private val executor = BerryCrushScenarioExecutor(specRegistry, config)
     private val context = ExecutionContext()
-    private val stepContext = createStepContext(context)
+    private val stepContext = createStepContext(ExecutionContextAdapter(context))
 
     @AfterTest
     fun cleanup() {
