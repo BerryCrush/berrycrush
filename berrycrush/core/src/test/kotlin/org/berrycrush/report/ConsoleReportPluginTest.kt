@@ -1,10 +1,10 @@
 package org.berrycrush.report
 
-import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.ResultStatus
 import org.berrycrush.plugin.ScenarioContext
 import org.berrycrush.plugin.ScenarioResult
+import org.berrycrush.plugin.StepOperation
 import org.junit.jupiter.api.Test
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
@@ -234,7 +234,7 @@ class ConsoleReportPluginTest {
             override val audits: List<ScenarioContext.HttpAudit> = emptyList()
             override val executionContext
                 get() = TODO()
-            override val operations: List<ResolvedOperation>
+            override val operations: List<StepOperation>
                 get() = TODO()
         }
 

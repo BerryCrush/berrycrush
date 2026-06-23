@@ -2,7 +2,6 @@ package org.berrycrush.plugin
 
 import org.berrycrush.context.resolveParam
 import org.berrycrush.context.resolveParams
-import org.berrycrush.openapi.ResolvedOperation
 import java.time.Duration
 
 /**
@@ -28,7 +27,7 @@ interface StepContext {
     val response: HttpResponse?
     val operationId: String?
     val responseTime: Duration?
-    val operation: ResolvedOperation?
+    val operation: StepOperation?
 
     fun <T : Any> resolveParam(param: T) = scenarioContext.executionContext.resolveParam(param)
 
@@ -48,4 +47,10 @@ interface StepContext {
     operator fun <T> get(key: String): T? = scenarioContext.executionContext[key]
 
     fun allVariables() = scenarioContext.executionContext.allVariables()
+}
+
+interface StepOperation {
+    val operationId: String
+    val path: String
+    val method: HttpMethod
 }

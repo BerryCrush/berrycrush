@@ -82,31 +82,26 @@ class SpecRegistry {
      * @throws OperationNotFoundException if not found
      * @throws AmbiguousOperationException if found in multiple specs without specName
      */
-    @Suppress("ThrowsCount")
     fun resolve(
         operationId: String,
         specName: String? = null,
     ): Pair<LoadedSpec, ResolvedOperation> {
         if (specName != null) {
             val spec = get(specName)
-            val operation =
-                spec.spec.getOperation(operationId)
-                    ?: throw OperationNotFoundException(operationId, spec.spec.getAllOperations().mapNotNull { it.operationId })
-            return spec to operation.toResolvedOperation()
+            return spec to spec.resolver.resolve(operationId)
         }
 
         // Auto-resolve: find all specs containing this operationId
-        val matches = specs.values.filter { it.spec.getOperation(operationId) != null }
+        val matches = specs.values.filter { it.hasOperation(operationId) }
 
         return when {
             matches.isEmpty() -> {
-                val allOps = specs.values.flatMap { it.spec.getAllOperations().mapNotNull { op -> op.operationId } }
+                val allOps = specs.values.flatMap { it.allOperationIds() }
                 throw OperationNotFoundException(operationId, allOps)
             }
             matches.size == 1 -> {
                 val spec = matches.single()
-                val operation = spec.spec.getOperation(operationId)!!
-                spec to operation.toResolvedOperation()
+                spec to spec.resolver.resolve(operationId)
             }
             else -> {
                 throw AmbiguousOperationException(
@@ -159,6 +154,10 @@ data class LoadedSpec(
     val baseUrl: String,
     val defaultHeaders: Map<String, String>,
 ) {
+    internal val resolver: OperationResolver by lazy {
+        OperationResolver(spec)
+    }
+
     /**
      * Access the raw swagger OpenAPI model for backward compatibility.
      * Prefer using the spec abstraction when possible.
@@ -167,31 +166,15 @@ data class LoadedSpec(
         get() = spec.rawModel as OpenAPI
 
     /**
-     * Get an operation by ID.
-     */
-    fun getOperation(operationId: String): OperationSpec? = spec.getOperation(operationId)
-
-    /**
      * Check if this spec contains the given operation ID.
      */
-    fun hasOperation(operationId: String): Boolean = spec.getOperation(operationId) != null
+    fun hasOperation(operationId: String): Boolean = resolver.hasOperation(operationId)
 
     /**
      * Get all operation IDs in this spec.
      */
-    fun allOperationIds(): List<String> = spec.getAllOperations().mapNotNull { it.operationId }
+    fun allOperationIds(): Set<String> = resolver.allOperationIds()
 }
-
-/**
- * Convert OperationSpec to ResolvedOperation for backward compatibility.
- */
-private fun OperationSpec.toResolvedOperation(): ResolvedOperation =
-    ResolvedOperation(
-        operationId = this.operationId ?: "",
-        path = this.path,
-        method = this.method,
-        operation = this,
-    )
 
 /**
  * Exception thrown when an operationId exists in multiple specs.

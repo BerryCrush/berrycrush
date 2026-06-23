@@ -11,6 +11,7 @@ import org.berrycrush.model.CustomAssertionDefinition
 import org.berrycrush.model.Step
 import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.StepContext
+import org.berrycrush.plugin.adapter.StepOperationAdapter
 
 class AssertionExecutor(
     private val assertionEngine: AssertionEngine,
@@ -243,6 +244,13 @@ class AssertionExecutor(
             responseTime = context.responseTime,
             variables = context.allVariables(),
             stepContext = context,
-            currentOperation = context.operation,
+            currentOperation =
+                context.operation?.let {
+                    if (it is StepOperationAdapter) {
+                        it.operation
+                    } else {
+                        null
+                    }
+                },
         )
 }

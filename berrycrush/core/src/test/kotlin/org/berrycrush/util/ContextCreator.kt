@@ -1,11 +1,11 @@
 package org.berrycrush.util
 
-import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.plugin.ExecutionContext
 import org.berrycrush.plugin.HttpRequest
 import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.ScenarioContext
 import org.berrycrush.plugin.StepContext
+import org.berrycrush.plugin.StepOperation
 import org.berrycrush.plugin.adapter.ExecutionContextAdapter
 import java.nio.file.Path
 import java.time.Duration
@@ -32,7 +32,7 @@ fun createStepContext(context: ExecutionContext = ExecutionContextAdapter(CoreEx
                     get() = TODO("Not yet implemented")
                 override val executionContext: ExecutionContext
                     get() = context
-                override val operations: List<ResolvedOperation>
+                override val operations: List<StepOperation>
                     get() = listOf()
             }
         override val stepDescription: String
@@ -50,6 +50,6 @@ fun createStepContext(context: ExecutionContext = ExecutionContextAdapter(CoreEx
             get() = TODO("Not yet implemented")
         override val responseTime: Duration?
             get() = TODO("Not yet implemented")
-        override val operation: ResolvedOperation?
+        override val operation: StepOperation?
             get() = null
     }
