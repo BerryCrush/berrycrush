@@ -9,6 +9,7 @@ plugins {
 }
 
 dependencies {
+    implementation(kotlin("stdlib"))
     // Core and JUnit module dependencies
     implementation(project(":berrycrush:core"))
     implementation(project(":berrycrush:junit"))
@@ -23,7 +24,6 @@ dependencies {
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.spring.boot.starter.test)
     testImplementation(libs.bundles.spring.boot)
-    implementation(kotlin("stdlib"))
 }
 
 dokka {
