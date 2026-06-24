@@ -35,6 +35,11 @@ private const val HTTP_ERROR_STATUS_THRESHOLD = 400
 class ErrorContextFormatter(
     private val colorScheme: ColorScheme = ColorScheme.NONE,
 ) {
+    enum class ColorScheme {
+        NONE,
+        COLORED,
+    }
+
     companion object {
         /**
          * Create a plain text formatter with no colors.
@@ -44,7 +49,7 @@ class ErrorContextFormatter(
         /**
          * Create a colored formatter with the default color scheme.
          */
-        fun colored(): ErrorContextFormatter = ErrorContextFormatter(ColorScheme.DEFAULT)
+        fun colored(): ErrorContextFormatter = ErrorContextFormatter(ColorScheme.COLORED)
     }
 
     /**

@@ -389,7 +389,7 @@ class StepScope internal constructor(
     internal constructor(
         type: StepType,
         description: String,
-        suite: BerryCrushSuite,
+        scope: StepScope,
         internal: Boolean,
-    ) : this(type, description, suite)
+    ) : this(type, description, scope.suite)
 }

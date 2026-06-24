@@ -1,7 +1,5 @@
 package org.berrycrush.report
 
-import org.berrycrush.formatter.AnsiColors
-import org.berrycrush.formatter.ColorScheme
 import org.berrycrush.formatter.ErrorContextFormatter
 import org.berrycrush.plugin.ResultStatus
 import java.time.format.DateTimeFormatter
@@ -67,7 +65,11 @@ class TextReportFormatter(
         ): TextReportFormatter = TextReportFormatter(scheme, verboseFailures)
     }
 
-    private val errorFormatter = ErrorContextFormatter(colorScheme)
+    private val errorFormatter =
+        when (colorScheme) {
+            ColorScheme.NONE -> ErrorContextFormatter.plain()
+            else -> ErrorContextFormatter.colored()
+        }
 
     /**
      * Format a complete test report.
@@ -207,29 +209,3 @@ class TextReportFormatter(
 
     private fun formatDuration(millis: Long): String = String.format(java.util.Locale.US, "%.3f", millis / MILLIS_PER_SECOND)
 }
-
-/**
- * Apply color for the given status to text.
- *
- * @param text The text to colorize
- * @param status The result status determining color
- * @return Colorized text with reset at end
- */
-fun ColorScheme.colorize(
-    text: String,
-    status: ResultStatus,
-): String {
-    val color = forStatus(status)
-    return if (color.isEmpty()) text else AnsiColors.wrap(text, color)
-}
-
-/**
- * Get the color code for a given result status.
- */
-fun ColorScheme.forStatus(status: ResultStatus): String =
-    when (status) {
-        ResultStatus.PASSED -> passed
-        ResultStatus.FAILED -> failed
-        ResultStatus.SKIPPED -> skipped
-        ResultStatus.ERROR -> error
-    }

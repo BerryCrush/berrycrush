@@ -1,4 +1,7 @@
-package org.berrycrush.formatter
+package org.berrycrush.report
+
+import org.berrycrush.formatter.AnsiColors
+import org.berrycrush.plugin.ResultStatus
 
 /**
  * Color scheme configuration for console report output.
@@ -85,6 +88,32 @@ data class ColorScheme(
                 stepDescription = "",
             )
     }
+
+    /**
+     * Apply color for the given status to text.
+     *
+     * @param text The text to colorize
+     * @param status The result status determining color
+     * @return Colorized text with reset at end
+     */
+    fun colorize(
+        text: String,
+        status: ResultStatus,
+    ): String {
+        val color = forStatus(status)
+        return if (color.isEmpty()) text else AnsiColors.wrap(text, color)
+    }
+
+    /**
+     * Get the color code for a given result status.
+     */
+    fun forStatus(status: ResultStatus): String =
+        when (status) {
+            ResultStatus.PASSED -> passed
+            ResultStatus.FAILED -> failed
+            ResultStatus.SKIPPED -> skipped
+            ResultStatus.ERROR -> error
+        }
 
     /**
      * Apply custom highlighting to text (for custom steps/assertions).

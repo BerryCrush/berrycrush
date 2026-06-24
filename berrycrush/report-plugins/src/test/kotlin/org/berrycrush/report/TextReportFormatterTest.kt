@@ -1,7 +1,6 @@
 package org.berrycrush.report
 
 import org.berrycrush.formatter.AnsiColors
-import org.berrycrush.formatter.ColorScheme
 import org.berrycrush.plugin.ResultStatus
 import org.junit.jupiter.api.Test
 import java.time.Duration

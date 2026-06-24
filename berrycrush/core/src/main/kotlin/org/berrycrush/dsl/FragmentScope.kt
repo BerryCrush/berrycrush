@@ -1,7 +1,10 @@
 package org.berrycrush.dsl
 
+import org.berrycrush.model.Assertion
+import org.berrycrush.model.Extraction
 import org.berrycrush.model.Fragment
 import org.berrycrush.model.Step
+import org.berrycrush.model.StepType
 
 /**
  * DSL scope for defining a reusable fragment.
@@ -71,7 +74,7 @@ class FragmentScope internal constructor(
     ) = afterwards(description, block)
 
     private fun addStep(
-        type: org.berrycrush.model.StepType,
+        type: StepType,
         description: String,
         block: FragmentStepScope.() -> Unit,
     ) {
@@ -92,7 +95,7 @@ class FragmentScope internal constructor(
  */
 @BerryCrushDsl
 class FragmentStepScope internal constructor(
-    private val type: org.berrycrush.model.StepType,
+    private val type: StepType,
     private val description: String,
 ) {
     private var operationId: String? = null
@@ -101,8 +104,8 @@ class FragmentStepScope internal constructor(
     private val queryParams = mutableMapOf<String, Any>()
     private val headers = mutableMapOf<String, String>()
     private var body: String? = null
-    private val extractions = mutableListOf<org.berrycrush.model.Extraction>()
-    private val assertions = mutableListOf<org.berrycrush.model.Assertion>()
+    private val extractions = mutableListOf<Extraction>()
+    private val assertions = mutableListOf<Assertion>()
 
     fun using(specName: String) {
         this.specName = specName
@@ -125,15 +128,12 @@ class FragmentStepScope internal constructor(
         variableName: String,
         jsonPath: String,
     ) {
-        extractions.add(
-            org.berrycrush.model
-                .Extraction(variableName, jsonPath),
-        )
+        extractions.add(Extraction(variableName, jsonPath))
     }
 
     fun statusCode(expected: Int) {
         assertions.add(
-            org.berrycrush.model.Assertion(
+            Assertion(
                 condition =
                     org.berrycrush.model.Condition
                         .Status(expected),

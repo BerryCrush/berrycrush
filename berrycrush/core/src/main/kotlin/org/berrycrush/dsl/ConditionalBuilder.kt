@@ -76,15 +76,8 @@ class ConditionalBuilder internal constructor(
         return StepScope(
             type = StepType.THEN, // Default type for conditional branches
             description = description,
-            suite = getSuite(),
+            scope = parentScope,
             internal = true,
         )
-    }
-
-    private fun getSuite(): BerryCrushSuite {
-        // Use reflection to get the suite from parent scope
-        val suiteField = StepScope::class.java.getDeclaredField("suite")
-        suiteField.isAccessible = true
-        return suiteField.get(parentScope) as BerryCrushSuite
     }
 }

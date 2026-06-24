@@ -38,7 +38,7 @@ class JacocoConventionPlugin : Plugin<Project> {
         private val DEFAULT_THRESHOLD = CoverageThreshold(line = 0.70, branch = 0.50)
         private val MODULE_THRESHOLDS =
             mapOf(
-                "api" to CoverageThreshold(line = 0.50, branch = 0.40),
+                "api" to DEFAULT_THRESHOLD.copy(branch = 0.40),
                 "core" to CoverageThreshold(line = 0.65, branch = 0.45),
                 "report-plugins" to CoverageThreshold(line = 0.5, branch = 0.4),
                 "junit" to CoverageThreshold(line = 0.85, branch = 0.70),

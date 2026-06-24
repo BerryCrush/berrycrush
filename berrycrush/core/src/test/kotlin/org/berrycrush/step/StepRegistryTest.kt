@@ -19,6 +19,18 @@ class StepRegistryTest {
     }
 
     @Test
+    fun `register to registry`() {
+        steps {
+            step<Int>("I have {int} items") { _ -> }
+            step<String>("the name is {string}") { _ -> }
+        }.registerTo(registry)
+
+        assertEquals(2, registry.allDefinitions().size)
+        assertNotNull(registry.findMatch("I have 5 items"))
+        assertNotNull(registry.findMatch("the name is \"Test\""))
+    }
+
+    @Test
     fun `register and find step definition`() {
         val method = TestSteps::class.java.getMethod("updateCount", Int::class.java)
         val instance = TestSteps()

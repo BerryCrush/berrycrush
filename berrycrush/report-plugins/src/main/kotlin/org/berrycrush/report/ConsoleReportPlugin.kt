@@ -1,6 +1,5 @@
 package org.berrycrush.report
 
-import org.berrycrush.formatter.ColorScheme
 import org.berrycrush.plugin.BerryCrushPlugin
 import org.berrycrush.plugin.ResultStatus
 import org.berrycrush.plugin.ScenarioContext

@@ -1,7 +1,6 @@
 package org.berrycrush.report
 
 import org.berrycrush.formatter.AnsiColors
-import org.berrycrush.formatter.ColorScheme
 import org.berrycrush.model.HttpResponse
 import org.berrycrush.plugin.AssertionFailure
 import org.berrycrush.plugin.ResultStatus

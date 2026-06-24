@@ -2,7 +2,6 @@ package org.berrycrush.step
 
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 
 /**
  * Tests for the [StepBuilder] DSL.
@@ -100,20 +99,6 @@ class StepDslTest {
 
         val definitions = builder.build()
         assertEquals(3, definitions.size)
-    }
-
-    @Test
-    fun `register to registry`() {
-        val registry = DefaultStepRegistry()
-
-        steps {
-            step<Int>("I have {int} items") { _ -> }
-            step<String>("the name is {string}") { _ -> }
-        }.registerTo(registry)
-
-        assertEquals(2, registry.allDefinitions().size)
-        assertNotNull(registry.findMatch("I have 5 items"))
-        assertNotNull(registry.findMatch("the name is \"Test\""))
     }
 
     @Test
