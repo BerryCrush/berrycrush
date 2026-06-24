@@ -1,15 +1,15 @@
 package org.berrycrush.junit.plugin
 
 import org.berrycrush.exception.ErrorContextConfig
+import org.berrycrush.formatter.ErrorContextFormatter
+import org.berrycrush.model.HttpRequest
+import org.berrycrush.model.HttpResponse
 import org.berrycrush.plugin.BerryCrushPlugin
-import org.berrycrush.plugin.HttpRequest
-import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.ResultStatus
 import org.berrycrush.plugin.ScenarioContext
 import org.berrycrush.plugin.ScenarioResult
 import org.berrycrush.plugin.StepContext
 import org.berrycrush.plugin.StepResult
-import org.berrycrush.report.ErrorContextFormatter
 import org.junit.platform.engine.EngineExecutionListener
 import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.TestExecutionResult

@@ -8,8 +8,8 @@ import org.berrycrush.model.Condition
 import org.berrycrush.model.ConditionalActions
 import org.berrycrush.model.ConditionalAssertion
 import org.berrycrush.model.CustomAssertionDefinition
+import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.Step
-import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.StepContext
 import org.berrycrush.plugin.adapter.StepOperationAdapter
 

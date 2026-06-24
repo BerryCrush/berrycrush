@@ -1,8 +1,8 @@
 package org.berrycrush.util
 
+import org.berrycrush.model.HttpRequest
+import org.berrycrush.model.HttpResponse
 import org.berrycrush.plugin.ExecutionContext
-import org.berrycrush.plugin.HttpRequest
-import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.ScenarioContext
 import org.berrycrush.plugin.StepContext
 import org.berrycrush.plugin.StepOperation

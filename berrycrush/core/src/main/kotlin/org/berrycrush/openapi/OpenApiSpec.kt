@@ -1,5 +1,7 @@
 package org.berrycrush.openapi
 
+import org.berrycrush.model.HttpMethod
+
 /**
  * Abstraction for an OpenAPI specification, supporting multiple versions (3.0.x, 3.1.x, etc.).
  *
@@ -120,4 +122,4 @@ data class ServerVariable(
     val description: String?,
 )
 
-typealias HttpMethod = org.berrycrush.plugin.HttpMethod
+typealias HttpMethod = HttpMethod

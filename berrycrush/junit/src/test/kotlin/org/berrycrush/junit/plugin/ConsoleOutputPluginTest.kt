@@ -1,8 +1,8 @@
 package org.berrycrush.junit.plugin
 
+import org.berrycrush.model.HttpResponse
 import org.berrycrush.plugin.AssertionFailure
 import org.berrycrush.plugin.ExecutionContext
-import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.ResultStatus
 import org.berrycrush.plugin.ScenarioContext
 import org.berrycrush.plugin.ScenarioResult

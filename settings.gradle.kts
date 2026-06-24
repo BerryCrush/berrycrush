@@ -21,6 +21,9 @@ develocity {
 rootProject.name = "berrycrush"
 
 include("berrycrush:bom")
+include("berrycrush:api")
+include("berrycrush:plugin")
+include("berrycrush:report-plugins")
 include("berrycrush:core")
 include("berrycrush:junit")
 include("berrycrush:spring")

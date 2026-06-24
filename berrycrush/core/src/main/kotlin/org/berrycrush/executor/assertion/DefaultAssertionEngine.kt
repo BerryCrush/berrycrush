@@ -7,11 +7,11 @@ import org.berrycrush.assertion.SchemaValidator
 import org.berrycrush.context.MutableTestExecutionContext
 import org.berrycrush.model.Condition
 import org.berrycrush.model.ConditionOperator
+import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.LogicalOperator
 import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.openapi.SchemaSpec
 import org.berrycrush.openapi.findResponse
-import org.berrycrush.plugin.HttpResponse
 import tools.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.models.media.Schema as SwaggerSchema
 

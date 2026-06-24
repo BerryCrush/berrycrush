@@ -1,7 +1,6 @@
 package org.berrycrush.model
 
 import org.berrycrush.autotest.MultiTestResult
-import org.berrycrush.plugin.HttpResponse
 import java.time.Duration
 
 /**

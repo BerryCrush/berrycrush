@@ -1,6 +1,6 @@
 package org.berrycrush.autotest
 
-import org.berrycrush.plugin.HttpResponse
+import org.berrycrush.model.HttpResponse
 import java.time.Duration
 
 /**

@@ -1,6 +1,5 @@
 package org.berrycrush.executor.step
 
-import org.berrycrush.context.resolveParams
 import org.berrycrush.executor.BerryCrushExecutionListener
 import org.berrycrush.executor.fragment.FragmentExecutor
 import org.berrycrush.executor.response.ResponseProcessor

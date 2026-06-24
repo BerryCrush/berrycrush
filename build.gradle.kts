@@ -1,7 +1,9 @@
 plugins {
     alias(libs.plugins.kotlin.plugin.spring)
-    alias(libs.plugins.dokka.core)
-    alias(libs.plugins.dokka.javadoc)
+    id("org.jetbrains.dokka")
+    id("org.jetbrains.dokka-javadoc")
+    //alias(libs.plugins.dokka.core)
+    //alias(libs.plugins.dokka.javadoc)
     alias(libs.plugins.owasp.dependency.check)
 }
 

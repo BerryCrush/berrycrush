@@ -2,10 +2,10 @@ package org.berrycrush.executor.response
 
 import org.berrycrush.context.ValueExtractor
 import org.berrycrush.executor.assertion.AssertionExecutor
+import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepResult
-import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.StepContext
 import java.time.Duration
 

@@ -1,12 +1,12 @@
 package org.berrycrush.executor.http
 
 import org.berrycrush.executor.resolvers.RequestResolver
+import org.berrycrush.model.HttpRequest
+import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.Step
 import org.berrycrush.openapi.LoadedSpec
 import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.openapi.SpecRegistry
-import org.berrycrush.plugin.HttpRequest
-import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.StepContext
 import org.berrycrush.plugin.adapter.ScenarioContextAdapter
 

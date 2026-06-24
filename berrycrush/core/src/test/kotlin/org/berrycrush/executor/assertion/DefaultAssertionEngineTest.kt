@@ -3,7 +3,7 @@ package org.berrycrush.executor.assertion
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.model.Condition
 import org.berrycrush.model.ConditionOperator
-import org.berrycrush.plugin.HttpResponse
+import org.berrycrush.model.HttpResponse
 import org.berrycrush.util.createStepContext
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock

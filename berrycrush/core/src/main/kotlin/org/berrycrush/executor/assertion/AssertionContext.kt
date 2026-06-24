@@ -1,7 +1,7 @@
 package org.berrycrush.executor.assertion
 
+import org.berrycrush.model.HttpResponse
 import org.berrycrush.openapi.ResolvedOperation
-import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.StepContext
 import java.time.Duration
 

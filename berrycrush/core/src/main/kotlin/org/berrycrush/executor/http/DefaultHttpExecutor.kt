@@ -4,8 +4,8 @@ import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.HttpRequestBuilder
 import org.berrycrush.executor.resolvers.DefaultRequestResolver
 import org.berrycrush.executor.resolvers.RequestResolver
-import org.berrycrush.plugin.HttpRequest
-import org.berrycrush.plugin.HttpResponse
+import org.berrycrush.model.HttpRequest
+import org.berrycrush.model.HttpResponse
 import org.berrycrush.plugin.StepContext
 import org.berrycrush.plugin.adapter.ScenarioContextAdapter
 import org.berrycrush.plugin.adapter.StepContextAdapter
