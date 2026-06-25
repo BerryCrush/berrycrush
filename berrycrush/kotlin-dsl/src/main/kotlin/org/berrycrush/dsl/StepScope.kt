@@ -10,6 +10,7 @@ import org.berrycrush.model.CustomAssertionDefinition
 import org.berrycrush.model.Extraction
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepType
+import java.time.Duration
 
 /**
  * DSL scope for defining a single step.
@@ -34,8 +35,6 @@ class StepScope internal constructor(
     private val conditionals = mutableListOf<org.berrycrush.model.ConditionalAssertion>()
     private var autoAssert: Boolean = true
     private var autoTestConfig: AutoTestConfig? = null
-    internal var autoTestHandler: ((AutoTestContext) -> Unit)? = null
-    internal var multiTestHandler: ((MultiTestContext) -> Unit)? = null
 
     /**
      * Access to the execution context for variable substitution.
@@ -68,52 +67,6 @@ class StepScope internal constructor(
             autoAssert = false
         }
         autoTestConfig = callScope.autoTestConfig
-    }
-
-    /**
-     * Register a handler for auto-test (invalid/security) execution.
-     *
-     * The handler is invoked for each auto-generated test case, providing
-     * context about the current test being executed.
-     *
-     * ```kotlin
-     * when_("Create pet") {
-     *     call("createPet") {
-     *         autoTest(AutoTestType.INVALID)
-     *     }
-     *     onAutoTest { ctx ->
-     *         println("Testing ${ctx.field} with ${ctx.value}")
-     *     }
-     * }
-     * ```
-     *
-     * @param block Handler to invoke for each auto-test
-     */
-    fun onAutoTest(block: (AutoTestContext) -> Unit) {
-        autoTestHandler = block
-    }
-
-    /**
-     * Register a handler for multi-request idempotency test execution.
-     *
-     * The handler is invoked after multi-test completion, providing
-     * results including all responses and timing data.
-     *
-     * ```kotlin
-     * when_("Create pet") {
-     *     call("createPet") {
-     *         autoTest(AutoTestType.MULTI)
-     *     }
-     *     onMultiTest { ctx ->
-     *         println("${ctx.successCount} of ${ctx.responses.size} requests succeeded")
-     *     }
-     * }
-     * ```
-     *
-     * @param block Handler to invoke after multi-test completion
-     */
-    fun onMultiTest(block: (MultiTestContext) -> Unit) {
-        multiTestHandler = block
     }
 
     /**
@@ -298,6 +251,18 @@ class StepScope internal constructor(
             Assertion(
                 condition = Condition.ResponseTime(maxMillis),
                 description = "responseTime < $maxMillis ms",
+            ),
+        )
+    }
+
+    /**
+     * Assert response time in under threshold
+     */
+    fun responseTime(duration: Duration) {
+        assertions.add(
+            Assertion(
+                condition = Condition.ResponseTime(duration),
+                description = "responseTime < $duration",
             ),
         )
     }

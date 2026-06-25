@@ -2,6 +2,7 @@ package org.berrycrush.model
 
 import org.berrycrush.context.TestExecutionContext
 import org.berrycrush.scenario.SourceLocation
+import java.time.Duration
 
 /**
  * Represents a conditional assertion structure.
@@ -152,11 +153,13 @@ sealed class Condition {
     /**
      * Response time condition (assertion-specific).
      *
-     * @property maxMs Maximum response time in milliseconds
+     * @property duration Maximum response time
      */
     data class ResponseTime(
-        val maxMs: Any,
-    ) : Condition()
+        val duration: Any,
+    ) : Condition() {
+        constructor(maxMs: Long) : this(Duration.ofMillis(maxMs))
+    }
 
     /**
      * Custom assertion condition (matched against AssertionRegistry).

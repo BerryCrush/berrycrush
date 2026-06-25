@@ -56,6 +56,13 @@ class CallScope internal constructor() {
     }
 
     /**
+     * Set the request body from array of pairs (will be serialized to JSON).
+     */
+    fun body(vararg content: Pair<String, Any>) {
+        body(content.toMap())
+    }
+
+    /**
      * Set the request body from a map (will be serialized to JSON).
      */
     fun body(content: Map<String, Any?>) {

@@ -4,7 +4,8 @@ import org.berrycrush.model.Assertion
 import org.berrycrush.model.Condition
 import org.berrycrush.model.ConditionOperator
 import org.berrycrush.model.StepType
-import kotlin.test.Test
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertNull
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -12,19 +13,34 @@ import kotlin.test.assertTrue
 class BerryCrushDslTest {
     // Helper functions for checking assertion types
     private fun Assertion.isStatusAssertion(): Boolean =
-        condition is Condition.Status || (condition is Condition.Negated && condition.condition is Condition.Status)
+        when (val c = condition) {
+            is Condition.Status -> true
+            is Condition.Negated -> c.condition is Condition.Status
+            else -> false
+        }
 
     private fun Assertion.isBodyContainsAssertion(): Boolean =
-        condition is Condition.BodyContains ||
-            (condition is Condition.Negated && condition.condition is Condition.BodyContains)
+        when (val c = condition) {
+            is Condition.BodyContains -> true
+            is Condition.Negated -> c.condition is Condition.BodyContains
+            else -> false
+        }
 
     private fun Assertion.isJsonPathAssertion(): Boolean {
-        val c = if (condition is Condition.Negated) condition.condition else condition
+        val c =
+            when (val c = condition) {
+                is Condition.Negated -> c.condition
+                else -> c
+            }
         return c is Condition.JsonPath
     }
 
     private fun Assertion.isHeaderExistsAssertion(): Boolean {
-        val c = if (condition is Condition.Negated) condition.condition else condition
+        val c =
+            when (val c = condition) {
+                is Condition.Negated -> c.condition
+                else -> c
+            }
         return c is Condition.Header && c.operator == ConditionOperator.EXISTS
     }
 
@@ -255,5 +271,34 @@ class BerryCrushDslTest {
             }
 
         assertEquals("test-key", suite.configuration.defaultHeaders["X-Api-Key"])
+    }
+
+    @Test
+    fun `should show all use case here`() {
+        val suite =
+            berrycrush {
+                scenarioOutline("Example scenario outline without tag") {
+                    given("this scenario") {
+                        call("operationId") {
+                            pathParam("pathParam", "pathValue")
+                            queryParam("queryParam", "queryValue")
+                            header("X-Api-Key", "test-key")
+                        }
+                    }
+                    examples(row("name" to "value"))
+                }
+                scenarioOutline("Example scenario outline with tag", setOf("tag")) {
+                    given("this scenario") {
+                        call("operationId") {
+                            pathParam("pathParam", "pathValue")
+                            queryParam("queryParam", "queryValue")
+                            header("X-Api-Key", "test-key")
+                        }
+                    }
+                    examples(row("name" to "value"))
+                }
+            }
+        assertEquals(2, suite.scenarios.size)
+        assertNull(suite.getFragment("fragment"))
     }
 }

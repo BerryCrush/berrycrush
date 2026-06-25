@@ -59,7 +59,7 @@ class StepResultAdapter(
             is Condition.JsonPath -> condition.expected
             is Condition.Header -> condition.expected
             is Condition.BodyContains -> condition.text
-            is Condition.ResponseTime -> condition.maxMs
+            is Condition.ResponseTime -> condition.duration
             is Condition.Variable -> condition.expected
             is Condition.Negated -> getExpectedFromCondition(condition.condition)
             is Condition.Compound -> null

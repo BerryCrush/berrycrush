@@ -29,7 +29,8 @@ dependencies {
         api("org.berrycrush:api:${berrycrushVersion}")
         api("org.berrycrush:plugin:${berrycrushVersion}")
         api("org.berrycrush:report-plugins:${berrycrushVersion}")
-        api("org.berrycrush:core:$berrycrushVersion")
+        api("org.berrycrush:core:${berrycrushVersion}")
+        api("org.berrycrush:kotlin-dsl:${berrycrushVersion}")
         api("org.berrycrush:junit:$berrycrushVersion")
         api("org.berrycrush:spring:$berrycrushVersion")
         

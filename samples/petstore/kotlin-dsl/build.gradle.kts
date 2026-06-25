@@ -7,9 +7,9 @@ dependencies {
     // Test against the petstore application
     testImplementation(project(":samples:petstore:app"))
 
-    // BerryCrush core with Kotlin DSL
+    // BerryCrush core and Kotlin DSL
     testImplementation(project(":berrycrush:core"))
-
+    testImplementation(project(":berrycrush:kotlin-dsl"))
     // BerryCrush JUnit extension
     testImplementation(project(":berrycrush:junit"))
 

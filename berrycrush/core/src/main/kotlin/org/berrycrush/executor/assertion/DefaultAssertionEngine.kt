@@ -13,6 +13,7 @@ import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.openapi.SchemaSpec
 import org.berrycrush.openapi.findResponse
 import tools.jackson.databind.ObjectMapper
+import java.time.Duration
 import io.swagger.v3.oas.models.media.Schema as SwaggerSchema
 
 private const val BODY_PREVIEW_LENGTH = 200
@@ -247,7 +248,7 @@ class DefaultAssertionEngine(
         context: AssertionContext,
     ): Boolean {
         val actualMs = context.responseTime ?: return true
-        val maxMs = condition.maxMs
+        val maxMs = condition.duration
         val threshold = parseTimeToMs(maxMs, context)
         return actualMs.toMillis() <= threshold
     }
@@ -262,6 +263,7 @@ class DefaultAssertionEngine(
     ): Long =
         when (value) {
             is Number -> value.toLong()
+            is Duration -> value.toMillis()
             is String -> {
                 val resolved = context.stepContext.interpolate(value)
                 when {
@@ -510,9 +512,9 @@ class DefaultAssertionEngine(
     ): String {
         val actualMs = context.responseTime?.toMillis()
         return if (passed) {
-            "Response time ${actualMs}ms is under ${condition.maxMs}"
+            "Response time ${actualMs}ms is under ${condition.duration}"
         } else {
-            "Response time exceeded: ${actualMs}ms > ${condition.maxMs}"
+            "Response time exceeded: ${actualMs}ms > ${condition.duration}"
         }
     }
 

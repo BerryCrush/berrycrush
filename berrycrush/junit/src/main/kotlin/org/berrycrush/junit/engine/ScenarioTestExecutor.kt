@@ -16,7 +16,7 @@ import org.berrycrush.model.FragmentRegistry
 import org.berrycrush.plugin.PluginRegistry
 import org.berrycrush.runner.ScenarioRunner
 import org.berrycrush.scenario.ScenarioLoader
-import org.berrycrush.step.StepRegistry
+import org.berrycrush.util.StepRegistry
 import org.junit.platform.engine.EngineExecutionListener
 import java.util.logging.Logger
 

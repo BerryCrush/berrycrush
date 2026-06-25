@@ -2,6 +2,7 @@ package org.berrycrush.step
 
 import org.berrycrush.scanner.AnnotationScanner
 import org.berrycrush.scanner.createInstance
+import org.berrycrush.util.StepDefinition
 import java.lang.reflect.Modifier
 
 /**

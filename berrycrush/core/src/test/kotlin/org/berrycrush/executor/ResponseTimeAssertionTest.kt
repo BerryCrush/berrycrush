@@ -55,7 +55,7 @@ class ResponseTimeAssertionTest {
                         assertions =
                             listOf(
                                 Assertion(
-                                    condition = Condition.ResponseTime(maxMs = threshold),
+                                    condition = Condition.ResponseTime(duration = threshold),
                                     description = "responseTime check",
                                 ),
                             ),

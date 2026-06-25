@@ -26,6 +26,12 @@ allprojects {
     }
 }
 
+subprojects {
+    if (path.startsWith(":samples:")) {
+        group = "org.berrycrush.samples"
+    }
+}
+
 dokka {
     dokkaPublications.html {
         outputDirectory.set(file("berrycrush/doc/build/dokka"))

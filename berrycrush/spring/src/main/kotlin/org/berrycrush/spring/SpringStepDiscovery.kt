@@ -3,8 +3,8 @@ package org.berrycrush.spring
 import org.berrycrush.step.AnnotationStepScanner
 import org.berrycrush.step.DefaultStepRegistry
 import org.berrycrush.step.Step
-import org.berrycrush.step.StepDefinition
-import org.berrycrush.step.StepRegistry
+import org.berrycrush.util.StepDefinition
+import org.berrycrush.util.StepRegistry
 import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

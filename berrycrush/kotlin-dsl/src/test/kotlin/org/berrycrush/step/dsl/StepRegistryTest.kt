@@ -1,5 +1,7 @@
-package org.berrycrush.step
+package org.berrycrush.step.dsl
 
+import org.berrycrush.step.DefaultStepRegistry
+import org.berrycrush.util.StepDefinition
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -8,7 +10,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * Tests for [DefaultStepRegistry].
+ * Tests for [org.berrycrush.step.DefaultStepRegistry].
  */
 class StepRegistryTest {
     private lateinit var registry: DefaultStepRegistry

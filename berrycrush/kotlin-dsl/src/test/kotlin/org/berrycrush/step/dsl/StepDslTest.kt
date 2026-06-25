@@ -1,10 +1,10 @@
-package org.berrycrush.step
+package org.berrycrush.step.dsl
 
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
 /**
- * Tests for the [StepBuilder] DSL.
+ * Tests for the [org.berrycrush.step.dsl.StepBuilder] DSL.
  */
 class StepDslTest {
     @Test

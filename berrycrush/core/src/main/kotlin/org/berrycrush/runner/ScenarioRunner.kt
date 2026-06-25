@@ -13,7 +13,7 @@ import org.berrycrush.model.ScenarioResult
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.plugin.PluginRegistry
 import org.berrycrush.report.ReportPlugin
-import org.berrycrush.step.StepRegistry
+import org.berrycrush.util.StepRegistry
 import java.io.File
 import java.time.Duration
 import java.time.Instant

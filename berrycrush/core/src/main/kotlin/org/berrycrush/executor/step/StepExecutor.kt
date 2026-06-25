@@ -15,8 +15,8 @@ import org.berrycrush.plugin.adapter.ExecutionContextAdapter
 import org.berrycrush.plugin.adapter.StepContextAdapter
 import org.berrycrush.plugin.adapter.StepResultAdapter
 import org.berrycrush.step.StepContextImpl
-import org.berrycrush.step.StepMatch
-import org.berrycrush.step.StepRegistry
+import org.berrycrush.util.StepMatch
+import org.berrycrush.util.StepRegistry
 import org.berrycrush.webhook.MockWebhookServer
 import java.time.Duration
 import java.time.Instant

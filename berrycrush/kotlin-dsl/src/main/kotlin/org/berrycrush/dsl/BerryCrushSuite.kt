@@ -119,7 +119,7 @@ fun berrycrush(
     openApiSpec: String,
     config: BerryCrushConfiguration.() -> Unit = {},
 ): BerryCrushSuite =
-    BerryCrushSuite().apply {
+    BerryCrushSuite.create().apply {
         spec(openApiSpec)
         configure(config)
     }
@@ -127,4 +127,4 @@ fun berrycrush(
 /**
  * Create a BerryCrush test suite with custom configuration (multi-spec support).
  */
-fun berrycrush(config: BerryCrushSuite.() -> Unit): BerryCrushSuite = BerryCrushSuite().apply(config)
+fun berrycrush(config: BerryCrushSuite.() -> Unit): BerryCrushSuite = BerryCrushSuite.create().apply(config)

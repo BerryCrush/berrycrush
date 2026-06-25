@@ -23,7 +23,7 @@ import org.berrycrush.plugin.StepContext
 import org.berrycrush.plugin.adapter.ExecutionContextAdapter
 import org.berrycrush.plugin.adapter.ScenarioContextAdapter
 import org.berrycrush.plugin.adapter.ScenarioResultAdapter
-import org.berrycrush.step.StepRegistry
+import org.berrycrush.util.StepRegistry
 import java.io.File
 import java.time.Duration
 import java.time.Instant

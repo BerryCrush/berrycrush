@@ -1,6 +1,5 @@
 package org.berrycrush.scenario
 
-import org.berrycrush.dsl.BerryCrushSuite
 import org.berrycrush.exception.ScenarioParseException
 import org.berrycrush.model.Assertion
 import org.berrycrush.model.BodyProperty
@@ -481,7 +480,7 @@ class ScenarioLoader {
             is Condition.Variable -> "${condition.name} ${condition.operator.name.lowercase()} ${condition.expected ?: ""}"
             is Condition.BodyContains -> "body contains \"${condition.text}\""
             is Condition.Schema -> "matches schema"
-            is Condition.ResponseTime -> "responseTime < ${condition.maxMs} ms"
+            is Condition.ResponseTime -> "responseTime < ${condition.duration} ms"
             is Condition.Negated -> "not (${describeCondition(condition.condition)})"
             is Condition.Compound -> "(${describeCondition(
                 condition.left,
@@ -591,7 +590,7 @@ class ScenarioLoader {
             is ConditionNode.SchemaCondition ->
                 Condition.Schema
             is ConditionNode.ResponseTimeCondition ->
-                Condition.ResponseTime(maxMs = extractValue(node.maxMs))
+                Condition.ResponseTime(duration = extractValue(node.maxMs))
             is ConditionNode.CustomAssertionCondition ->
                 Condition.CustomAssertion(pattern = node.pattern)
         }
@@ -667,26 +666,4 @@ class ScenarioLoader {
             types = config.types,
             excludes = config.excludes,
         )
-}
-
-/**
- * Extension function to load scenarios from a path in BerryCrushSuite.
- */
-fun BerryCrushSuite.loadScenariosFrom(path: String) {
-    val loader = ScenarioLoader()
-    val scenarios = loader.loadScenariosFromFile(Path.of(path))
-    scenarios.forEach { scenario ->
-        this.scenarios.add(scenario)
-    }
-}
-
-/**
- * Extension function to load fragments from a path in BerryCrushSuite.
- */
-fun BerryCrushSuite.loadFragmentsFrom(path: String) {
-    val loader = ScenarioLoader()
-    val fragments = loader.loadFragmentsFromFile(Path.of(path))
-    fragments.forEach { (name, fragment) ->
-        this.fragments[name] = fragment
-    }
 }

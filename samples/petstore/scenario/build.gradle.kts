@@ -16,6 +16,7 @@ dependencies {
 
     // BerryCrush JUnit integration
     testImplementation(project(":berrycrush:core"))
+    testImplementation(project(":berrycrush:kotlin-dsl"))
     testImplementation(project(":berrycrush:junit"))
     testImplementation(project(":berrycrush:spring"))
 

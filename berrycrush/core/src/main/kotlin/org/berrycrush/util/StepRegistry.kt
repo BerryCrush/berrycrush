@@ -1,4 +1,4 @@
-package org.berrycrush.step
+package org.berrycrush.util
 
 import java.lang.reflect.Method
 

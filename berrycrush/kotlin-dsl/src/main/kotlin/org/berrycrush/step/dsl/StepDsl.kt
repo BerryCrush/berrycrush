@@ -1,4 +1,7 @@
-package org.berrycrush.step
+package org.berrycrush.step.dsl
+
+import org.berrycrush.util.StepDefinition
+import org.berrycrush.util.StepRegistry
 
 /**
  * DSL builder for defining custom steps programmatically.
