@@ -4,6 +4,8 @@ plugins {
     id("dev.detekt")
     id("com.github.spotbugs")
     id("de.aaschmid.cpd")
+    id("org.jetbrains.dokka")
+    id("org.jetbrains.dokka-javadoc")
 }
 
 pluginManager.apply("berrycrush.jacoco")
@@ -89,4 +91,13 @@ val sastFull by tasks.registering {
 // Make check task depend on full SAST
 tasks.named("check") {
     dependsOn(sastFull)
+}
+
+dokka {
+    dokkaPublications.html {
+        outputDirectory.set(layout.buildDirectory.dir("dokka/html"))
+    }
+    dokkaPublications.javadoc {
+        outputDirectory.set(layout.buildDirectory.dir("dokka/javadoc"))
+    }
 }

@@ -1,8 +1,12 @@
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.tasks.SourceSetContainer
+import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.*
 import org.gradle.plugins.signing.SigningExtension
+import org.jetbrains.dokka.gradle.tasks.DokkaGeneratePublicationTask
 
 /**
  * Convention plugin for Maven publishing to Central Portal.
@@ -44,13 +48,58 @@ class MavenPublishConventionPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         with(project) {
             afterEvaluate {
+                val sourceSets = project.extensions.getByType<SourceSetContainer>()
+                // Create source and javadoc jars
+                val sourcesJar by tasks.registering(Jar::class) {
+                    description = "source jar generation"
+                    archiveClassifier.set("sources")
+                    from(sourceSets.named("main").get().allSource)
+                }
+
+                val javadocJar by tasks.registering(Jar::class) {
+                    description = "javadoc jar generation"
+                    archiveClassifier.set("javadoc")
+                    val dokkaGeneratePublicationJavadoc = tasks.named("dokkaGeneratePublicationJavadoc")
+                    dependsOn(dokkaGeneratePublicationJavadoc)
+                    from(dokkaGeneratePublicationJavadoc.flatMap { (it as DokkaGeneratePublicationTask).outputDirectory })
+                }
+
                 // Ensure maven-publish is applied
                 if (!pluginManager.hasPlugin("maven-publish")) {
                     logger.warn("berrycrush.maven-publish: maven-publish plugin not applied, skipping configuration")
                     return@afterEvaluate
                 }
-                
-                extensions.configure<PublishingExtension> {
+                val publishing = project.extensions.getByType(PublishingExtension::class.java)
+                publishing.publications.withType<MavenPublication>().all {
+                    if (name != "mavenJava") return@all
+
+                    from(components["java"])
+                    artifact(sourcesJar)
+                    artifact(javadocJar)
+                    pom {
+                        url.set("https://github.com/ktakashi/berrycrush")
+
+                        licenses {
+                            license {
+                                name.set("Apache License, Version 2.0")
+                                url.set("https://www.apache.org/licenses/LICENSE-2.0")
+                            }
+                        }
+
+                        developers {
+                            developer {
+                                id.set("ktakashi")
+                                name.set("Takashi Kato")
+                            }
+                        }
+
+                        scm {
+                            connection.set("scm:git:git://github.com/ktakashi/berrycrush.git")
+                            developerConnection.set("scm:git:ssh://github.com:ktakashi/berrycrush.git")
+                            url.set("https://github.com/ktakashi/berrycrush/tree/main")
+                        }
+                    }
+
                     repositories {
                         maven {
                             name = "local"

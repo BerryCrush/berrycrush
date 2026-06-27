@@ -8,7 +8,7 @@ import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.junit.engine.RegistryFactory
 import org.berrycrush.model.Scenario
-import org.berrycrush.step.StepRegistry
+import org.berrycrush.util.StepRegistry
 import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
 import org.junit.jupiter.api.extension.ExtensionContext

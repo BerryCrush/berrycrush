@@ -1,7 +1,7 @@
 package org.berrycrush.logging
 
+import org.berrycrush.model.HttpResponse
 import org.berrycrush.openapi.HttpMethod
-import org.berrycrush.plugin.HttpResponse
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach

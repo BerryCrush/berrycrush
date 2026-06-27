@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>FunctionNaming:FragmentScope.kt:FragmentScope$fun `when`</ID>
+    <ID>FunctionNaming:ScenarioOutlineScope.kt:ScenarioOutlineScope$fun `when`</ID>
+    <ID>FunctionNaming:ScenarioScope.kt:ScenarioScope$fun `when`</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -1,7 +1,7 @@
 package org.berrycrush.step
 
 import org.berrycrush.context.ExecutionContext
-import org.berrycrush.plugin.HttpResponse
+import org.berrycrush.model.HttpResponse
 
 /**
  * Default implementation of [StepContext] that wraps an [ExecutionContext].

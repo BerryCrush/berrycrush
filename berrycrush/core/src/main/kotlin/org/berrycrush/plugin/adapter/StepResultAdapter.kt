@@ -1,15 +1,15 @@
 package org.berrycrush.plugin.adapter
 
 import org.berrycrush.model.Condition
+import org.berrycrush.model.HttpResponse
 import org.berrycrush.plugin.AssertionFailure
-import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.ResultStatus
 import org.berrycrush.plugin.StepResult
 import java.time.Duration
 import org.berrycrush.model.StepResult as ModelStepResult
 
 /**
- * Adapter that bridges model [ModelStepResult] with plugin [StepResult] interface.
+ * Adapter that bridges model [ModelStepResult] with plugin [org.berrycrush.plugin.StepResult] interface.
  */
 class StepResultAdapter(
     private val modelResult: ModelStepResult,
@@ -59,7 +59,7 @@ class StepResultAdapter(
             is Condition.JsonPath -> condition.expected
             is Condition.Header -> condition.expected
             is Condition.BodyContains -> condition.text
-            is Condition.ResponseTime -> condition.maxMs
+            is Condition.ResponseTime -> condition.duration
             is Condition.Variable -> condition.expected
             is Condition.Negated -> getExpectedFromCondition(condition.condition)
             is Condition.Compound -> null

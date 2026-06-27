@@ -1,7 +1,7 @@
 package org.berrycrush.logging
 
+import org.berrycrush.model.HttpResponse
 import org.berrycrush.openapi.HttpMethod
-import org.berrycrush.plugin.HttpResponse
 import java.util.logging.Level
 import java.util.logging.Logger
 

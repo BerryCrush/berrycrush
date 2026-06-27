@@ -8,7 +8,7 @@ import org.berrycrush.junit.BerryCrushConfiguration
 import org.berrycrush.step.AnnotationStepScanner
 import org.berrycrush.step.DefaultStepRegistry
 import org.berrycrush.step.PackageStepScanner
-import org.berrycrush.step.StepRegistry
+import org.berrycrush.util.StepRegistry
 import kotlin.reflect.KClass
 
 /**

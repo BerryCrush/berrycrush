@@ -1,7 +1,11 @@
 package org.berrycrush.step
 
+import org.berrycrush.util.StepDefinition
+import org.berrycrush.util.StepMatch
+import org.berrycrush.util.StepRegistry
+
 /**
- * Default implementation of [StepRegistry].
+ * Default implementation of [org.berrycrush.util.StepRegistry].
  *
  * Maintains a list of registered step definitions and finds matches using [StepMatcher].
  */

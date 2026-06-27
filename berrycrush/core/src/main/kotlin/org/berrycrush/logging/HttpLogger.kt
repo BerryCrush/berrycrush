@@ -1,7 +1,7 @@
 package org.berrycrush.logging
 
-import org.berrycrush.plugin.HttpMethod
-import org.berrycrush.plugin.HttpResponse
+import org.berrycrush.model.HttpMethod
+import org.berrycrush.model.HttpResponse
 
 /**
  * Interface for logging HTTP requests and responses.

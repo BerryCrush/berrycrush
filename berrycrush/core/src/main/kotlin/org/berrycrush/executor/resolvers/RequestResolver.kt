@@ -3,11 +3,11 @@ package org.berrycrush.executor.resolvers
 import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.HttpRequestBuilder
 import org.berrycrush.model.BodyProperty
+import org.berrycrush.model.HttpRequest
 import org.berrycrush.model.Step
 import org.berrycrush.openapi.LoadedSpec
 import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.openapi.SchemaSpec
-import org.berrycrush.plugin.HttpRequest
 import org.berrycrush.plugin.StepContext
 import org.berrycrush.util.FileLoader
 import tools.jackson.databind.ObjectMapper

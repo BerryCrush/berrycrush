@@ -3,8 +3,8 @@ package org.berrycrush.executor.enricher
 import org.berrycrush.exception.HttpExecutionException
 import org.berrycrush.exception.ScenarioErrorContext
 import org.berrycrush.executor.BerryCrushConfigurationProvider
+import org.berrycrush.model.HttpMethod
 import org.berrycrush.model.Step
-import org.berrycrush.plugin.HttpMethod
 import org.berrycrush.plugin.StepContext
 
 class ErrorEnricher(

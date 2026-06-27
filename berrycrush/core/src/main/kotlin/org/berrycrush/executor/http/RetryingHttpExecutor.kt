@@ -2,11 +2,11 @@ package org.berrycrush.executor.http
 
 import org.berrycrush.config.RetryConfig
 import org.berrycrush.exception.RetryExhaustedException
+import org.berrycrush.model.HttpRequest
+import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.Step
 import org.berrycrush.openapi.LoadedSpec
 import org.berrycrush.openapi.ResolvedOperation
-import org.berrycrush.plugin.HttpRequest
-import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.StepContext
 import java.net.URI
 import java.time.Duration

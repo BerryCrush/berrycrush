@@ -1,7 +1,7 @@
 package org.berrycrush.executor
 
 import org.berrycrush.exception.HttpExecutionException
-import org.berrycrush.plugin.HttpMethod
+import org.berrycrush.model.HttpMethod
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest

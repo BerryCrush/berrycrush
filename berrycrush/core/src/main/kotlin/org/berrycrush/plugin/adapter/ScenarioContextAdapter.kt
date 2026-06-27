@@ -1,10 +1,10 @@
 package org.berrycrush.plugin.adapter
 
+import org.berrycrush.model.HttpRequest
+import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.Scenario
 import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.plugin.ExecutionContext
-import org.berrycrush.plugin.HttpRequest
-import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.ScenarioContext
 import org.berrycrush.plugin.StepOperation
 import java.io.File
@@ -12,7 +12,7 @@ import java.nio.file.Path
 import java.time.Instant
 
 /**
- * Adapter that bridges [ExecutionContext] with [ScenarioContext] plugin interface.
+ * Adapter that bridges [org.berrycrush.plugin.ExecutionContext] with [org.berrycrush.plugin.ScenarioContext] plugin interface.
  *
  * Provides plugin-visible scenario context from existing execution context and scenario model.
  */

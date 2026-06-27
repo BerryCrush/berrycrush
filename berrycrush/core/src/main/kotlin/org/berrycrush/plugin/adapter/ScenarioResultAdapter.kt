@@ -7,7 +7,7 @@ import java.time.Duration
 import org.berrycrush.model.ScenarioResult as ModelScenarioResult
 
 /**
- * Adapter that bridges model [ModelScenarioResult] with plugin [ScenarioResult] interface.
+ * Adapter that bridges model [ModelScenarioResult] with plugin [org.berrycrush.plugin.ScenarioResult] interface.
  */
 class ScenarioResultAdapter(
     private val modelResult: ModelScenarioResult,

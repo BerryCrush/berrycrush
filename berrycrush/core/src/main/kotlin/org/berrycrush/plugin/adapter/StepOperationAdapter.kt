@@ -1,7 +1,7 @@
 package org.berrycrush.plugin.adapter
 
+import org.berrycrush.model.HttpMethod
 import org.berrycrush.openapi.ResolvedOperation
-import org.berrycrush.plugin.HttpMethod
 import org.berrycrush.plugin.StepOperation
 
 class StepOperationAdapter(

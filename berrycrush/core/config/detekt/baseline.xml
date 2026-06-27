@@ -26,9 +26,6 @@
     <ID>CyclomaticComplexMethod:SchemaValidator.kt:SchemaValidator$private fun buildJsonSchemaMap: Map&lt;String, Any?></ID>
     <ID>ForbiddenComment:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$// FIXME: Add shared variables support</ID>
     <ID>ForbiddenComment:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor$// FIXME: Implement response time check</ID>
-    <ID>FunctionNaming:FragmentScope.kt:FragmentScope$fun `when`</ID>
-    <ID>FunctionNaming:ScenarioOutlineScope.kt:ScenarioOutlineScope$fun `when`</ID>
-    <ID>FunctionNaming:ScenarioScope.kt:ScenarioScope$fun `when`</ID>
     <ID>LargeClass:BerryCrushScenarioExecutor.kt:BerryCrushScenarioExecutor</ID>
     <ID>LargeClass:ParserTest.kt:ParserTest</ID>
     <ID>LongMethod:ActionParser.kt:internal fun ParserState.parseCallAction: CallNode?</ID>

@@ -1,7 +1,7 @@
 package org.berrycrush.context
 
-import org.berrycrush.plugin.HttpRequest
-import org.berrycrush.plugin.HttpResponse
+import org.berrycrush.model.HttpRequest
+import org.berrycrush.model.HttpResponse
 import org.berrycrush.plugin.StepContext
 
 /**

@@ -59,6 +59,7 @@ detekt-gradle-plugin = { module = "dev.detekt:detekt-gradle-plugin", version.ref
 spotbugs-gradle-plugin = { module = "com.github.spotbugs.snom:spotbugs-gradle-plugin", version.ref = "spotbugs" }
 findsecbugs-gradle-plugin = { module = "com.h3xstream.findsecbugs:findsecbugs-plugin", version.ref = "findsecbugs" }
 cpd-gradle-plugin = { module = "de.aaschmid:gradle-cpd-plugin", version.ref = "cpd" }
+dokka-gradle-plugin = { module = "org.jetbrains.dokka:org.jetbrains.dokka.gradle.plugin", version.ref = "dokka" }
 
 [bundles]
 junit = ["junit-jupiter-api", "junit-jupiter-engine", "junit-jupiter-params"]

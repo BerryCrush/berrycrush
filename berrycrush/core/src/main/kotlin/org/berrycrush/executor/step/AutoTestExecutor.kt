@@ -14,13 +14,13 @@ import org.berrycrush.executor.http.HttpExecutor
 import org.berrycrush.model.Assertion
 import org.berrycrush.model.AssertionResult
 import org.berrycrush.model.AutoTestResult
+import org.berrycrush.model.HttpRequest
+import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepResult
 import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.openapi.SpecRegistry
-import org.berrycrush.plugin.HttpRequest
-import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.StepContext
 import org.berrycrush.scenario.AutoTestType
 import tools.jackson.databind.ObjectMapper

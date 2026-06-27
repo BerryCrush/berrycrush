@@ -1,7 +1,7 @@
 package org.berrycrush.logging
 
-import org.berrycrush.plugin.HttpMethod
-import org.berrycrush.plugin.HttpResponse
+import org.berrycrush.model.HttpMethod
+import org.berrycrush.model.HttpResponse
 
 /**
  * Interface for formatting HTTP request/response log messages.
@@ -124,8 +124,9 @@ class DefaultHttpLogFormatter(
             }
         }
 
-        if (includeBody && !response.body.isNullOrEmpty()) {
-            val truncatedBody = truncateBody(response.body)
+        val body = response.body
+        if (includeBody && !body.isNullOrEmpty()) {
+            val truncatedBody = truncateBody(body)
             sb.append("  Body: $truncatedBody")
         }
 

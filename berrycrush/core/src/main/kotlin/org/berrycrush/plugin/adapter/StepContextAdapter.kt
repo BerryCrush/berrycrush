@@ -1,9 +1,9 @@
 package org.berrycrush.plugin.adapter
 
+import org.berrycrush.model.HttpRequest
+import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.Step
 import org.berrycrush.openapi.ResolvedOperation
-import org.berrycrush.plugin.HttpRequest
-import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.ScenarioContext
 import org.berrycrush.plugin.StepContext
 import org.berrycrush.plugin.StepOperation
@@ -12,7 +12,7 @@ import java.time.Duration
 import org.berrycrush.model.StepType as ModelStepType
 
 /**
- * Adapter that bridges [Step] model with [StepContext] plugin interface.
+ * Adapter that bridges [Step] model with [org.berrycrush.plugin.StepContext] plugin interface.
  *
  * Provides plugin-visible step context from the existing step model.
  */

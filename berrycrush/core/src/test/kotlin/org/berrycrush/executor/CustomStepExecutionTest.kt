@@ -8,7 +8,7 @@ import org.berrycrush.model.StepType
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.step.DefaultStepRegistry
 import org.berrycrush.step.StepContext
-import org.berrycrush.step.StepDefinition
+import org.berrycrush.util.StepDefinition
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested

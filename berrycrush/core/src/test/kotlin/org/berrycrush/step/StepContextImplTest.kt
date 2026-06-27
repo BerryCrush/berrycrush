@@ -1,10 +1,10 @@
 package org.berrycrush.step
 
-import org.berrycrush.plugin.StepContext
 import org.berrycrush.util.createStepContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import org.berrycrush.plugin.StepContext as PluginStepContext
 
 /**
  * Tests for [StepContextImpl] focusing on shared variables support.
@@ -131,10 +131,10 @@ class StepContextImplTest {
         assertEquals("scenario-wins", stepContext.allVariables()["key"])
     }
 
-    private fun context(): StepContext = createStepContext()
+    private fun context(): PluginStepContext = createStepContext()
 
     private fun createStepContextImpl(
-        stepContext: StepContext,
+        stepContext: PluginStepContext,
         sharedVariables: MutableMap<String, Any?>? = null,
         sharingEnabled: Boolean = false,
     ): StepContextImpl =

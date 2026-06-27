@@ -3,6 +3,8 @@ package org.berrycrush.executor.http
 import org.berrycrush.config.RetryConfig
 import org.berrycrush.exception.RetryExhaustedException
 import org.berrycrush.executor.resolvers.RequestResolver
+import org.berrycrush.model.HttpRequest
+import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepType
 import org.berrycrush.openapi.HttpMethod
@@ -12,8 +14,6 @@ import org.berrycrush.openapi.OpenApiVersion
 import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.openapi.ServerInfo
 import org.berrycrush.openapi.SpecInfo
-import org.berrycrush.plugin.HttpRequest
-import org.berrycrush.plugin.HttpResponse
 import org.berrycrush.plugin.StepContext
 import org.berrycrush.util.createStepContext
 import org.mockito.kotlin.any
@@ -123,7 +123,7 @@ class RetryingHttpExecutorTest {
 
         assertEquals(3, exception.attempts) // 1 initial + 2 retries
         assertNotNull(exception.lastResponse)
-        assertEquals(503, exception.lastResponse.statusCode)
+        assertEquals(503, exception.lastResponse?.statusCode)
         assertNull(exception.lastException)
     }
 

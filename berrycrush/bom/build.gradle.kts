@@ -26,7 +26,11 @@ val springBootVersion = catalog.findVersion("spring-boot").get().requiredVersion
 dependencies {
     constraints {
         // BerryCrush modules
-        api("org.berrycrush:core:$berrycrushVersion")
+        api("org.berrycrush:api:${berrycrushVersion}")
+        api("org.berrycrush:plugin:${berrycrushVersion}")
+        api("org.berrycrush:report-plugins:${berrycrushVersion}")
+        api("org.berrycrush:core:${berrycrushVersion}")
+        api("org.berrycrush:kotlin-dsl:${berrycrushVersion}")
         api("org.berrycrush:junit:$berrycrushVersion")
         api("org.berrycrush:spring:$berrycrushVersion")
         
@@ -56,7 +60,7 @@ dependencies {
 // Maven publication configuration
 publishing {
     publications {
-        create<MavenPublication>("mavenJava") {
+        create<MavenPublication>("mavenBom") {
             from(components["javaPlatform"])
 
             pom {
