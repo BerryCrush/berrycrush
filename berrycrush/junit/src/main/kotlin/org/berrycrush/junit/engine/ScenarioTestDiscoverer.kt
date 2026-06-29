@@ -14,6 +14,10 @@ import org.junit.platform.engine.support.descriptor.EngineDescriptor
 import java.io.File
 import java.io.InputStreamReader
 import java.net.URL
+import kotlin.reflect.KClass
+import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.hasAnnotation
+import kotlin.reflect.jvm.jvmName
 
 /**
  * Responsible for discovering scenario tests from annotated test classes.
@@ -34,17 +38,17 @@ object ScenarioTestDiscoverer {
      */
     fun discoverScenariosForClass(
         engineDescriptor: EngineDescriptor,
-        testClass: Class<*>,
+        testClass: KClass<*>,
         filters: ScenarioFilters = ScenarioFilters.EMPTY,
     ) {
-        val annotation = testClass.getAnnotation(BerryCrushScenarios::class.java) ?: return
+        if (testClass.hasAnnotation<Disabled>()) return
+        val annotation = testClass.findAnnotation<BerryCrushScenarios>() ?: return
 
-        if (testClass.isAnnotationPresent(Disabled::class.java)) return
         if (engineDescriptor.alreadyDiscovered(testClass)) return
         if (annotation.locations.isEmpty()) return
 
         val discoveredFiles =
-            discoverScenarioFiles(testClass.classLoader, annotation.locations)
+            discoverScenarioFiles(testClass.java.classLoader, annotation.locations)
                 .filter { filters.matchesFile(it.path, it.name) }
         val classDescriptor = createClassDescriptor(engineDescriptor.uniqueId, testClass, discoveredFiles, filters)
 
@@ -63,11 +67,11 @@ object ScenarioTestDiscoverer {
 
     private fun createClassDescriptor(
         parentId: UniqueId,
-        testClass: Class<*>,
+        testClass: KClass<*>,
         files: List<DiscoveredScenario>,
         filters: ScenarioFilters,
     ): ClassTestDescriptor {
-        val classUniqueId = parentId.append("class", testClass.name)
+        val classUniqueId = parentId.append("class", testClass.jvmName)
         val classDescriptor = ClassTestDescriptor(classUniqueId, testClass)
         val scenarioLoader = ScenarioLoader()
 
@@ -219,5 +223,5 @@ private fun URL.toFileOrNull(): File? =
         null
     }
 
-private fun EngineDescriptor.alreadyDiscovered(testClass: Class<*>): Boolean =
-    children.any { it is ClassTestDescriptor && it.testClass == testClass }
+private fun EngineDescriptor.alreadyDiscovered(testClass: KClass<*>): Boolean =
+    children.any { it is ClassTestDescriptor && it.testClass == testClass.java }

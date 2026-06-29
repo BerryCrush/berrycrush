@@ -20,6 +20,7 @@ cpd = "3.5"
 findsecbugs = "1.14.0"
 
 [libraries]
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 swagger-parser = { module = "io.swagger.parser.v3:swagger-parser", version.ref = "swagger-parser" }
 json-path = { module = "com.jayway.jsonpath:json-path", version.ref = "json-path" }
 json-schema-validator = { module = "com.networknt:json-schema-validator", version.ref = "json-schema-validator" }

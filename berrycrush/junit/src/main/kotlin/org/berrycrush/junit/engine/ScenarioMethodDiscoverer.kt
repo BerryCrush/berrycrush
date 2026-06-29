@@ -1,5 +1,10 @@
 package org.berrycrush.junit.engine
 
+import kotlin.reflect.KClass
+import kotlin.reflect.full.declaredFunctions
+import kotlin.reflect.full.hasAnnotation
+import kotlin.reflect.jvm.javaMethod
+import kotlin.reflect.jvm.jvmName
 import org.berrycrush.junit.ScenarioTest
 import org.berrycrush.model.Scenario
 import org.junit.jupiter.api.Disabled
@@ -17,21 +22,21 @@ object ScenarioMethodDiscoverer {
      */
     fun discoverScenariosForClass(
         engineDescriptor: EngineDescriptor,
-        testClass: Class<*>,
+        testClass: KClass<*>,
     ) {
-        if (testClass.isAnnotationPresent(Disabled::class.java)) return
+        if (testClass.hasAnnotation<Disabled>()) return
 
         // Check if class is already discovered (might have been added by ScenarioTestDiscoverer)
         val existingClassDescriptor =
             engineDescriptor.children
                 .filterIsInstance<ClassTestDescriptor>()
-                .find { it.testClass == testClass }
+                .find { it.testClass == testClass.java }
 
         val classDescriptor =
             existingClassDescriptor ?: run {
                 val newDescriptor =
                     ClassTestDescriptor(
-                        uniqueId = engineDescriptor.uniqueId.append("class", testClass.name),
+                        uniqueId = engineDescriptor.uniqueId.append("class", testClass.jvmName),
                         testClass = testClass,
                     )
                 engineDescriptor.addChild(newDescriptor)
@@ -39,10 +44,9 @@ object ScenarioMethodDiscoverer {
             }
 
         // Find all @Scenario methods
-        testClass.declaredMethods
-            .filter { it.isAnnotationPresent(ScenarioTest::class.java) }
-            .filter { !it.isAnnotationPresent(Disabled::class.java) }
-            .filter { Scenario::class.java.isAssignableFrom(it.returnType) }
+        testClass.declaredFunctions
+            .filter { it.hasAnnotation<ScenarioTest>() }
+            .filter { !it.hasAnnotation<Disabled>() }
             .forEach { method ->
                 val methodId = classDescriptor.uniqueId.append("scenario", method.name)
                 val displayName = formatDisplayName(method.name)
@@ -50,8 +54,8 @@ object ScenarioMethodDiscoverer {
                     ScenarioMethodDescriptor(
                         uniqueId = methodId,
                         displayName = displayName,
-                        method = method,
-                        testClass = testClass,
+                        method = method.javaMethod!!,
+                        testClass = testClass.java,
                     )
                 classDescriptor.addChild(descriptor)
             }

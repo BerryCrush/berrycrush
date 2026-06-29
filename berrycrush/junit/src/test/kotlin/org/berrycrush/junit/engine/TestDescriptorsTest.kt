@@ -97,7 +97,7 @@ class TestDescriptorsTest {
     fun `scenario method discoverer should skip disabled classes`() {
         val engineDescriptor = object : EngineDescriptor(UniqueId.forEngine("berrycrush"), "engine") {}
 
-        ScenarioMethodDiscoverer.discoverScenariosForClass(engineDescriptor, DisabledScenarioClass::class.java)
+        ScenarioMethodDiscoverer.discoverScenariosForClass(engineDescriptor, DisabledScenarioClass::class)
 
         assertTrue(engineDescriptor.children.isEmpty())
     }
@@ -108,11 +108,11 @@ class TestDescriptorsTest {
         val classDescriptor =
             ClassTestDescriptor(
                 uniqueId = engineDescriptor.uniqueId.append("class", DiscovererScenarioClass::class.java.name),
-                testClass = DiscovererScenarioClass::class.java,
+                testClass = DiscovererScenarioClass::class,
             )
         engineDescriptor.addChild(classDescriptor)
 
-        ScenarioMethodDiscoverer.discoverScenariosForClass(engineDescriptor, DiscovererScenarioClass::class.java)
+        ScenarioMethodDiscoverer.discoverScenariosForClass(engineDescriptor, DiscovererScenarioClass::class)
 
         assertEquals(1, engineDescriptor.children.filterIsInstance<ClassTestDescriptor>().size)
         assertTrue(classDescriptor.children.filterIsInstance<ScenarioMethodDescriptor>().isNotEmpty())

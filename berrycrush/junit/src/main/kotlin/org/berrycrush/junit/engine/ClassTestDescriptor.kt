@@ -1,5 +1,8 @@
 package org.berrycrush.junit.engine
 
+import kotlin.reflect.KClass
+import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.findAnnotations
 import org.berrycrush.junit.BerryCrushBindings
 import org.berrycrush.junit.BerryCrushConfiguration
 import org.berrycrush.junit.BerryCrushScenarios
@@ -23,8 +26,8 @@ import org.junit.platform.engine.support.descriptor.ClassSource
  */
 class ClassTestDescriptor(
     uniqueId: UniqueId,
-    val testClass: Class<*>,
-) : AbstractTestDescriptor(uniqueId, testClass.simpleName, ClassSource.from(testClass)) {
+    val testClass: KClass<*>,
+) : AbstractTestDescriptor(uniqueId, testClass.java.simpleName, ClassSource.from(testClass.java)) {
     companion object {
         /** Default timeout in milliseconds for scenario execution. */
         const val DEFAULT_TIMEOUT_MS = 30_000L
@@ -37,14 +40,14 @@ class ClassTestDescriptor(
      * Scenario file location patterns from @BerryCrushScenarios annotation.
      */
     val locations: Array<out String>
-        get() = testClass.getAnnotation(BerryCrushScenarios::class.java)?.locations ?: emptyArray()
+        get() = testClass.findAnnotation<BerryCrushScenarios>()?.locations ?: emptyArray()
 
     /**
      * Fragment file location patterns from @BerryCrushScenarios annotation.
      */
     val fragmentLocations: Array<out String>
         get() =
-            testClass.getAnnotation(BerryCrushScenarios::class.java)?.fragments
+            testClass.findAnnotation<BerryCrushScenarios>()?.fragments
                 ?: emptyArray()
 
     /**
@@ -90,8 +93,8 @@ class ClassTestDescriptor(
     val excludeTags: Set<String>
 
     init {
-        val config = testClass.getAnnotation(BerryCrushConfiguration::class.java)
-        val tagsAnnotation = testClass.getAnnotation(BerryCrushTags::class.java)
+        val config = testClass.findAnnotation<BerryCrushConfiguration>()
+        val tagsAnnotation = testClass.findAnnotation<BerryCrushTags>()
 
         bindingsClass = config?.bindings?.java
         timeout = config?.timeout ?: DEFAULT_TIMEOUT_MS
@@ -118,12 +121,12 @@ class ClassTestDescriptor(
         val result = mutableMapOf<String, BerryCrushSpec>()
 
         // Check for container annotation (@BerryCrushSpecs)
-        testClass.getAnnotation(BerryCrushSpecs::class.java)?.value?.forEach { spec ->
+        testClass.findAnnotation<BerryCrushSpecs>()?.value?.forEach { spec ->
             result[spec.name] = spec
         }
 
-        // Check for single @BerryCrushSpec (if not already in container)
-        testClass.getAnnotation(BerryCrushSpec::class.java)?.let { spec ->
+        // Check for @BerryCrushSpec
+        testClass.findAnnotations<BerryCrushSpec>().forEach {  spec ->
             if (spec.name !in result) {
                 result[spec.name] = spec
             }
