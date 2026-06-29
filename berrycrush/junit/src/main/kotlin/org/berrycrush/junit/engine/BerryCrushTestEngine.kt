@@ -2,6 +2,7 @@ package org.berrycrush.junit.engine
 
 import org.berrycrush.junit.BerryCrushScenarios
 import org.berrycrush.junit.BerryCrushSpec
+import org.berrycrush.junit.BerryCrushSpecs
 import org.berrycrush.junit.ScenarioTest
 import org.berrycrush.junit.spi.BindingsProvider
 import org.junit.platform.engine.EngineDiscoveryRequest
@@ -16,7 +17,6 @@ import java.util.ServiceLoader
 import kotlin.reflect.KClass
 import kotlin.reflect.full.hasAnnotation
 import kotlin.reflect.full.memberFunctions
-import org.berrycrush.junit.BerryCrushSpecs
 
 /**
  * JUnit 5 TestEngine implementation for BerryCrush scenarios.
@@ -73,8 +73,9 @@ class BerryCrushTestEngine : TestEngine {
                 collectFromPackageSelectors(discoveryRequest)
 
         // Discover scenarios for each unique test class with @BerryCrushScenarios
-        val classes = testClasses
-            .distinct()
+        val classes =
+            testClasses
+                .distinct()
 
         classes
             .filter { it.hasAnnotation<BerryCrushScenarios>() }
@@ -92,8 +93,7 @@ class BerryCrushTestEngine : TestEngine {
     /**
      * Check if a class has any methods annotated with @ScenarioTest.
      */
-    private fun hasScenarioMethods(testClass: KClass<*>): Boolean =
-        testClass.memberFunctions.any { it.hasAnnotation<ScenarioTest>() }
+    private fun hasScenarioMethods(testClass: KClass<*>): Boolean = testClass.memberFunctions.any { it.hasAnnotation<ScenarioTest>() }
 
     override fun execute(request: ExecutionRequest) {
         val engineDescriptor = request.rootTestDescriptor

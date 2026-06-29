@@ -101,14 +101,19 @@ private fun TestExecutionContext.executeScenarioMethod(
             when (result.status) {
                 ResultStatus.PASSED -> TestExecutionResult.successful()
                 ResultStatus.SKIPPED -> TestExecutionResult.aborted(null)
-                ResultStatus.FAILED -> TestExecutionResult.failed(result.stepResults.lastOrNull { it.status == ResultStatus.FAILED }?.error ?: AssertionError("Scenario failed"))
-                ResultStatus.ERROR -> TestExecutionResult.failed(result.stepResults.lastOrNull { it.status == ResultStatus.ERROR }?.error ?: AssertionError("Scenario got error"))
+                ResultStatus.FAILED -> result.failed("Scenario failed")
+                ResultStatus.ERROR -> result.failed("Scenario got error")
                 ResultStatus.PENDING -> TestExecutionResult.aborted(null)
             }
         listener.executionFinished(scenarioDescriptor, testResult)
     }.onFailure { e ->
         listener.executionFinished(scenarioDescriptor, TestExecutionResult.failed(e))
     }
+}
+
+private fun ScenarioResult.failed(msg: String): TestExecutionResult {
+    val error = stepResults.lastOrNull { it.status == status }?.error ?: AssertionError(msg)
+    return TestExecutionResult.failed(error)
 }
 
 private fun TestExecutionContext.executeFileDescriptor(

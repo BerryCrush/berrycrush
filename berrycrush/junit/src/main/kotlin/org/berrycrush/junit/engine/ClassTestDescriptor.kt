@@ -1,8 +1,5 @@
 package org.berrycrush.junit.engine
 
-import kotlin.reflect.KClass
-import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.findAnnotations
 import org.berrycrush.junit.BerryCrushBindings
 import org.berrycrush.junit.BerryCrushConfiguration
 import org.berrycrush.junit.BerryCrushScenarios
@@ -14,6 +11,9 @@ import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.UniqueId
 import org.junit.platform.engine.support.descriptor.AbstractTestDescriptor
 import org.junit.platform.engine.support.descriptor.ClassSource
+import kotlin.reflect.KClass
+import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.findAnnotations
 
 /**
  * Test descriptor representing a test class annotated with @BerryCrushScenarios.
@@ -126,7 +126,7 @@ class ClassTestDescriptor(
         }
 
         // Check for @BerryCrushSpec
-        testClass.findAnnotations<BerryCrushSpec>().forEach {  spec ->
+        testClass.findAnnotations<BerryCrushSpec>().forEach { spec ->
             if (spec.name !in result) {
                 result[spec.name] = spec
             }

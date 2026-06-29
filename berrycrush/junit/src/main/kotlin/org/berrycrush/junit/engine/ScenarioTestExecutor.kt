@@ -70,7 +70,8 @@ class ScenarioTestExecutor(
         }
     }
 
-    private fun findBindingsProvider(testClass: KClass<*>): BindingsProvider? = bindingsProviders.firstOrNull { it.supports(testClass.java) }
+    private fun findBindingsProvider(testClass: KClass<*>): BindingsProvider? =
+        bindingsProviders.firstOrNull { it.supports(testClass.java) }
 
     private fun executeWithContext(
         classDescriptor: ClassTestDescriptor,

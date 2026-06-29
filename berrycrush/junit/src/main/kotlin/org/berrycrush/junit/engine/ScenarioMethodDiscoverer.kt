@@ -1,14 +1,13 @@
 package org.berrycrush.junit.engine
 
+import org.berrycrush.junit.ScenarioTest
+import org.junit.jupiter.api.Disabled
+import org.junit.platform.engine.support.descriptor.EngineDescriptor
 import kotlin.reflect.KClass
 import kotlin.reflect.full.declaredFunctions
 import kotlin.reflect.full.hasAnnotation
 import kotlin.reflect.jvm.javaMethod
 import kotlin.reflect.jvm.jvmName
-import org.berrycrush.junit.ScenarioTest
-import org.berrycrush.model.Scenario
-import org.junit.jupiter.api.Disabled
-import org.junit.platform.engine.support.descriptor.EngineDescriptor
 
 /**
  * Discovers @ScenarioTest methods in test classes.
