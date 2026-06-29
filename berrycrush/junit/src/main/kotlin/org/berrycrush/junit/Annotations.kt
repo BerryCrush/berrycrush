@@ -1,8 +1,5 @@
 package org.berrycrush.junit
 
-import kotlin.annotation.AnnotationRetention
-import kotlin.annotation.AnnotationTarget
-
 /**
  * Container annotation for multiple [BerryCrushSpec] annotations.
  *
@@ -49,7 +46,7 @@ annotation class BerryCrushSpecs(
 annotation class BerryCrushSpec(
     vararg val paths: String = [],
     val baseUrl: String = "",
-    val name: String = "default",
+    val name: String = BerryCrushBindings.DEFAULT_BINDING_NAME,
 )
 
 /**

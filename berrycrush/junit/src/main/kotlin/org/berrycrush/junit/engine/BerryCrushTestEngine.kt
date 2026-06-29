@@ -6,6 +6,7 @@ import org.berrycrush.junit.BerryCrushSpecs
 import org.berrycrush.junit.ScenarioTest
 import org.berrycrush.junit.spi.BindingsProvider
 import org.junit.platform.engine.EngineDiscoveryRequest
+import org.junit.platform.engine.EngineExecutionListener
 import org.junit.platform.engine.ExecutionRequest
 import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.TestEngine
@@ -17,7 +18,6 @@ import java.util.ServiceLoader
 import kotlin.reflect.KClass
 import kotlin.reflect.full.hasAnnotation
 import kotlin.reflect.full.memberFunctions
-import org.junit.platform.engine.EngineExecutionListener
 
 /**
  * JUnit 5 TestEngine implementation for BerryCrush scenarios.

@@ -27,12 +27,14 @@ class PetstoreApiTest {
     fun listAllPetsTestWithAuth(suite: BerryCrushSuite): Scenario {
         return suite.scenario("list all pets") {
             parameters {
-                set(
-                    // binding.* = default binding config
-                    "binding.baseUrl" to "http://localhost:$port/api/v1",
-                    // binding.{name}.* = named binding config
-                    "binding.auth.baseUrl" to "http://localhost:$port/auth/api/v1"
-                )
+                // binding.* = default binding config
+                binding {
+                    baseUrl = "http://localhost:$port/api/v1"
+                }
+                // binding.{name}.* = named binding config
+                binding("auth") {
+                    baseUrl = "http://localhost:$port/auth/api/v1"
+                }
                 set("logRequests" to true)
                 set("logResponses" to true)
             }

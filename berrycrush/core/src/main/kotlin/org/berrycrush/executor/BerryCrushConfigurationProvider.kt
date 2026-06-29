@@ -3,13 +3,13 @@ package org.berrycrush.executor
 import org.berrycrush.autotest.MultiTestParameters
 import org.berrycrush.config.AutoAssertionConfig
 import org.berrycrush.config.BerryCrushConfiguration
+import org.berrycrush.config.BindingConfig
 import org.berrycrush.config.RetryConfig
 import org.berrycrush.exception.ErrorContextConfig
 import org.berrycrush.logging.HttpLogFormatter
 import org.berrycrush.logging.HttpLogger
 import org.berrycrush.logging.HttpLoggerFactory
 import java.time.Duration
-import org.berrycrush.config.BindingConfig
 
 /**
  * Configuration provider
@@ -32,6 +32,7 @@ interface BerryCrushConfigurationProvider {
     val errorContextConfig: ErrorContextConfig
     val retryConfig: RetryConfig
     val bindings: Map<String, BindingConfig>
+
     /**
      * Get the effective HTTP logger.
      * Returns the custom logger if set, otherwise creates one from the factory.

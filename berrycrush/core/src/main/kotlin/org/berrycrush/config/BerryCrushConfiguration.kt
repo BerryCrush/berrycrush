@@ -92,11 +92,12 @@ data class BerryCrushConfiguration(
     var bindings: MutableMap<String, BindingConfig> = mutableMapOf(),
 ) {
     var baseUrl: String?
-        get() = bindings["default"]?.baseUrl
+        get() = bindings[BindingConfig.DEFAULT_BINDING_NAME]?.baseUrl
         set(value) {
-            bindings.compute("default") { _, binding ->
+            bindings.compute(BindingConfig.DEFAULT_BINDING_NAME) { _, binding ->
                 binding?.copy(baseUrl = value) ?: BindingConfig(value)
-        }}
+            }
+        }
 
     /**
      * DSL helper to set timeout in seconds.
@@ -252,10 +253,14 @@ data class BerryCrushConfiguration(
         key: String,
         value: Any,
     ) {
-        val (name, param) = key.indexOf('.').let {
-            if (it == -1) "default" to key
-            else key.substring(0, it) to key.substring(it + 1)
-        }
+        val (name, param) =
+            key.indexOf('.').let {
+                if (it == -1) {
+                    BindingConfig.DEFAULT_BINDING_NAME to key
+                } else {
+                    key.substring(0, it) to key.substring(it + 1)
+                }
+            }
         bindings.compute(name) { _, binding ->
             when (param) {
                 "baseUrl" -> binding?.copy(baseUrl = value.toString()) ?: BindingConfig(baseUrl = value.toString())

@@ -15,7 +15,7 @@ class ScenarioOutlineScope internal constructor(
     private val name: String,
     private val tags: Set<String>,
     override val suite: BerryCrushSuite,
-): ScenarioLikeScope {
+) : ScenarioLikeScope {
     companion object {
         private fun substituteParams(
             template: String,
@@ -71,7 +71,7 @@ class ScenarioOutlineScope internal constructor(
                 tags = tags,
                 steps = expandedSteps,
                 background = emptyList(),
-                parameters = parameterScope.parameters.toMap()
+                parameters = parameterScope.parameters.toMap(),
             )
         }
     }
@@ -80,9 +80,12 @@ class ScenarioOutlineScope internal constructor(
         fun build(row: ExampleRow): List<Step>
     }
 
-    private class FragmentStep(private val fragment: Fragment): OutlineStep {
-        override fun build(row: ExampleRow): List<Step> = fragment.steps
-            .map { it.adjust(row) }
+    private class FragmentStep(
+        private val fragment: Fragment,
+    ) : OutlineStep {
+        override fun build(row: ExampleRow): List<Step> =
+            fragment.steps
+                .map { it.adjust(row) }
 
         private fun Step.adjust(row: ExampleRow): Step {
             val expandedDescription = substituteParams(description, row)

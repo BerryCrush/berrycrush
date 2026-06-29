@@ -13,7 +13,7 @@ class ScenarioScope internal constructor(
     private val name: String,
     private val tags: Set<String>,
     override val suite: BerryCrushSuite,
-): ScenarioLikeScope {
+) : ScenarioLikeScope {
     internal val steps = mutableListOf<Step>()
     internal val backgroundSteps = mutableListOf<Step>()
     override val parameterScope = ParameterScope()
@@ -41,6 +41,6 @@ class ScenarioScope internal constructor(
             tags = tags,
             steps = steps.toList(),
             background = backgroundSteps.toList(),
-            parameters = parameterScope.parameters.toMap()
+            parameters = parameterScope.parameters.toMap(),
         )
 }

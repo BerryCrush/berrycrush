@@ -106,5 +106,9 @@ internal interface ScenarioLikeScope {
         include(fragment)
     }
 
-    fun addStep(stepType: StepType, description: String, block: StepScope.() -> Unit)
+    fun addStep(
+        stepType: StepType,
+        description: String,
+        block: StepScope.() -> Unit,
+    )
 }

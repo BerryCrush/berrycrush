@@ -1,5 +1,6 @@
 package org.berrycrush.executor.resolvers
 
+import org.berrycrush.config.BindingConfig
 import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.HttpRequestBuilder
 import org.berrycrush.model.BodyProperty
@@ -114,7 +115,7 @@ private class DefaultUrlResolver(
         queryParams: Map<String, Any>?,
     ): String =
         httpBuilder.buildUrl(
-            baseUrl = configuration.bindings[step.specName ?: "default"]?.baseUrl ?: spec.baseUrl,
+            baseUrl = configuration.bindings[step.specName ?: BindingConfig.DEFAULT_BINDING_NAME]?.baseUrl ?: spec.baseUrl,
             path = operation.path,
             pathParams = context.resolveParams(pathParams ?: step.pathParams),
             queryParams = context.resolveParams(queryParams ?: step.queryParams),

@@ -129,7 +129,7 @@ class BerryCrushExtension :
         }
 
         // Apply base URL from "default" spec or first spec
-        val defaultSpec = specs.find { it.name == "default" } ?: specs.firstOrNull()
+        val defaultSpec = specs.find { it.name == BerryCrushBindings.DEFAULT_BINDING_NAME } ?: specs.firstOrNull()
         defaultSpec?.baseUrl?.takeIf { it.isNotBlank() }?.let {
             suite.configuration.baseUrl = it
         }

@@ -1,6 +1,7 @@
 package org.berrycrush.openapi
 
 import io.swagger.v3.oas.models.OpenAPI
+import org.berrycrush.config.BindingConfig
 import org.berrycrush.config.SpecConfiguration
 import org.berrycrush.exception.ConfigurationException
 import org.berrycrush.exception.OperationNotFoundException
@@ -53,7 +54,7 @@ class SpecRegistry {
         path: String,
         config: SpecConfiguration.() -> Unit = {},
     ) {
-        register("default", path, config)
+        register(BindingConfig.DEFAULT_BINDING_NAME, path, config)
     }
 
     /**

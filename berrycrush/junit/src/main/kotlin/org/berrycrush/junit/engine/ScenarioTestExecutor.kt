@@ -196,7 +196,7 @@ class ScenarioTestExecutor(
         resolvedPath: String,
         value: String?,
     ) {
-        if (name == "default") {
+        if (name == BerryCrushBindings.DEFAULT_BINDING_NAME) {
             spec(resolvedPath) {
                 value.takeIf { it?.isNotBlank() ?: false }?.let { baseUrl = it }
             }
