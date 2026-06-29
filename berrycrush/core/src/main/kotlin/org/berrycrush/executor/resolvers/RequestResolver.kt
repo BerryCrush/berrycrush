@@ -114,7 +114,7 @@ private class DefaultUrlResolver(
         queryParams: Map<String, Any>?,
     ): String =
         httpBuilder.buildUrl(
-            baseUrl = configuration.baseUrl ?: spec.baseUrl,
+            baseUrl = configuration.bindings[step.specName ?: "default"]?.baseUrl ?: spec.baseUrl,
             path = operation.path,
             pathParams = context.resolveParams(pathParams ?: step.pathParams),
             queryParams = context.resolveParams(queryParams ?: step.queryParams),

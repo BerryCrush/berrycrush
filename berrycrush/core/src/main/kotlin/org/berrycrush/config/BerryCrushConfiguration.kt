@@ -28,7 +28,6 @@ private const val DEFAULT_MAX_ERROR_BODY_SIZE = 4096
  * @property errorContextConfig Configuration for error context in exception messages
  */
 data class BerryCrushConfiguration(
-    var baseUrl: String? = null,
     var timeout: Duration = Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS),
     val defaultHeaders: MutableMap<String, String> = mutableMapOf(),
     var environment: String? = null,
@@ -90,7 +89,15 @@ data class BerryCrushConfiguration(
      * @see RetryConfig
      */
     var retryConfig: RetryConfig = RetryConfig.DISABLED,
+    var bindings: MutableMap<String, BindingConfig> = mutableMapOf(),
 ) {
+    var baseUrl: String?
+        get() = bindings["default"]?.baseUrl
+        set(value) {
+            bindings.compute("default") { _, binding ->
+                binding?.copy(baseUrl = value) ?: BindingConfig(value)
+        }}
+
     /**
      * DSL helper to set timeout in seconds.
      */
@@ -179,7 +186,7 @@ data class BerryCrushConfiguration(
         value: Any,
     ) {
         when {
-            key == "baseUrl" -> baseUrl = value.toString()
+            key == "baseUrl" -> applyBindingParam("baseUrl", value)
             key == "timeout" -> timeout = parseTimeout(value)
             key == "environment" -> environment = value.toString()
             key == "strictSchemaValidation" -> strictSchemaValidation = value.toString().toBoolean()
@@ -193,6 +200,7 @@ data class BerryCrushConfiguration(
             key.startsWith("autoAssertions.") -> applyAutoAssertionParam(key, value)
             key.startsWith("errorContext.") -> applyErrorContextParam(key, value)
             key.startsWith("retry.") -> applyRetryParam(key, value)
+            key.startsWith("binding.") -> applyBindingParam(key.removePrefix("binding."), value)
         }
     }
 
@@ -237,6 +245,22 @@ data class BerryCrushConfiguration(
                 retryConfig = retryConfig.copy(backoff = parseBackoffStrategy(value))
             "retry.jitter" ->
                 retryConfig = retryConfig.copy(jitter = value.toString().toBoolean())
+        }
+    }
+
+    private fun applyBindingParam(
+        key: String,
+        value: Any,
+    ) {
+        val (name, param) = key.indexOf('.').let {
+            if (it == -1) "default" to key
+            else key.substring(0, it) to key.substring(it + 1)
+        }
+        bindings.compute(name) { _, binding ->
+            when (param) {
+                "baseUrl" -> binding?.copy(baseUrl = value.toString()) ?: BindingConfig(baseUrl = value.toString())
+                else -> binding
+            }
         }
     }
 

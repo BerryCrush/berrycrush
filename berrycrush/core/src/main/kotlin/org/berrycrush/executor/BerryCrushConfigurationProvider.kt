@@ -9,6 +9,7 @@ import org.berrycrush.logging.HttpLogFormatter
 import org.berrycrush.logging.HttpLogger
 import org.berrycrush.logging.HttpLoggerFactory
 import java.time.Duration
+import org.berrycrush.config.BindingConfig
 
 /**
  * Configuration provider
@@ -30,7 +31,7 @@ interface BerryCrushConfigurationProvider {
     val multiTestConcurrentCount: Int
     val errorContextConfig: ErrorContextConfig
     val retryConfig: RetryConfig
-
+    val bindings: Map<String, BindingConfig>
     /**
      * Get the effective HTTP logger.
      * Returns the custom logger if set, otherwise creates one from the factory.
@@ -96,6 +97,8 @@ private class BerryCrushConfigurationWrapper(
         get() = configuration.errorContextConfig
     override val retryConfig: RetryConfig
         get() = configuration.retryConfig
+    override val bindings: Map<String, BindingConfig>
+        get() = configuration.bindings
 
     override fun <R> withParameters(
         parameters: Map<String, Any>,

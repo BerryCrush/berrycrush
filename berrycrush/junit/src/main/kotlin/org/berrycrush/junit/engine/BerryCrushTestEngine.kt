@@ -17,6 +17,7 @@ import java.util.ServiceLoader
 import kotlin.reflect.KClass
 import kotlin.reflect.full.hasAnnotation
 import kotlin.reflect.full.memberFunctions
+import org.junit.platform.engine.EngineExecutionListener
 
 /**
  * JUnit 5 TestEngine implementation for BerryCrush scenarios.
@@ -131,7 +132,7 @@ class BerryCrushTestEngine : TestEngine {
 
     private fun executeClassDescriptor(
         classDescriptor: ClassTestDescriptor,
-        listener: org.junit.platform.engine.EngineExecutionListener,
+        listener: EngineExecutionListener,
     ) {
         listener.executionStarted(classDescriptor)
 

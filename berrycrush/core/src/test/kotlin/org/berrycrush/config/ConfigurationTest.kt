@@ -113,9 +113,9 @@ class ConfigurationTest {
     fun `should not modify original configuration`() {
         val config =
             BerryCrushConfiguration(
-                baseUrl = "http://original.com",
                 timeout = Duration.ofSeconds(10),
             )
+        config.baseUrl = "http://original.com"
         config.defaultHeaders["Original"] = "value"
 
         val modified =
@@ -157,7 +157,9 @@ class ConfigurationTest {
 
     @Test
     fun `should ignore unknown parameters`() {
-        val config = BerryCrushConfiguration(baseUrl = "http://original.com")
+        val config = BerryCrushConfiguration().apply {
+            baseUrl = "http://original.com"
+        }
         val modified =
             config.withParameters(
                 mapOf(
@@ -171,7 +173,9 @@ class ConfigurationTest {
 
     @Test
     fun `should handle empty parameters map`() {
-        val config = BerryCrushConfiguration(baseUrl = "http://original.com")
+        val config = BerryCrushConfiguration().apply {
+            baseUrl = "http://original.com"
+        }
         val modified = config.withParameters(emptyMap())
 
         assertEquals("http://original.com", modified.baseUrl)
