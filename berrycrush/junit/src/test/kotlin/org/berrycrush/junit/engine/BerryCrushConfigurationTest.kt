@@ -17,7 +17,7 @@ class BerryCrushConfigurationTest {
     @Test
     fun `ClassTestDescriptor reads configuration annotation`() {
         val uniqueId = UniqueId.forEngine("berrycrush").append("class", ConfiguredTestStub::class.java.name)
-        val descriptor = ClassTestDescriptor(uniqueId, ConfiguredTestStub::class.java)
+        val descriptor = ClassTestDescriptor(uniqueId, ConfiguredTestStub::class)
 
         assertNotNull(descriptor.bindingsClass)
         assertEquals(TestBindings::class.java, descriptor.bindingsClass)
@@ -28,7 +28,7 @@ class BerryCrushConfigurationTest {
     @Test
     fun `ClassTestDescriptor uses defaults without configuration`() {
         val uniqueId = UniqueId.forEngine("berrycrush").append("class", UnconfiguredTestStub::class.java.name)
-        val descriptor = ClassTestDescriptor(uniqueId, UnconfiguredTestStub::class.java)
+        val descriptor = ClassTestDescriptor(uniqueId, UnconfiguredTestStub::class)
 
         assertEquals(null, descriptor.bindingsClass)
         assertEquals(null, descriptor.openApiSpec)
@@ -39,7 +39,7 @@ class BerryCrushConfigurationTest {
     @Test
     fun `ClassTestDescriptor reads parallelExecution configuration`() {
         val uniqueId = UniqueId.forEngine("berrycrush").append("class", SequentialTestStub::class.java.name)
-        val descriptor = ClassTestDescriptor(uniqueId, SequentialTestStub::class.java)
+        val descriptor = ClassTestDescriptor(uniqueId, SequentialTestStub::class)
 
         assertEquals(ParallelExecutionMode.SAME_THREAD, descriptor.parallelExecution)
     }
@@ -47,7 +47,7 @@ class BerryCrushConfigurationTest {
     @Test
     fun `default parallelExecution is CONCURRENT`() {
         val uniqueId = UniqueId.forEngine("berrycrush").append("class", ConfiguredTestStub::class.java.name)
-        val descriptor = ClassTestDescriptor(uniqueId, ConfiguredTestStub::class.java)
+        val descriptor = ClassTestDescriptor(uniqueId, ConfiguredTestStub::class)
 
         assertEquals(ParallelExecutionMode.CONCURRENT, descriptor.parallelExecution)
     }

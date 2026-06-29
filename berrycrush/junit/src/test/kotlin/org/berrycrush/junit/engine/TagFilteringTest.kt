@@ -18,7 +18,7 @@ class TagFilteringTest {
     @Test
     fun `ClassTestDescriptor reads include tags from annotation`() {
         val uniqueId = UniqueId.forEngine("berrycrush").append("class", IncludeOnlyTagsStub::class.java.name)
-        val descriptor = ClassTestDescriptor(uniqueId, IncludeOnlyTagsStub::class.java)
+        val descriptor = ClassTestDescriptor(uniqueId, IncludeOnlyTagsStub::class)
 
         assertEquals(setOf("smoke", "api"), descriptor.includeTags)
         assertEquals(emptySet(), descriptor.excludeTags)
@@ -27,7 +27,7 @@ class TagFilteringTest {
     @Test
     fun `ClassTestDescriptor reads exclude tags from annotation`() {
         val uniqueId = UniqueId.forEngine("berrycrush").append("class", ExcludeOnlyTagsStub::class.java.name)
-        val descriptor = ClassTestDescriptor(uniqueId, ExcludeOnlyTagsStub::class.java)
+        val descriptor = ClassTestDescriptor(uniqueId, ExcludeOnlyTagsStub::class)
 
         assertEquals(emptySet(), descriptor.includeTags)
         assertEquals(setOf("ignore", "wip"), descriptor.excludeTags)
@@ -36,7 +36,7 @@ class TagFilteringTest {
     @Test
     fun `ClassTestDescriptor reads both include and exclude tags`() {
         val uniqueId = UniqueId.forEngine("berrycrush").append("class", CombinedTagsStub::class.java.name)
-        val descriptor = ClassTestDescriptor(uniqueId, CombinedTagsStub::class.java)
+        val descriptor = ClassTestDescriptor(uniqueId, CombinedTagsStub::class)
 
         assertEquals(setOf("api"), descriptor.includeTags)
         assertEquals(setOf("ignore"), descriptor.excludeTags)
@@ -45,7 +45,7 @@ class TagFilteringTest {
     @Test
     fun `shouldExecuteScenario returns true when no tags configured`() {
         val uniqueId = UniqueId.forEngine("berrycrush").append("class", NoTagsStub::class.java.name)
-        val descriptor = ClassTestDescriptor(uniqueId, NoTagsStub::class.java)
+        val descriptor = ClassTestDescriptor(uniqueId, NoTagsStub::class)
 
         // No tags configured - all scenarios should run
         assertTrue(descriptor.shouldExecuteScenario(emptySet()))
@@ -57,7 +57,7 @@ class TagFilteringTest {
     @Test
     fun `shouldExecuteScenario with include filter accepts matching scenario`() {
         val uniqueId = UniqueId.forEngine("berrycrush").append("class", IncludeOnlyTagsStub::class.java.name)
-        val descriptor = ClassTestDescriptor(uniqueId, IncludeOnlyTagsStub::class.java)
+        val descriptor = ClassTestDescriptor(uniqueId, IncludeOnlyTagsStub::class)
 
         // Scenario has @smoke tag which is in include set
         assertTrue(descriptor.shouldExecuteScenario(setOf("smoke")))
@@ -70,7 +70,7 @@ class TagFilteringTest {
     @Test
     fun `shouldExecuteScenario with include filter rejects non-matching scenario`() {
         val uniqueId = UniqueId.forEngine("berrycrush").append("class", IncludeOnlyTagsStub::class.java.name)
-        val descriptor = ClassTestDescriptor(uniqueId, IncludeOnlyTagsStub::class.java)
+        val descriptor = ClassTestDescriptor(uniqueId, IncludeOnlyTagsStub::class)
 
         // Scenario has no tags - doesn't match include filter
         assertFalse(descriptor.shouldExecuteScenario(emptySet()))
@@ -84,7 +84,7 @@ class TagFilteringTest {
     @Test
     fun `shouldExecuteScenario with exclude filter rejects matching scenario`() {
         val uniqueId = UniqueId.forEngine("berrycrush").append("class", ExcludeOnlyTagsStub::class.java.name)
-        val descriptor = ClassTestDescriptor(uniqueId, ExcludeOnlyTagsStub::class.java)
+        val descriptor = ClassTestDescriptor(uniqueId, ExcludeOnlyTagsStub::class)
 
         // Scenario has @ignore tag which is in exclude set
         assertFalse(descriptor.shouldExecuteScenario(setOf("ignore")))
@@ -99,7 +99,7 @@ class TagFilteringTest {
     @Test
     fun `shouldExecuteScenario with exclude filter accepts non-matching scenario`() {
         val uniqueId = UniqueId.forEngine("berrycrush").append("class", ExcludeOnlyTagsStub::class.java.name)
-        val descriptor = ClassTestDescriptor(uniqueId, ExcludeOnlyTagsStub::class.java)
+        val descriptor = ClassTestDescriptor(uniqueId, ExcludeOnlyTagsStub::class)
 
         // Scenario has no tags - OK
         assertTrue(descriptor.shouldExecuteScenario(emptySet()))
@@ -113,7 +113,7 @@ class TagFilteringTest {
     @Test
     fun `shouldExecuteScenario with combined filters - exclude takes precedence`() {
         val uniqueId = UniqueId.forEngine("berrycrush").append("class", CombinedTagsStub::class.java.name)
-        val descriptor = ClassTestDescriptor(uniqueId, CombinedTagsStub::class.java)
+        val descriptor = ClassTestDescriptor(uniqueId, CombinedTagsStub::class)
 
         // CRITICAL TEST: Scenario has BOTH @api (in include) AND @ignore (in exclude)
         // The @ignore should cause exclusion even though @api matches include
@@ -126,7 +126,7 @@ class TagFilteringTest {
     @Test
     fun `shouldExecuteScenario with combined filters accepts api-only scenario`() {
         val uniqueId = UniqueId.forEngine("berrycrush").append("class", CombinedTagsStub::class.java.name)
-        val descriptor = ClassTestDescriptor(uniqueId, CombinedTagsStub::class.java)
+        val descriptor = ClassTestDescriptor(uniqueId, CombinedTagsStub::class)
 
         // Scenario has @api but not @ignore - should be included
         assertTrue(descriptor.shouldExecuteScenario(setOf("api")))
@@ -137,7 +137,7 @@ class TagFilteringTest {
     @Test
     fun `shouldExecuteScenario with combined filters rejects ignore-only scenario`() {
         val uniqueId = UniqueId.forEngine("berrycrush").append("class", CombinedTagsStub::class.java.name)
-        val descriptor = ClassTestDescriptor(uniqueId, CombinedTagsStub::class.java)
+        val descriptor = ClassTestDescriptor(uniqueId, CombinedTagsStub::class)
 
         // Scenario has @ignore but not @api - excluded by both filters
         assertFalse(descriptor.shouldExecuteScenario(setOf("ignore")))
@@ -146,7 +146,7 @@ class TagFilteringTest {
     @Test
     fun `shouldExecuteScenario with combined filters rejects non-api scenario`() {
         val uniqueId = UniqueId.forEngine("berrycrush").append("class", CombinedTagsStub::class.java.name)
-        val descriptor = ClassTestDescriptor(uniqueId, CombinedTagsStub::class.java)
+        val descriptor = ClassTestDescriptor(uniqueId, CombinedTagsStub::class)
 
         // Scenario has no @api - excluded by include filter
         assertFalse(descriptor.shouldExecuteScenario(emptySet()))

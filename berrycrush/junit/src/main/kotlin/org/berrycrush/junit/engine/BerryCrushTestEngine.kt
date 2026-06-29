@@ -13,6 +13,10 @@ import org.junit.platform.engine.UniqueId
 import org.junit.platform.engine.discovery.ClassSelector
 import org.junit.platform.engine.discovery.PackageSelector
 import java.util.ServiceLoader
+import kotlin.reflect.KClass
+import kotlin.reflect.full.hasAnnotation
+import kotlin.reflect.full.memberFunctions
+import org.berrycrush.junit.BerryCrushSpecs
 
 /**
  * JUnit 5 TestEngine implementation for BerryCrush scenarios.
@@ -69,15 +73,16 @@ class BerryCrushTestEngine : TestEngine {
                 collectFromPackageSelectors(discoveryRequest)
 
         // Discover scenarios for each unique test class with @BerryCrushScenarios
-        testClasses
+        val classes = testClasses
             .distinct()
-            .filter { it.isAnnotationPresent(BerryCrushScenarios::class.java) }
+
+        classes
+            .filter { it.hasAnnotation<BerryCrushScenarios>() }
             .forEach { ScenarioTestDiscoverer.discoverScenariosForClass(engineDescriptor, it, filters) }
 
         // Discover @ScenarioTest methods for classes with @BerryCrushSpec
-        testClasses
-            .distinct()
-            .filter { it.isAnnotationPresent(BerryCrushSpec::class.java) }
+        classes
+            .filter { it.hasAnnotation<BerryCrushSpec>() || it.hasAnnotation<BerryCrushSpecs>() }
             .filter { hasScenarioMethods(it) }
             .forEach { ScenarioMethodDiscoverer.discoverScenariosForClass(engineDescriptor, it) }
 
@@ -87,8 +92,8 @@ class BerryCrushTestEngine : TestEngine {
     /**
      * Check if a class has any methods annotated with @ScenarioTest.
      */
-    private fun hasScenarioMethods(testClass: Class<*>): Boolean =
-        testClass.declaredMethods.any { it.isAnnotationPresent(ScenarioTest::class.java) }
+    private fun hasScenarioMethods(testClass: KClass<*>): Boolean =
+        testClass.memberFunctions.any { it.hasAnnotation<ScenarioTest>() }
 
     override fun execute(request: ExecutionRequest) {
         val engineDescriptor = request.rootTestDescriptor
@@ -105,17 +110,19 @@ class BerryCrushTestEngine : TestEngine {
         listener.executionFinished(engineDescriptor, TestExecutionResult.successful())
     }
 
-    private fun collectFromClassSelectors(request: EngineDiscoveryRequest): List<Class<*>> =
+    private fun collectFromClassSelectors(request: EngineDiscoveryRequest): List<KClass<*>> =
         request
             .getSelectorsByType(ClassSelector::class.java)
             .flatMap { selector ->
                 listOfNotNull(
-                    selector.javaClass.takeIf { it.isAnnotationPresent(BerryCrushScenarios::class.java) },
-                    runCatching { Class.forName(selector.javaClass.name) }.getOrNull(),
+                    selector.javaClass.kotlin.takeIf { it.hasAnnotation<BerryCrushScenarios>() },
+                    runCatching { Class.forName(selector.javaClass.name) }
+                        .map { it.kotlin }
+                        .getOrNull(),
                 )
             }
 
-    private fun collectFromPackageSelectors(request: EngineDiscoveryRequest): List<Class<*>> =
+    private fun collectFromPackageSelectors(request: EngineDiscoveryRequest): List<KClass<*>> =
         // Package scanning requires classpath scanning which is complex
         // For now, rely on explicit class selectors
         request

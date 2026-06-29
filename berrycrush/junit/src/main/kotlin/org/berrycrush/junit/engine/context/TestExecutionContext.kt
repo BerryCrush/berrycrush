@@ -21,6 +21,8 @@ import org.berrycrush.util.StepRegistry
 import org.junit.platform.engine.EngineExecutionListener
 import org.junit.platform.engine.TestExecutionResult
 import java.util.logging.Logger
+import kotlin.reflect.full.primaryConstructor
+import kotlin.reflect.jvm.jvmName
 
 private val logger = Logger.getLogger(TestExecutionContext::class.java.name)
 
@@ -80,8 +82,9 @@ private fun TestExecutionContext.executeScenarioMethod(
     runCatching {
         // Create test instance - use Spring-managed instance if available
         val testInstance =
-            provider?.createTestInstance(classDescriptor.testClass)
-                ?: classDescriptor.testClass.getDeclaredConstructor().newInstance()
+            provider?.createTestInstance(classDescriptor.testClass.java)
+                ?: classDescriptor.testClass.primaryConstructor?.call()
+                ?: throw IllegalStateException("Test class ${classDescriptor.testClass.simpleName} not found")
 
         // Invoke the @Scenario method to get the Scenario
         val scenario = scenarioDescriptor.invokeMethod(testInstance, suite)
@@ -98,8 +101,8 @@ private fun TestExecutionContext.executeScenarioMethod(
             when (result.status) {
                 ResultStatus.PASSED -> TestExecutionResult.successful()
                 ResultStatus.SKIPPED -> TestExecutionResult.aborted(null)
-                ResultStatus.FAILED -> TestExecutionResult.failed(AssertionError("Scenario failed"))
-                ResultStatus.ERROR -> TestExecutionResult.failed(AssertionError("Scenario got error", result.stepResults.last().error))
+                ResultStatus.FAILED -> TestExecutionResult.failed(result.stepResults.lastOrNull { it.status == ResultStatus.FAILED }?.error ?: AssertionError("Scenario failed"))
+                ResultStatus.ERROR -> TestExecutionResult.failed(result.stepResults.lastOrNull { it.status == ResultStatus.ERROR }?.error ?: AssertionError("Scenario got error"))
                 ResultStatus.PENDING -> TestExecutionResult.aborted(null)
             }
         listener.executionFinished(scenarioDescriptor, testResult)
@@ -151,7 +154,7 @@ private fun TestExecutionContext.buildFileContext(
     if (classDescriptor.parallelExecution == ParallelExecutionMode.CONCURRENT) {
         logger.warning {
             "File '${fileDescriptor.scenarioPath}' uses shareVariablesAcrossScenarios=true " +
-                "but test class '${classDescriptor.testClass.name}' has CONCURRENT parallel execution. " +
+                "but test class '${classDescriptor.testClass.jvmName}' has CONCURRENT parallel execution. " +
                 "Consider using @BerryCrushConfiguration(parallelExecution = SAME_THREAD) " +
                 "to ensure scenarios execute sequentially."
         }

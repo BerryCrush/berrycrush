@@ -22,7 +22,7 @@ class ScenarioAnnotationTest {
 
         ScenarioMethodDiscoverer.discoverScenariosForClass(
             engineDescriptor,
-            TestClassWithScenarios::class.java,
+            TestClassWithScenarios::class,
         )
 
         // Should have one class descriptor
@@ -48,7 +48,7 @@ class ScenarioAnnotationTest {
 
         ScenarioMethodDiscoverer.discoverScenariosForClass(
             engineDescriptor,
-            TestClassWithScenarios::class.java,
+            TestClassWithScenarios::class,
         )
 
         val classDescriptor = engineDescriptor.children.first() as ClassTestDescriptor
@@ -73,7 +73,7 @@ class ScenarioAnnotationTest {
 
         ScenarioMethodDiscoverer.discoverScenariosForClass(
             engineDescriptor,
-            TestClassWithScenarios::class.java,
+            TestClassWithScenarios::class,
         )
 
         val classDescriptor = engineDescriptor.children.first() as ClassTestDescriptor
@@ -93,7 +93,7 @@ class ScenarioAnnotationTest {
 
         ScenarioMethodDiscoverer.discoverScenariosForClass(
             engineDescriptor,
-            TestClassWithScenarios::class.java,
+            TestClassWithScenarios::class,
         )
 
         val classDescriptor = engineDescriptor.children.first() as ClassTestDescriptor

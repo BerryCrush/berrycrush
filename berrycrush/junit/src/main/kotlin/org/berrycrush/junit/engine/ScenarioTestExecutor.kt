@@ -19,6 +19,8 @@ import org.berrycrush.scenario.ScenarioLoader
 import org.berrycrush.util.StepRegistry
 import org.junit.platform.engine.EngineExecutionListener
 import java.util.logging.Logger
+import kotlin.reflect.KClass
+import kotlin.reflect.full.findAnnotation
 
 /**
  * Responsible for executing scenario tests and reporting results.
@@ -60,15 +62,15 @@ class ScenarioTestExecutor(
         val provider = findBindingsProvider(classDescriptor.testClass)
 
         try {
-            provider?.initialize(classDescriptor.testClass)
+            provider?.initialize(classDescriptor.testClass.java)
             executeWithContext(classDescriptor, listener, provider)
         } finally {
-            runCatching { provider?.cleanup(classDescriptor.testClass) }
+            runCatching { provider?.cleanup(classDescriptor.testClass.java) }
                 .onFailure { logger.severe("Warning: BindingsProvider cleanup failed: ${it.message}") }
         }
     }
 
-    private fun findBindingsProvider(testClass: Class<*>): BindingsProvider? = bindingsProviders.firstOrNull { it.supports(testClass) }
+    private fun findBindingsProvider(testClass: KClass<*>): BindingsProvider? = bindingsProviders.firstOrNull { it.supports(testClass.java) }
 
     private fun executeWithContext(
         classDescriptor: ClassTestDescriptor,
@@ -211,7 +213,7 @@ class ScenarioTestExecutor(
      */
     private fun resolvePath(
         path: String,
-        testClass: Class<*>,
+        testClass: KClass<*>,
     ): String {
         if (!path.startsWith(CLASSPATH_PREFIX)) {
             return path
@@ -219,8 +221,8 @@ class ScenarioTestExecutor(
 
         val resourcePath = path.removePrefix(CLASSPATH_PREFIX)
         val resource =
-            testClass.getResource(resourcePath)
-                ?: testClass.classLoader.getResource(resourcePath.removePrefix("/"))
+            testClass.java.getResource(resourcePath)
+                ?: testClass.java.classLoader.getResource(resourcePath.removePrefix("/"))
                 ?: throw IllegalArgumentException(
                     "Classpath resource not found: $resourcePath. " +
                         "Make sure the file exists in src/test/resources or src/main/resources.",
@@ -236,7 +238,7 @@ class ScenarioTestExecutor(
         val bindingsClass = classDescriptor.bindingsClass ?: DefaultBindings::class.java
 
         return provider?.let {
-            runCatching { it.createBindings(classDescriptor.testClass, bindingsClass) }
+            runCatching { it.createBindings(classDescriptor.testClass.java, bindingsClass) }
                 .getOrElse { e ->
                     throw IllegalStateException(
                         "BindingsProvider failed to create bindings for class: ${bindingsClass.name}. " +
@@ -256,7 +258,7 @@ class ScenarioTestExecutor(
     private fun createPluginRegistry(classDescriptor: ClassTestDescriptor): PluginRegistry {
         val registry = PluginRegistry()
         val config =
-            classDescriptor.testClass.getAnnotation(BerryCrushConfiguration::class.java)
+            classDescriptor.testClass.findAnnotation<BerryCrushConfiguration>()
                 ?: return registry
 
         config.pluginClasses.forEach { pluginClass ->
@@ -284,7 +286,7 @@ class ScenarioTestExecutor(
 
         val loader = ScenarioLoader()
         FragmentDiscovery
-            .discoverFragments(classDescriptor.testClass.classLoader, fragmentLocations)
+            .discoverFragments(classDescriptor.testClass.java.classLoader, fragmentLocations)
             .forEach { fragment ->
                 runCatching {
                     fragment.url.openStream().use { input ->
@@ -305,14 +307,14 @@ class ScenarioTestExecutor(
      * Returns null if no step classes are configured.
      */
     private fun createStepRegistry(classDescriptor: ClassTestDescriptor): StepRegistry? =
-        RegistryFactory.createStepRegistry(classDescriptor.testClass)
+        RegistryFactory.createStepRegistry(classDescriptor.testClass.java)
 
     /**
      * Creates an AssertionRegistry with assertion definitions from @BerryCrushConfiguration.assertionClasses.
      * Returns null if no assertion classes are configured.
      */
     private fun createAssertionRegistry(classDescriptor: ClassTestDescriptor): AssertionRegistry? =
-        RegistryFactory.createAssertionRegistry(classDescriptor.testClass)
+        RegistryFactory.createAssertionRegistry(classDescriptor.testClass.java)
 
     companion object {
         private const val CLASSPATH_PREFIX = "classpath:"
