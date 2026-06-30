@@ -1,6 +1,8 @@
 package org.berrycrush.junit
 
 import org.berrycrush.exception.ConfigurationException
+import org.berrycrush.executor.BerryCrushScenarioExecutor
+import org.berrycrush.model.Scenario
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtensionContext
@@ -151,8 +153,11 @@ class BerryCrushExtensionInternalTest {
         extension.beforeAll(context)
 
         val suiteParam = parameterContext(parameterMethod("suiteParam"), 0)
-        val suite = extension.resolveParameter(suiteParam, context) as org.berrycrush.dsl.BerryCrushSuite
-        val scenario = suite.scenario("invocation scenario") {}
+        val suite = extension.resolveParameter(suiteParam, context) as BerryCrushSuite
+        val scenario =
+            Scenario(name = "invocation scenario").apply {
+                suite.add(this)
+            }
 
         val invocations = extension.provideTestTemplateInvocationContexts(context).toList()
         assertEquals(1, invocations.size)
@@ -354,13 +359,13 @@ private class PlainTemplateClass {
 
 @Suppress("UnusedParameter")
 private class ParameterFixtures {
-    fun suiteParam(unused: org.berrycrush.dsl.BerryCrushSuite) = Unit
+    fun suiteParam(unused: BerryCrushSuite) = Unit
 
     fun configParam(unused: org.berrycrush.config.BerryCrushConfiguration) = Unit
 
-    fun executorParam(unused: org.berrycrush.executor.BerryCrushScenarioExecutor) = Unit
+    fun executorParam(unused: BerryCrushScenarioExecutor) = Unit
 
     fun unsupportedParam(unused: String) = Unit
 
-    fun scenarioParam(unused: org.berrycrush.model.Scenario) = Unit
+    fun scenarioParam(unused: Scenario) = Unit
 }

@@ -1,6 +1,7 @@
 package org.berrycrush.junit.engine
 
 import org.berrycrush.junit.ScenarioTest
+import org.berrycrush.model.Scenario
 import org.junit.jupiter.api.Disabled
 import org.junit.platform.engine.support.descriptor.EngineDescriptor
 import kotlin.reflect.KClass
@@ -29,7 +30,7 @@ object ScenarioMethodDiscoverer {
         val existingClassDescriptor =
             engineDescriptor.children
                 .filterIsInstance<ClassTestDescriptor>()
-                .find { it.testClass == testClass.java }
+                .find { it.testClass == testClass }
 
         val classDescriptor =
             existingClassDescriptor ?: run {
@@ -46,6 +47,7 @@ object ScenarioMethodDiscoverer {
         testClass.declaredFunctions
             .filter { it.hasAnnotation<ScenarioTest>() }
             .filter { !it.hasAnnotation<Disabled>() }
+            .filter { it.returnType.classifier == Scenario::class }
             .forEach { method ->
                 val methodId = classDescriptor.uniqueId.append("scenario", method.name)
                 val displayName = formatDisplayName(method.name)

@@ -173,6 +173,7 @@ data class BerryCrushConfiguration(
                 autoAssertions = this.autoAssertions.copy(),
                 errorContextConfig = this.errorContextConfig.copy(),
                 retryConfig = this.retryConfig.copy(),
+                bindings = this.bindings.toMutableMap(),
             )
 
         for ((key, value) in parameters) {
@@ -197,6 +198,15 @@ data class BerryCrushConfiguration(
             key == "shareVariablesAcrossScenarios" -> shareVariablesAcrossScenarios = value.toString().toBoolean()
             key == "multiTestSequentialCount" -> multiTestSequentialCount = parseIntOrDefault(value, multiTestSequentialCount)
             key == "multiTestConcurrentCount" -> multiTestConcurrentCount = parseIntOrDefault(value, multiTestConcurrentCount)
+            else -> applyPrefixedParameter(key, value)
+        }
+    }
+
+    private fun applyPrefixedParameter(
+        key: String,
+        value: Any,
+    ) {
+        when {
             key.startsWith("header.") -> defaultHeaders[key.removePrefix("header.")] = value.toString()
             key.startsWith("autoAssertions.") -> applyAutoAssertionParam(key, value)
             key.startsWith("errorContext.") -> applyErrorContextParam(key, value)

@@ -2,9 +2,9 @@ package org.berrycrush.junit.engine.context
 
 import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.context.ExecutionContext
-import org.berrycrush.dsl.BerryCrushSuite
 import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.junit.BerryCrushBindings
+import org.berrycrush.junit.BerryCrushSuite
 import org.berrycrush.junit.ParallelExecutionMode
 import org.berrycrush.junit.engine.ClassTestDescriptor
 import org.berrycrush.junit.engine.ScenarioFileDescriptor

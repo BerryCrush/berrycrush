@@ -1,13 +1,15 @@
 package org.berrycrush.junit.engine
 
-import org.berrycrush.dsl.BerryCrushSuite
+import org.berrycrush.junit.BerryCrushSuite
 import org.berrycrush.junit.ScenarioTest
+import org.berrycrush.model.Scenario
+import org.berrycrush.model.Step
+import org.berrycrush.model.StepType
 import org.junit.jupiter.api.Test
 import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.UniqueId
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import org.berrycrush.model.Scenario as BerryScenario
 
 class ScenarioMethodDescriptorEdgeTest {
     @Test
@@ -51,10 +53,7 @@ class ScenarioMethodDescriptorEdgeTest {
 private class InvalidScenarioMethods {
     @ScenarioTest
     @Suppress("UnusedParameter")
-    fun unsupportedParam(unused: String): BerryScenario =
-        BerryCrushSuite.create().scenario("invalid") {
-            whenever("noop") {}
-        }
+    fun unsupportedParam(unused: String) = Scenario(name = "invalid", steps = listOf(Step(type = StepType.WHEN, description = "noop")))
 
     @ScenarioTest
     @Suppress("FunctionOnlyReturningConstant")

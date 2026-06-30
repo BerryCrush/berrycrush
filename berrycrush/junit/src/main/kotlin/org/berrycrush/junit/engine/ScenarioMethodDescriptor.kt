@@ -1,6 +1,6 @@
 package org.berrycrush.junit.engine
 
-import org.berrycrush.dsl.BerryCrushSuite
+import org.berrycrush.junit.BerryCrushSuite
 import org.berrycrush.model.Scenario
 import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.UniqueId
@@ -63,8 +63,8 @@ class ScenarioMethodDescriptor(
         val args =
             params
                 .map { param ->
-                    when (param.type) {
-                        BerryCrushSuite::class.java -> suite
+                    when {
+                        BerryCrushSuite::class.java.isAssignableFrom(param.type) -> suite
                         else -> throw IllegalArgumentException(
                             "Unsupported parameter type ${param.type.name} in @Scenario method ${method.name}. " +
                                 "Only BerryCrushSuite is supported.",

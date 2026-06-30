@@ -22,7 +22,7 @@ class FragmentScope internal constructor(
         description: String,
         block: FragmentStepScope.() -> Unit = {},
     ) {
-        addStep(org.berrycrush.model.StepType.GIVEN, description, block)
+        addStep(StepType.GIVEN, description, block)
     }
 
     /**
@@ -32,7 +32,7 @@ class FragmentScope internal constructor(
         description: String,
         block: FragmentStepScope.() -> Unit = {},
     ) {
-        addStep(org.berrycrush.model.StepType.WHEN, description, block)
+        addStep(StepType.WHEN, description, block)
     }
 
     /**
@@ -42,7 +42,7 @@ class FragmentScope internal constructor(
         description: String,
         block: FragmentStepScope.() -> Unit = {},
     ) {
-        addStep(org.berrycrush.model.StepType.THEN, description, block)
+        addStep(StepType.THEN, description, block)
     }
 
     /**
@@ -52,7 +52,7 @@ class FragmentScope internal constructor(
         description: String,
         block: FragmentStepScope.() -> Unit = {},
     ) {
-        addStep(org.berrycrush.model.StepType.AND, description, block)
+        addStep(StepType.AND, description, block)
     }
 
     // ========== Scenario File Compatibility Aliases ==========

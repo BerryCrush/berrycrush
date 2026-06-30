@@ -1,5 +1,6 @@
 package org.berrycrush.dsl
 
+import org.berrycrush.junit.BerryCrushSuite
 import org.berrycrush.model.Fragment
 import org.berrycrush.model.Scenario
 import org.berrycrush.model.Step

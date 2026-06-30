@@ -1,6 +1,5 @@
 package org.berrycrush.junit
 
-import org.berrycrush.dsl.BerryCrushSuite
 import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith

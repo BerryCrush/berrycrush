@@ -2,10 +2,10 @@ package org.berrycrush.junit.engine
 
 import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.context.ExecutionContext
-import org.berrycrush.dsl.BerryCrushSuite
 import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.junit.BerryCrushBindings
 import org.berrycrush.junit.BerryCrushConfiguration
+import org.berrycrush.junit.BerryCrushSuite
 import org.berrycrush.junit.DefaultBindings
 import org.berrycrush.junit.ParallelExecutionMode
 import org.berrycrush.junit.binding.OpenApiSpecValue
@@ -196,14 +196,8 @@ class ScenarioTestExecutor(
         resolvedPath: String,
         value: String?,
     ) {
-        if (name == BerryCrushBindings.DEFAULT_BINDING_NAME) {
-            spec(resolvedPath) {
-                value.takeIf { it?.isNotBlank() ?: false }?.let { baseUrl = it }
-            }
-        } else {
-            spec(name, resolvedPath) {
-                value.takeIf { it?.isNotBlank() ?: false }?.let { baseUrl = it }
-            }
+        specRegistry.register(name, resolvedPath) {
+            value.takeIf { it?.isNotBlank() ?: false }?.let { baseUrl = it }
         }
     }
 

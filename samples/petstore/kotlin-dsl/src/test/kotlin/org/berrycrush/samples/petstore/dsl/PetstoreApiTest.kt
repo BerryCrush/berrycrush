@@ -1,8 +1,9 @@
 package org.berrycrush.samples.petstore.dsl
 
-import org.berrycrush.dsl.BerryCrushSuite
+import org.berrycrush.dsl.scenario
 import org.berrycrush.junit.BerryCrushExtension
 import org.berrycrush.junit.BerryCrushSpec
+import org.berrycrush.junit.BerryCrushSuite
 import org.berrycrush.junit.ScenarioTest
 import org.berrycrush.model.Scenario
 import org.berrycrush.samples.petstore.PetstoreApplication

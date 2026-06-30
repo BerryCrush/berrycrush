@@ -1,11 +1,18 @@
 package org.berrycrush.samples.petstore.dsl
 
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.berrycrush.config.BerryCrushConfiguration
-import org.berrycrush.dsl.BerryCrushSuite
 import org.berrycrush.dsl.berrycrush
+import org.berrycrush.dsl.configure
+import org.berrycrush.dsl.fragment
+import org.berrycrush.dsl.scenario
+import org.berrycrush.dsl.scenarioOutline
+import org.berrycrush.dsl.spec
 import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.junit.BerryCrushExtension
 import org.berrycrush.junit.BerryCrushSpec
+import org.berrycrush.junit.BerryCrushSuite
 import org.berrycrush.junit.ScenarioTest
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Scenario
@@ -19,8 +26,6 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 /**
  * Comprehensive Kotlin DSL tests for the BerryCrush library.
