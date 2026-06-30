@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm")
     id("berrycrush.test-config")
+    kotlin("plugin.spring")
 }
 
 dependencies {
@@ -23,6 +24,7 @@ dependencies {
 
     // Spring Boot test for running the app
     testImplementation(libs.spring.boot.starter.test)
+    implementation(kotlin("stdlib"))
 }
 
 tasks.test {
