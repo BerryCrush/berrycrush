@@ -3,6 +3,7 @@ package org.berrycrush.executor
 import org.berrycrush.autotest.MultiTestParameters
 import org.berrycrush.config.AutoAssertionConfig
 import org.berrycrush.config.BerryCrushConfiguration
+import org.berrycrush.config.BindingConfig
 import org.berrycrush.config.RetryConfig
 import org.berrycrush.exception.ErrorContextConfig
 import org.berrycrush.logging.HttpLogFormatter
@@ -30,6 +31,7 @@ interface BerryCrushConfigurationProvider {
     val multiTestConcurrentCount: Int
     val errorContextConfig: ErrorContextConfig
     val retryConfig: RetryConfig
+    val bindings: Map<String, BindingConfig>
 
     /**
      * Get the effective HTTP logger.
@@ -96,6 +98,8 @@ private class BerryCrushConfigurationWrapper(
         get() = configuration.errorContextConfig
     override val retryConfig: RetryConfig
         get() = configuration.retryConfig
+    override val bindings: Map<String, BindingConfig>
+        get() = configuration.bindings
 
     override fun <R> withParameters(
         parameters: Map<String, Any>,

@@ -1,10 +1,13 @@
 package org.berrycrush.samples.petstore.dsl
 
+import kotlin.test.assertEquals
 import org.berrycrush.config.BerryCrushConfiguration
-import org.berrycrush.dsl.BerryCrushSuite
+import org.berrycrush.dsl.fragment
+import org.berrycrush.dsl.scenario
 import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.junit.BerryCrushExtension
 import org.berrycrush.junit.BerryCrushSpec
+import org.berrycrush.junit.BerryCrushSuite
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.samples.petstore.PetstoreApplication
 import org.junit.jupiter.api.BeforeEach
@@ -15,7 +18,6 @@ import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
-import kotlin.test.assertEquals
 
 /**
  * Tests for enhanced Kotlin DSL features:

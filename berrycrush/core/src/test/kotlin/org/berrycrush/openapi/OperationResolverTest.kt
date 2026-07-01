@@ -12,10 +12,7 @@ class OperationResolverTest {
     private val parser = SwaggerParserAdapter()
 
     private fun loadPetstoreResolver(): OperationResolver {
-        val specPath =
-            javaClass.getResource("/petstore.yaml")?.path
-                ?: error("petstore.yaml not found in test resources")
-        val spec = parser.parse(specPath)
+        val spec = parser.parse("/petstore.yaml")
         return OperationResolver(spec)
     }
 

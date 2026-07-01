@@ -1,6 +1,7 @@
 package org.berrycrush.junit
 
-import org.berrycrush.exception.ConfigurationException
+import org.berrycrush.executor.BerryCrushScenarioExecutor
+import org.berrycrush.model.Scenario
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtensionContext
@@ -9,7 +10,6 @@ import java.lang.reflect.Method
 import java.lang.reflect.Proxy
 import java.util.Optional
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -29,38 +29,6 @@ class BerryCrushExtensionInternalTest {
         assertEquals(2, specs.size)
         assertTrue(specs.any { it.name == "default" && "test-api.yaml" in it.paths })
         assertTrue(specs.any { it.name == "auth" && "auth-api.yaml" in it.paths })
-    }
-
-    @Test
-    fun `resolvePath should pass through file paths and resolve classpath resources`() {
-        val extension = BerryCrushExtension()
-        val resolvePath =
-            BerryCrushExtension::class.java
-                .getDeclaredMethod("resolvePath", String::class.java, Class::class.java)
-                .apply { isAccessible = true }
-
-        val passthrough = resolvePath.invoke(extension, "relative/spec.yaml", MultiSpecClass::class.java) as String
-        assertEquals("relative/spec.yaml", passthrough)
-
-        val classpathPath = resolvePath.invoke(extension, "classpath:/test-api.yaml", MultiSpecClass::class.java) as String
-        assertTrue(classpathPath.contains("test-api.yaml"))
-    }
-
-    @Test
-    fun `resolvePath should throw for missing classpath resource`() {
-        val extension = BerryCrushExtension()
-        val resolvePath =
-            BerryCrushExtension::class.java
-                .getDeclaredMethod("resolvePath", String::class.java, Class::class.java)
-                .apply { isAccessible = true }
-
-        val error =
-            assertFailsWith<java.lang.reflect.InvocationTargetException> {
-                resolvePath.invoke(extension, "classpath:/missing-spec.yaml", MultiSpecClass::class.java)
-            }
-
-        assertTrue(error.cause is ConfigurationException)
-        assertEquals(error.cause?.message?.contains("Classpath resource not found"), true)
     }
 
     @Test
@@ -151,8 +119,11 @@ class BerryCrushExtensionInternalTest {
         extension.beforeAll(context)
 
         val suiteParam = parameterContext(parameterMethod("suiteParam"), 0)
-        val suite = extension.resolveParameter(suiteParam, context) as org.berrycrush.dsl.BerryCrushSuite
-        val scenario = suite.scenario("invocation scenario") {}
+        val suite = extension.resolveParameter(suiteParam, context) as BerryCrushSuite
+        val scenario =
+            Scenario(name = "invocation scenario").apply {
+                suite.add(this)
+            }
 
         val invocations = extension.provideTestTemplateInvocationContexts(context).toList()
         assertEquals(1, invocations.size)
@@ -354,13 +325,13 @@ private class PlainTemplateClass {
 
 @Suppress("UnusedParameter")
 private class ParameterFixtures {
-    fun suiteParam(unused: org.berrycrush.dsl.BerryCrushSuite) = Unit
+    fun suiteParam(unused: BerryCrushSuite) = Unit
 
     fun configParam(unused: org.berrycrush.config.BerryCrushConfiguration) = Unit
 
-    fun executorParam(unused: org.berrycrush.executor.BerryCrushScenarioExecutor) = Unit
+    fun executorParam(unused: BerryCrushScenarioExecutor) = Unit
 
     fun unsupportedParam(unused: String) = Unit
 
-    fun scenarioParam(unused: org.berrycrush.model.Scenario) = Unit
+    fun scenarioParam(unused: Scenario) = Unit
 }

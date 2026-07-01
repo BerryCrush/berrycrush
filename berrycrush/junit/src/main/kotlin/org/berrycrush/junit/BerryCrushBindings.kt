@@ -1,6 +1,7 @@
 package org.berrycrush.junit
 
 import org.berrycrush.config.BerryCrushConfiguration
+import org.berrycrush.config.BindingConfig
 import org.berrycrush.junit.binding.OpenApiSpecValue
 
 /**
@@ -32,7 +33,7 @@ import org.berrycrush.junit.binding.OpenApiSpecValue
  */
 interface BerryCrushBindings {
     companion object {
-        const val DEFAULT_BINDING_NAME = "default"
+        const val DEFAULT_BINDING_NAME = BindingConfig.DEFAULT_BINDING_NAME
     }
 
     /**

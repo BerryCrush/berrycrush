@@ -8,6 +8,7 @@ plugins {
 dependencies {
     // Core library dependency
     implementation(project(":berrycrush:core"))
+    implementation(project(":berrycrush:junit"))
 
     // JUnit 5
     implementation(libs.bundles.junit)

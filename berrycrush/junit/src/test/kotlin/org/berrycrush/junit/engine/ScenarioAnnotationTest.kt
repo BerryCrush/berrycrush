@@ -1,9 +1,11 @@
 package org.berrycrush.junit.engine
 
-import org.berrycrush.dsl.BerryCrushSuite
 import org.berrycrush.junit.BerryCrushSpec
+import org.berrycrush.junit.BerryCrushSuite
 import org.berrycrush.junit.ScenarioTest
 import org.berrycrush.model.Scenario
+import org.berrycrush.model.Step
+import org.berrycrush.model.StepType
 import org.junit.jupiter.api.Test
 import org.junit.platform.engine.UniqueId
 import org.junit.platform.engine.support.descriptor.EngineDescriptor
@@ -29,7 +31,7 @@ class ScenarioAnnotationTest {
         assertEquals(1, engineDescriptor.children.size, "Should have one class descriptor")
 
         val classDescriptor = engineDescriptor.children.first() as ClassTestDescriptor
-        assertEquals(TestClassWithScenarios::class.java, classDescriptor.testClass)
+        assertEquals(TestClassWithScenarios::class.java, classDescriptor.testClass.java)
 
         // Should have two @ScenarioTest method descriptors
         val scenarioDescriptors = classDescriptor.children.filterIsInstance<ScenarioMethodDescriptor>()
@@ -113,20 +115,28 @@ class ScenarioAnnotationTest {
 class TestClassWithScenarios {
     @ScenarioTest
     fun createPet(): Scenario =
-        BerryCrushSuite.create().scenario("Create a new pet") {
-            whenever("I create a pet") {}
-            afterwards("I should see the pet") {}
-        }
+        Scenario(
+            name = "Create a new pet",
+            steps =
+                listOf(
+                    Step(StepType.WHEN, description = "I create a pet"),
+                    Step(StepType.THEN, description = "I should see the pet"),
+                ),
+        )
 
     @ScenarioTest
     fun `list all pets`(): Scenario =
-        BerryCrushSuite.create().scenario("List all pets") {
-            whenever("I list pets") {}
-            afterwards("I should see all pets") {}
-        }
+        Scenario(
+            name = "List all pets",
+            steps =
+                listOf(
+                    Step(StepType.WHEN, description = "I list pets"),
+                    Step(StepType.THEN, description = "I should see all pets"),
+                ),
+        )
 
     // This method should NOT be discovered (no @ScenarioTest annotation)
-    fun notAScenario(): Scenario = BerryCrushSuite.create().scenario("Should not be discovered") {}
+    fun notAScenario(): Scenario = Scenario(name = "Should not be discovered")
 
     // This method should NOT be discovered (wrong return type)
     @ScenarioTest

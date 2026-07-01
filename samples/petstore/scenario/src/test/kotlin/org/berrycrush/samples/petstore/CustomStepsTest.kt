@@ -1,10 +1,11 @@
 package org.berrycrush.samples.petstore
 
-import org.berrycrush.dsl.BerryCrushSuite
+import org.berrycrush.dsl.scenario
 import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.junit.BerryCrushConfiguration
 import org.berrycrush.junit.BerryCrushExtension
 import org.berrycrush.junit.BerryCrushSpec
+import org.berrycrush.junit.BerryCrushSuite
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.samples.petstore.assertions.PetstoreAssertions
 import org.berrycrush.samples.petstore.steps.PetstoreSteps

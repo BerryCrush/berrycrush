@@ -2,6 +2,7 @@ package org.berrycrush.dsl
 
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.context.TestExecutionContext
+import org.berrycrush.junit.BerryCrushSuite
 import org.berrycrush.model.Assertion
 import org.berrycrush.model.AutoTestConfig
 import org.berrycrush.model.Condition

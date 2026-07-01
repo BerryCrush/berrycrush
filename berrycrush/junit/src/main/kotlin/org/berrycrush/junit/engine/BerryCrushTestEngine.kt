@@ -6,6 +6,7 @@ import org.berrycrush.junit.BerryCrushSpecs
 import org.berrycrush.junit.ScenarioTest
 import org.berrycrush.junit.spi.BindingsProvider
 import org.junit.platform.engine.EngineDiscoveryRequest
+import org.junit.platform.engine.EngineExecutionListener
 import org.junit.platform.engine.ExecutionRequest
 import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.TestEngine
@@ -131,7 +132,7 @@ class BerryCrushTestEngine : TestEngine {
 
     private fun executeClassDescriptor(
         classDescriptor: ClassTestDescriptor,
-        listener: org.junit.platform.engine.EngineExecutionListener,
+        listener: EngineExecutionListener,
     ) {
         listener.executionStarted(classDescriptor)
 

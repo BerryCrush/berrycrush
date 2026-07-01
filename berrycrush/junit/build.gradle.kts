@@ -8,7 +8,6 @@ plugins {
 dependencies {
     // Core library dependency
     implementation(project(":berrycrush:core"))
-    implementation(project(":berrycrush:kotlin-dsl"))
 
     implementation(libs.kotlin.reflect)
     // JUnit 5

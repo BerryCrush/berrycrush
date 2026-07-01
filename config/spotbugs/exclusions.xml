@@ -4,6 +4,10 @@
   https://spotbugs.readthedocs.io/en/stable/filter.html
 -->
 <FindBugsFilter>
+    <Match>
+        <Class name="~.*BerryCrushSuite" />
+        <Bug pattern="NM_SAME_SIMPLE_NAME_AS_INTERFACE" />
+    </Match>
     <!-- Exclude test classes from certain checks -->
     <Match>
         <Class name="~.*Test.*"/>

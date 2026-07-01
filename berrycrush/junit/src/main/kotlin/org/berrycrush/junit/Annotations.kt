@@ -1,8 +1,5 @@
 package org.berrycrush.junit
 
-import kotlin.annotation.AnnotationRetention
-import kotlin.annotation.AnnotationTarget
-
 /**
  * Container annotation for multiple [BerryCrushSpec] annotations.
  *
@@ -49,7 +46,7 @@ annotation class BerryCrushSpecs(
 annotation class BerryCrushSpec(
     vararg val paths: String = [],
     val baseUrl: String = "",
-    val name: String = "default",
+    val name: String = BerryCrushBindings.DEFAULT_BINDING_NAME,
 )
 
 /**
@@ -87,20 +84,6 @@ annotation class BerryCrushScenarios(
 annotation class BerryCrushTags(
     val include: Array<String> = [],
     val exclude: Array<String> = [],
-)
-
-/**
- * Annotation to configure timeout for scenario execution.
- *
- * @property value Timeout value
- * @property unit Time unit (default: seconds)
- */
-@Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
-@Retention(AnnotationRetention.RUNTIME)
-@MustBeDocumented
-annotation class BerryCrushTimeout(
-    val value: Long,
-    val unit: java.util.concurrent.TimeUnit = java.util.concurrent.TimeUnit.SECONDS,
 )
 
 /**
@@ -157,7 +140,7 @@ annotation class BerryCrushTimeout(
  * - Can be a member function of a class annotated with `@BerryCrushSpec`
  *
  * @see BerryCrushSpec
- * @see org.berrycrush.dsl.BerryCrushSuite
+ * @see org.berrycrush.junit.BerryCrushSuite
  * @see org.berrycrush.model.Scenario
  */
 @Target(AnnotationTarget.FUNCTION)

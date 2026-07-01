@@ -2,7 +2,6 @@ package org.berrycrush.junit
 
 import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.config.BerryCrushConfiguration
-import org.berrycrush.dsl.BerryCrushSuite
 import org.berrycrush.exception.ConfigurationException
 import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.BerryCrushScenarioExecutor
@@ -11,6 +10,7 @@ import org.berrycrush.model.Scenario
 import org.berrycrush.util.StepRegistry
 import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
+import org.junit.jupiter.api.extension.Extension
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.extension.ParameterContext
 import org.junit.jupiter.api.extension.ParameterResolver
@@ -99,7 +99,6 @@ class BerryCrushExtension :
         private const val EXECUTOR_KEY = "scenarioExecutor"
         private const val STEP_REGISTRY_KEY = "stepRegistry"
         private const val ASSERTION_REGISTRY_KEY = "assertionRegistry"
-        private const val CLASSPATH_PREFIX = "classpath:"
     }
 
     override fun beforeAll(context: ExtensionContext) {
@@ -119,17 +118,12 @@ class BerryCrushExtension :
         // Load specs from annotations (supports multiple @BerryCrushSpec)
         specs.forEach { spec ->
             spec.paths.forEach { path ->
-                val resolvedPath = resolvePath(path, testClass)
-                if (spec.name == "default") {
-                    suite.spec(resolvedPath)
-                } else {
-                    suite.spec(spec.name, resolvedPath)
-                }
+                suite.register(spec.name, path)
             }
         }
 
         // Apply base URL from "default" spec or first spec
-        val defaultSpec = specs.find { it.name == "default" } ?: specs.firstOrNull()
+        val defaultSpec = specs.find { it.name == BerryCrushBindings.DEFAULT_BINDING_NAME } ?: specs.firstOrNull()
         defaultSpec?.baseUrl?.takeIf { it.isNotBlank() }?.let {
             suite.configuration.baseUrl = it
         }
@@ -160,32 +154,6 @@ class BerryCrushExtension :
     }
 
     /**
-     * Resolve a spec path, supporting both file paths and classpath resources.
-     *
-     * Paths prefixed with `classpath:` are resolved from the test class's classloader.
-     * Example: `classpath:/petstore.yaml` or `classpath:specs/api.yaml`
-     */
-    private fun resolvePath(
-        path: String,
-        testClass: Class<*>,
-    ): String {
-        if (!path.startsWith(CLASSPATH_PREFIX)) {
-            return path
-        }
-
-        val resourcePath = path.removePrefix(CLASSPATH_PREFIX)
-        val resource =
-            testClass.getResource(resourcePath)
-                ?: testClass.classLoader.getResource(resourcePath.removePrefix("/"))
-                ?: throw ConfigurationException(
-                    "Classpath resource not found: $resourcePath. " +
-                        "Make sure the file exists in src/test/resources or src/main/resources.",
-                )
-
-        return resource.path
-    }
-
-    /**
      * Find parent context's suite for nested test classes.
      */
     private fun findParentSuite(context: ExtensionContext): BerryCrushSuite? {
@@ -210,7 +178,7 @@ class BerryCrushExtension :
         extensionContext: ExtensionContext,
     ): Boolean {
         val paramType = parameterContext.parameter.type
-        return paramType == BerryCrushSuite::class.java ||
+        return BerryCrushSuite::class.java.isAssignableFrom(paramType) ||
             paramType == BerryCrushScenarioExecutor::class.java ||
             paramType == BerryCrushConfiguration::class.java
     }
@@ -218,20 +186,22 @@ class BerryCrushExtension :
     override fun resolveParameter(
         parameterContext: ParameterContext,
         extensionContext: ExtensionContext,
-    ): Any =
-        when (val paramType = parameterContext.parameter.type) {
-            BerryCrushSuite::class.java -> getSuite(extensionContext)
-            BerryCrushScenarioExecutor::class.java -> getOrCreateExecutor(extensionContext)
-            BerryCrushConfiguration::class.java -> getSuite(extensionContext).configuration
+    ): Any {
+        val paramType = parameterContext.parameter.type
+        return when {
+            BerryCrushSuite::class.java.isAssignableFrom(paramType) -> getSuite(extensionContext)
+            BerryCrushScenarioExecutor::class.java == paramType -> getOrCreateExecutor(extensionContext)
+            BerryCrushConfiguration::class.java == paramType -> getSuite(extensionContext).configuration
             else -> throw ConfigurationException("Unsupported parameter type: $paramType")
         }
+    }
 
     override fun supportsTestTemplate(context: ExtensionContext): Boolean =
         context.requiredTestMethod.isAnnotationPresent(BerryCrushScenarios::class.java) ||
             context.requiredTestClass.isAnnotationPresent(BerryCrushScenarios::class.java)
 
     override fun provideTestTemplateInvocationContexts(context: ExtensionContext): Stream<TestTemplateInvocationContext> =
-        getSuite(context).allScenarios().stream().map { scenario ->
+        getSuite(context).scenarios.stream().map { scenario ->
             ScenarioInvocationContext(scenario)
         }
 
@@ -341,7 +311,7 @@ class BerryCrushExtension :
     ) : TestTemplateInvocationContext {
         override fun getDisplayName(invocationIndex: Int): String = scenario.name
 
-        override fun getAdditionalExtensions(): List<org.junit.jupiter.api.extension.Extension> =
+        override fun getAdditionalExtensions(): List<Extension> =
             listOf(
                 ScenarioParameterResolver(scenario),
             )

@@ -23,7 +23,7 @@ interface HttpExecutor : RequestResolver {
         stepContext: StepContext,
     ): HttpResponse {
         // Resolve the operation
-        val (spec, resolvedOp) = specRegistry.resolve(step.operationId!!, step.specName)
+        val (spec, resolvedOp) = resolve(step, specRegistry)
         // Execute the HTTP request using the HttpExecutor
         val response = execute(step, spec, resolvedOp, stepContext)
         // Update context with response
@@ -57,4 +57,9 @@ interface HttpExecutor : RequestResolver {
         request: HttpRequest,
         context: StepContext,
     ): HttpResponse
+
+    fun resolve(
+        step: Step,
+        specRegistry: SpecRegistry,
+    ) = specRegistry.resolve(step.operationId!!, step.specName)
 }

@@ -1,9 +1,12 @@
 package org.berrycrush.dsl
 
+import org.berrycrush.junit.BerryCrushSuite
 import org.berrycrush.model.ExampleRow
+import org.berrycrush.model.Fragment
 import org.berrycrush.model.Scenario
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepType
+import org.berrycrush.step.dsl.steps
 
 /**
  * DSL scope for defining a scenario outline (parameterized scenario).
@@ -12,68 +15,28 @@ import org.berrycrush.model.StepType
 class ScenarioOutlineScope internal constructor(
     private val name: String,
     private val tags: Set<String>,
-    private val suite: BerryCrushSuite,
-) {
-    private val stepTemplates = mutableListOf<StepTemplate>()
+    override val suite: BerryCrushSuite,
+) : ScenarioLikeScope {
+    companion object {
+        private fun substituteParams(
+            template: String,
+            row: ExampleRow,
+        ): String {
+            var result = template
+            row.values.forEach { (key, value) ->
+                result = result.replace("<$key>", value.toString())
+            }
+            return result
+        }
+    }
+
+    private val stepTemplates = mutableListOf<OutlineStep>()
     private val exampleRows = mutableListOf<ExampleRow>()
+    override val parameterScope = ParameterScope()
 
-    /**
-     * Define a GIVEN step template.
-     */
-    fun given(
-        description: String,
-        block: StepScope.() -> Unit = {},
-    ) {
-        addStepTemplate(StepType.GIVEN, description, block)
+    override fun include(fragment: Fragment) {
+        stepTemplates.add(FragmentStep(fragment))
     }
-
-    /**
-     * Define a WHEN step template.
-     */
-    fun whenever(
-        description: String,
-        block: StepScope.() -> Unit = {},
-    ) {
-        addStepTemplate(StepType.WHEN, description, block)
-    }
-
-    /**
-     * Define a THEN step template.
-     */
-    fun afterwards(
-        description: String,
-        block: StepScope.() -> Unit = {},
-    ) {
-        addStepTemplate(StepType.THEN, description, block)
-    }
-
-    /**
-     * Define an AND step template.
-     */
-    fun and(
-        description: String,
-        block: StepScope.() -> Unit = {},
-    ) {
-        addStepTemplate(StepType.AND, description, block)
-    }
-
-    // ========== Scenario File Compatibility Aliases ==========
-
-    /**
-     * Alias for [whenever] - matches scenario file `when` keyword.
-     */
-    fun `when`(
-        description: String,
-        block: StepScope.() -> Unit = {},
-    ) = whenever(description, block)
-
-    /**
-     * Alias for [afterwards] - matches scenario file `then` keyword.
-     */
-    fun then(
-        description: String,
-        block: StepScope.() -> Unit = {},
-    ) = afterwards(description, block)
 
     /**
      * Add example rows for parameterization.
@@ -87,12 +50,12 @@ class ScenarioOutlineScope internal constructor(
      */
     fun row(vararg params: Pair<String, Any>): ExampleRow = ExampleRow(params.toMap())
 
-    private fun addStepTemplate(
-        type: StepType,
+    override fun addStep(
+        stepType: StepType,
         description: String,
         block: StepScope.() -> Unit,
     ) {
-        stepTemplates.add(StepTemplate(type, description, block))
+        stepTemplates.add(StepTemplate(stepType, description, block))
     }
 
     internal fun build(): List<Scenario> {
@@ -102,43 +65,45 @@ class ScenarioOutlineScope internal constructor(
 
         return exampleRows.mapIndexed { index, row ->
             val expandedSteps =
-                stepTemplates.map { template ->
-                    expandStep(template, row)
-                }
+                stepTemplates.flatMap { template -> template.build(row) }
 
             Scenario(
                 name = "$name (Example ${index + 1})",
                 tags = tags,
                 steps = expandedSteps,
                 background = emptyList(),
+                parameters = parameterScope.parameters.toMap(),
             )
         }
     }
 
-    private fun expandStep(
-        template: StepTemplate,
-        row: ExampleRow,
-    ): Step {
-        val expandedDescription = substituteParams(template.description, row)
-        val stepScope = StepScope(template.type, expandedDescription, suite)
-        template.block(stepScope)
-        return stepScope.build()
+    private sealed interface OutlineStep {
+        fun build(row: ExampleRow): List<Step>
     }
 
-    private fun substituteParams(
-        template: String,
-        row: ExampleRow,
-    ): String {
-        var result = template
-        row.values.forEach { (key, value) ->
-            result = result.replace("<$key>", value.toString())
+    private class FragmentStep(
+        private val fragment: Fragment,
+    ) : OutlineStep {
+        override fun build(row: ExampleRow): List<Step> =
+            fragment.steps
+                .map { it.adjust(row) }
+
+        private fun Step.adjust(row: ExampleRow): Step {
+            val expandedDescription = substituteParams(description, row)
+            return copy(description = expandedDescription)
         }
-        return result
     }
 
-    private data class StepTemplate(
+    private inner class StepTemplate(
         val type: StepType,
         val description: String,
         val block: StepScope.() -> Unit,
-    )
+    ) : OutlineStep {
+        override fun build(row: ExampleRow): List<Step> {
+            val expandedDescription = substituteParams(description, row)
+            val stepScope = StepScope(type, expandedDescription, suite)
+            block(stepScope)
+            return listOf(stepScope.build())
+        }
+    }
 }

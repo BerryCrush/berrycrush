@@ -6,6 +6,8 @@ import org.berrycrush.executor.resolvers.DefaultRequestResolver
 import org.berrycrush.executor.resolvers.RequestResolver
 import org.berrycrush.model.HttpRequest
 import org.berrycrush.model.HttpResponse
+import org.berrycrush.model.Step
+import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.plugin.StepContext
 import org.berrycrush.plugin.adapter.ScenarioContextAdapter
 import org.berrycrush.plugin.adapter.StepContextAdapter
@@ -78,6 +80,11 @@ class DefaultHttpExecutor(
         }
         return response
     }
+
+    override fun resolve(
+        step: Step,
+        specRegistry: SpecRegistry,
+    ) = specRegistry.resolve(step.operationId!!, step.specName, configuration.bindings)
 
     // ========== Logging ==========
 

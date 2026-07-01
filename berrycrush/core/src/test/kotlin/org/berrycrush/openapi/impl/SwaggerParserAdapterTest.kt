@@ -18,11 +18,7 @@ class SwaggerParserAdapterTest {
 
     @Test
     fun `should detect version 3_0_3 from petstore spec`() {
-        val specPath =
-            javaClass.getResource("/petstore.yaml")?.path
-                ?: error("petstore.yaml not found in test resources")
-
-        val spec = parser.parse(specPath)
+        val spec = parser.parse("/petstore.yaml")
 
         assertEquals(OpenApiVersion.V3_0_X, spec.version)
         assertEquals("3.0.3", spec.specVersion)
@@ -30,11 +26,7 @@ class SwaggerParserAdapterTest {
 
     @Test
     fun `should detect version 3_1_0 from train-travel spec`() {
-        val specPath =
-            javaClass.getResource("/train-travel.yaml")?.path
-                ?: error("train-travel.yaml not found in test resources")
-
-        val spec = parser.parse(specPath)
+        val spec = parser.parse("/train-travel.yaml")
 
         assertEquals(OpenApiVersion.V3_1_X, spec.version)
         assertEquals("3.1.0", spec.specVersion)
@@ -42,11 +34,7 @@ class SwaggerParserAdapterTest {
 
     @Test
     fun `should detect version 3_1_0 from tictactoe spec`() {
-        val specPath =
-            javaClass.getResource("/tictactoe.yaml")?.path
-                ?: error("tictactoe.yaml not found in test resources")
-
-        val spec = parser.parse(specPath)
+        val spec = parser.parse("/tictactoe.yaml")
 
         assertEquals(OpenApiVersion.V3_1_X, spec.version)
         assertEquals("3.1.0", spec.specVersion)
@@ -58,11 +46,7 @@ class SwaggerParserAdapterTest {
 
     @Test
     fun `should parse info from petstore spec`() {
-        val specPath =
-            javaClass.getResource("/petstore.yaml")?.path
-                ?: error("petstore.yaml not found in test resources")
-
-        val spec = parser.parse(specPath)
+        val spec = parser.parse("/petstore.yaml")
 
         assertEquals("Petstore API", spec.info.title)
         assertEquals("1.0.0", spec.info.version)
@@ -71,11 +55,7 @@ class SwaggerParserAdapterTest {
 
     @Test
     fun `should parse info from train-travel spec`() {
-        val specPath =
-            javaClass.getResource("/train-travel.yaml")?.path
-                ?: error("train-travel.yaml not found in test resources")
-
-        val spec = parser.parse(specPath)
+        val spec = parser.parse("/train-travel.yaml")
 
         assertEquals("Train Travel API", spec.info.title)
         assertEquals("1.0.0", spec.info.version)
