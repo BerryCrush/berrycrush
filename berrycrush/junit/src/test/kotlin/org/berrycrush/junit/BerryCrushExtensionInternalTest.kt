@@ -1,6 +1,5 @@
 package org.berrycrush.junit
 
-import org.berrycrush.exception.ConfigurationException
 import org.berrycrush.executor.BerryCrushScenarioExecutor
 import org.berrycrush.model.Scenario
 import org.junit.jupiter.api.Disabled
@@ -11,7 +10,6 @@ import java.lang.reflect.Method
 import java.lang.reflect.Proxy
 import java.util.Optional
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -31,38 +29,6 @@ class BerryCrushExtensionInternalTest {
         assertEquals(2, specs.size)
         assertTrue(specs.any { it.name == "default" && "test-api.yaml" in it.paths })
         assertTrue(specs.any { it.name == "auth" && "auth-api.yaml" in it.paths })
-    }
-
-    @Test
-    fun `resolvePath should pass through file paths and resolve classpath resources`() {
-        val extension = BerryCrushExtension()
-        val resolvePath =
-            BerryCrushExtension::class.java
-                .getDeclaredMethod("resolvePath", String::class.java, Class::class.java)
-                .apply { isAccessible = true }
-
-        val passthrough = resolvePath.invoke(extension, "relative/spec.yaml", MultiSpecClass::class.java) as String
-        assertEquals("relative/spec.yaml", passthrough)
-
-        val classpathPath = resolvePath.invoke(extension, "classpath:/test-api.yaml", MultiSpecClass::class.java) as String
-        assertTrue(classpathPath.contains("test-api.yaml"))
-    }
-
-    @Test
-    fun `resolvePath should throw for missing classpath resource`() {
-        val extension = BerryCrushExtension()
-        val resolvePath =
-            BerryCrushExtension::class.java
-                .getDeclaredMethod("resolvePath", String::class.java, Class::class.java)
-                .apply { isAccessible = true }
-
-        val error =
-            assertFailsWith<java.lang.reflect.InvocationTargetException> {
-                resolvePath.invoke(extension, "classpath:/missing-spec.yaml", MultiSpecClass::class.java)
-            }
-
-        assertTrue(error.cause is ConfigurationException)
-        assertEquals(error.cause?.message?.contains("Classpath resource not found"), true)
     }
 
     @Test

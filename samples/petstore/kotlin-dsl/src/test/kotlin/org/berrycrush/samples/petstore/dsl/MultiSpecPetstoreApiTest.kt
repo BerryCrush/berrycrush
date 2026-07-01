@@ -19,7 +19,8 @@ import org.springframework.boot.test.web.server.LocalServerPort
 @BerryCrushContextConfiguration
 @ExtendWith(BerryCrushExtension::class)
 @BerryCrushSpec("classpath:/petstore.yaml")
-class PetstoreApiTest {
+@BerryCrushSpec(name = "auth", paths = ["classpath:/auth.yaml"])
+class MultiSpecPetstoreApiTest {
     @LocalServerPort
     private var port: Int = 0
 
@@ -31,11 +32,9 @@ class PetstoreApiTest {
                 binding {
                     baseUrl = "http://localhost:$port/api/v1"
                 }
-                // adding without @BerryCrushSpec annotation
                 // binding.{name}.* = named binding config
                 binding("auth") {
                     baseUrl = "http://localhost:$port/auth/api/v1"
-                    location = "classpath:/auth.yaml"
                 }
                 set("logRequests" to true)
                 set("logResponses" to true)

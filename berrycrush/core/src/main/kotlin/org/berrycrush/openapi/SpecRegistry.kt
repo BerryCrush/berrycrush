@@ -6,6 +6,7 @@ import org.berrycrush.config.SpecConfiguration
 import org.berrycrush.exception.ConfigurationException
 import org.berrycrush.exception.OperationNotFoundException
 import org.berrycrush.openapi.impl.SwaggerParserAdapter
+import org.berrycrush.util.FileLoader
 
 /**
  * Registry for managing multiple OpenAPI specifications.
@@ -13,8 +14,33 @@ import org.berrycrush.openapi.impl.SwaggerParserAdapter
  * Supports both single-spec and multi-spec scenarios.
  */
 class SpecRegistry {
+    companion object {
+        private val parser: OpenApiParser = SwaggerParserAdapter()
+
+        /**
+         * Load spec
+         */
+        fun load(
+            name: String,
+            path: String,
+            config: SpecConfiguration.() -> Unit = {},
+        ): LoadedSpec {
+            val specConfig = SpecConfiguration(name, path).apply(config)
+            val openApiSpec = parser.parseContent(FileLoader.load(path))
+            return LoadedSpec(
+                name = name,
+                path = path,
+                spec = openApiSpec,
+                baseUrl = specConfig.baseUrl ?: extractBaseUrl(openApiSpec),
+                defaultHeaders = specConfig.defaultHeaders.toMap(),
+            )
+        }
+
+        private fun extractBaseUrl(spec: OpenApiSpec): String = spec.servers.firstOrNull()?.url ?: "http://localhost"
+    }
+
     private val specs = mutableMapOf<String, LoadedSpec>()
-    private val parser: OpenApiParser = SwaggerParserAdapter()
+
     private var defaultSpec: String? = null
 
     /**
@@ -29,18 +55,7 @@ class SpecRegistry {
         path: String,
         config: SpecConfiguration.() -> Unit = {},
     ) {
-        val specConfig = SpecConfiguration(name, path).apply(config)
-        val openApiSpec = parser.parse(path)
-
-        specs[name] =
-            LoadedSpec(
-                name = name,
-                path = path,
-                spec = openApiSpec,
-                baseUrl = specConfig.baseUrl ?: extractBaseUrl(openApiSpec),
-                defaultHeaders = specConfig.defaultHeaders.toMap(),
-            )
-
+        specs[name] = load(name, path, config)
         // First registered spec becomes default
         if (defaultSpec == null) {
             defaultSpec = name
@@ -60,8 +75,12 @@ class SpecRegistry {
     /**
      * Get a loaded spec by name.
      */
-    fun get(name: String): LoadedSpec =
-        specs[name]
+    fun get(
+        name: String,
+        bindings: Map<String, LoadedSpecProvider>? = null,
+    ): LoadedSpec =
+        bindings?.get(name)?.spec
+            ?: specs[name]
             ?: throw ConfigurationException("Spec '$name' not found. Available: ${specs.keys}")
 
     /**
@@ -86,9 +105,10 @@ class SpecRegistry {
     fun resolve(
         operationId: String,
         specName: String? = null,
+        bindings: Map<String, LoadedSpecProvider>? = null,
     ): Pair<LoadedSpec, ResolvedOperation> {
         if (specName != null) {
-            val spec = get(specName)
+            val spec = get(specName, bindings)
             return spec to spec.resolver.resolve(operationId)
         }
 
@@ -141,8 +161,10 @@ class SpecRegistry {
         specs[name] =
             existing.copy(baseUrl = newBaseUrl)
     }
+}
 
-    private fun extractBaseUrl(spec: OpenApiSpec): String = spec.servers.firstOrNull()?.url ?: "http://localhost"
+interface LoadedSpecProvider {
+    val spec: LoadedSpec?
 }
 
 /**

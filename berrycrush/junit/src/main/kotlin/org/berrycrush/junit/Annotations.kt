@@ -87,20 +87,6 @@ annotation class BerryCrushTags(
 )
 
 /**
- * Annotation to configure timeout for scenario execution.
- *
- * @property value Timeout value
- * @property unit Time unit (default: seconds)
- */
-@Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
-@Retention(AnnotationRetention.RUNTIME)
-@MustBeDocumented
-annotation class BerryCrushTimeout(
-    val value: Long,
-    val unit: java.util.concurrent.TimeUnit = java.util.concurrent.TimeUnit.SECONDS,
-)
-
-/**
  * Marks a method as a BerryCrush scenario test.
  *
  * Methods annotated with `@ScenarioTest` must return a [org.berrycrush.model.Scenario] object
@@ -154,7 +140,7 @@ annotation class BerryCrushTimeout(
  * - Can be a member function of a class annotated with `@BerryCrushSpec`
  *
  * @see BerryCrushSpec
- * @see org.berrycrush.dsl.BerryCrushSuite
+ * @see org.berrycrush.junit.BerryCrushSuite
  * @see org.berrycrush.model.Scenario
  */
 @Target(AnnotationTarget.FUNCTION)

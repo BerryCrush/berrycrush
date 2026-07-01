@@ -99,7 +99,6 @@ class BerryCrushExtension :
         private const val EXECUTOR_KEY = "scenarioExecutor"
         private const val STEP_REGISTRY_KEY = "stepRegistry"
         private const val ASSERTION_REGISTRY_KEY = "assertionRegistry"
-        private const val CLASSPATH_PREFIX = "classpath:"
     }
 
     override fun beforeAll(context: ExtensionContext) {
@@ -119,8 +118,7 @@ class BerryCrushExtension :
         // Load specs from annotations (supports multiple @BerryCrushSpec)
         specs.forEach { spec ->
             spec.paths.forEach { path ->
-                val resolvedPath = resolvePath(path, testClass)
-                suite.register(spec.name, resolvedPath)
+                suite.register(spec.name, path)
             }
         }
 
@@ -153,32 +151,6 @@ class BerryCrushExtension :
         }
 
         return result
-    }
-
-    /**
-     * Resolve a spec path, supporting both file paths and classpath resources.
-     *
-     * Paths prefixed with `classpath:` are resolved from the test class's classloader.
-     * Example: `classpath:/petstore.yaml` or `classpath:specs/api.yaml`
-     */
-    private fun resolvePath(
-        path: String,
-        testClass: Class<*>,
-    ): String {
-        if (!path.startsWith(CLASSPATH_PREFIX)) {
-            return path
-        }
-
-        val resourcePath = path.removePrefix(CLASSPATH_PREFIX)
-        val resource =
-            testClass.getResource(resourcePath)
-                ?: testClass.classLoader.getResource(resourcePath.removePrefix("/"))
-                ?: throw ConfigurationException(
-                    "Classpath resource not found: $resourcePath. " +
-                        "Make sure the file exists in src/test/resources or src/main/resources.",
-                )
-
-        return resource.path
     }
 
     /**

@@ -12,10 +12,7 @@ class AssertionGeneratorTest {
     private val generator = AssertionGenerator()
 
     private fun loadPetstoreResolver(): OperationResolver {
-        val specPath =
-            javaClass.getResource("/petstore.yaml")?.path
-                ?: error("petstore.yaml not found in test resources")
-        val spec = SwaggerParserAdapter().parse(specPath)
+        val spec = SwaggerParserAdapter().parse("/petstore.yaml")
         return OperationResolver(spec)
     }
 

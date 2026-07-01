@@ -39,6 +39,11 @@ class BindingScope(
     private val name: String,
 ) {
     var baseUrl: String? = null
+    var location: String? = null
 
-    internal fun build(): Map<String, Any> = mapOf("binding.$name.baseUrl" to baseUrl).filterValues { it != null }.mapValues { it.value!! }
+    internal fun build(): Map<String, Any> =
+        mapOf(
+            "binding.$name.baseUrl" to baseUrl,
+            "binding.$name.location" to location,
+        ).filterValues { it != null }.mapValues { it.value!! }
 }

@@ -95,7 +95,7 @@ data class BerryCrushConfiguration(
         get() = bindings[BindingConfig.DEFAULT_BINDING_NAME]?.baseUrl
         set(value) {
             bindings.compute(BindingConfig.DEFAULT_BINDING_NAME) { _, binding ->
-                binding?.copy(baseUrl = value) ?: BindingConfig(value)
+                binding?.copy(baseUrl = value) ?: BindingConfig(BindingConfig.DEFAULT_BINDING_NAME, value)
             }
         }
 
@@ -273,7 +273,8 @@ data class BerryCrushConfiguration(
             }
         bindings.compute(name) { _, binding ->
             when (param) {
-                "baseUrl" -> binding?.copy(baseUrl = value.toString()) ?: BindingConfig(baseUrl = value.toString())
+                "baseUrl" -> binding?.copy(baseUrl = value.toString()) ?: BindingConfig(name, baseUrl = value.toString())
+                "location" -> binding?.copy(location = value.toString()) ?: BindingConfig(name, location = value.toString())
                 else -> binding
             }
         }
