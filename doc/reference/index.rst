@@ -93,6 +93,8 @@ Installation
           dependencies {
               testImplementation("org.berrycrush.berrycrush:core:{{VERSION}}")
               testImplementation("org.berrycrush.berrycrush:junit:{{VERSION}}")
+              // For Kotlin DSL
+              testImplementation("org.berrycrush.berrycrush:kotlin-dsl:{{VERSION}}")
               // For Spring Boot projects
               testImplementation("org.berrycrush.berrycrush:spring:{{VERSION}}")
           }
@@ -106,6 +108,8 @@ Installation
           dependencies {
               testImplementation 'org.berrycrush.berrycrush:core:{{VERSION}}'
               testImplementation 'org.berrycrush.berrycrush:junit:{{VERSION}}'
+              // For Kotlin DSL
+              testImplementation 'org.berrycrush.berrycrush:kotlin-dsl:{{VERSION}}'
               // For Spring Boot projects
               testImplementation 'org.berrycrush.berrycrush:spring:{{VERSION}}'
           }
@@ -126,6 +130,13 @@ Installation
               <dependency>
                   <groupId>org.berrycrush.berrycrush</groupId>
                   <artifactId>junit</artifactId>
+                  <version>{{VERSION}}</version>
+                  <scope>test</scope>
+              </dependency>
+              <!-- For Kotlin DSL -->
+              <dependency>
+                  <groupId>org.berrycrush.berrycrush</groupId>
+                  <artifactId>kotlin-dsl</artifactId>
                   <version>{{VERSION}}</version>
                   <scope>test</scope>
               </dependency>

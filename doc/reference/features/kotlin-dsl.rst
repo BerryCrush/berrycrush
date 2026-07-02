@@ -22,37 +22,51 @@ Here's a minimal example:
 
 .. code-block:: kotlin
 
-    import org.berrycrush.berrycrush.dsl.berryCrush
+    import org.berrycrush.dsl.BerryCrushSuite
+    import org.berrycrush.junit.ScenarioTest
+    import org.junit.jupiter.api.extension.ExtendWith
 
-    val suite = berryCrush("petstore.yaml") {
-        baseUrl = "https://api.example.com"
-    }
-
-    @ScenarioTest Annotation
-    -------------------------
-            call("listPets")
-    The ``@ScenarioTest`` annotation provides a cleaner way to define scenarios
-
-        afterwards("I receive a list") {
-            statusCode(200)
-            bodyArrayNotEmpty("$.pets")
+    @ExtendWith(BerryCrushExtension::class)
+    @BerryCrushSpec("classpath:/petstore.yaml")
+    class PetstoreApiTest {
+        @BeforeEach
+        fun setup(config: BerryCrushConfiguration) {
+            // change $port to actual port
+            config.baseUrl = "http://localhost:$port/api/v1"
+        }
+        @ScenarioTest
+        fun listAllPetsTest(suite: BerryCrushSuite) = suite.scenario("List all pets") {
+            whenever("I request the pets list") {
+                call("listPets")
+            }
+           afterwards("I receive a list") {
+                statusCode(200)
+                bodyArrayNotEmpty("$.pets")
+           }
         }
     }
+
+@ScenarioTest Annotation
+-------------------------
+The ``@ScenarioTest`` annotation provides a cleaner way to define scenarios
+
 
 Creating a Test Suite
 ---------------------
 
 Single Spec
-        import org.berrycrush.junit.ScenarioTest
-
-For APIs with a single OpenAPI specification:
+        For APIs with a single OpenAPI specification:
 
 .. code-block:: kotlin
+    import org.berrycrush.config.BerryCrushConfiguration
+    import org.berrycrush.junit.BerryCrushSpec
+    import org.junit.jupiter.api.extension.ExtendWith
+    import org.berrycrush.junit.BerryCrushExtension
 
-            @ScenarioTest
-        baseUrl = "https://api.example.com"
-        timeout(30) // seconds
-        header("Accept", "application/json")
+    @ExtendWith(BerryCrushExtension::class)
+    // Configure default spec
+    @BerryCrushSpec("classpath:/petstore.yaml")
+    class PetstoreApiTest {
     }
 
 Multi-Spec
@@ -60,51 +74,36 @@ Multi-Spec
 
 For APIs with multiple OpenAPI specifications:
 
-            @ScenarioTest
+.. code-block:: kotlin
+    import org.berrycrush.config.BerryCrushConfiguration
+    import org.berrycrush.junit.BerryCrushSpec
+    import org.junit.jupiter.api.extension.ExtendWith
+    import org.berrycrush.junit.BerryCrushExtension
 
-    val suite = berryCrush {
-        spec("petstore", "petstore.yaml") {
-            baseUrl = "https://petstore.example.com"
-        }
-
-        spec("auth", "auth.yaml") {
-            baseUrl = "https://auth.example.com"
-        }
-
-        configure {
-            timeout(60)
+    @ExtendWith(BerryCrushExtension::class)
+    @BerryCrushSpec("classpath:/petstore.yaml")
+    class PetstoreApiTest {
+        @ScenarioTest
+        fun listAllPetsTestWithAuth(): Scenario {
+            val suite = berrycrush {
+                spec(PetstoreApiTest::class.java.getResource("/petstore.yaml").path) {
+                    baseUrl = "http://localhost:8080/api/v1"
+                }
+                spec("auth", PetstoreApiTest::class.java.getResource("/auth.yaml").path)
+            }
+            return suite.scenario("List all pets with auth") {
+                // ...
+            }
         }
     }
 
 Defining Scenarios
 ------------------
-    2. Methods annotated with ``@ScenarioTest`` that return ``Scenario`` are automatically discovered
-    3. Each ``@ScenarioTest`` method becomes a separate test in the JUnit test tree
+    1. Methods annotated with ``@ScenarioTest`` that return ``Scenario`` are automatically discovered
+    2. Each ``@ScenarioTest`` method becomes a separate test in the JUnit test tree
 ^^^^^^^^^^^^^^^
 
 Scenarios follow the Given-When-Then pattern:
-
-.. code-block:: kotlin
-    **Using @ScenarioTest (recommended for most cases):**
-    suite.scenario("Create and retrieve a pet") {
-        given("the API is available") {
-            // Optional setup
-        }
-
-            @ScenarioTest
-            call("createPet") {
-                body(mapOf(
-                    "name" to "Fluffy",
-                    "status" to "available"
-                ))
-            }
-        }
-
-        afterwards("the pet is created") {
-            statusCode(201)
-            bodyEquals("$.name", "Fluffy")
-        }
-    }
 
 .. note::
     The ``whenever`` keyword is the preferred alternative to ``when``, which requires backticks.
