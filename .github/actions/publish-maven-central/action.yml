@@ -31,7 +31,7 @@ runs:
   steps:
     - name: Publish artifacts to Central
       shell: bash
-      run: ./gradlew publishAllPublicationsToCentralRepository
+      run: ./gradlew publish
       env:
         MAVEN_USERNAME: ${{ inputs.maven-username }}
         MAVEN_PASSWORD: ${{ inputs.maven-password }}

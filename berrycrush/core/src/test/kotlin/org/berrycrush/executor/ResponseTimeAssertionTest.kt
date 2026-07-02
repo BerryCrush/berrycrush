@@ -2,6 +2,7 @@ package org.berrycrush.executor
 
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.model.Assertion
+import org.berrycrush.model.AssertionResult
 import org.berrycrush.model.Condition
 import org.berrycrush.model.Scenario
 import org.berrycrush.model.ScenarioResult
@@ -99,11 +100,7 @@ class ResponseTimeAssertionTest {
         val scenario = createResponseTimeScenario("Response time passes", 60000)
         val result = executeWithNetworkSkip(scenario) ?: return
 
-        val responseTimeAssertion =
-            result.stepResults
-                .firstOrNull()
-                ?.assertionResults
-                ?.find { it.assertion.condition is Condition.ResponseTime }
+        val responseTimeAssertion = result.responseTime
 
         if (responseTimeAssertion != null) {
             assertTrue(responseTimeAssertion.passed, "Response time assertion should pass with generous threshold")
@@ -115,11 +112,7 @@ class ResponseTimeAssertionTest {
         val scenario = createResponseTimeScenario("Response time fails", 0)
         val result = executeWithNetworkSkip(scenario) ?: return
 
-        val responseTimeAssertion =
-            result.stepResults
-                .firstOrNull()
-                ?.assertionResults
-                ?.find { it.assertion.condition is Condition.ResponseTime }
+        val responseTimeAssertion = result.responseTime
 
         if (responseTimeAssertion != null) {
             assertTrue(!responseTimeAssertion.passed, "Response time assertion should fail with 0ms threshold")
@@ -135,11 +128,7 @@ class ResponseTimeAssertionTest {
         val scenario = createResponseTimeScenario("Response time with ms unit", "60000ms")
         val result = executeWithNetworkSkip(scenario) ?: return
 
-        val responseTimeAssertion =
-            result.stepResults
-                .firstOrNull()
-                ?.assertionResults
-                ?.find { it.assertion.condition is Condition.ResponseTime }
+        val responseTimeAssertion = result.responseTime
 
         if (responseTimeAssertion != null) {
             assertTrue(responseTimeAssertion.passed, "Response time assertion should pass with 60000ms threshold")
@@ -151,11 +140,7 @@ class ResponseTimeAssertionTest {
         val scenario = createResponseTimeScenario("Response time with seconds unit", "60s")
         val result = executeWithNetworkSkip(scenario) ?: return
 
-        val responseTimeAssertion =
-            result.stepResults
-                .firstOrNull()
-                ?.assertionResults
-                ?.find { it.assertion.condition is Condition.ResponseTime }
+        val responseTimeAssertion = result.responseTime
 
         if (responseTimeAssertion != null) {
             assertTrue(responseTimeAssertion.passed, "Response time assertion should pass with 60s threshold")
@@ -167,11 +152,7 @@ class ResponseTimeAssertionTest {
         val scenario = createResponseTimeScenario("Response time with actual value", 60000)
         val result = executeWithNetworkSkip(scenario) ?: return
 
-        val responseTimeAssertion =
-            result.stepResults
-                .firstOrNull()
-                ?.assertionResults
-                ?.find { it.assertion.condition is Condition.ResponseTime }
+        val responseTimeAssertion = result.responseTime
 
         if (responseTimeAssertion != null) {
             assertNotNull(responseTimeAssertion.actual, "Assertion result should include actual response time")
@@ -181,4 +162,11 @@ class ResponseTimeAssertionTest {
             )
         }
     }
+
+    private val ScenarioResult.responseTime: AssertionResult?
+        get() =
+            stepResults
+                .firstOrNull()
+                ?.assertionResults
+                ?.find { it.assertion.condition is Condition.ResponseTime }
 }

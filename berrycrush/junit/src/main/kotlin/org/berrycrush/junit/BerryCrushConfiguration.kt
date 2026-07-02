@@ -42,11 +42,6 @@ import kotlin.reflect.KClass
  * junit.jupiter.execution.parallel.mode.default=concurrent
  * ```
  *
- * **Thread-safety guarantees:**
- * - Each scenario gets its own [ExecutionContext] by default
- * - All executors and components are stateless and thread-safe
- * - Scenarios with `shareVariablesAcrossScenarios=true` should use SAME_THREAD
- *
  * @see BerryCrushSpec
  * @see BerryCrushBindings
  * @see ParallelExecutionMode
@@ -77,21 +72,11 @@ annotation class BerryCrushConfiguration(
 enum class ParallelExecutionMode {
     /**
      * Scenarios can run in parallel (default).
-     *
-     * Safe when:
-     * - Each scenario uses its own [ExecutionContext]
-     * - No shared mutable state between scenarios
-     * - `shareVariablesAcrossScenarios=false` (default)
      */
     CONCURRENT,
 
     /**
      * Force sequential execution within this test class.
-     *
-     * Use when:
-     * - Scenarios share variables (`shareVariablesAcrossScenarios=true`)
-     * - External resources need exclusive access
-     * - Scenario order matters
      */
     SAME_THREAD,
 }
