@@ -9,6 +9,8 @@ import org.berrycrush.step.AnnotationStepScanner
 import org.berrycrush.step.DefaultStepRegistry
 import org.berrycrush.step.PackageStepScanner
 import org.berrycrush.util.StepRegistry
+import java.util.logging.Level
+import java.util.logging.Logger
 import kotlin.reflect.KClass
 
 /**
@@ -43,9 +45,9 @@ object RegistryFactory {
                     registry.register(definition)
                 }
             }.onFailure { e ->
-                System.err.println(
-                    "Warning: Failed to scan step class ${klass.qualifiedName}: ${e.message}",
-                )
+                logger.log(Level.WARNING, e) {
+                    "Failed to scan step class ${klass.qualifiedName}: ${e.message}"
+                }
             }
         }
 
@@ -58,9 +60,9 @@ object RegistryFactory {
                         registry.register(definition)
                     }
                 }.onFailure { e ->
-                    System.err.println(
-                        "Warning: Failed to scan step package $packageName: ${e.message}",
-                    )
+                    logger.log(Level.WARNING, e) {
+                        "Failed to scan step package $packageName: ${e.message}"
+                    }
                 }
             }
         }
@@ -115,9 +117,9 @@ object RegistryFactory {
                     registry.register(definition)
                 }
             }.onFailure { e ->
-                System.err.println(
-                    "Warning: Failed to scan assertion class ${klass.qualifiedName}: ${e.message}",
-                )
+                logger.log(Level.WARNING, e) {
+                    "Failed to scan assertion class ${klass.qualifiedName}: ${e.message}"
+                }
             }
         }
 
@@ -130,9 +132,9 @@ object RegistryFactory {
                         registry.register(definition)
                     }
                 }.onFailure { e ->
-                    System.err.println(
-                        "Warning: Failed to scan assertion package $packageName: ${e.message}",
-                    )
+                    logger.log(Level.WARNING, e) {
+                        "Failed to scan assertion package $packageName: ${e.message}"
+                    }
                 }
             }
         }
@@ -161,4 +163,6 @@ object RegistryFactory {
         val config = testClass.getAnnotation(BerryCrushConfiguration::class.java)
         return createAssertionRegistry(config)
     }
+
+    private val logger = Logger.getLogger(RegistryFactory::class.java.name)
 }

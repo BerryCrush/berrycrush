@@ -18,6 +18,7 @@ import org.berrycrush.runner.ScenarioRunner
 import org.berrycrush.scenario.ScenarioLoader
 import org.berrycrush.util.StepRegistry
 import org.junit.platform.engine.EngineExecutionListener
+import java.util.logging.Level
 import java.util.logging.Logger
 import kotlin.reflect.KClass
 import kotlin.reflect.full.findAnnotation
@@ -66,7 +67,7 @@ class ScenarioTestExecutor(
             executeWithContext(classDescriptor, listener, provider)
         } finally {
             runCatching { provider?.cleanup(classDescriptor.testClass.java) }
-                .onFailure { logger.severe("Warning: BindingsProvider cleanup failed: ${it.message}") }
+                .onFailure { logger.log(Level.WARNING, it) { "BindingsProvider cleanup failed: ${it.message}" } }
         }
     }
 
@@ -259,14 +260,18 @@ class ScenarioTestExecutor(
         config.pluginClasses.forEach { pluginClass ->
             runCatching { registry.register(pluginClass) }
                 .onFailure {
-                    System.err.println("Warning: Failed to register plugin class ${pluginClass.qualifiedName}: ${it.message}")
+                    logger.log(Level.SEVERE, it) {
+                        "Failed to register plugin class ${pluginClass.qualifiedName}: ${it.message}"
+                    }
                 }
         }
 
         config.plugins.forEach { pluginName ->
             runCatching { registry.registerByName(pluginName) }
                 .onFailure {
-                    System.err.println("Warning: Failed to register plugin '$pluginName': ${it.message}")
+                    logger.log(Level.WARNING, it) {
+                        "Failed to register plugin '$pluginName': ${it.message}"
+                    }
                 }
         }
 
@@ -290,7 +295,9 @@ class ScenarioTestExecutor(
                         registry.registerAll(fragments)
                     }
                 }.onFailure {
-                    System.err.println("Warning: Failed to load fragment from ${fragment.path}: ${it.message}")
+                    logger.log(Level.WARNING, it) {
+                        "Failed to load fragment from ${fragment.path}: ${it.message}"
+                    }
                 }
             }
 

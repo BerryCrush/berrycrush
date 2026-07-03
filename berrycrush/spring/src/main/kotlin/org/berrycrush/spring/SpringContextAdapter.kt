@@ -3,6 +3,8 @@ package org.berrycrush.spring
 import org.berrycrush.exception.ConfigurationException
 import org.springframework.context.ApplicationContext
 import org.springframework.test.context.TestContextManager
+import java.util.logging.Level
+import java.util.logging.Logger
 
 /**
  * Bridge between BerryCrush engine and Spring TestContext framework.
@@ -131,8 +133,12 @@ class SpringContextAdapter(
      */
     fun cleanup() {
         runCatching { testContextManager?.afterTestClass() }
-            .onFailure { System.err.println("Warning: Spring context cleanup warning: ${it.message}") }
+            .onFailure { logger.log(Level.WARNING, it) { "Spring context cleanup warning: ${it.message}" } }
         testContextManager = null
         testInstance = null
+    }
+
+    companion object {
+        private val logger = Logger.getLogger(SpringContextAdapter::class.java.name)
     }
 }

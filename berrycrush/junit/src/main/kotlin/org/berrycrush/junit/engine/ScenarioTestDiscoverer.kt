@@ -14,6 +14,8 @@ import org.junit.platform.engine.support.descriptor.EngineDescriptor
 import java.io.File
 import java.io.InputStreamReader
 import java.net.URL
+import java.util.logging.Level
+import java.util.logging.Logger
 import kotlin.reflect.KClass
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.hasAnnotation
@@ -104,7 +106,7 @@ object ScenarioTestDiscoverer {
         runCatching { loadScenarioFromUrl(loader, file.url) }
             .onSuccess { populateFileDescriptor(fileDescriptor, it, filters, scenarioFile) }
             .onFailure { e ->
-                System.err.println("Warning: Failed to parse ${file.path} during discovery: ${e.message}")
+                logger.log(Level.SEVERE, e) { "Failed to parse ${file.path} during discovery: ${e.message}" }
             }
 
         return fileDescriptor
@@ -207,6 +209,8 @@ object ScenarioTestDiscoverer {
             val fileName = url.path.substringAfterLast("/")
             loader.loadFileContentFromString(content, fileName)
         }
+
+    private val logger = Logger.getLogger(ScenarioTestDiscoverer::class.java.name)
 }
 
 /**

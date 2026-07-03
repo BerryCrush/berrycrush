@@ -178,8 +178,7 @@ class StepExecutor(
             val methodParams = method.parameters
             val args =
                 if (methodParams.isNotEmpty() &&
-                    methodParams.last().type.isAssignableFrom(org.berrycrush.step.StepContext::class.java) &&
-                    methodParams.last().type !is Any
+                    org.berrycrush.step.StepContext::class.java.isAssignableFrom(methodParams.last().type)
                 ) {
                     // Append StepContext to parameters
                     arrayOf(*parameters, stepContext)

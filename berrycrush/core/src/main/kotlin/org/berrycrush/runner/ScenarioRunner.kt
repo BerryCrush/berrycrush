@@ -17,6 +17,8 @@ import org.berrycrush.util.StepRegistry
 import java.io.File
 import java.time.Duration
 import java.time.Instant
+import java.util.logging.Level
+import java.util.logging.Logger
 
 /**
  * Result of running multiple scenarios.
@@ -144,7 +146,7 @@ class ScenarioRunner(
 
         runCatching { pluginRegistry?.dispatchTestExecutionStart() }
             .onFailure { e ->
-                System.err.println("Warning: Plugin test execution start hook failed: ${e.message}")
+                logger.log(Level.WARNING, e) { "Plugin test execution start hook failed: ${e.message}" }
             }
     }
 
@@ -157,7 +159,7 @@ class ScenarioRunner(
     fun endExecution() {
         runCatching { pluginRegistry?.dispatchTestExecutionEnd() }
             .onFailure { e ->
-                System.err.println("Warning: Plugin test execution end hook failed: ${e.message}")
+                logger.log(Level.WARNING, e) { "Plugin test execution end hook failed: ${e.message}" }
             }
         // Clear shared context
         sharedContext = null
@@ -290,7 +292,7 @@ class ScenarioRunner(
             val localSharedContext = ExecutionContext(configuration.shareVariablesAcrossScenarios, parameters)
             runCatching { pluginRegistry?.dispatchTestExecutionStart() }
                 .onFailure { e ->
-                    System.err.println("Warning: Plugin test execution start hook failed: ${e.message}")
+                    logger.log(Level.WARNING, e) { "Plugin test execution start hook failed: ${e.message}" }
                 }
 
             // Execute all scenarios with modified executor
@@ -301,7 +303,7 @@ class ScenarioRunner(
 
             runCatching { pluginRegistry?.dispatchTestExecutionEnd() }
                 .onFailure { e ->
-                    System.err.println("Warning: Plugin test execution end hook failed: ${e.message}")
+                    logger.log(Level.WARNING, e) { "Plugin test execution end hook failed: ${e.message}" }
                 }
             buildRunResult(startTime, results)
         }
@@ -335,5 +337,9 @@ class ScenarioRunner(
             skipped = skipped,
             errors = errors,
         )
+    }
+
+    companion object {
+        private val logger = Logger.getLogger(ScenarioRunner::class.java.name)
     }
 }

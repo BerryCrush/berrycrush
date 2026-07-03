@@ -1,10 +1,12 @@
 package org.berrycrush.junit.glue
 
-import org.berrycrush.assertion.Assertion
+import org.berrycrush.step.Step
+import org.berrycrush.step.StepContext
+import org.junit.jupiter.api.Assertions.assertEquals
 
-class CustomAssertions {
-    @Assertion("the param name {string} must be {any}")
-    fun checkValue(name: String, expected: Any?) {
-        println(name)
+class CustomStep {
+    @Step("the param name {string} must be {any}")
+    fun checkValue(name: String, expected: Any?, context: StepContext) {
+        assertEquals(expected, context.variable(name).toString())
     }
 }

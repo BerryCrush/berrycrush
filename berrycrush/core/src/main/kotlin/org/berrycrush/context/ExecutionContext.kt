@@ -66,10 +66,10 @@ class ExecutionContext(
         }
 
     val mergedParameters: Map<String, Any> by lazy {
-        val mutableMap = mutableMapOf<String, Any>()
-        var context: ExecutionContext? = this
+        val mutableMap = parameters.toMutableMap()
+        var context: ExecutionContext? = this.parent
         while (context != null) {
-            mutableMap.putAll(parameters)
+            context.parameters.forEach{ (k, v) -> mutableMap.putIfAbsent(k, v) }
             context = context.parent
         }
         mutableMap.toMap()
