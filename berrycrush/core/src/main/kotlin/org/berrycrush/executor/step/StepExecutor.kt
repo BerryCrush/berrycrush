@@ -1,5 +1,6 @@
 package org.berrycrush.executor.step
 
+import java.lang.reflect.InvocationTargetException
 import org.berrycrush.executor.BerryCrushExecutionListener
 import org.berrycrush.executor.fragment.FragmentExecutor
 import org.berrycrush.executor.response.ResponseProcessor
@@ -177,7 +178,8 @@ class StepExecutor(
             val methodParams = method.parameters
             val args =
                 if (methodParams.isNotEmpty() &&
-                    methodParams.last().type.isAssignableFrom(org.berrycrush.step.StepContext::class.java)
+                    methodParams.last().type.isAssignableFrom(org.berrycrush.step.StepContext::class.java) &&
+                    methodParams.last().type !is Any
                 ) {
                     // Append StepContext to parameters
                     arrayOf(*parameters, stepContext)
@@ -204,7 +206,7 @@ class StepExecutor(
             // Unwrap InvocationTargetException to get the actual exception
             val actualException =
                 when (e) {
-                    is java.lang.reflect.InvocationTargetException -> e.cause ?: e
+                    is InvocationTargetException -> e.cause ?: e
                     else -> e
                 }
 
