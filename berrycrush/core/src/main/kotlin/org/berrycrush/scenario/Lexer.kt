@@ -96,60 +96,34 @@ class Lexer(
         }
 
         val c = peek()
-
         // Handle newlines
-        if (c == '\n' || c == '\r') {
-            return scanNewline()
-        }
+        return when {
+            c == '\n' || c == '\r' -> scanNewline()
+            // Handle comments
+            c == '#' -> {
 
-        // Handle comments
-        if (c == '#') {
-            skipComment()
-            return nextToken()
+                skipComment()
+                nextToken()
+            }
+            // Handle triple-quoted strings first (""")
+            c == '"' && peekAhead(1) == '"' && peekAhead(2) == '"' -> scanTripleQuote()
+            // Handle strings
+            c == '"' || c == '\'' -> scanString()
+            // Handle JSON path
+            c == '$' -> scanJsonPath()
+            // Handle tags (@tagname)
+            c == '@' -> scanTag()
+            // Handle variable reference
+            c == '{' && peekAhead(1) == '{' -> scanVariable()
+            // Handle numbers
+            c.isDigit() || c == '-' && peekAhead(1)?.isDigit() == true -> scanNumber()
+            // Handle operation ID prefix (^operationId)
+            c == '^' -> scanOperationId()
+            // Handle identifiers and keywords
+            c.isLetter() || c == '_' -> scanIdentifier()
+            // Handle symbols
+            else -> scanSymbol()
         }
-
-        // Handle triple-quoted strings first (""")
-        if (c == '"' && peekAhead(1) == '"' && peekAhead(2) == '"') {
-            return scanTripleQuote()
-        }
-
-        // Handle strings
-        if (c == '"' || c == '\'') {
-            return scanString()
-        }
-
-        // Handle JSON path
-        if (c == '$') {
-            return scanJsonPath()
-        }
-
-        // Handle tags (@tagname)
-        if (c == '@') {
-            return scanTag()
-        }
-
-        // Handle variable reference
-        if (c == '{' && peekAhead(1) == '{') {
-            return scanVariable()
-        }
-
-        // Handle numbers
-        if (c.isDigit() || (c == '-' && peekAhead(1)?.isDigit() == true)) {
-            return scanNumber()
-        }
-
-        // Handle operation ID prefix (^operationId)
-        if (c == '^') {
-            return scanOperationId()
-        }
-
-        // Handle identifiers and keywords
-        if (c.isLetter() || c == '_') {
-            return scanIdentifier()
-        }
-
-        // Handle symbols
-        return scanSymbol()
     }
 
     private fun handleIndentation(): Token? {
@@ -423,7 +397,11 @@ class Lexer(
             if (nextTwo.equals("xx", ignoreCase = true)) {
                 sb.append(advance()) // x
                 sb.append(advance()) // x
-                return Token(TokenType.STATUS_RANGE, sb.toString(), loc)
+                return if (isAtEnd() || peek().isWhitespace()) {
+                    Token(TokenType.STATUS_RANGE, sb.toString(), loc)
+                } else {
+                    scanIdentifier(sb)
+                }
             }
         }
 
@@ -433,8 +411,11 @@ class Lexer(
                 sb.append(advance())
             }
         }
-
-        return Token(TokenType.NUMBER, sb.toString(), loc)
+        return if (isAtEnd() || peek().isWhitespace()) {
+            Token(TokenType.NUMBER, sb.toString(), loc)
+        } else {
+            scanIdentifier(sb)
+        }
     }
 
     /**
@@ -451,11 +432,10 @@ class Lexer(
         return sb.toString()
     }
 
-    private fun scanIdentifier(): Token {
+    private fun scanIdentifier(sb: StringBuilder = StringBuilder()): Token {
         val loc = currentLocation()
-        val sb = StringBuilder()
 
-        while (!isAtEnd() && (peek().isLetterOrDigit() || peek() == '_' || peek() == '-')) {
+        while (!isAtEnd() && (peek().isLetterOrDigit() || peek() == '_' || peek() == '-' || peek() == '.')) {
             sb.append(advance())
         }
 

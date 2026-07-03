@@ -260,4 +260,13 @@ class LexerTest {
         assertEquals(TokenType.COMMA, tokens[8].type)
         assertEquals(TokenType.DOT, tokens[9].type)
     }
+
+    @Test
+    fun `should tokenize string`() {
+        val lexer = Lexer("127.0.0.1")
+        val tokens = lexer.tokenize()
+        assertEquals(2, tokens.size) // incl. EOF
+        assertEquals(TokenType.IDENTIFIER, tokens[0].type)
+        assertEquals(TokenType.EOF, tokens[1].type)
+    }
 }

@@ -1,0 +1,25 @@
+parameters:
+  custom:
+    port: 8080
+    host: localhost
+
+feature: Parameter override test
+  parameters:
+  custom:
+    port: 9090
+    host: 127.0.0.1
+  outline: Nested parameters test
+    given: I will check the parameters
+    then: I check the {{parameter.name}} parameter is {{parameter.value}}
+    examples:
+      | parameter.name | parameter.value |
+      | port           | 9090            |
+      | host           | 127.0.0.1       |
+
+outline: Top level parameters test
+  given: I will check the parameters
+  then: I check the {{parameter.name}} parameter is {{parameter.value}}
+  examples:
+    | parameter.name | parameter.value |
+    | port           | 9090            |
+    | host           | 127.0.0.1       |

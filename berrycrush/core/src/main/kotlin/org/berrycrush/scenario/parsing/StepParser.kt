@@ -73,12 +73,11 @@ internal fun ParserState.parseStepDescription(): String {
 
     while (!isAtEnd() && current().type != TokenType.NEWLINE && current().type != TokenType.EOF) {
         // Preserve quotes for STRING tokens so custom step matchers can extract parameters
-        val tokenValue =
-            if (current().type == TokenType.STRING) {
-                "\"${current().value}\""
-            } else {
-                current().value
-            }
+        val tokenValue = when (current().type) {
+            TokenType.STRING -> "\"${current().value}\""
+            TokenType.VARIABLE -> "{{${current().value}}}"
+            else -> current().value
+        }
         parts.add(tokenValue)
         advance()
     }
