@@ -69,7 +69,7 @@ class ExecutionContext(
         val mutableMap = parameters.toMutableMap()
         var context: ExecutionContext? = this.parent
         while (context != null) {
-            context.parameters.forEach{ (k, v) -> mutableMap.putIfAbsent(k, v) }
+            context.parameters.forEach { (k, v) -> mutableMap.putIfAbsent(k, v) }
             context = context.parent
         }
         mutableMap.toMap()
