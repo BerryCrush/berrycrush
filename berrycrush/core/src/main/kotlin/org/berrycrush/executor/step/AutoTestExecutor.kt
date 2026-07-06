@@ -452,9 +452,21 @@ class AutoTestExecutor(
         val provider = registry.getMultiTestProvider(providerName) ?: return
         listener.onMultiTestStarting(mode, count)
         val result = executeMultiTestMode(step, context, provider, count)
+        context.setupParameters(mode, count, result)
         results.add(result)
         listener.onMultiTestCompleted(result)
         logMultiTest(result)
+    }
+
+    private fun StepContext.setupParameters(
+        mode: MultiMode,
+        count: Int,
+        result: MultiTestResult,
+    ) {
+        this["multiTest.mode"] = mode
+        this["multiTest.count"] = count
+        this["multiTest.result"] = result.passed
+        this["multiTest.duration"] = result.totalDuration
     }
 
     /**
@@ -532,7 +544,7 @@ class AutoTestExecutor(
                     append("  [MULTI-TEST] [$status] ")
                     append("[${result.mode.name.lowercase()}] ")
                     append("${result.requestCount} requests ")
-                    append("(${result.totalDurationMs}ms total)")
+                    append("(${result.totalDuration}ms total)")
                     if (!result.passed) {
                         append(" - ${result.failureReason}")
                     }

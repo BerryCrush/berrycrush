@@ -15,6 +15,7 @@ import org.berrycrush.model.StepResult
 import org.berrycrush.model.StepType
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.scenario.AutoTestType
+import java.time.Duration
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -49,7 +50,7 @@ class BerryCrushExecutionListenerTest {
                             requestIndex = 0,
                         ),
                     ),
-                totalDurationMs = 10,
+                totalDuration = Duration.ofMillis(10),
                 passed = true,
             )
 

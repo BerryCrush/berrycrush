@@ -3,6 +3,8 @@ package org.berrycrush.autotest.provider
 import org.berrycrush.autotest.MultiMode
 import org.berrycrush.autotest.MultiTestResult
 import org.berrycrush.autotest.RequestResult
+import java.time.Duration
+import java.time.Instant
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 
@@ -39,17 +41,17 @@ object SequentialMultiTestProvider : MultiTestProvider {
         count: Int,
         executor: (requestIndex: Int) -> RequestResult,
     ): MultiTestResult {
-        val startTime = System.currentTimeMillis()
+        val startTime = Instant.now()
         val results =
             (0 until count).map { index ->
                 executor(index)
             }
-        val totalDuration = System.currentTimeMillis() - startTime
+        val totalDuration = Duration.between(startTime, Instant.now())
 
         return buildResult(
             mode = MultiMode.SEQUENTIAL,
             results = results,
-            totalDurationMs = totalDuration,
+            totalDuration = totalDuration,
         )
     }
 }
@@ -68,7 +70,7 @@ object ConcurrentMultiTestProvider : MultiTestProvider {
         count: Int,
         executor: (requestIndex: Int) -> RequestResult,
     ): MultiTestResult {
-        val startTime = System.currentTimeMillis()
+        val startTime = Instant.now()
         val threadPool = Executors.newFixedThreadPool(count.coerceAtMost(MAX_THREADS))
         try {
             val futures =
@@ -76,12 +78,12 @@ object ConcurrentMultiTestProvider : MultiTestProvider {
                     threadPool.submit(Callable { executor(index) })
                 }
             val results = futures.map { it.get() }
-            val totalDuration = System.currentTimeMillis() - startTime
+            val totalDuration = Duration.between(startTime, Instant.now())
 
             return buildResult(
                 mode = MultiMode.CONCURRENT,
                 results = results,
-                totalDurationMs = totalDuration,
+                totalDuration = totalDuration,
             )
         } finally {
             threadPool.shutdown()
@@ -97,7 +99,7 @@ object ConcurrentMultiTestProvider : MultiTestProvider {
 private fun buildResult(
     mode: MultiMode,
     results: List<RequestResult>,
-    totalDurationMs: Long,
+    totalDuration: Duration,
 ): MultiTestResult {
     // Default verification: all responses should have the same status code
     val statusCodes = results.mapNotNull { it.response?.statusCode }.distinct()
@@ -113,7 +115,7 @@ private fun buildResult(
         mode = mode,
         requestCount = results.size,
         results = results,
-        totalDurationMs = totalDurationMs,
+        totalDuration = totalDuration,
         passed = passed,
         failureReason = failureReason,
     )

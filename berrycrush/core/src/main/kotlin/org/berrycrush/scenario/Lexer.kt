@@ -1,5 +1,7 @@
 package org.berrycrush.scenario
 
+private val IDENTIFIER_SYMBOLS = listOf('-', '_', '.')
+
 /**
  * Lexer for scenario files.
  *
@@ -85,14 +87,7 @@ class Lexer(
 
         if (isAtEnd()) {
             // Handle any remaining dedents
-            while (indentStack.size > 1) {
-                indentStack.removeLast()
-                pendingTokens.add(Token(TokenType.DEDENT, "", currentLocation()))
-            }
-            if (pendingTokens.isNotEmpty()) {
-                return pendingTokens.removeAt(0)
-            }
-            return Token(TokenType.EOF, "", currentLocation())
+            return scanDedent()
         }
 
         val c = peek()
@@ -101,7 +96,6 @@ class Lexer(
             c == '\n' || c == '\r' -> scanNewline()
             // Handle comments
             c == '#' -> {
-
                 skipComment()
                 nextToken()
             }
@@ -126,18 +120,23 @@ class Lexer(
         }
     }
 
+    private fun scanDedent(): Token {
+        while (indentStack.size > 1) {
+            indentStack.removeLast()
+            pendingTokens.add(Token(TokenType.DEDENT, "", currentLocation()))
+        }
+        return if (pendingTokens.isNotEmpty()) {
+            pendingTokens.removeAt(0)
+        } else {
+            Token(TokenType.EOF, "", currentLocation())
+        }
+    }
+
     private fun handleIndentation(): Token? {
         atLineStart = false
 
         // Skip blank lines
-        while (!isAtEnd() && (peek() == '\n' || peek() == '\r')) {
-            advance()
-            if (!isAtEnd() && peek(-1) == '\r' && peek() == '\n') {
-                advance()
-            }
-            line++
-            column = 1
-        }
+        skipBlankLines()
 
         if (isAtEnd()) return null
 
@@ -148,11 +147,7 @@ class Lexer(
         }
 
         // Count indentation
-        var indent = 0
-        while (!isAtEnd() && peek() == ' ') {
-            indent++
-            advance()
-        }
+        val indent = scanIndent()
 
         // Skip lines that are only whitespace
         if (!isAtEnd() && (peek() == '\n' || peek() == '\r' || peek() == '#')) {
@@ -180,6 +175,26 @@ class Lexer(
             }
             else -> null
         }
+    }
+
+    private fun skipBlankLines() {
+        while (!isAtEnd() && (peek() == '\n' || peek() == '\r')) {
+            advance()
+            if (!isAtEnd() && peek(-1) == '\r' && peek() == '\n') {
+                advance()
+            }
+            line++
+            column = 1
+        }
+    }
+
+    private fun scanIndent(): Int {
+        var indent = 0
+        while (!isAtEnd() && peek() == ' ') {
+            indent++
+            advance()
+        }
+        return indent
     }
 
     private fun scanNewline(): Token {
@@ -231,70 +246,39 @@ class Lexer(
      * Scan a triple-quoted string.
      * Captures all content between """ and closing """, preserving whitespace and newlines.
      */
+    @Suppress("MagicNumber")
     private fun scanTripleQuote(): Token {
         val loc = currentLocation()
         // Consume opening """
-        advance() // first "
-        advance() // second "
-        advance() // third "
+        advance(3)
 
         // Skip the newline after opening """ if present
-        if (!isAtEnd() && peek() == '\n') {
-            advance()
-            line++
-            column = 1
-        } else if (!isAtEnd() && peek() == '\r') {
-            advance()
-            if (!isAtEnd() && peek() == '\n') {
-                advance()
-            }
-            line++
-            column = 1
-        }
+        skipNewline()
 
         val sb = StringBuilder()
 
         // Capture content until closing """
         while (!isAtEnd()) {
             // Check for closing """
-            if (peek() == '"' && peekAhead(1) == '"' && peekAhead(2) == '"') {
+            if (peekString(3) == "\"\"\"") {
                 break
             }
-
-            when (val c = advance()) {
-                '\n' -> {
-                    sb.append(c)
-                    line++
-                    column = 1
-                }
-                '\r' -> {
-                    if (!isAtEnd() && peek() == '\n') {
-                        advance()
-                    }
-                    sb.append('\n')
-                    line++
-                    column = 1
-                }
-                else -> {
-                    sb.append(c)
-                }
-            }
+            val c = skipNewline(true)
+            sb.append(c)
         }
 
         // Consume closing """
         if (!isAtEnd() && peek() == '"') {
-            advance() // first "
-            advance() // second "
-            advance() // third "
+            advance(3)
         }
 
         // Skip to end of line after closing """
-        while (!isAtEnd() && peek() != '\n' && peek() != '\r') {
+        while (!isAtEnd() && !peek().isNewLine()) {
             advance()
         }
 
         // Mark that we should process indentation on the next token
-        if (!isAtEnd() && (peek() == '\n' || peek() == '\r')) {
+        if (!isAtEnd() && peek().isNewLine()) {
             // Consume the newline
             advance()
             if (!isAtEnd() && peek(-1) == '\r' && peek() == '\n') {
@@ -360,8 +344,7 @@ class Lexer(
 
     private fun scanVariable(): Token {
         val loc = currentLocation()
-        advance() // {
-        advance() // {
+        advance(2) // {{
 
         val sb = StringBuilder()
         while (!isAtEnd() && !(peek() == '}' && peekAhead(1) == '}')) {
@@ -390,6 +373,13 @@ class Lexer(
             sb.append(advance())
         }
 
+        return scanStatusRange(sb, loc) ?: scanFraction(sb, loc)
+    }
+
+    private fun scanStatusRange(
+        sb: StringBuilder,
+        loc: SourceLocation,
+    ): Token? {
         // Check for status range pattern (e.g., 1xx, 2xx, 3xx, 4xx, 5xx)
         val value = sb.toString()
         if (value.length == 1 && value[0] in '1'..'5') {
@@ -404,19 +394,51 @@ class Lexer(
                 }
             }
         }
+        return null
+    }
 
+    private fun scanFraction(
+        sb: StringBuilder,
+        loc: SourceLocation,
+    ): Token {
         if (!isAtEnd() && peek() == '.' && peekAhead(1)?.isDigit() == true) {
             sb.append(advance())
             while (!isAtEnd() && peek().isDigit()) {
                 sb.append(advance())
             }
         }
-        return if (isAtEnd() || peek().isWhitespace()) {
+        return if (isAtEnd() || peek().isWhitespace() || peek().isDelimiter()) {
             Token(TokenType.NUMBER, sb.toString(), loc)
         } else {
             scanIdentifier(sb)
         }
     }
+
+    private fun skipNewline(shouldAdvance: Boolean = false): Char =
+        when (val c = peek()) {
+            '\n' -> {
+                advance()
+                line++
+                column = 1
+                c
+            }
+            '\r' -> {
+                advance()
+                if (!isAtEnd() && peek() == '\n') {
+                    advance()
+                }
+                line++
+                column = 1
+                '\n'
+            }
+            else ->
+                if (shouldAdvance) {
+                    advance()
+                    c
+                } else {
+                    c
+                }
+        }
 
     /**
      * Peek the next n characters without advancing.
@@ -432,17 +454,22 @@ class Lexer(
         return sb.toString()
     }
 
-    private fun scanIdentifier(sb: StringBuilder = StringBuilder()): Token {
-        val loc = currentLocation()
-
-        while (!isAtEnd() && (peek().isLetterOrDigit() || peek() == '_' || peek() == '-' || peek() == '.')) {
-            sb.append(advance())
+    private fun scanIdentifier(sb: StringBuilder = StringBuilder()): Token =
+        scanIdentifier(sb) { text ->
+            KEYWORDS[text.lowercase()] ?: TokenType.IDENTIFIER
         }
 
-        val text = sb.toString()
-        val type = KEYWORDS[text.lowercase()] ?: TokenType.IDENTIFIER
+    private fun scanIdentifier(
+        sb: StringBuilder = StringBuilder(),
+        typeResolver: (String) -> TokenType,
+    ): Token {
+        val loc = currentLocation()
 
-        return Token(type, text, loc)
+        while (!isAtEnd() && peek().isIdentifierChar()) {
+            sb.append(advance())
+        }
+        val text = sb.toString()
+        return Token(typeResolver(text), text, loc)
     }
 
     /**
@@ -489,14 +516,10 @@ class Lexer(
         if (isAtEnd() || (!peek().isLetter() && peek() != '_')) {
             return Token(TokenType.ERROR, "Expected identifier after '@'", loc)
         }
-
-        // Read the tag name (allows letters, digits, underscore, hyphen)
-        val sb = StringBuilder()
-        while (!isAtEnd() && (peek().isLetterOrDigit() || peek() == '_' || peek() == '-')) {
-            sb.append(advance())
+        // Read identifier
+        return scanIdentifier {
+            TokenType.TAG
         }
-
-        return Token(TokenType.TAG, sb.toString(), loc)
     }
 
     private fun scanSymbol(): Token {
@@ -555,9 +578,16 @@ class Lexer(
 
     private fun peekAhead(n: Int): Char? = if (pos + n >= source.length) null else source[pos + n]
 
-    private fun advance(): Char {
-        val c = source[pos++]
-        column++
+    private fun advance(n: Int = 1): Char {
+        val c = source[pos]
+        pos += n
+        column += n
         return c
     }
 }
+
+private fun Char.isNewLine() = this == '\n' || this == '\r'
+
+private fun Char.isDelimiter() = !isIdentifierChar()
+
+private fun Char.isIdentifierChar() = this.isLetterOrDigit() || IDENTIFIER_SYMBOLS.contains(this)

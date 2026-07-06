@@ -49,7 +49,7 @@ class MultiTestDescriptor(
                 append(createDisplayName(result))
                 append("\n")
                 append("  ${result.failureReason ?: "Unknown failure"}")
-                append("\n  Duration: ${result.totalDurationMs}ms")
+                append("\n  Duration: ${result.totalDuration}ms")
                 append("\n  Results:")
                 result.results.forEach { requestResult ->
                     append("\n    Request #${requestResult.requestIndex + 1}: ")

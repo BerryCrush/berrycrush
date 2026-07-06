@@ -1,5 +1,6 @@
 package org.berrycrush.executor.http
 
+import org.berrycrush.exception.HttpExecutionException
 import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.HttpRequestBuilder
 import org.berrycrush.executor.resolvers.DefaultRequestResolver
@@ -58,15 +59,33 @@ class DefaultHttpExecutor(
         val requestEndTime = Instant.now()
         val duration = Duration.between(requestStartTime, requestEndTime)
         val response =
-            HttpResponse(
-                statusCode = rawResponse.statusCode(),
-                statusMessage = HTTP_STATUS_MESSAGES[rawResponse.statusCode()] ?: "",
-                headers = rawResponse.headers().map(),
-                body = rawResponse.body(),
-                duration = duration,
-                timestamp = requestEndTime,
-                request = request,
-            )
+            rawResponse
+                .map {
+                    HttpResponse(
+                        statusCode = it.statusCode(),
+                        statusMessage = HTTP_STATUS_MESSAGES[it.statusCode()] ?: "",
+                        headers = it.headers().map(),
+                        body = it.body(),
+                        duration = duration,
+                        timestamp = requestEndTime,
+                        request = request,
+                    )
+                }.getOrElse { e ->
+                    val wrapped = HttpExecutionException(request.url, request.method, e)
+                    if (configuration.autoAssertions.enabled) {
+                        throw wrapped
+                    }
+                    HttpResponse(
+                        statusCode = -1,
+                        statusMessage = e.message ?: "",
+                        headers = emptyMap(),
+                        duration = duration,
+                        timestamp = requestEndTime,
+                        request = request,
+                        error = wrapped,
+                    )
+                }
+
         // Log response if enabled
         logResponse(request, response, duration)
 

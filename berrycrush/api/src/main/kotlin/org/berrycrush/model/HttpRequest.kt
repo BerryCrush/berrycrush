@@ -42,4 +42,5 @@ data class HttpResponse(
     val duration: Duration,
     val timestamp: Instant,
     val request: HttpRequest,
+    val error: Throwable? = null,
 )
