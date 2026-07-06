@@ -1,5 +1,6 @@
 package org.berrycrush.executor
 
+import java.time.Duration
 import org.berrycrush.autotest.AutoTestCase
 import org.berrycrush.autotest.MultiMode
 import org.berrycrush.autotest.MultiTestResult
@@ -49,7 +50,7 @@ class BerryCrushExecutionListenerTest {
                             requestIndex = 0,
                         ),
                     ),
-                totalDurationMs = 10,
+                totalDuration = Duration.ofMillis(10),
                 passed = true,
             )
 

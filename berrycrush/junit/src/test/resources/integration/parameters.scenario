@@ -1,7 +1,8 @@
-  parameters:
-    custom:
-      port: 8080
-      host: localhost
+parameters:
+  autoAssertions.enabled: false
+  custom:
+    port: 8080
+    host: localhost
 
 feature: Parameter override test
   outline: Nested parameters test
@@ -10,6 +11,8 @@ feature: Parameter override test
         port: 9090
         host: 127.0.0.1
     given I will check the parameters
+      call ^getTest
+        auto: [invalid]
     then I check the "{{parameter.name}}" parameter is {{parameter.value}}
     examples:
       | parameter.name | parameter.value |
@@ -18,8 +21,12 @@ feature: Parameter override test
 
 outline: Top level parameters test
   given I will check the parameters
+    call ^getTest
+      auto: [multi]
+      excludes: [concurrent]
   then the param name "{{parameterName}}" must be {{parameterValue}}
   examples:
     | parameterName     | parameterValue |
     | param.custom.port | 8080           |
     | param.custom.host | localhost      |
+    | multiTest.mode    | SEQUENTIAL     |

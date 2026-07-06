@@ -12,7 +12,7 @@ import java.time.Duration
  * @property mode The execution mode (sequential or concurrent)
  * @property requestCount The number of requests that were executed
  * @property results Individual results for each request
- * @property totalDurationMs Total time taken for all requests (wall clock time)
+ * @property totalDuration Total time taken for all requests (wall clock time)
  * @property passed Whether the test passed (all requests met criteria)
  * @property failureReason Description of why the test failed, if applicable
  */
@@ -20,7 +20,7 @@ data class MultiTestResult(
     val mode: MultiMode,
     val requestCount: Int,
     val results: List<RequestResult>,
-    val totalDurationMs: Long,
+    val totalDuration: Duration,
     val passed: Boolean,
     val failureReason: String? = null,
 ) {
