@@ -1,6 +1,5 @@
 package org.berrycrush.executor
 
-import java.time.Duration
 import org.berrycrush.autotest.AutoTestCase
 import org.berrycrush.autotest.MultiMode
 import org.berrycrush.autotest.MultiTestResult
@@ -16,6 +15,7 @@ import org.berrycrush.model.StepResult
 import org.berrycrush.model.StepType
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.scenario.AutoTestType
+import java.time.Duration
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

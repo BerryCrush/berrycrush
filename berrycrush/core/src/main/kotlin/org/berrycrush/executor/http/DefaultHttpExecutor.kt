@@ -82,7 +82,7 @@ class DefaultHttpExecutor(
                         duration = duration,
                         timestamp = requestEndTime,
                         request = request,
-                        error = wrapped
+                        error = wrapped,
                     )
                 }
 
