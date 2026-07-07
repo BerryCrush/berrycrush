@@ -64,7 +64,15 @@ interface MultiTestProvider {
     val displayName: String get() = mode
 
     /**
-     * Default count of the multi test
+     * Default number of requests to execute for this multi-test mode.
+     * Can be overridden via configuration parameters:
+     *
+     * ```
+     * parameters:
+     *   multiTest:
+     *     ${mode}:
+     *       count: 10
+     * ```
      */
     val defaultCount: Int
 

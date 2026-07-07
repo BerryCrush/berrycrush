@@ -10,15 +10,20 @@ berrycrush/
 ├── settings.gradle.kts       # Module declarations
 ├── gradle/
 │   └── libs.versions.toml    # Version catalog
-├── berrycrush/              # Library modules
-│   ├── core/                 # Core library (standalone)
+├── berrycrush/               # Library modules
+│   ├── api/                  # API module
+│   ├── plugin/               # Plugin interface module
+│   ├── report-plugins/       # Builtin reporting plugins
+│   ├── core/                 # Core library
 │   ├── junit/                # JUnit 5 integration
-│   ├── spring/               # Spring Boot integration
-│   └── doc/                  # Sphinx documentation
+│   ├── kotlin-dsl/           # Kotlin DSL for scenario definition
+│   └── spring/               # Spring Boot integration
 ├── samples/                  # Sample projects
-│   └── petstore/             # Petstore API sample
-├── specs/                    # Feature specifications
-└── developer/                # Developer documentation
+│   ├── petstore/             # Petstore API sample
+│   └── others...             # Other sample projects
+├── doc/
+│   ├── developer/            # Developer documentation
+└── └── reference/            # Sphinx documentation
 ```
 
 ## Module Dependencies
