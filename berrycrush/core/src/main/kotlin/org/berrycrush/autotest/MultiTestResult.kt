@@ -17,7 +17,7 @@ import java.time.Duration
  * @property failureReason Description of why the test failed, if applicable
  */
 data class MultiTestResult(
-    val mode: MultiMode,
+    val mode: MultiTestType,
     val requestCount: Int,
     val results: List<RequestResult>,
     val totalDuration: Duration,

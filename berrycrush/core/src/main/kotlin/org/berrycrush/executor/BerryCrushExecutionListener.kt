@@ -1,8 +1,8 @@
 package org.berrycrush.executor
 
 import org.berrycrush.autotest.AutoTestCase
-import org.berrycrush.autotest.MultiMode
 import org.berrycrush.autotest.MultiTestResult
+import org.berrycrush.autotest.MultiTestType
 import org.berrycrush.model.AutoTestResult
 import org.berrycrush.model.Scenario
 import org.berrycrush.model.ScenarioResult
@@ -120,7 +120,7 @@ interface BerryCrushExecutionListener {
      * @param requestCount Number of requests that will be executed
      */
     fun onMultiTestStarting(
-        mode: MultiMode,
+        mode: MultiTestType,
         requestCount: Int,
     ) {
         // do nothing by default

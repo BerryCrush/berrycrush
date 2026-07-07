@@ -2,9 +2,8 @@ package org.berrycrush.executor.step
 
 import org.berrycrush.autotest.AutoTestCase
 import org.berrycrush.autotest.AutoTestGenerator
-import org.berrycrush.autotest.MultiMode
-import org.berrycrush.autotest.MultiTestParameters
 import org.berrycrush.autotest.MultiTestResult
+import org.berrycrush.autotest.MultiTestType
 import org.berrycrush.autotest.RequestResult
 import org.berrycrush.autotest.provider.AutoTestProviderRegistry
 import org.berrycrush.autotest.provider.MultiTestProvider
@@ -392,46 +391,23 @@ class AutoTestExecutor(
 
         // Get the provider registry
         val registry = AutoTestProviderRegistry.default
-
-        // Determine which modes to run based on excludes
         val excludes = autoTestConfig.excludes.map { it.lowercase() }.toSet()
-        val runSequential = "sequential" !in excludes
-        val runConcurrent = "concurrent" !in excludes
-
-        // Get counts from parameters
-        val sequentialCount = MultiTestParameters.getSequentialCount(parameters)
-        val concurrentCount = MultiTestParameters.getConcurrentCount(parameters)
 
         val multiTestResults = mutableListOf<MultiTestResult>()
-
-        // Execute sequential tests if not excluded
-        if (runSequential) {
-            executeIfProviderExists(
-                registry,
-                "sequential",
-                MultiMode.SEQUENTIAL,
-                sequentialCount,
-                step,
-                context,
-                listener,
-                multiTestResults,
-            )
-        }
-
-        // Execute concurrent tests if not excluded
-        if (runConcurrent) {
-            executeIfProviderExists(
-                registry,
-                "concurrent",
-                MultiMode.CONCURRENT,
-                concurrentCount,
-                step,
-                context,
-                listener,
-                multiTestResults,
-            )
-        }
-
+        // run multi test
+        registry
+            .getMultiTestProviders()
+            .filter { !excludes.contains(it.testType.value) }
+            .forEach { provider ->
+                executeMultiProvider(
+                    provider,
+                    step,
+                    context,
+                    listener,
+                    parameters,
+                    multiTestResults,
+                )
+            }
         // Aggregate and return results
         return buildMultiTestResult(step, stepStartTime, multiTestResults)
     }
@@ -439,27 +415,25 @@ class AutoTestExecutor(
     /**
      * Execute a multi-test mode if the provider exists, adding results to the list.
      */
-    private fun executeIfProviderExists(
-        registry: AutoTestProviderRegistry,
-        providerName: String,
-        mode: MultiMode,
-        count: Int,
+    private fun executeMultiProvider(
+        provider: MultiTestProvider,
         step: Step,
         context: StepContext,
         listener: BerryCrushExecutionListener,
+        parameters: Map<String, Any?>,
         results: MutableList<MultiTestResult>,
     ) {
-        val provider = registry.getMultiTestProvider(providerName) ?: return
-        listener.onMultiTestStarting(mode, count)
+        val count = provider.extractCount(parameters)
+        listener.onMultiTestStarting(provider.testType, count)
         val result = executeMultiTestMode(step, context, provider, count)
-        context.setupParameters(mode, count, result)
+        context.setupParameters(provider.testType, count, result)
         results.add(result)
         listener.onMultiTestCompleted(result)
         logMultiTest(result)
     }
 
     private fun StepContext.setupParameters(
-        mode: MultiMode,
+        mode: MultiTestType,
         count: Int,
         result: MultiTestResult,
     ) {

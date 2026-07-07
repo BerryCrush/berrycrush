@@ -1,6 +1,7 @@
 package org.berrycrush.autotest.provider
 
 import org.berrycrush.autotest.MultiTestResult
+import org.berrycrush.autotest.MultiTestType
 import org.berrycrush.autotest.RequestResult
 
 /**
@@ -54,14 +55,14 @@ interface MultiTestProvider {
      * - Exclude configuration: `excludes: [{testType}]`
      * - User-provided providers override built-in ones with same testType
      */
-    val testType: String
+    val testType: MultiTestType
 
     /**
      * Human-readable display name for test reports.
      *
      * Defaults to [testType] if not overridden.
      */
-    val displayName: String get() = testType
+    val displayName: String get() = testType.value
 
     /**
      * Execute multi-request test.
@@ -77,6 +78,8 @@ interface MultiTestProvider {
         count: Int,
         executor: (requestIndex: Int) -> RequestResult,
     ): MultiTestResult
+
+    fun extractCount(parameters: Map<String, Any?>): Int
 
     /**
      * Priority of this provider. Higher values = higher priority.

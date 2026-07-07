@@ -1,7 +1,9 @@
 package org.berrycrush.autotest.provider
 
 import org.berrycrush.autotest.MultiMode
+import org.berrycrush.autotest.MultiTestParameters
 import org.berrycrush.autotest.MultiTestResult
+import org.berrycrush.autotest.MultiTestType
 import org.berrycrush.autotest.RequestResult
 import java.time.Duration
 import java.time.Instant
@@ -34,7 +36,7 @@ object DefaultMultiTestProviders {
  * calls produce idempotent results.
  */
 object SequentialMultiTestProvider : MultiTestProvider {
-    override val testType: String = "sequential"
+    override val testType: MultiTestType = MultiMode.SEQUENTIAL
     override val displayName: String = "Sequential Idempotency"
 
     override fun executeMultiTest(
@@ -54,6 +56,8 @@ object SequentialMultiTestProvider : MultiTestProvider {
             totalDuration = totalDuration,
         )
     }
+
+    override fun extractCount(parameters: Map<String, Any?>): Int = MultiTestParameters.getSequentialCount(parameters)
 }
 
 /**
@@ -63,7 +67,7 @@ object SequentialMultiTestProvider : MultiTestProvider {
  * Useful for detecting race conditions and concurrent access issues.
  */
 object ConcurrentMultiTestProvider : MultiTestProvider {
-    override val testType: String = "concurrent"
+    override val testType: MultiTestType = MultiMode.CONCURRENT
     override val displayName: String = "Concurrent Idempotency"
 
     override fun executeMultiTest(
@@ -90,6 +94,8 @@ object ConcurrentMultiTestProvider : MultiTestProvider {
         }
     }
 
+    override fun extractCount(parameters: Map<String, Any?>): Int = MultiTestParameters.getConcurrentCount(parameters)
+
     private const val MAX_THREADS = 20
 }
 
@@ -97,7 +103,7 @@ object ConcurrentMultiTestProvider : MultiTestProvider {
  * Build a MultiTestResult from the collected results.
  */
 private fun buildResult(
-    mode: MultiMode,
+    mode: MultiTestType,
     results: List<RequestResult>,
     totalDuration: Duration,
 ): MultiTestResult {

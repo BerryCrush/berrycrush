@@ -1,5 +1,6 @@
 package org.berrycrush.autotest.provider
 
+import org.berrycrush.autotest.MultiTestType
 import java.util.ServiceLoader
 import java.util.concurrent.ConcurrentHashMap
 
@@ -42,7 +43,7 @@ import java.util.concurrent.ConcurrentHashMap
 class AutoTestProviderRegistry {
     private val invalidProviders = ConcurrentHashMap<String, InvalidTestProvider>()
     private val securityProviders = ConcurrentHashMap<String, SecurityTestProvider>()
-    private val multiProviders = ConcurrentHashMap<String, MultiTestProvider>()
+    private val multiProviders = ConcurrentHashMap<MultiTestType, MultiTestProvider>()
 
     /**
      * Register an invalid test provider.
@@ -120,7 +121,7 @@ class AutoTestProviderRegistry {
     /**
      * Get a multi-test provider by test type.
      */
-    fun getMultiTestProvider(testType: String): MultiTestProvider? = multiProviders[testType]
+    fun getMultiTestProvider(testType: MultiTestType): MultiTestProvider? = multiProviders[testType]
 
     /**
      * Check if an invalid test type is registered.
@@ -135,12 +136,12 @@ class AutoTestProviderRegistry {
     /**
      * Check if a multi-test type is registered.
      */
-    fun hasMultiTestType(testType: String): Boolean = multiProviders.containsKey(testType)
+    fun hasMultiTestType(testType: MultiTestType): Boolean = multiProviders.containsKey(testType)
 
     /**
      * Get all registered test types (invalid, security, and multi).
      */
-    fun getAllTestTypes(): Set<String> = invalidProviders.keys + securityProviders.keys + multiProviders.keys
+    fun getAllTestTypes(): Set<String> = invalidProviders.keys + securityProviders.keys + multiProviders.keys.map { it.value }
 
     companion object {
         /**
