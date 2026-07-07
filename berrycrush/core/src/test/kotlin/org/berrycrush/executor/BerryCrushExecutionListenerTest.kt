@@ -1,7 +1,6 @@
 package org.berrycrush.executor
 
 import org.berrycrush.autotest.AutoTestCase
-import org.berrycrush.autotest.MultiMode
 import org.berrycrush.autotest.MultiTestResult
 import org.berrycrush.autotest.ParameterLocation
 import org.berrycrush.autotest.RequestResult
@@ -42,7 +41,7 @@ class BerryCrushExecutionListenerTest {
         val autoTestResult = AutoTestResult(testCase = testCase, passed = true)
         val multiTestResult =
             MultiTestResult(
-                mode = MultiMode.SEQUENTIAL,
+                mode = "sequential",
                 requestCount = 1,
                 results =
                     listOf(
@@ -60,7 +59,7 @@ class BerryCrushExecutionListenerTest {
                 listener.onStepStarting(step)
                 listener.onAutoTestStarting(testCase)
                 listener.onAutoTestCompleted(autoTestResult)
-                listener.onMultiTestStarting(MultiMode.SEQUENTIAL, 1)
+                listener.onMultiTestStarting("sequential", 1)
                 listener.onMultiTestCompleted(multiTestResult)
                 listener.onStepCompleted(stepResult)
                 listener.onScenarioCompleted(scenario, scenarioResult)

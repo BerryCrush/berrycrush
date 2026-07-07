@@ -2,7 +2,6 @@ package org.berrycrush.junit.engine.adapter
 
 import org.berrycrush.autotest.AutoTestCase
 import org.berrycrush.autotest.MultiTestResult
-import org.berrycrush.autotest.MultiTestType
 import org.berrycrush.exception.ErrorContextConfig
 import org.berrycrush.executor.BerryCrushExecutionListener
 import org.berrycrush.junit.engine.AutoTestDescriptor
@@ -34,7 +33,7 @@ internal class JUnitExecutionListenerAdapter(
 ) : BerryCrushExecutionListener {
     private var testIndex = 0
     private val descriptors = mutableMapOf<AutoTestCase, AutoTestDescriptor>()
-    private val multiDescriptors = mutableMapOf<MultiTestType, MultiTestDescriptor>()
+    private val multiDescriptors = mutableMapOf<String, MultiTestDescriptor>()
     private var autoTestFailureCount = 0
     private var multiTestFailureCount = 0
     private var lastScenarioResult: ScenarioResult? = null
@@ -138,7 +137,7 @@ internal class JUnitExecutionListenerAdapter(
     }
 
     override fun onMultiTestStarting(
-        mode: MultiTestType,
+        mode: String,
         requestCount: Int,
     ) {
         val displayName = MultiTestDescriptor.createDisplayName(mode, requestCount)

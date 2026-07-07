@@ -1,8 +1,6 @@
 package org.berrycrush.autotest.provider
 
-import org.berrycrush.autotest.MultiMode
 import org.berrycrush.autotest.MultiTestResult
-import org.berrycrush.autotest.MultiTestType
 import org.berrycrush.autotest.RequestResult
 import java.time.Duration
 import java.time.Instant
@@ -35,7 +33,7 @@ object DefaultMultiTestProviders {
  * calls produce idempotent results.
  */
 object SequentialMultiTestProvider : MultiTestProvider {
-    override val testType: MultiTestType = MultiMode.SEQUENTIAL
+    override val mode: String = "sequential"
     override val displayName: String = "Sequential Idempotency"
     override val defaultCount: Int = 3
 
@@ -51,7 +49,7 @@ object SequentialMultiTestProvider : MultiTestProvider {
         val totalDuration = Duration.between(startTime, Instant.now())
 
         return buildResult(
-            mode = testType,
+            mode = mode,
             results = results,
             totalDuration = totalDuration,
         )
@@ -65,7 +63,7 @@ object SequentialMultiTestProvider : MultiTestProvider {
  * Useful for detecting race conditions and concurrent access issues.
  */
 object ConcurrentMultiTestProvider : MultiTestProvider {
-    override val testType: MultiTestType = MultiMode.CONCURRENT
+    override val mode: String = "concurrent"
     override val displayName: String = "Concurrent Idempotency"
     override val defaultCount: Int = 5
 
@@ -84,7 +82,7 @@ object ConcurrentMultiTestProvider : MultiTestProvider {
             val totalDuration = Duration.between(startTime, Instant.now())
 
             return buildResult(
-                mode = testType,
+                mode = mode,
                 results = results,
                 totalDuration = totalDuration,
             )
@@ -100,7 +98,7 @@ object ConcurrentMultiTestProvider : MultiTestProvider {
  * Build a MultiTestResult from the collected results.
  */
 private fun buildResult(
-    mode: MultiTestType,
+    mode: String,
     results: List<RequestResult>,
     totalDuration: Duration,
 ): MultiTestResult {

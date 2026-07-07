@@ -1,7 +1,6 @@
 package org.berrycrush.junit.engine
 
 import org.berrycrush.autotest.MultiTestResult
-import org.berrycrush.autotest.MultiTestType
 import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.TestSource
 import org.junit.platform.engine.UniqueId
@@ -16,7 +15,7 @@ import java.util.Optional
 class MultiTestDescriptor(
     uniqueId: UniqueId,
     displayName: String,
-    val mode: MultiTestType,
+    val mode: String,
     val requestCount: Int,
 ) : AbstractTestDescriptor(uniqueId, displayName) {
     override fun getType(): TestDescriptor.Type = TestDescriptor.Type.TEST
@@ -29,10 +28,10 @@ class MultiTestDescriptor(
          * Format: [multi:{mode}] {count} requests
          */
         fun createDisplayName(
-            mode: MultiTestType,
+            mode: String,
             requestCount: Int,
         ): String {
-            val modeLabel = mode.name.lowercase()
+            val modeLabel = mode.lowercase()
             return "[multi:$modeLabel] $requestCount requests"
         }
 

@@ -3,7 +3,6 @@ package org.berrycrush.executor.step
 import org.berrycrush.autotest.AutoTestCase
 import org.berrycrush.autotest.AutoTestGenerator
 import org.berrycrush.autotest.MultiTestResult
-import org.berrycrush.autotest.MultiTestType
 import org.berrycrush.autotest.RequestResult
 import org.berrycrush.autotest.provider.AutoTestProviderRegistry
 import org.berrycrush.autotest.provider.MultiTestProvider
@@ -397,7 +396,7 @@ class AutoTestExecutor(
         // run multi test
         registry
             .getMultiTestProviders()
-            .filter { !excludes.contains(it.testType.value) }
+            .filter { !excludes.contains(it.mode) }
             .forEach { provider ->
                 executeMultiProvider(
                     provider,
@@ -423,21 +422,21 @@ class AutoTestExecutor(
         parameters: Map<String, Any?>,
         results: MutableList<MultiTestResult>,
     ) {
-        val count = parameters["multiTest.${provider.testType.value}.count"] as Int? ?: provider.defaultCount
-        listener.onMultiTestStarting(provider.testType, count)
+        val count = parameters["multiTest.${provider.mode}.count"] as Int? ?: provider.defaultCount
+        listener.onMultiTestStarting(provider.mode, count)
         val result = executeMultiTestMode(step, context, provider, count)
-        context.setupParameters(provider.testType, count, result)
+        context.setupParameters(provider.mode, count, result)
         results.add(result)
         listener.onMultiTestCompleted(result)
         logMultiTest(result)
     }
 
     private fun StepContext.setupParameters(
-        mode: MultiTestType,
+        mode: String,
         count: Int,
         result: MultiTestResult,
     ) {
-        this["multiTest.mode"] = mode
+        this["multiTest.mode"] = mode.uppercase()
         this["multiTest.count"] = count
         this["multiTest.result"] = result.passed
         this["multiTest.duration"] = result.totalDuration
@@ -516,7 +515,7 @@ class AutoTestExecutor(
             val message =
                 buildString {
                     append("  [MULTI-TEST] [$status] ")
-                    append("[${result.mode.name.lowercase()}] ")
+                    append("[${result.mode.lowercase()}] ")
                     append("${result.requestCount} requests ")
                     append("(${result.totalDuration}ms total)")
                     if (!result.passed) {

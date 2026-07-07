@@ -1,7 +1,6 @@
 package org.berrycrush.autotest.provider
 
 import org.berrycrush.autotest.MultiTestResult
-import org.berrycrush.autotest.MultiTestType
 import org.berrycrush.autotest.RequestResult
 
 /**
@@ -51,18 +50,18 @@ interface MultiTestProvider {
      * Unique identifier for this multi-test mode.
      *
      * Used for:
-     * - Display name in test reports: `[multi:{testType}]`
-     * - Exclude configuration: `excludes: [{testType}]`
-     * - User-provided providers override built-in ones with same testType
+     * - Display name in test reports: `[multi:{[mode]}]`
+     * - Exclude configuration: `excludes: [{[mode]}]`
+     * - User-provided providers override built-in ones with same [mode]
      */
-    val testType: MultiTestType
+    val mode: String
 
     /**
      * Human-readable display name for test reports.
      *
-     * Defaults to [testType] if not overridden.
+     * Defaults to [mode] if not overridden.
      */
-    val displayName: String get() = testType.value
+    val displayName: String get() = mode
 
     /**
      * Default count of the multi test
@@ -88,7 +87,7 @@ interface MultiTestProvider {
      * Priority of this provider. Higher values = higher priority.
      *
      * User-provided providers default to 100, built-in providers default to 0.
-     * When multiple providers have the same [testType], the one with higher
+     * When multiple providers have the same [mode], the one with higher
      * priority is used.
      */
     val priority: Int get() = 0
