@@ -183,8 +183,8 @@ class AutoTestDslTest {
     fun customMultiTestParams(suite: BerryCrushSuite): Scenario {
         suite.configuration.baseUrl = "http://localhost:$port/api/v1"
         // Set custom multi-test parameters at configuration level
-        suite.configuration.multiTestSequentialCount = 5
-        suite.configuration.multiTestConcurrentCount = 10
+        suite.configuration.multiTestConfig["sequential.count"] = 5
+        suite.configuration.multiTestConfig["concurrent.count"] = 10
 
         return suite.scenario("List pets - Custom multi-test params") {
             whenever("I send custom number of requests for idempotency") {

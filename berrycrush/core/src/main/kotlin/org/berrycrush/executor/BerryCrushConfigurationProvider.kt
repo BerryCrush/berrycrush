@@ -1,6 +1,5 @@
 package org.berrycrush.executor
 
-import org.berrycrush.autotest.MultiTestParameters
 import org.berrycrush.config.AutoAssertionConfig
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.config.BindingConfig
@@ -27,8 +26,7 @@ interface BerryCrushConfigurationProvider {
     val httpLogger: HttpLogger?
     val logFormatter: HttpLogFormatter?
     val shareVariablesAcrossScenarios: Boolean
-    val multiTestSequentialCount: Int
-    val multiTestConcurrentCount: Int
+    val multiTestConfig: Map<String, Any>
     val errorContextConfig: ErrorContextConfig
     val retryConfig: RetryConfig
     val bindings: Map<String, BindingConfig>
@@ -38,17 +36,6 @@ interface BerryCrushConfigurationProvider {
      * Returns the custom logger if set, otherwise creates one from the factory.
      */
     fun getEffectiveHttpLogger(): HttpLogger = httpLogger ?: HttpLoggerFactory.create()
-
-    /**
-     * Get multi-test parameters as a map for executor use.
-     *
-     * @return Map containing multi-test configuration parameters
-     */
-    fun getMultiTestParameters(): Map<String, Int> =
-        mapOf(
-            MultiTestParameters.SEQUENTIAL_COUNT to multiTestSequentialCount,
-            MultiTestParameters.CONCURRENT_COUNT to multiTestConcurrentCount,
-        )
 
     /**
      * Temporarily overwrite the configuration
@@ -90,10 +77,8 @@ private class BerryCrushConfigurationWrapper(
         get() = configuration.logFormatter
     override val shareVariablesAcrossScenarios: Boolean
         get() = configuration.shareVariablesAcrossScenarios
-    override val multiTestSequentialCount: Int
-        get() = configuration.multiTestSequentialCount
-    override val multiTestConcurrentCount: Int
-        get() = configuration.multiTestConcurrentCount
+    override val multiTestConfig: Map<String, Any>
+        get() = configuration.multiTestConfig
     override val errorContextConfig: ErrorContextConfig
         get() = configuration.errorContextConfig
     override val retryConfig: RetryConfig

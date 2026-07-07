@@ -65,6 +65,11 @@ interface MultiTestProvider {
     val displayName: String get() = testType.value
 
     /**
+     * Default count of the multi test
+     */
+    val defaultCount: Int
+
+    /**
      * Execute multi-request test.
      *
      * The provider should execute the given executor function [count] times
@@ -78,8 +83,6 @@ interface MultiTestProvider {
         count: Int,
         executor: (requestIndex: Int) -> RequestResult,
     ): MultiTestResult
-
-    fun extractCount(parameters: Map<String, Any?>): Int
 
     /**
      * Priority of this provider. Higher values = higher priority.

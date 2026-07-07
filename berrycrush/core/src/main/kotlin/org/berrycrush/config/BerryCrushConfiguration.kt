@@ -1,6 +1,5 @@
 package org.berrycrush.config
 
-import org.berrycrush.autotest.MultiTestParameters
 import org.berrycrush.exception.ErrorContextConfig
 import org.berrycrush.logging.HttpLogFormatter
 import org.berrycrush.logging.HttpLogger
@@ -8,6 +7,8 @@ import java.time.Duration
 
 private const val DEFAULT_TIMEOUT_SECONDS = 30L
 private const val DEFAULT_MAX_ERROR_BODY_SIZE = 4096
+private const val MULTI_TEST_DEFAULT_SEQUENTIAL_COUNT = 3
+private const val MULTI_TEST_DEFAULT_CONCURRENT_COUNT = 5
 
 /**
  * Configuration for BerryCrush test execution.
@@ -23,8 +24,7 @@ private const val DEFAULT_MAX_ERROR_BODY_SIZE = 4096
  * @property logResponses Whether to log HTTP responses
  * @property httpLogger Custom HTTP logger (default: JUL-based logger)
  * @property logFormatter Custom log formatter (default: multi-line human-readable format)
- * @property multiTestSequentialCount Number of sequential requests for multi-tests
- * @property multiTestConcurrentCount Number of concurrent requests for multi-tests
+ * @property multiTestConfig Configuration for multi-test execution (e.g., sequential/concurrent counts)
  * @property errorContextConfig Configuration for error context in exception messages
  */
 data class BerryCrushConfiguration(
@@ -57,16 +57,7 @@ data class BerryCrushConfiguration(
      * Default is false (each scenario has isolated variable scope).
      */
     var shareVariablesAcrossScenarios: Boolean = false,
-    /**
-     * Number of sequential requests for multi-request idempotency tests.
-     * Default: 3
-     */
-    var multiTestSequentialCount: Int = MultiTestParameters.DEFAULTS.getValue(MultiTestParameters.SEQUENTIAL_COUNT),
-    /**
-     * Number of concurrent requests for multi-request idempotency tests.
-     * Default: 5
-     */
-    var multiTestConcurrentCount: Int = MultiTestParameters.DEFAULTS.getValue(MultiTestParameters.CONCURRENT_COUNT),
+    var multiTestConfig: MutableMap<String, Any> = mutableMapOf(),
     /**
      * Configuration for error context in exception messages.
      *
@@ -187,17 +178,21 @@ data class BerryCrushConfiguration(
         key: String,
         value: Any,
     ) {
-        when {
-            key == "baseUrl" -> applyBindingParam("baseUrl", value)
-            key == "timeout" -> timeout = parseTimeout(value)
-            key == "environment" -> environment = value.toString()
-            key == "strictSchemaValidation" -> strictSchemaValidation = value.toString().toBoolean()
-            key == "followRedirects" -> followRedirects = value.toString().toBoolean()
-            key == "logRequests" -> logRequests = value.toString().toBoolean()
-            key == "logResponses" -> logResponses = value.toString().toBoolean()
-            key == "shareVariablesAcrossScenarios" -> shareVariablesAcrossScenarios = value.toString().toBoolean()
-            key == "multiTestSequentialCount" -> multiTestSequentialCount = parseIntOrDefault(value, multiTestSequentialCount)
-            key == "multiTestConcurrentCount" -> multiTestConcurrentCount = parseIntOrDefault(value, multiTestConcurrentCount)
+        when (key) {
+            "baseUrl" -> applyBindingParam("baseUrl", value)
+            "timeout" -> timeout = parseTimeout(value)
+            "environment" -> environment = value.toString()
+            "strictSchemaValidation" -> strictSchemaValidation = value.toString().toBoolean()
+            "followRedirects" -> followRedirects = value.toString().toBoolean()
+            "logRequests" -> logRequests = value.toString().toBoolean()
+            "logResponses" -> logResponses = value.toString().toBoolean()
+            "shareVariablesAcrossScenarios" -> shareVariablesAcrossScenarios = value.toString().toBoolean()
+            "multiTestSequentialCount" ->
+                multiTestConfig["sequential.count"] =
+                    parseIntOrDefault(value, MULTI_TEST_DEFAULT_SEQUENTIAL_COUNT)
+            "multiTestConcurrentCount" ->
+                multiTestConfig["concurrent.count"] =
+                    parseIntOrDefault(value, MULTI_TEST_DEFAULT_CONCURRENT_COUNT)
             else -> applyPrefixedParameter(key, value)
         }
     }
@@ -212,6 +207,7 @@ data class BerryCrushConfiguration(
             key.startsWith("errorContext.") -> applyErrorContextParam(key, value)
             key.startsWith("retry.") -> applyRetryParam(key, value)
             key.startsWith("binding.") -> applyBindingParam(key.removePrefix("binding."), value)
+            key.startsWith("multiTest.") -> multiTestConfig[key.removePrefix("multiTest.")] = value
         }
     }
 

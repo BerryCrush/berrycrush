@@ -423,7 +423,7 @@ class AutoTestExecutor(
         parameters: Map<String, Any?>,
         results: MutableList<MultiTestResult>,
     ) {
-        val count = provider.extractCount(parameters)
+        val count = parameters["multiTest.${provider.testType.value}.count"] as Int? ?: provider.defaultCount
         listener.onMultiTestStarting(provider.testType, count)
         val result = executeMultiTestMode(step, context, provider, count)
         context.setupParameters(provider.testType, count, result)

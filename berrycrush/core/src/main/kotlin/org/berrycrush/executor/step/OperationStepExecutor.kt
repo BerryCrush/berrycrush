@@ -115,7 +115,7 @@ class OperationStepExecutor(
 
         // Merge configuration defaults -> context params -> step params (step wins)
         val multiTestParams =
-            configuration.getMultiTestParameters() +
+            configuration.multiTestConfig.mapKeys { "multiTest.${it.key}" } +
                 stepContext.allExecutionVariables() +
                 stepMultiTestParams
 
