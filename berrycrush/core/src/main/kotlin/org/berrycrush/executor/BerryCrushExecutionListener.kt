@@ -1,7 +1,6 @@
 package org.berrycrush.executor
 
 import org.berrycrush.autotest.AutoTestCase
-import org.berrycrush.autotest.MultiMode
 import org.berrycrush.autotest.MultiTestResult
 import org.berrycrush.model.AutoTestResult
 import org.berrycrush.model.Scenario
@@ -116,11 +115,11 @@ interface BerryCrushExecutionListener {
     /**
      * Called just before a multi-test starts execution.
      *
-     * @param mode The multi-test mode (SEQUENTIAL or CONCURRENT)
+     * @param mode The multi-test type
      * @param requestCount Number of requests that will be executed
      */
     fun onMultiTestStarting(
-        mode: MultiMode,
+        mode: String,
         requestCount: Int,
     ) {
         // do nothing by default

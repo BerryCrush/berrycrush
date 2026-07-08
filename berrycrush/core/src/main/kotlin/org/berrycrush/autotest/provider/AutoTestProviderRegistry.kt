@@ -83,7 +83,7 @@ class AutoTestProviderRegistry {
      * higher priority wins. Equal priority means later registration wins.
      */
     fun registerMulti(provider: MultiTestProvider) {
-        multiProviders.compute(provider.testType) { _, existing ->
+        multiProviders.compute(provider.mode) { _, existing ->
             if (existing == null || provider.priority >= existing.priority) {
                 provider
             } else {

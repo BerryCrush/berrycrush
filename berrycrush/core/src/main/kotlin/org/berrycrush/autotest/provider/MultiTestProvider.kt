@@ -50,18 +50,31 @@ interface MultiTestProvider {
      * Unique identifier for this multi-test mode.
      *
      * Used for:
-     * - Display name in test reports: `[multi:{testType}]`
-     * - Exclude configuration: `excludes: [{testType}]`
-     * - User-provided providers override built-in ones with same testType
+     * - Display name in test reports: `[multi:{[mode]}]`
+     * - Exclude configuration: `excludes: [{[mode]}]`
+     * - User-provided providers override built-in ones with same [mode]
      */
-    val testType: String
+    val mode: String
 
     /**
      * Human-readable display name for test reports.
      *
-     * Defaults to [testType] if not overridden.
+     * Defaults to [mode] if not overridden.
      */
-    val displayName: String get() = testType
+    val displayName: String get() = mode
+
+    /**
+     * Default number of requests to execute for this multi-test mode.
+     * Can be overridden via configuration parameters:
+     *
+     * ```
+     * parameters:
+     *   multiTest:
+     *     ${mode}:
+     *       count: 10
+     * ```
+     */
+    val defaultCount: Int
 
     /**
      * Execute multi-request test.
@@ -82,7 +95,7 @@ interface MultiTestProvider {
      * Priority of this provider. Higher values = higher priority.
      *
      * User-provided providers default to 100, built-in providers default to 0.
-     * When multiple providers have the same [testType], the one with higher
+     * When multiple providers have the same [mode], the one with higher
      * priority is used.
      */
     val priority: Int get() = 0

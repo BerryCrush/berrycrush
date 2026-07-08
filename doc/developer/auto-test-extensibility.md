@@ -205,10 +205,10 @@ Multi-test providers support idempotency testing by executing requests multiple 
 interface MultiTestProvider {
     /**
      * Unique identifier for this multi-test mode.
-     * Used for display names in test reports: [multi:{testType}]
-     * Used in excludes configuration: excludes: [{testType}]
+     * Used for display names in test reports: [multi:{[mode]}]
+     * Used in excludes configuration: excludes: [{[mode]}]
      */
-    val testType: String
+    val mode: String
 
     /**
      * Human-readable display name for test reports.
@@ -216,6 +216,19 @@ interface MultiTestProvider {
      */
     val displayName: String get() = testType
 
+   /**
+    * Default number of requests to execute for this multi-test mode.
+    * Can be overridden via configuration parameters:
+    * 
+    * ```
+    * parameters:
+    *   multiTest:
+    *     ${mode}:
+    *       count: 10
+    * ```
+    */
+    val defaultCount: Int
+    
     /**
      * Priority for provider override. Higher values = higher priority.
      * User-provided providers default to 100, built-in default to 0.
@@ -256,10 +269,13 @@ import org.berrycrush.autotest.provider.MultiTestProvider
 
 class RetryMultiTestProvider : MultiTestProvider {
     // Unique identifier for this provider
-    override val testType: String = "RETRY"
+    override val mode: String = "RETRY"
     
     // Human-readable name for test reports
     override val displayName: String = "Retry Test"
+  
+    // Default retry count
+    override val defaultCount: Int = 3
     
     // Higher priority overrides built-in providers
     override val priority: Int = 100
@@ -320,22 +336,24 @@ registry.registerMulti(RetryMultiTestProvider())
 
 Multi-test execution can be configured via parameters:
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `multiTestSequentialCount` | 3 | Number of sequential requests |
-| `multiTestConcurrentCount` | 5 | Number of concurrent requests |
+| Parameter                    | Default | Description |
+|------------------------------|---------|-------------|
+| `multiTest.sequential.count` | 3 | Number of sequential requests |
+| `multiTest.concurrent.count` | 5 | Number of concurrent requests |
 
 Set in scenario files (file-level):
 ```berrycrush
 parameters:
-  multiTestSequentialCount: 5
-  multiTestConcurrentCount: 10
+  multiTest:
+    sequential.count: 5
+    concurrent.count: 10
 ```
 
 At the feature level:
 ```berrycrush
 feature: Idempotency Tests
   parameters:
+    # legacy format
     multiTestSequentialCount: 10
     multiTestConcurrentCount: 20
   
@@ -350,8 +368,8 @@ Or at the step level (in the call directive):
 when: I stress test with custom counts
   call ^operation
     auto: [multi]
-    multiTestSequentialCount: 5
-    multiTestConcurrentCount: 10
+    multiTest.sequential.count: 5
+    multiTest.concurrent.count: 10
 ```
 
 Step-level parameters take precedence over file-level and feature-level parameters.
@@ -402,8 +420,8 @@ Configure request counts at the suite/configuration level:
 
 ```kotlin
 val suite = BerryCrushSuite.create()
-suite.configuration.multiTestSequentialCount = 5
-suite.configuration.multiTestConcurrentCount = 10
+suite.configuration.multiTestConfig["sequential.count"] = 5
+suite.configuration.multiTestConfig["concurrent.count"] = 10
 
 suite.scenario("Custom counts") {
     whenever("I stress test the API") {

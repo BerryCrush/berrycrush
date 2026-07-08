@@ -1,6 +1,5 @@
 package org.berrycrush.autotest.provider
 
-import org.berrycrush.autotest.MultiMode
 import org.berrycrush.autotest.MultiTestResult
 import org.berrycrush.autotest.RequestResult
 import java.time.Duration
@@ -34,8 +33,9 @@ object DefaultMultiTestProviders {
  * calls produce idempotent results.
  */
 object SequentialMultiTestProvider : MultiTestProvider {
-    override val testType: String = "sequential"
+    override val mode: String = "sequential"
     override val displayName: String = "Sequential Idempotency"
+    override val defaultCount: Int = 3
 
     override fun executeMultiTest(
         count: Int,
@@ -49,7 +49,7 @@ object SequentialMultiTestProvider : MultiTestProvider {
         val totalDuration = Duration.between(startTime, Instant.now())
 
         return buildResult(
-            mode = MultiMode.SEQUENTIAL,
+            mode = mode,
             results = results,
             totalDuration = totalDuration,
         )
@@ -63,8 +63,9 @@ object SequentialMultiTestProvider : MultiTestProvider {
  * Useful for detecting race conditions and concurrent access issues.
  */
 object ConcurrentMultiTestProvider : MultiTestProvider {
-    override val testType: String = "concurrent"
+    override val mode: String = "concurrent"
     override val displayName: String = "Concurrent Idempotency"
+    override val defaultCount: Int = 5
 
     override fun executeMultiTest(
         count: Int,
@@ -81,7 +82,7 @@ object ConcurrentMultiTestProvider : MultiTestProvider {
             val totalDuration = Duration.between(startTime, Instant.now())
 
             return buildResult(
-                mode = MultiMode.CONCURRENT,
+                mode = mode,
                 results = results,
                 totalDuration = totalDuration,
             )
@@ -97,7 +98,7 @@ object ConcurrentMultiTestProvider : MultiTestProvider {
  * Build a MultiTestResult from the collected results.
  */
 private fun buildResult(
-    mode: MultiMode,
+    mode: String,
     results: List<RequestResult>,
     totalDuration: Duration,
 ): MultiTestResult {

@@ -1,7 +1,6 @@
 package org.berrycrush.junit.engine.adapter
 
 import org.berrycrush.autotest.AutoTestCase
-import org.berrycrush.autotest.MultiMode
 import org.berrycrush.autotest.MultiTestResult
 import org.berrycrush.autotest.ParameterLocation
 import org.berrycrush.junit.engine.AutoTestDescriptor
@@ -166,7 +165,7 @@ internal class JUnitExecutionListenerAdapterTest {
         ],
     )
     fun `on multi test starting - completed`(
-        mode: MultiMode,
+        mode: String,
         passed: Boolean,
     ) {
         whenever { scenarioDescriptor.uniqueId } doReturn uniqueId
