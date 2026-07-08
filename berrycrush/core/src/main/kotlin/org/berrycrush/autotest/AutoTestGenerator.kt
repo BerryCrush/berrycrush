@@ -97,36 +97,59 @@ class AutoTestGenerator(
 
         // Generate tests for request body
         if (requestBodySchema != null) {
-            if (AutoTestType.INVALID in testTypes) {
-                testCases.addAll(generateInvalidTestCases(requestBodySchema, effectiveBody))
-            }
-            if (AutoTestType.SECURITY in testTypes) {
-                testCases.addAll(generateSecurityTestCases(requestBodySchema, effectiveBody))
-            }
+            testCases.addAll(
+                generateByType(
+                    testTypes = testTypes,
+                    invalidGenerator = { generateInvalidTestCases(requestBodySchema, effectiveBody) },
+                    securityGenerator = { generateSecurityTestCases(requestBodySchema, effectiveBody) },
+                ),
+            )
         }
 
         // Generate tests for path parameters
-        val pathParams = operation.parameters?.filter { it.`in` == "path" } ?: emptyList()
+        val pathParams = getParametersByLocation(operation, ParameterLocation.PATH)
         if (pathParams.isNotEmpty()) {
-            if (AutoTestType.INVALID in testTypes) {
-                testCases.addAll(generatePathParamInvalidTests(pathParams, effectiveBody, effectivePathParams))
-            }
-            if (AutoTestType.SECURITY in testTypes) {
-                testCases.addAll(generatePathParamSecurityTests(pathParams, effectiveBody, effectivePathParams))
-            }
+            testCases.addAll(
+                generateByType(
+                    testTypes = testTypes,
+                    invalidGenerator = { generatePathParamInvalidTests(pathParams, effectiveBody, effectivePathParams) },
+                    securityGenerator = { generatePathParamSecurityTests(pathParams, effectiveBody, effectivePathParams) },
+                ),
+            )
         }
 
         // Generate tests for header parameters
-        val headerParams = operation.parameters?.filter { it.`in` == "header" } ?: emptyList()
+        val headerParams = getParametersByLocation(operation, ParameterLocation.HEADER)
         if (headerParams.isNotEmpty()) {
-            if (AutoTestType.INVALID in testTypes) {
-                testCases.addAll(generateHeaderInvalidTests(headerParams, effectiveBody, effectiveHeaders))
-            }
-            if (AutoTestType.SECURITY in testTypes) {
-                testCases.addAll(generateHeaderSecurityTests(headerParams, effectiveBody, effectiveHeaders))
-            }
+            testCases.addAll(
+                generateByType(
+                    testTypes = testTypes,
+                    invalidGenerator = { generateHeaderInvalidTests(headerParams, effectiveBody, effectiveHeaders) },
+                    securityGenerator = { generateHeaderSecurityTests(headerParams, effectiveBody, effectiveHeaders) },
+                ),
+            )
         }
 
+        return testCases
+    }
+
+    private fun getParametersByLocation(
+        operation: Operation,
+        location: ParameterLocation,
+    ): List<SwaggerParameter> = operation.parameters?.filter { it.`in` == location.locationName } ?: emptyList()
+
+    private fun generateByType(
+        testTypes: Set<AutoTestType>,
+        invalidGenerator: () -> List<AutoTestCase>,
+        securityGenerator: () -> List<AutoTestCase>,
+    ): List<AutoTestCase> {
+        val testCases = mutableListOf<AutoTestCase>()
+        if (AutoTestType.INVALID in testTypes) {
+            testCases.addAll(invalidGenerator())
+        }
+        if (AutoTestType.SECURITY in testTypes) {
+            testCases.addAll(securityGenerator())
+        }
         return testCases
     }
 
@@ -185,9 +208,7 @@ class AutoTestGenerator(
             val resolvedSchema = resolveSchema(fieldSchema as Schema<*>)
 
             // Generate constraint violation tests
-            testCases.addAll(
-                generateConstraintViolations(fieldName, resolvedSchema, baseBody, requiredFields),
-            )
+            testCases.addAll(generateConstraintViolations(fieldName, resolvedSchema, baseBody))
         }
 
         // Generate tests for missing required fields
@@ -221,12 +242,10 @@ class AutoTestGenerator(
     /**
      * Generate constraint violation tests using registered providers.
      */
-    @Suppress("UnusedParameter") // requiredFields reserved for future use
     private fun generateConstraintViolations(
         fieldName: String,
         schema: Schema<*>,
         baseBody: Map<String, Any>,
-        requiredFields: List<String>,
     ): List<AutoTestCase> =
         registry
             .getInvalidTestProviders()
@@ -234,106 +253,92 @@ class AutoTestGenerator(
             .flatMap { provider ->
                 provider.generateInvalidValues(fieldName, schema).map { invalidValue ->
                     createInvalidTestCase(
-                        fieldName = fieldName,
-                        invalidValue = invalidValue.value,
-                        description = invalidValue.description,
-                        baseBody = baseBody,
-                        invalidType = provider.testType,
+                        InvalidCaseRequest(
+                            fieldName = fieldName,
+                            invalidValue = invalidValue.value,
+                            description = invalidValue.description,
+                            invalidType = provider.testType,
+                            baseBody = baseBody,
+                        ),
                     )
                 }
             }
 
-    private fun createInvalidTestCase(
-        fieldName: String,
-        invalidValue: Any?,
-        description: String,
-        baseBody: Map<String, Any>,
-        location: ParameterLocation = ParameterLocation.BODY,
-        basePathParams: Map<String, Any?> = emptyMap(),
-        baseHeaders: Map<String, String> = emptyMap(),
-        invalidType: String = deriveInvalidType(description),
-    ): AutoTestCase {
-        val tag = "Invalid request - $invalidType"
-        return when (location) {
+    private data class InvalidCaseRequest(
+        val fieldName: String,
+        val invalidValue: Any?,
+        val description: String,
+        val invalidType: String,
+        val baseBody: Map<String, Any>,
+        val location: ParameterLocation = ParameterLocation.BODY,
+        val basePathParams: Map<String, Any?> = emptyMap(),
+        val baseHeaders: Map<String, String> = emptyMap(),
+    )
+
+    private fun createInvalidTestCase(request: InvalidCaseRequest): AutoTestCase {
+        val tag = "Invalid request - ${request.invalidType}"
+        return when (request.location) {
             ParameterLocation.BODY -> {
-                val modifiedBody = baseBody.toMutableMap()
-                if (invalidValue != null) {
-                    modifiedBody[fieldName] = invalidValue
+                val modifiedBody = request.baseBody.toMutableMap()
+                if (request.invalidValue != null) {
+                    modifiedBody[request.fieldName] = request.invalidValue
                 } else {
-                    modifiedBody.remove(fieldName)
+                    modifiedBody.remove(request.fieldName)
                 }
+
                 AutoTestCase(
                     type = AutoTestType.INVALID,
-                    fieldName = fieldName,
-                    invalidValue = invalidValue,
-                    description = description,
+                    fieldName = request.fieldName,
+                    invalidValue = request.invalidValue,
+                    description = request.description,
                     location = ParameterLocation.BODY,
                     body = modifiedBody,
                     tag = tag,
                 )
             }
+
             ParameterLocation.PATH -> {
-                val modifiedPathParams = basePathParams.toMutableMap()
-                modifiedPathParams[fieldName] = invalidValue
+                val modifiedPathParams = request.basePathParams.toMutableMap()
+                modifiedPathParams[request.fieldName] = request.invalidValue
+
                 AutoTestCase(
                     type = AutoTestType.INVALID,
-                    fieldName = fieldName,
-                    invalidValue = invalidValue,
-                    description = description,
+                    fieldName = request.fieldName,
+                    invalidValue = request.invalidValue,
+                    description = request.description,
                     location = ParameterLocation.PATH,
-                    body = baseBody,
+                    body = request.baseBody,
                     pathParams = modifiedPathParams,
                     tag = tag,
                 )
             }
+
             ParameterLocation.HEADER -> {
-                val modifiedHeaders = baseHeaders.toMutableMap()
-                modifiedHeaders[fieldName] = invalidValue?.toString() ?: ""
+                val modifiedHeaders = request.baseHeaders.toMutableMap()
+                modifiedHeaders[request.fieldName] = request.invalidValue?.toString() ?: ""
+
                 AutoTestCase(
                     type = AutoTestType.INVALID,
-                    fieldName = fieldName,
-                    invalidValue = invalidValue,
-                    description = description,
+                    fieldName = request.fieldName,
+                    invalidValue = request.invalidValue,
+                    description = request.description,
                     location = ParameterLocation.HEADER,
-                    body = baseBody,
+                    body = request.baseBody,
                     headers = modifiedHeaders,
                     tag = tag,
                 )
             }
-            ParameterLocation.QUERY -> {
+
+            ParameterLocation.QUERY ->
                 AutoTestCase(
                     type = AutoTestType.INVALID,
-                    fieldName = fieldName,
-                    invalidValue = invalidValue,
-                    description = description,
+                    fieldName = request.fieldName,
+                    invalidValue = request.invalidValue,
+                    description = request.description,
                     location = ParameterLocation.QUERY,
-                    body = baseBody,
+                    body = request.baseBody,
                     tag = tag,
                 )
-            }
-        }
-    }
-
-    /**
-     * Derive the invalid type from the description for tagging purposes.
-     */
-    private fun deriveInvalidType(description: String): String {
-        val lowerDesc = description.lowercase()
-        return when {
-            lowerDesc.contains("minlength") || lowerDesc.contains("shorter than") -> "minLength"
-            lowerDesc.contains("maxlength") || lowerDesc.contains("longer than") -> "maxLength"
-            lowerDesc.contains("pattern") -> "pattern"
-            lowerDesc.contains("format") -> "format"
-            lowerDesc.contains("enum") -> "enum"
-            lowerDesc.contains("minimum") || lowerDesc.contains("below minimum") -> "minimum"
-            lowerDesc.contains("maximum") || lowerDesc.contains("above maximum") -> "maximum"
-            lowerDesc.contains("type") || lowerDesc.contains("not-a-") -> "type"
-            lowerDesc.contains("required") || lowerDesc.contains("missing") -> "required"
-            lowerDesc.contains("minitems") || lowerDesc.contains("fewer items") -> "minItems"
-            lowerDesc.contains("maxitems") || lowerDesc.contains("more items") -> "maxItems"
-            lowerDesc.contains("boolean") -> "type"
-            lowerDesc.contains("empty") -> "empty"
-            else -> "constraint"
         }
     }
 
@@ -394,13 +399,15 @@ class AutoTestGenerator(
                 .flatMap { provider ->
                     provider.generateInvalidValues(param.name, resolvedSchema).map { invalidValue ->
                         createInvalidTestCase(
-                            fieldName = param.name,
-                            invalidValue = invalidValue.value,
-                            description = invalidValue.description,
-                            baseBody = baseBody,
-                            location = ParameterLocation.PATH,
-                            basePathParams = basePathParams,
-                            invalidType = provider.testType,
+                            InvalidCaseRequest(
+                                fieldName = param.name,
+                                invalidValue = invalidValue.value,
+                                description = invalidValue.description,
+                                invalidType = provider.testType,
+                                baseBody = baseBody,
+                                location = ParameterLocation.PATH,
+                                basePathParams = basePathParams,
+                            ),
                         )
                     }
                 }
@@ -452,13 +459,15 @@ class AutoTestGenerator(
                 .flatMap { provider ->
                     provider.generateInvalidValues(param.name, resolvedSchema).map { invalidValue ->
                         createInvalidTestCase(
-                            fieldName = param.name,
-                            invalidValue = invalidValue.value,
-                            description = invalidValue.description,
-                            baseBody = baseBody,
-                            location = ParameterLocation.HEADER,
-                            baseHeaders = baseHeaders,
-                            invalidType = provider.testType,
+                            InvalidCaseRequest(
+                                fieldName = param.name,
+                                invalidValue = invalidValue.value,
+                                description = invalidValue.description,
+                                invalidType = provider.testType,
+                                baseBody = baseBody,
+                                location = ParameterLocation.HEADER,
+                                baseHeaders = baseHeaders,
+                            ),
                         )
                     }
                 }
@@ -496,11 +505,13 @@ class AutoTestGenerator(
 /**
  * Location of the parameter being tested.
  */
-enum class ParameterLocation {
-    BODY,
-    PATH,
-    QUERY,
-    HEADER,
+enum class ParameterLocation(
+    val locationName: String,
+) {
+    BODY("body"),
+    PATH("path"),
+    QUERY("query"),
+    HEADER("header"),
 }
 
 /**

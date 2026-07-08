@@ -1,5 +1,11 @@
 package org.berrycrush.autotest
 
+import io.swagger.v3.oas.models.OpenAPI
+import io.swagger.v3.oas.models.Operation
+import io.swagger.v3.oas.models.PathItem
+import io.swagger.v3.oas.models.Paths
+import io.swagger.v3.oas.models.media.StringSchema
+import io.swagger.v3.oas.models.parameters.Parameter
 import org.berrycrush.openapi.OpenApiLoader
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.scenario.AutoTestType
@@ -293,6 +299,74 @@ class AutoTestGeneratorTest {
                 it.description.contains("Command Injection", ignoreCase = true)
             }
         assertTrue(commandInjectionTests.isNotEmpty(), "Should generate command injection tests")
+    }
+
+    @Test
+    fun `should generate path invalid tests with path params mutation and base body preserved`() {
+        val generator = AutoTestGenerator(openApi)
+        val baseBody = mapOf("category" to "dog")
+        val basePathParams = mapOf("petId" to 123L)
+
+        val testCases =
+            generator.generateTestCases(
+                operationId = "getPetById",
+                testTypes = setOf(AutoTestType.INVALID),
+                baseBody = baseBody,
+                basePathParams = basePathParams,
+            )
+
+        val pathInvalidCase =
+            testCases.firstOrNull {
+                it.location == ParameterLocation.PATH && it.fieldName == "petId" && it.type == AutoTestType.INVALID
+            }
+        assertNotNull(pathInvalidCase, "Should generate invalid path parameter test for petId")
+        assertEquals(baseBody, pathInvalidCase.body, "Path invalid tests should preserve base body")
+        assertTrue(pathInvalidCase.pathParams.containsKey("petId"), "Path params should contain mutated petId")
+        assertTrue(pathInvalidCase.tag.startsWith("Invalid request - "))
+    }
+
+    @Test
+    fun `should generate header invalid tests with headers mutation and base body preserved`() {
+        val headerSpec =
+            OpenAPI().apply {
+                paths =
+                    Paths().addPathItem(
+                        "/echo",
+                        PathItem().get(
+                            Operation()
+                                .operationId("getEcho")
+                                .parameters(
+                                    listOf(
+                                        Parameter()
+                                            .name("X-Test")
+                                            .`in`("header")
+                                            .schema(StringSchema().minLength(2)),
+                                    ),
+                                ),
+                        ),
+                    )
+            }
+
+        val generator = AutoTestGenerator(headerSpec)
+        val baseBody = mapOf("name" to "Fluffy")
+        val baseHeaders = mapOf("X-Other" to "ok")
+
+        val testCases =
+            generator.generateTestCases(
+                operationId = "getEcho",
+                testTypes = setOf(AutoTestType.INVALID),
+                baseBody = baseBody,
+                baseHeaders = baseHeaders,
+            )
+
+        val headerInvalidCase =
+            testCases.firstOrNull {
+                it.location == ParameterLocation.HEADER && it.fieldName == "X-Test" && it.type == AutoTestType.INVALID
+            }
+        assertNotNull(headerInvalidCase, "Should generate invalid header parameter test for X-Test")
+        assertEquals(baseBody, headerInvalidCase.body, "Header invalid tests should preserve base body")
+        assertTrue(headerInvalidCase.headers.containsKey("X-Test"), "Headers should contain mutated header value")
+        assertTrue(headerInvalidCase.tag.startsWith("Invalid request - "))
     }
 
     @Test
