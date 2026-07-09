@@ -2,9 +2,9 @@ package org.berrycrush.autotest.provider
 
 import io.swagger.v3.oas.models.media.Schema
 import org.berrycrush.autotest.AutoTestGenerator
+import org.berrycrush.autotest.AutoTestType
 import org.berrycrush.autotest.ParameterLocation
 import org.berrycrush.openapi.OpenApiLoader
-import org.berrycrush.scenario.AutoTestType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

@@ -8,7 +8,6 @@ import io.swagger.v3.oas.models.media.StringSchema
 import io.swagger.v3.oas.models.parameters.Parameter
 import org.berrycrush.openapi.OpenApiLoader
 import org.berrycrush.openapi.SpecRegistry
-import org.berrycrush.scenario.AutoTestType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

@@ -24,6 +24,7 @@ import org.berrycrush.scenario.AutoTestType
 import tools.jackson.databind.ObjectMapper
 import java.time.Duration
 import java.time.Instant
+import org.berrycrush.autotest.AutoTestType as TestType
 
 private const val RESPONSE_BODY_PREVIEW_LENGTH = 500
 
@@ -91,7 +92,7 @@ class AutoTestExecutor(
         val allTestCases =
             generator.generateTestCases(
                 operationId = operationId,
-                testTypes = autoTestConfig.types,
+                testTypes = autoTestConfig.types.map { it.toTestType() }.toSet(),
                 baseBody = baseBody,
                 basePathParams = basePathParams,
                 baseHeaders = baseHeaders,
@@ -206,7 +207,7 @@ class AutoTestExecutor(
         testCase: AutoTestCase,
         error: Exception,
     ): Boolean {
-        val isSecurityTest = testCase.type == AutoTestType.SECURITY
+        val isSecurityTest = testCase.type == AutoTestType.SECURITY.toTestType()
         val isUrlError =
             error.message?.contains("Illegal character") == true ||
                 error.message?.contains("Invalid URL") == true
@@ -498,7 +499,7 @@ class AutoTestExecutor(
                 requestIndex = requestIndex,
                 response = response,
             )
-        }.getOrElse { e ->
+        }.getOrElse { _ ->
             RequestResult.create(
                 requestIndex = requestIndex,
                 duration = Duration.between(requestStartTime, Instant.now()),
@@ -526,3 +527,10 @@ class AutoTestExecutor(
         }
     }
 }
+
+private fun AutoTestType.toTestType() =
+    when (this) {
+        AutoTestType.INVALID -> TestType.INVALID
+        AutoTestType.SECURITY -> TestType.SECURITY
+        AutoTestType.MULTI -> TestType.MULTI
+    }

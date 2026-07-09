@@ -42,8 +42,7 @@ import org.berrycrush.autotest.RequestResult
  * com.example.DelayedSequentialProvider
  * ```
  *
- * @see AutoTestProviderRegistry
- * @see MultiTestResult
+ * @see org.berrycrush.autotest.MultiTestResult
  */
 interface MultiTestProvider {
     /**

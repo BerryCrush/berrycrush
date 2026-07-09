@@ -37,7 +37,6 @@ import io.swagger.v3.oas.models.media.Schema
  * com.example.NumericOverflowProvider
  * ```
  *
- * @see AutoTestProviderRegistry
  * @see InvalidTestValue
  */
 interface InvalidTestProvider {

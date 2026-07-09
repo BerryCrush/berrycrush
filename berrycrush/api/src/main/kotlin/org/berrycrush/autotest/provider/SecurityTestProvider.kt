@@ -38,7 +38,6 @@ import org.berrycrush.autotest.ParameterLocation
  * com.example.NoSqlInjectionProvider
  * ```
  *
- * @see AutoTestProviderRegistry
  * @see SecurityPayload
  */
 interface SecurityTestProvider {
