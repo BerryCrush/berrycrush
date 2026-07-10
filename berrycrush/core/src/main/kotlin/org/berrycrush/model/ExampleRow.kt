@@ -6,5 +6,5 @@ package org.berrycrush.model
  * @property values Map of parameter name to value
  */
 data class ExampleRow(
-    val values: Map<String, Any>,
+    val values: Map<String, Any?>,
 )

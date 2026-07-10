@@ -499,6 +499,37 @@ data class FailNode(
  */
 sealed interface ValueNode : AstNode
 
+data class NullValueNode(
+    override val location: SourceLocation,
+) : ValueNode
+
+sealed interface BooleanValueNode : ValueNode {
+    val value: Boolean
+
+    data class TrueValueNode(
+        override val location: SourceLocation,
+    ) : BooleanValueNode {
+        override val value = true
+    }
+
+    data class FalseValueNode(
+        override val location: SourceLocation,
+    ) : BooleanValueNode {
+        override val value = false
+    }
+
+    companion object {
+        fun of(
+            value: Boolean,
+            location: SourceLocation,
+        ): ValueNode =
+            when (value) {
+                true -> TrueValueNode(location)
+                false -> FalseValueNode(location)
+            }
+    }
+}
+
 /**
  * String literal value.
  */

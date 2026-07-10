@@ -24,9 +24,11 @@ import org.berrycrush.plugin.adapter.ExecutionContextAdapter
 import org.berrycrush.plugin.adapter.ScenarioContextAdapter
 import org.berrycrush.plugin.adapter.ScenarioResultAdapter
 import org.berrycrush.util.StepRegistry
+import org.berrycrush.util.forEachNonNull
 import java.io.File
 import java.time.Duration
 import java.time.Instant
+import kotlin.collections.forEach
 
 /**
  * Executes BDD scenarios against API endpoints.
@@ -113,7 +115,9 @@ class BerryCrushScenarioExecutor(
             if (scenario.examples?.isNotEmpty() == true) {
                 if (!context.shareVariablesAcrossScenarios) context = ExecutionContext(true, scenario.parameters)
                 val row = scenario.examples.first()
-                context.resolveParams(row.values).forEach { (key, value) -> context[key] = value }
+                context
+                    .resolveParams(row.values)
+                    .forEachNonNull { key, value -> context[key] = value }
             }
 
             if (sharedContext?.mergedParameters != null) {
@@ -206,7 +210,9 @@ internal inline fun ExecutionContext.withIncludeParameters(
                 .filter { this.contains(it) }
                 .associateWith { this.get<Any>(it) as Any }
         try {
-            this.resolveParams(step.includeParameters).forEach { (key, value) -> this[key] = value }
+            this
+                .resolveParams(step.includeParameters)
+                .forEach { (key, value) -> value?.let { this[key] = it } }
             block()
         } finally {
             // Restore original values

@@ -396,6 +396,10 @@ Available Test Types to Exclude
 * ``LDAPInjection`` - LDAP injection payloads
 * ``XXE`` - XML External Entity attacks
 * ``HeaderInjection`` - HTTP header injection
+* ``NoSQLInjection`` - NoSQL injection payloads
+* ``SSTI`` - Template injection payloads
+* ``JWT`` - JWT attack payloads
+* ``AuthorizationBypass`` - Authorization bypass payloads
 
 **Multi requests Tests:**
 
@@ -406,7 +410,7 @@ Custom Providers
 ----------------
 
 BerryCrush supports custom test providers for extending auto-tests with your own
-invalid value generators and security payloads. This uses Java's ServiceLoader pattern
+invalid and security test case generators. This uses Java's ServiceLoader pattern
 for automatic discovery.
 
 Creating a Custom Invalid Test Provider
@@ -420,9 +424,13 @@ Implement the ``InvalidTestProvider`` interface:
 
     package com.example;
 
-    import org.berrycrush.berrycrush.autotest.provider.InvalidTestProvider;
-    import org.berrycrush.berrycrush.autotest.provider.InvalidTestValue;
+    import org.berrycrush.autotest.AutoTestCase;
+    import org.berrycrush.autotest.AutoTestType;
+    import org.berrycrush.autotest.ParameterLocation;
+    import org.berrycrush.autotest.provider.InvalidTestProvider;
+    import org.berrycrush.autotest.provider.InvalidTestGenerationRequest;
     import io.swagger.v3.oas.models.media.Schema;
+    import java.util.HashMap;
     import java.util.List;
 
     public class EmojiTestProvider implements InvalidTestProvider {
@@ -443,14 +451,27 @@ Implement the ``InvalidTestProvider`` interface:
         }
 
         @Override
-        public List<InvalidTestValue> generateInvalidValues(
-                String fieldName, Schema<?> schema) {
-            return List.of(
-                new InvalidTestValue(
-                    "Test 🎉 emoji 🐱 string",
-                    "String with emoji characters"
-                )
-            );
+        public List<AutoTestCase> generateTestCases(InvalidTestRequest request) {
+          if (request.getLocation() != ParameterLocation.BODY) {
+            return List.of();
+          }
+
+          var body = new HashMap<String, Object>(request.getBaseBody());
+          body.put(request.getFieldName(), "Test 🎉 emoji 🐱 string");
+
+          return List.of(
+            new AutoTestCase(
+              AutoTestType.INVALID,
+              request.getFieldName(),
+              "Test 🎉 emoji 🐱 string",
+              "String with emoji characters",
+              request.getLocation(),
+              body,
+              request.getBasePathParams(),
+              request.getBaseHeaders(),
+              "Invalid request - " + getTestType()
+            )
+          );
         }
     }
 
@@ -465,15 +486,27 @@ Implement the ``InvalidTestProvider`` interface:
         override fun canHandle(schema: Schema<*>): Boolean =
             schema.type == "string"
 
-        override fun generateInvalidValues(
-            fieldName: String,
-            schema: Schema<*>,
-        ): List<InvalidTestValue> = listOf(
-            InvalidTestValue(
-                value = "Test 🎉 emoji 🐱 string",
-                description = "String with emoji characters",
+        override fun generateTestCases(request: InvalidTestRequest): List<AutoTestCase> {
+          if (request.location != ParameterLocation.BODY) return emptyList()
+
+          val body = request.baseBody.toMutableMap().apply {
+            this[request.fieldName] = "Test 🎉 emoji 🐱 string"
+          }
+
+          return listOf(
+            AutoTestCase(
+              type = AutoTestType.INVALID,
+              fieldName = request.fieldName,
+              invalidValue = "Test 🎉 emoji 🐱 string",
+              description = "String with emoji characters",
+              location = request.location,
+              body = body,
+              pathParams = request.basePathParams,
+              headers = request.baseHeaders,
+              tag = "Invalid request - $testType",
+            ),
             )
-        )
+        }
     }
 
 Creating a Custom Security Test Provider
@@ -493,10 +526,33 @@ Implement the ``SecurityTestProvider`` interface:
         override fun applicableLocations(): Set<ParameterLocation> =
             setOf(ParameterLocation.BODY, ParameterLocation.QUERY)
 
-        override fun generatePayloads(): List<SecurityPayload> = listOf(
-            SecurityPayload("MongoDB \$ne", "{\"\$ne\": null}"),
-            SecurityPayload("MongoDB \$where", "{\"\$where\": \"sleep(5000)\"}"),
-        )
+        override fun generateTestCases(request: SecurityTestRequest): List<AutoTestCase> {
+          if (request.location !in applicableLocations()) return emptyList()
+
+          return listOf(
+            "MongoDB \$ne" to "{\"\$ne\": null}",
+            "MongoDB \$where" to "{\"\$where\": \"sleep(5000)\"}",
+          ).map { (name, payload) ->
+            val body =
+              if (request.location == ParameterLocation.BODY) {
+                request.baseBody.toMutableMap().apply { this[request.fieldName] = payload }
+              } else {
+                request.baseBody
+              }
+
+            AutoTestCase(
+              type = AutoTestType.SECURITY,
+              fieldName = request.fieldName,
+              invalidValue = payload,
+              description = "$displayName: $name",
+              location = request.location,
+              body = body,
+              pathParams = request.basePathParams,
+              headers = request.baseHeaders,
+              tag = "security - $displayName",
+            )
+          }
+        }
     }
 
 Registering Custom Providers
@@ -504,13 +560,13 @@ Registering Custom Providers
 
 Create ServiceLoader configuration files in your project:
 
-**META-INF/services/org.berrycrush.berrycrush.autotest.provider.InvalidTestProvider:**
+**META-INF/services/org.berrycrush.autotest.provider.InvalidTestProvider:**
 
 .. code-block:: text
 
     com.example.EmojiTestProvider
 
-**META-INF/services/org.berrycrush.berrycrush.autotest.provider.SecurityTestProvider:**
+**META-INF/services/org.berrycrush.autotest.provider.SecurityTestProvider:**
 
 .. code-block:: text
 

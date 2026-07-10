@@ -4,12 +4,11 @@ import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.Operation
 import io.swagger.v3.oas.models.media.Schema
 import org.berrycrush.autotest.provider.AutoTestProviderRegistry
+import org.berrycrush.autotest.provider.InvalidTestRequest
+import org.berrycrush.autotest.provider.SecurityTestRequest
 import org.berrycrush.openapi.LoadedSpec
 import org.berrycrush.openapi.SpecRegistry
-import org.berrycrush.scenario.AutoTestType
 import io.swagger.v3.oas.models.parameters.Parameter as SwaggerParameter
-
-private const val PATH_PATTERN_LIMIT = 3
 
 /**
  * Generates auto-test cases based on OpenAPI schema constraints and security patterns.
@@ -39,6 +38,7 @@ private const val PATH_PATTERN_LIMIT = 3
  * @see AutoTestCase The data class representing a generated test case
  * @see AutoTestProviderRegistry Provider registration for custom test types
  */
+@Suppress("TooManyFunctions")
 class AutoTestGenerator(
     private val openApi: OpenAPI,
     private val registry: AutoTestProviderRegistry = AutoTestProviderRegistry.default,
@@ -83,7 +83,7 @@ class AutoTestGenerator(
     fun generateTestCases(
         operationId: String,
         testTypes: Set<AutoTestType>,
-        baseBody: Map<String, Any>? = null,
+        baseBody: Map<String, Any?>? = null,
         basePathParams: Map<String, Any?>? = null,
         baseHeaders: Map<String, String>? = null,
     ): List<AutoTestCase> {
@@ -198,11 +198,10 @@ class AutoTestGenerator(
     @Suppress("UNCHECKED_CAST")
     private fun generateInvalidTestCases(
         schema: Schema<*>,
-        baseBody: Map<String, Any>,
+        baseBody: Map<String, Any?>,
     ): List<AutoTestCase> {
         val testCases = mutableListOf<AutoTestCase>()
         val properties = schema.properties ?: return testCases
-        val requiredFields = schema.required ?: emptyList()
 
         properties.forEach { (fieldName, fieldSchema) ->
             val resolvedSchema = resolveSchema(fieldSchema as Schema<*>)
@@ -211,21 +210,8 @@ class AutoTestGenerator(
             testCases.addAll(generateConstraintViolations(fieldName, resolvedSchema, baseBody))
         }
 
-        // Generate tests for missing required fields
-        requiredFields.forEach { requiredField ->
-            if (properties.containsKey(requiredField)) {
-                testCases.add(
-                    AutoTestCase(
-                        type = AutoTestType.INVALID,
-                        fieldName = requiredField,
-                        invalidValue = null,
-                        description = "Missing required field '$requiredField'",
-                        body = baseBody.filterKeys { it != requiredField },
-                        tag = "Invalid request - required",
-                    ),
-                )
-            }
-        }
+        // Missing-required generation is provider-owned.
+        testCases.addAll(generateRequiredBodyTestCases(schema, baseBody))
 
         return testCases
     }
@@ -245,101 +231,60 @@ class AutoTestGenerator(
     private fun generateConstraintViolations(
         fieldName: String,
         schema: Schema<*>,
-        baseBody: Map<String, Any>,
+        baseBody: Map<String, Any?>,
     ): List<AutoTestCase> =
-        registry
-            .getInvalidTestProviders()
+        sortedInvalidProviders()
             .filter { it.canHandle(schema) }
+            .filterNot { it.testType == "required" }
             .flatMap { provider ->
-                provider.generateInvalidValues(fieldName, schema).map { invalidValue ->
-                    createInvalidTestCase(
-                        InvalidCaseRequest(
-                            fieldName = fieldName,
-                            invalidValue = invalidValue.value,
-                            description = invalidValue.description,
-                            invalidType = provider.testType,
-                            baseBody = baseBody,
-                        ),
-                    )
-                }
+                provider.generateTestCases(
+                    InvalidTestRequest(
+                        fieldName = fieldName,
+                        fieldPath = listOf(fieldName),
+                        schema = schema,
+                        location = ParameterLocation.BODY,
+                        baseBody = baseBody,
+                    ),
+                )
             }
 
-    private data class InvalidCaseRequest(
-        val fieldName: String,
-        val invalidValue: Any?,
-        val description: String,
-        val invalidType: String,
-        val baseBody: Map<String, Any>,
-        val location: ParameterLocation = ParameterLocation.BODY,
-        val basePathParams: Map<String, Any?> = emptyMap(),
-        val baseHeaders: Map<String, String> = emptyMap(),
-    )
+    private fun generateRequiredBodyTestCases(
+        schema: Schema<*>,
+        baseBody: Map<String, Any?>,
+    ): List<AutoTestCase> {
+        val requiredProvider = sortedInvalidProviders().find { it.testType == "required" } ?: return emptyList()
+        val requiredPaths = collectRequiredFieldPaths(schema)
 
-    private fun createInvalidTestCase(request: InvalidCaseRequest): AutoTestCase {
-        val tag = "Invalid request - ${request.invalidType}"
-        return when (request.location) {
-            ParameterLocation.BODY -> {
-                val modifiedBody = request.baseBody.toMutableMap()
-                if (request.invalidValue != null) {
-                    modifiedBody[request.fieldName] = request.invalidValue
-                } else {
-                    modifiedBody.remove(request.fieldName)
-                }
-
-                AutoTestCase(
-                    type = AutoTestType.INVALID,
-                    fieldName = request.fieldName,
-                    invalidValue = request.invalidValue,
-                    description = request.description,
+        return requiredPaths.flatMap { fieldPath ->
+            requiredProvider.generateTestCases(
+                InvalidTestRequest(
+                    fieldName = fieldPath.joinToString("."),
+                    fieldPath = fieldPath,
+                    schema = schema,
                     location = ParameterLocation.BODY,
-                    body = modifiedBody,
-                    tag = tag,
-                )
-            }
-
-            ParameterLocation.PATH -> {
-                val modifiedPathParams = request.basePathParams.toMutableMap()
-                modifiedPathParams[request.fieldName] = request.invalidValue
-
-                AutoTestCase(
-                    type = AutoTestType.INVALID,
-                    fieldName = request.fieldName,
-                    invalidValue = request.invalidValue,
-                    description = request.description,
-                    location = ParameterLocation.PATH,
-                    body = request.baseBody,
-                    pathParams = modifiedPathParams,
-                    tag = tag,
-                )
-            }
-
-            ParameterLocation.HEADER -> {
-                val modifiedHeaders = request.baseHeaders.toMutableMap()
-                modifiedHeaders[request.fieldName] = request.invalidValue?.toString() ?: ""
-
-                AutoTestCase(
-                    type = AutoTestType.INVALID,
-                    fieldName = request.fieldName,
-                    invalidValue = request.invalidValue,
-                    description = request.description,
-                    location = ParameterLocation.HEADER,
-                    body = request.baseBody,
-                    headers = modifiedHeaders,
-                    tag = tag,
-                )
-            }
-
-            ParameterLocation.QUERY ->
-                AutoTestCase(
-                    type = AutoTestType.INVALID,
-                    fieldName = request.fieldName,
-                    invalidValue = request.invalidValue,
-                    description = request.description,
-                    location = ParameterLocation.QUERY,
-                    body = request.baseBody,
-                    tag = tag,
-                )
+                    baseBody = baseBody,
+                ),
+            )
         }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun collectRequiredFieldPaths(
+        schema: Schema<*>,
+        prefix: List<String> = emptyList(),
+    ): List<List<String>> {
+        val resolved = resolveSchema(schema)
+        val properties = resolved.properties ?: return emptyList()
+        val required = resolved.required ?: emptyList()
+
+        val currentLevel = required.map { prefix + it }
+
+        val nested =
+            properties.entries.flatMap { (name, propertySchema) ->
+                collectRequiredFieldPaths(resolveSchema(propertySchema as Schema<*>), prefix + name)
+            }
+
+        return currentLevel + nested
     }
 
     /**
@@ -348,7 +293,7 @@ class AutoTestGenerator(
     @Suppress("UNCHECKED_CAST")
     private fun generateSecurityTestCases(
         schema: Schema<*>,
-        baseBody: Map<String, Any>,
+        baseBody: Map<String, Any?>,
     ): List<AutoTestCase> {
         val properties = schema.properties ?: return emptyList()
 
@@ -361,22 +306,16 @@ class AutoTestGenerator(
                 }.keys
 
         return stringFields.flatMap { fieldName ->
-            registry
-                .getSecurityTestProviders()
+            sortedSecurityProviders()
                 .filter { ParameterLocation.BODY in it.applicableLocations() }
                 .flatMap { provider ->
-                    provider.generatePayloads().map { payload ->
-                        val modifiedBody = baseBody.toMutableMap()
-                        modifiedBody[fieldName] = payload.payload
-                        AutoTestCase(
-                            type = AutoTestType.SECURITY,
+                    provider.generateTestCases(
+                        SecurityTestRequest(
                             fieldName = fieldName,
-                            invalidValue = payload.payload,
-                            description = "${provider.displayName}: ${payload.name}",
-                            body = modifiedBody,
-                            tag = "security - ${provider.displayName}",
-                        )
-                    }
+                            location = ParameterLocation.BODY,
+                            baseBody = baseBody,
+                        ),
+                    )
                 }
         }
     }
@@ -386,30 +325,27 @@ class AutoTestGenerator(
      */
     private fun generatePathParamInvalidTests(
         pathParams: List<SwaggerParameter>,
-        baseBody: Map<String, Any>,
+        baseBody: Map<String, Any?>,
         basePathParams: Map<String, Any?>,
     ): List<AutoTestCase> =
         pathParams.flatMap { param ->
             val schema = param.schema ?: return@flatMap emptyList()
             val resolvedSchema = resolveSchema(schema)
 
-            registry
-                .getInvalidTestProviders()
+            sortedInvalidProviders()
                 .filter { it.canHandle(resolvedSchema) }
+                .filterNot { it.testType == "required" }
                 .flatMap { provider ->
-                    provider.generateInvalidValues(param.name, resolvedSchema).map { invalidValue ->
-                        createInvalidTestCase(
-                            InvalidCaseRequest(
-                                fieldName = param.name,
-                                invalidValue = invalidValue.value,
-                                description = invalidValue.description,
-                                invalidType = provider.testType,
-                                baseBody = baseBody,
-                                location = ParameterLocation.PATH,
-                                basePathParams = basePathParams,
-                            ),
-                        )
-                    }
+                    provider.generateTestCases(
+                        InvalidTestRequest(
+                            fieldName = param.name,
+                            fieldPath = listOf(param.name),
+                            schema = resolvedSchema,
+                            location = ParameterLocation.PATH,
+                            baseBody = baseBody,
+                            basePathParams = basePathParams,
+                        ),
+                    )
                 }
         }
 
@@ -418,26 +354,21 @@ class AutoTestGenerator(
      */
     private fun generatePathParamSecurityTests(
         pathParams: List<SwaggerParameter>,
-        baseBody: Map<String, Any>,
+        baseBody: Map<String, Any?>,
         basePathParams: Map<String, Any?>,
     ): List<AutoTestCase> =
         pathParams.flatMap { param ->
-            registry
-                .getSecurityTestProviders()
+            sortedSecurityProviders()
                 .filter { ParameterLocation.PATH in it.applicableLocations() }
                 .flatMap { provider ->
-                    provider.generatePayloads().map { payload ->
-                        AutoTestCase(
-                            type = AutoTestType.SECURITY,
+                    provider.generateTestCases(
+                        SecurityTestRequest(
                             fieldName = param.name,
-                            invalidValue = payload.payload,
-                            description = "${provider.displayName}: ${payload.name}",
                             location = ParameterLocation.PATH,
-                            body = baseBody,
-                            pathParams = basePathParams.toMutableMap().apply { this[param.name] = payload.payload },
-                            tag = "security - ${provider.displayName}",
-                        )
-                    }
+                            baseBody = baseBody,
+                            basePathParams = basePathParams,
+                        ),
+                    )
                 }
         }
 
@@ -446,30 +377,27 @@ class AutoTestGenerator(
      */
     private fun generateHeaderInvalidTests(
         headerParams: List<SwaggerParameter>,
-        baseBody: Map<String, Any>,
+        baseBody: Map<String, Any?>,
         baseHeaders: Map<String, String>,
     ): List<AutoTestCase> =
         headerParams.flatMap { param ->
             val schema = param.schema ?: return@flatMap emptyList()
             val resolvedSchema = resolveSchema(schema)
 
-            registry
-                .getInvalidTestProviders()
+            sortedInvalidProviders()
                 .filter { it.canHandle(resolvedSchema) }
+                .filterNot { it.testType == "required" }
                 .flatMap { provider ->
-                    provider.generateInvalidValues(param.name, resolvedSchema).map { invalidValue ->
-                        createInvalidTestCase(
-                            InvalidCaseRequest(
-                                fieldName = param.name,
-                                invalidValue = invalidValue.value,
-                                description = invalidValue.description,
-                                invalidType = provider.testType,
-                                baseBody = baseBody,
-                                location = ParameterLocation.HEADER,
-                                baseHeaders = baseHeaders,
-                            ),
-                        )
-                    }
+                    provider.generateTestCases(
+                        InvalidTestRequest(
+                            fieldName = param.name,
+                            fieldPath = listOf(param.name),
+                            schema = resolvedSchema,
+                            location = ParameterLocation.HEADER,
+                            baseBody = baseBody,
+                            baseHeaders = baseHeaders,
+                        ),
+                    )
                 }
         }
 
@@ -478,145 +406,25 @@ class AutoTestGenerator(
      */
     private fun generateHeaderSecurityTests(
         headerParams: List<SwaggerParameter>,
-        baseBody: Map<String, Any>,
+        baseBody: Map<String, Any?>,
         baseHeaders: Map<String, String>,
     ): List<AutoTestCase> =
         headerParams.flatMap { param ->
-            registry
-                .getSecurityTestProviders()
+            sortedSecurityProviders()
                 .filter { ParameterLocation.HEADER in it.applicableLocations() }
                 .flatMap { provider ->
-                    provider.generatePayloads().map { payload ->
-                        AutoTestCase(
-                            type = AutoTestType.SECURITY,
+                    provider.generateTestCases(
+                        SecurityTestRequest(
                             fieldName = param.name,
-                            invalidValue = payload.payload,
-                            description = "${provider.displayName}: ${payload.name}",
                             location = ParameterLocation.HEADER,
-                            body = baseBody,
-                            headers = baseHeaders.toMutableMap().apply { this[param.name] = payload.payload },
-                            tag = "security - ${provider.displayName}",
-                        )
-                    }
+                            baseBody = baseBody,
+                            baseHeaders = baseHeaders,
+                        ),
+                    )
                 }
         }
-}
 
-/**
- * Location of the parameter being tested.
- */
-enum class ParameterLocation(
-    val locationName: String,
-) {
-    BODY("body"),
-    PATH("path"),
-    QUERY("query"),
-    HEADER("header"),
-}
+    private fun sortedInvalidProviders() = registry.getInvalidTestProviders().sortedBy { it.testType }
 
-/**
- * Represents a generated test case.
- */
-data class AutoTestCase(
-    /** Type of test (invalid/security) */
-    val type: AutoTestType,
-    /** Field being tested */
-    val fieldName: String,
-    /** The invalid/malicious value */
-    val invalidValue: Any?,
-    /** Human-readable description */
-    val description: String,
-    /** Location of the parameter (body, path, header, query) */
-    val location: ParameterLocation = ParameterLocation.BODY,
-    /** Complete request body for this test (for body parameters) */
-    val body: Map<String, Any?> = emptyMap(),
-    /** Path parameters for this test (for path parameters) */
-    val pathParams: Map<String, Any?> = emptyMap(),
-    /** Headers for this test (for header parameters) */
-    val headers: Map<String, String> = emptyMap(),
-    /** Tag to apply to this test */
-    val tag: String,
-)
-
-/**
- * Security test patterns for common web vulnerabilities.
- */
-object SecurityTestPatterns {
-    data class SecurityPattern(
-        val category: String,
-        val name: String,
-        val payload: String,
-    )
-
-    private val sqlInjectionPatterns =
-        listOf(
-            SecurityPattern("SQL Injection", "Single quote", "' OR '1'='1"),
-            SecurityPattern("SQL Injection", "Union select", "' UNION SELECT * FROM users--"),
-            SecurityPattern("SQL Injection", "Comment bypass", "admin'--"),
-            SecurityPattern("SQL Injection", "Boolean-based", "1' AND '1'='1"),
-            SecurityPattern("SQL Injection", "Stacked queries", "'; DROP TABLE users;--"),
-        )
-
-    private val xssPatterns =
-        listOf(
-            SecurityPattern("XSS", "Script tag", "<script>alert('XSS')</script>"),
-            SecurityPattern("XSS", "Event handler", "<img src=x onerror=alert('XSS')>"),
-            SecurityPattern("XSS", "SVG onload", "<svg onload=alert('XSS')>"),
-            SecurityPattern("XSS", "JavaScript URL", "javascript:alert('XSS')"),
-            SecurityPattern("XSS", "HTML injection", "<h1>Injected</h1>"),
-        )
-
-    private val pathTraversalPatterns =
-        listOf(
-            SecurityPattern("Path Traversal", "Unix relative", "../../../etc/passwd"),
-            SecurityPattern("Path Traversal", "Windows relative", "..\\..\\..\\windows\\system32\\config\\sam"),
-            SecurityPattern("Path Traversal", "URL encoded", "..%2F..%2F..%2Fetc%2Fpasswd"),
-            SecurityPattern("Path Traversal", "Double encoded", "..%252F..%252F..%252Fetc%252Fpasswd"),
-        )
-
-    private val commandInjectionPatterns =
-        listOf(
-            SecurityPattern("Command Injection", "Unix semicolon", "; ls -la"),
-            SecurityPattern("Command Injection", "Unix pipe", "| cat /etc/passwd"),
-            SecurityPattern("Command Injection", "Unix backtick", "`id`"),
-            SecurityPattern("Command Injection", "Unix subshell", "$(whoami)"),
-            SecurityPattern("Command Injection", "Windows ampersand", "& dir"),
-        )
-
-    private val ldapInjectionPatterns =
-        listOf(
-            SecurityPattern("LDAP Injection", "Wildcard", "*"),
-            SecurityPattern("LDAP Injection", "Filter bypass", "admin)(&)"),
-        )
-
-    private val xmlInjectionPatterns =
-        listOf(
-            SecurityPattern("XXE", "External entity", "<!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]>"),
-            SecurityPattern("XML Injection", "CDATA", "<![CDATA[<script>alert('XSS')</script>]]>"),
-        )
-
-    fun getAllPatterns(): List<SecurityPattern> =
-        sqlInjectionPatterns +
-            xssPatterns +
-            pathTraversalPatterns +
-            commandInjectionPatterns +
-            ldapInjectionPatterns +
-            xmlInjectionPatterns
-
-    /**
-     * Get patterns suitable for path parameter testing.
-     * Path traversal and some injection patterns are most relevant here.
-     */
-    fun getPathTraversalPatterns(): List<SecurityPattern> = pathTraversalPatterns + commandInjectionPatterns.take(PATH_PATTERN_LIMIT)
-
-    /**
-     * Get patterns suitable for header parameter testing.
-     * Injection patterns that could affect header-based processing.
-     */
-    fun getHeaderPatterns(): List<SecurityPattern> =
-        xssPatterns.take(2) +
-            listOf(
-                SecurityPattern("Header Injection", "CRLF injection", "value\r\nX-Injected: header"),
-                SecurityPattern("Header Injection", "Null byte", "value\u0000injection"),
-            )
+    private fun sortedSecurityProviders() = registry.getSecurityTestProviders().sortedBy { it.testType }
 }

@@ -1,10 +1,14 @@
 package org.berrycrush.samples.petstore.provider;
 
+import org.berrycrush.autotest.AutoTestCase;
+import org.berrycrush.autotest.AutoTestType;
 import org.berrycrush.autotest.provider.InvalidTestProvider;
-import org.berrycrush.autotest.provider.InvalidTestValue;
+import org.berrycrush.autotest.provider.InvalidTestRequest;
 import io.swagger.v3.oas.models.media.Schema;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 
 /**
@@ -31,23 +35,48 @@ public class EmojiTestProvider implements InvalidTestProvider {
 
     @Override
     public boolean canHandle(@NotNull Schema<?> schema) {
-        return "string".equals(schema.getType());
+        return "string".equals(schema.getType()) || (schema.getTypes() != null && schema.getTypes().contains("string"));
     }
 
     @NotNull
     @Override
-    public List<InvalidTestValue> generateInvalidValues(
-            @NotNull String fieldName,
-            @NotNull Schema<?> schema
+    public List<AutoTestCase> generateTestCases(
+            @NotNull InvalidTestRequest request
     ) {
+        if (request.getLocation() != org.berrycrush.autotest.ParameterLocation.BODY) {
+            return List.of();
+        }
+
+        Map<String, Object> body1 = new HashMap<>(request.getBaseBody());
+        body1.put(request.getFieldName(), "Test 🎉 emoji 🐱 string 🚀");
+
+        Map<String, Object> body2 = new HashMap<>(request.getBaseBody());
+        body2.put(request.getFieldName(), "👨‍👩‍👧‍👦");
+
         return List.of(
-            new InvalidTestValue(
-                "Test 🎉 emoji 🐱 string 🚀",
-                "String with emoji characters"
+            new AutoTestCase(
+                    AutoTestType.INVALID,
+                    getTestType(),
+                    request.getFieldName(),
+                    "Test 🎉 emoji 🐱 string 🚀",
+                    "String with emoji characters",
+                    request.getLocation(),
+                    body1,
+                    request.getBasePathParams(),
+                    request.getBaseHeaders(),
+                    "Invalid request - " + getTestType()
             ),
-            new InvalidTestValue(
-                "👨‍👩‍👧‍👦", // Family emoji (ZWJ sequence)
-                "Zero-width joiner emoji sequence"
+            new AutoTestCase(
+                    AutoTestType.INVALID,
+                    getTestType(),
+                    request.getFieldName(),
+                    "👨‍👩‍👧‍👦",
+                    "Zero-width joiner emoji sequence",
+                    request.getLocation(),
+                    body2,
+                    request.getBasePathParams(),
+                    request.getBaseHeaders(),
+                    "Invalid request - " + getTestType()
             )
         );
     }

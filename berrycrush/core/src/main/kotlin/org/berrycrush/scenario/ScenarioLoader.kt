@@ -13,6 +13,7 @@ import org.berrycrush.model.Scenario
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepType
 import org.berrycrush.model.WebhookConfig
+import org.berrycrush.util.toNonNullMap
 import java.nio.file.Files
 import java.nio.file.Path
 import org.berrycrush.model.ConditionBranch as ModelConditionBranch
@@ -382,8 +383,8 @@ class ScenarioLoader {
                 description = description,
                 operationId = call.operationId,
                 specName = call.specName,
-                pathParams = pathParams,
-                queryParams = queryParams,
+                pathParams = pathParams.toNonNullMap(),
+                queryParams = queryParams.toNonNullMap(),
                 headers = call.headers.mapValues { extractValue(it.value).toString() },
                 body = call.body?.let { extractStringValue(it) },
                 bodyProperties = call.bodyProperties?.let { transformBodyProperties(it) },
@@ -494,8 +495,10 @@ class ScenarioLoader {
         return ExampleRow(values)
     }
 
-    private fun extractValue(node: ValueNode): Any =
+    private fun extractValue(node: ValueNode): Any? =
         when (node) {
+            is NullValueNode -> null
+            is BooleanValueNode -> node.value
             is StringValueNode -> node.value
             is NumberValueNode -> node.value
             is VariableValueNode -> $$"${$${node.name}}"
@@ -505,6 +508,8 @@ class ScenarioLoader {
 
     private fun extractStringValue(node: ValueNode): String =
         when (node) {
+            is NullValueNode -> "null"
+            is BooleanValueNode -> node.value.toString()
             is StringValueNode -> node.value
             is NumberValueNode -> node.value.toString()
             is VariableValueNode -> $$"${$${node.name}}"
@@ -558,7 +563,10 @@ class ScenarioLoader {
      */
     private fun transformCondition(node: ConditionNode): Condition =
         when (node) {
-            is ConditionNode.StatusCondition -> Condition.Status(extractValue(node.expected))
+            is ConditionNode.StatusCondition ->
+                extractValue(node.expected)?.let {
+                    Condition.Status(it)
+                } ?: error("Invalid status condition: ${node.location}")
             is ConditionNode.JsonPathCondition ->
                 Condition.JsonPath(
                     path = node.path,
@@ -586,11 +594,16 @@ class ScenarioLoader {
                     right = transformCondition(node.right),
                 )
             is ConditionNode.BodyContainsCondition ->
-                Condition.BodyContains(text = extractValue(node.text))
+                extractValue(node.text)?.let {
+                    Condition.BodyContains(text = it)
+                } ?: error("Invalid body contains condition: ${node.location}")
+
             is ConditionNode.SchemaCondition ->
                 Condition.Schema
             is ConditionNode.ResponseTimeCondition ->
-                Condition.ResponseTime(duration = extractValue(node.maxMs))
+                extractValue(node.maxMs)?.let {
+                    Condition.ResponseTime(duration = it)
+                } ?: error("Invalid response time condition: ${node.location}")
             is ConditionNode.CustomAssertionCondition ->
                 Condition.CustomAssertion(pattern = node.pattern)
         }

@@ -6,6 +6,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class SecurityTestProviderTest {
+    private fun request(location: ParameterLocation = ParameterLocation.BODY): SecurityTestRequest =
+        SecurityTestRequest(fieldName = "input", location = location)
+
     @Test
     fun `default registry should have all built-in security providers including new ones`() {
         val registry = AutoTestProviderRegistry.default
@@ -41,15 +44,15 @@ class SecurityTestProviderTest {
         assertEquals("NoSQL Injection", provider.displayName)
         assertEquals(setOf(ParameterLocation.BODY, ParameterLocation.QUERY), provider.applicableLocations())
 
-        val payloads = provider.generatePayloads()
-        assertTrue(payloads.isNotEmpty(), "Should generate payloads")
+        val cases = provider.generateTestCases(request())
+        assertTrue(cases.isNotEmpty(), "Should generate payloads")
         assertTrue(
-            payloads.any { it.payload.contains($$"$ne") },
-            $$"Should include MongoDB $ne payload",
+            cases.any { it.invalidValue?.toString()?.contains("\$ne") == true },
+            "Should include MongoDB \$ne payload",
         )
         assertTrue(
-            payloads.any { it.payload.contains($$"$where") },
-            $$"Should include MongoDB $where payload",
+            cases.any { it.invalidValue?.toString()?.contains("\$where") == true },
+            "Should include MongoDB \$where payload",
         )
     }
 
@@ -61,14 +64,14 @@ class SecurityTestProviderTest {
         assertEquals("Template Injection", provider.displayName)
         assertEquals(setOf(ParameterLocation.BODY, ParameterLocation.QUERY), provider.applicableLocations())
 
-        val payloads = provider.generatePayloads()
-        assertTrue(payloads.isNotEmpty(), "Should generate payloads")
+        val cases = provider.generateTestCases(request())
+        assertTrue(cases.isNotEmpty(), "Should generate payloads")
         assertTrue(
-            payloads.any { it.payload.contains("{{7*7}}") },
+            cases.any { it.invalidValue == "{{7*7}}" },
             "Should include Jinja2/Twig payload",
         )
         assertTrue(
-            payloads.any { it.payload.contains("<%= 7*7 %>") },
+            cases.any { it.invalidValue == "<%= 7*7 %>" },
             "Should include ERB payload",
         )
     }
@@ -81,14 +84,14 @@ class SecurityTestProviderTest {
         assertEquals("JWT Attacks", provider.displayName)
         assertEquals(setOf(ParameterLocation.HEADER), provider.applicableLocations())
 
-        val payloads = provider.generatePayloads()
-        assertTrue(payloads.isNotEmpty(), "Should generate payloads")
+        val cases = provider.generateTestCases(request(ParameterLocation.HEADER))
+        assertTrue(cases.isNotEmpty(), "Should generate payloads")
         assertTrue(
-            payloads.any { it.name.contains("Algorithm none") },
+            cases.any { it.description.contains("Algorithm none") },
             "Should include algorithm none attack",
         )
         assertTrue(
-            payloads.any { it.name.contains("Malformed") },
+            cases.any { it.description.contains("Malformed") },
             "Should include malformed JWT payload",
         )
     }
@@ -101,14 +104,14 @@ class SecurityTestProviderTest {
         assertEquals("Authorization Bypass", provider.displayName)
         assertEquals(setOf(ParameterLocation.HEADER), provider.applicableLocations())
 
-        val payloads = provider.generatePayloads()
-        assertTrue(payloads.isNotEmpty(), "Should generate payloads")
+        val cases = provider.generateTestCases(request(ParameterLocation.HEADER))
+        assertTrue(cases.isNotEmpty(), "Should generate payloads")
         assertTrue(
-            payloads.any { it.payload.isEmpty() },
+            cases.any { it.invalidValue == "" },
             "Should include empty auth payload",
         )
         assertTrue(
-            payloads.any { it.payload == "Bearer " },
+            cases.any { it.invalidValue == "Bearer " },
             "Should include empty bearer payload",
         )
     }
@@ -124,7 +127,8 @@ class SecurityTestProviderTest {
     @Test
     fun `all providers should have non-empty payloads`() {
         DefaultSecurityTestProviders.all.forEach { provider ->
-            val payloads = provider.generatePayloads()
+            val location = provider.applicableLocations().first()
+            val payloads = provider.generateTestCases(request(location))
             assertTrue(
                 payloads.isNotEmpty(),
                 "Provider ${provider.testType} should generate at least one payload",

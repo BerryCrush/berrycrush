@@ -3,7 +3,6 @@ package org.berrycrush.plugin.adapter
 import org.berrycrush.context.resolveParam
 import org.berrycrush.context.resolveParams
 import org.berrycrush.plugin.ExecutionContext
-import org.berrycrush.webhook.MockWebhookServer
 import org.berrycrush.context.ExecutionContext as CoreExecutionContext
 
 class ExecutionContextAdapter(
@@ -26,12 +25,7 @@ class ExecutionContextAdapter(
         context[name] = value
     }
 
-    override fun <T : Any> resolveParam(value: T): T = context.resolveParam(value)
+    override fun <T : Any> resolveParam(value: T?): T? = context.resolveParam(value)
 
-    override fun <T : Any> resolveParams(value: Map<String, T>): Map<String, T> = context.resolveParams(value)
-
-    fun registerWebhookServer(
-        name: String,
-        server: MockWebhookServer,
-    ) = context.registerWebhookServer(name, server)
+    override fun <T : Any> resolveParams(value: Map<String, T?>): Map<String, T?> = context.resolveParams(value)
 }

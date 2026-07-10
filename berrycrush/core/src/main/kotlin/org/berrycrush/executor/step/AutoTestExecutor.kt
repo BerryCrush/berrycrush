@@ -8,10 +8,12 @@ import org.berrycrush.autotest.provider.AutoTestProviderRegistry
 import org.berrycrush.autotest.provider.MultiTestProvider
 import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.BerryCrushExecutionListener
+import org.berrycrush.executor.assertion.AssertionExecutor
 import org.berrycrush.executor.http.HttpExecutor
 import org.berrycrush.model.Assertion
 import org.berrycrush.model.AssertionResult
 import org.berrycrush.model.AutoTestResult
+import org.berrycrush.model.ConditionalAssertion
 import org.berrycrush.model.HttpRequest
 import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.ResultStatus
@@ -21,9 +23,11 @@ import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.plugin.StepContext
 import org.berrycrush.scenario.AutoTestType
+import org.berrycrush.util.toNonNullMap
 import tools.jackson.databind.ObjectMapper
 import java.time.Duration
 import java.time.Instant
+import org.berrycrush.autotest.AutoTestType as TestType
 
 private const val RESPONSE_BODY_PREVIEW_LENGTH = 500
 
@@ -50,6 +54,7 @@ class AutoTestExecutor(
     private val configuration: BerryCrushConfigurationProvider,
     private val httpExecutor: HttpExecutor,
     private val assertionRunner: (HttpResponse, List<Assertion>, StepContext) -> List<AssertionResult>,
+    private val conditionalRunner: (HttpResponse, List<ConditionalAssertion>, StepContext) -> AssertionExecutor.ConditionalRunResult,
     private val objectMapper: ObjectMapper = ObjectMapper(),
 ) {
     /**
@@ -91,10 +96,10 @@ class AutoTestExecutor(
         val allTestCases =
             generator.generateTestCases(
                 operationId = operationId,
-                testTypes = autoTestConfig.types,
+                testTypes = autoTestConfig.types.map { it.toTestType() }.toSet(),
                 baseBody = baseBody,
                 basePathParams = basePathParams,
-                baseHeaders = baseHeaders,
+                baseHeaders = baseHeaders.toNonNullMap(),
             )
 
         // Filter out excluded tests
@@ -153,8 +158,20 @@ class AutoTestExecutor(
         operation: ResolvedOperation?,
         context: StepContext,
     ): Map<String, Any>? =
-        httpExecutor.resolveBody(step, operation, context)?.let { body ->
-            objectMapper.readValue(body, Map::class.java) as Map<String, Any>
+        when (val maybeStep = step.check()) {
+            // Use default Schema values
+            null -> httpExecutor.resolveBody(emptyMap(), operation, context)
+            else ->
+                httpExecutor.resolveBody(maybeStep, operation, context)?.let { body ->
+                    objectMapper.readValue(body, Map::class.java) as Map<String, Any>
+                }
+        }
+
+    private fun Step.check(): Step? =
+        if (body != null || bodyProperties != null || bodyFile != null) {
+            this
+        } else {
+            null
         }
 
     /**
@@ -196,6 +213,7 @@ class AutoTestExecutor(
         context: StepContext,
     ) {
         context["test.type"] = testCase.type.name.lowercase()
+        context["test.testType"] = testCase.testType
         context["test.field"] = testCase.fieldName
         context["test.description"] = testCase.description
         context["test.value"] = testCase.invalidValue?.toString() ?: "null"
@@ -206,7 +224,7 @@ class AutoTestExecutor(
         testCase: AutoTestCase,
         error: Exception,
     ): Boolean {
-        val isSecurityTest = testCase.type == AutoTestType.SECURITY
+        val isSecurityTest = testCase.type == AutoTestType.SECURITY.toTestType()
         val isUrlError =
             error.message?.contains("Illegal character") == true ||
                 error.message?.contains("Invalid URL") == true
@@ -261,13 +279,15 @@ class AutoTestExecutor(
             )
         val response = httpExecutor.execute(request, context)
         val assertionResults = assertionRunner(response, step.assertions, context)
+        val conditionalResult = conditionalRunner(response, step.conditionals, context)
+        val allResults = assertionResults + conditionalResult.assertionResults
 
         return AutoTestResult(
             testCase = testCase,
-            passed = assertionResults.all { it.passed },
+            passed = allResults.all { it.passed },
             statusCode = response.statusCode,
             responseBody = response.body?.take(RESPONSE_BODY_PREVIEW_LENGTH),
-            assertionResults = assertionResults,
+            assertionResults = allResults,
             duration = Duration.between(testStartTime, Instant.now()),
         )
     }
@@ -498,7 +518,7 @@ class AutoTestExecutor(
                 requestIndex = requestIndex,
                 response = response,
             )
-        }.getOrElse { e ->
+        }.getOrElse { _ ->
             RequestResult.create(
                 requestIndex = requestIndex,
                 duration = Duration.between(requestStartTime, Instant.now()),
@@ -526,3 +546,10 @@ class AutoTestExecutor(
         }
     }
 }
+
+private fun AutoTestType.toTestType() =
+    when (this) {
+        AutoTestType.INVALID -> TestType.INVALID
+        AutoTestType.SECURITY -> TestType.SECURITY
+        AutoTestType.MULTI -> TestType.MULTI
+    }

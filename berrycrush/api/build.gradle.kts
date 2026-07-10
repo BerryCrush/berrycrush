@@ -6,6 +6,7 @@ plugins {
 }
 
 dependencies {
+    implementation(libs.swagger.models)
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.bundles.junit)
 }

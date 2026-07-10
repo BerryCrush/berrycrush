@@ -1,5 +1,7 @@
 package org.berrycrush.autotest.provider
 
+import org.berrycrush.autotest.AutoTestCase
+import org.berrycrush.autotest.AutoTestType
 import org.berrycrush.autotest.ParameterLocation
 
 /**
@@ -34,13 +36,17 @@ class SqlInjectionProvider : SecurityTestProvider {
 
     override fun applicableLocations(): Set<ParameterLocation> = setOf(ParameterLocation.BODY, ParameterLocation.QUERY)
 
-    override fun generatePayloads(): List<SecurityPayload> =
-        listOf(
-            SecurityPayload("Single quote", "' OR '1'='1"),
-            SecurityPayload("Union select", "' UNION SELECT * FROM users--"),
-            SecurityPayload("Comment bypass", "admin'--"),
-            SecurityPayload("Boolean-based", "1' AND '1'='1"),
-            SecurityPayload("Stacked queries", "'; DROP TABLE users;--"),
+    override fun generateTestCases(request: SecurityTestRequest): List<AutoTestCase> =
+        request.toSecurityCases(
+            testType,
+            displayName,
+            listOf(
+                SecurityPayload("Single quote", "' OR '1'='1"),
+                SecurityPayload("Union select", "' UNION SELECT * FROM users--"),
+                SecurityPayload("Comment bypass", "admin'--"),
+                SecurityPayload("Boolean-based", "1' AND '1'='1"),
+                SecurityPayload("Stacked queries", "'; DROP TABLE users;--"),
+            ),
         )
 }
 
@@ -54,13 +60,17 @@ class XssProvider : SecurityTestProvider {
     override fun applicableLocations(): Set<ParameterLocation> =
         setOf(ParameterLocation.BODY, ParameterLocation.QUERY, ParameterLocation.HEADER)
 
-    override fun generatePayloads(): List<SecurityPayload> =
-        listOf(
-            SecurityPayload("Script tag", "<script>alert('XSS')</script>"),
-            SecurityPayload("Event handler", "<img src=x onerror=alert('XSS')>"),
-            SecurityPayload("SVG onload", "<svg onload=alert('XSS')>"),
-            SecurityPayload("JavaScript URL", "javascript:alert('XSS')"),
-            SecurityPayload("HTML injection", "<h1>Injected</h1>"),
+    override fun generateTestCases(request: SecurityTestRequest): List<AutoTestCase> =
+        request.toSecurityCases(
+            testType,
+            displayName,
+            listOf(
+                SecurityPayload("Script tag", "<script>alert('XSS')</script>"),
+                SecurityPayload("Event handler", "<img src=x onerror=alert('XSS')>"),
+                SecurityPayload("SVG onload", "<svg onload=alert('XSS')>"),
+                SecurityPayload("JavaScript URL", "javascript:alert('XSS')"),
+                SecurityPayload("HTML injection", "<h1>Injected</h1>"),
+            ),
         )
 }
 
@@ -74,12 +84,16 @@ class PathTraversalProvider : SecurityTestProvider {
     override fun applicableLocations(): Set<ParameterLocation> =
         setOf(ParameterLocation.PATH, ParameterLocation.QUERY, ParameterLocation.BODY)
 
-    override fun generatePayloads(): List<SecurityPayload> =
-        listOf(
-            SecurityPayload("Unix relative", "../../../etc/passwd"),
-            SecurityPayload("Windows relative", "..\\..\\..\\windows\\system32\\config\\sam"),
-            SecurityPayload("URL encoded", "..%2F..%2F..%2Fetc%2Fpasswd"),
-            SecurityPayload("Double encoded", "..%252F..%252F..%252Fetc%252Fpasswd"),
+    override fun generateTestCases(request: SecurityTestRequest): List<AutoTestCase> =
+        request.toSecurityCases(
+            testType,
+            displayName,
+            listOf(
+                SecurityPayload("Unix relative", "../../../etc/passwd"),
+                SecurityPayload("Windows relative", "..\\..\\..\\windows\\system32\\config\\sam"),
+                SecurityPayload("URL encoded", "..%2F..%2F..%2Fetc%2Fpasswd"),
+                SecurityPayload("Double encoded", "..%252F..%252F..%252Fetc%252Fpasswd"),
+            ),
         )
 }
 
@@ -92,13 +106,17 @@ class CommandInjectionProvider : SecurityTestProvider {
 
     override fun applicableLocations(): Set<ParameterLocation> = setOf(ParameterLocation.BODY, ParameterLocation.QUERY)
 
-    override fun generatePayloads(): List<SecurityPayload> =
-        listOf(
-            SecurityPayload("Unix semicolon", "; ls -la"),
-            SecurityPayload("Unix pipe", "| cat /etc/passwd"),
-            SecurityPayload("Unix backtick", "`id`"),
-            SecurityPayload("Unix subshell", "$(whoami)"),
-            SecurityPayload("Windows ampersand", "& dir"),
+    override fun generateTestCases(request: SecurityTestRequest): List<AutoTestCase> =
+        request.toSecurityCases(
+            testType,
+            displayName,
+            listOf(
+                SecurityPayload("Unix semicolon", "; ls -la"),
+                SecurityPayload("Unix pipe", "| cat /etc/passwd"),
+                SecurityPayload("Unix backtick", "`id`"),
+                SecurityPayload("Unix subshell", "$(whoami)"),
+                SecurityPayload("Windows ampersand", "& dir"),
+            ),
         )
 }
 
@@ -111,10 +129,14 @@ class LdapInjectionProvider : SecurityTestProvider {
 
     override fun applicableLocations(): Set<ParameterLocation> = setOf(ParameterLocation.BODY, ParameterLocation.QUERY)
 
-    override fun generatePayloads(): List<SecurityPayload> =
-        listOf(
-            SecurityPayload("Wildcard", "*"),
-            SecurityPayload("Filter bypass", "admin)(&)"),
+    override fun generateTestCases(request: SecurityTestRequest): List<AutoTestCase> =
+        request.toSecurityCases(
+            testType,
+            displayName,
+            listOf(
+                SecurityPayload("Wildcard", "*"),
+                SecurityPayload("Filter bypass", "admin)(&)"),
+            ),
         )
 }
 
@@ -127,13 +149,17 @@ class XxeProvider : SecurityTestProvider {
 
     override fun applicableLocations(): Set<ParameterLocation> = setOf(ParameterLocation.BODY)
 
-    override fun generatePayloads(): List<SecurityPayload> =
-        listOf(
-            SecurityPayload(
-                "External entity",
-                "<!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]>",
+    override fun generateTestCases(request: SecurityTestRequest): List<AutoTestCase> =
+        request.toSecurityCases(
+            testType,
+            displayName,
+            listOf(
+                SecurityPayload(
+                    "External entity",
+                    "<!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]>",
+                ),
+                SecurityPayload("CDATA", "<![CDATA[<script>alert('XSS')</script>]]>"),
             ),
-            SecurityPayload("CDATA", "<![CDATA[<script>alert('XSS')</script>]]>"),
         )
 }
 
@@ -146,10 +172,14 @@ class HeaderInjectionProvider : SecurityTestProvider {
 
     override fun applicableLocations(): Set<ParameterLocation> = setOf(ParameterLocation.HEADER)
 
-    override fun generatePayloads(): List<SecurityPayload> =
-        listOf(
-            SecurityPayload("CRLF injection", "value\r\nX-Injected: header"),
-            SecurityPayload("Null byte", "value\u0000injection"),
+    override fun generateTestCases(request: SecurityTestRequest): List<AutoTestCase> =
+        request.toSecurityCases(
+            testType,
+            displayName,
+            listOf(
+                SecurityPayload("CRLF injection", "value\r\nX-Injected: header"),
+                SecurityPayload("Null byte", "value\u0000injection"),
+            ),
         )
 }
 
@@ -162,13 +192,17 @@ class NoSqlInjectionProvider : SecurityTestProvider {
 
     override fun applicableLocations(): Set<ParameterLocation> = setOf(ParameterLocation.BODY, ParameterLocation.QUERY)
 
-    override fun generatePayloads(): List<SecurityPayload> =
-        listOf(
-            SecurityPayload($$"MongoDB $ne", $$"{\"$ne\": null}"),
-            SecurityPayload($$"MongoDB $where", $$"{\"$where\": \"1==1\"}"),
-            SecurityPayload($$"MongoDB $regex", $$"{\"$regex\": \".*\"}"),
-            SecurityPayload($$"MongoDB $gt", $$"{\"$gt\": \"\"}"),
-            SecurityPayload("MongoDB JS injection", $$"{\"$where\": \"function(){return true}\"}"),
+    override fun generateTestCases(request: SecurityTestRequest): List<AutoTestCase> =
+        request.toSecurityCases(
+            testType,
+            displayName,
+            listOf(
+                SecurityPayload("MongoDB \$ne", "{\"\$ne\": null}"),
+                SecurityPayload("MongoDB \$where", "{\"\$where\": \"1==1\"}"),
+                SecurityPayload("MongoDB \$regex", "{\"\$regex\": \".*\"}"),
+                SecurityPayload("MongoDB \$gt", "{\"\$gt\": \"\"}"),
+                SecurityPayload("MongoDB JS injection", "{\"\$where\": \"function(){return true}\"}"),
+            ),
         )
 }
 
@@ -181,13 +215,17 @@ class SstiProvider : SecurityTestProvider {
 
     override fun applicableLocations(): Set<ParameterLocation> = setOf(ParameterLocation.BODY, ParameterLocation.QUERY)
 
-    override fun generatePayloads(): List<SecurityPayload> =
-        listOf(
-            SecurityPayload("Jinja2/Twig", "{{7*7}}"),
-            SecurityPayload("Freemarker", $$"${7*7}"),
-            SecurityPayload("Velocity", $$"#set($x=7*7)$x"),
-            SecurityPayload("Smarty", "{php}echo 'test';{/php}"),
-            SecurityPayload("ERB", "<%= 7*7 %>"),
+    override fun generateTestCases(request: SecurityTestRequest): List<AutoTestCase> =
+        request.toSecurityCases(
+            testType,
+            displayName,
+            listOf(
+                SecurityPayload("Jinja2/Twig", "{{7*7}}"),
+                SecurityPayload("Freemarker", "\${7*7}"),
+                SecurityPayload("Velocity", "#set(\$x=7*7)\$x"),
+                SecurityPayload("Smarty", "{php}echo 'test';{/php}"),
+                SecurityPayload("ERB", "<%= 7*7 %>"),
+            ),
         )
 }
 
@@ -200,18 +238,17 @@ class JwtAttackProvider : SecurityTestProvider {
 
     override fun applicableLocations(): Set<ParameterLocation> = setOf(ParameterLocation.HEADER)
 
-    override fun generatePayloads(): List<SecurityPayload> =
-        listOf(
-            // Algorithm none attack - tries to bypass signature verification
-            SecurityPayload("Algorithm none", "Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIxMjM0NTY3ODkwIn0."),
-            // Malformed JWT
-            SecurityPayload("Malformed JWT", "Bearer not.a.jwt"),
-            // Empty signature
-            SecurityPayload("Empty signature", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0."),
-            // Invalid base64
-            SecurityPayload("Invalid base64", "Bearer !!!invalid!!!.!!!base64!!!.!!!jwt!!!"),
-            // Missing Bearer prefix
-            SecurityPayload("Missing Bearer", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0.xxx"),
+    override fun generateTestCases(request: SecurityTestRequest): List<AutoTestCase> =
+        request.toSecurityCases(
+            testType,
+            displayName,
+            listOf(
+                SecurityPayload("Algorithm none", "Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIxMjM0NTY3ODkwIn0."),
+                SecurityPayload("Malformed JWT", "Bearer not.a.jwt"),
+                SecurityPayload("Empty signature", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0."),
+                SecurityPayload("Invalid base64", "Bearer !!!invalid!!!.!!!base64!!!.!!!jwt!!!"),
+                SecurityPayload("Missing Bearer", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIn0.xxx"),
+            ),
         )
 }
 
@@ -224,12 +261,66 @@ class AuthorizationBypassProvider : SecurityTestProvider {
 
     override fun applicableLocations(): Set<ParameterLocation> = setOf(ParameterLocation.HEADER)
 
-    override fun generatePayloads(): List<SecurityPayload> =
-        listOf(
-            SecurityPayload("Empty auth", ""),
-            SecurityPayload("Invalid scheme", "Basic !!!invalid!!!"),
-            SecurityPayload("Empty bearer", "Bearer "),
-            SecurityPayload("Null bearer", "Bearer null"),
-            SecurityPayload("Undefined bearer", "Bearer undefined"),
+    override fun generateTestCases(request: SecurityTestRequest): List<AutoTestCase> =
+        request.toSecurityCases(
+            testType,
+            displayName,
+            listOf(
+                SecurityPayload("Empty auth", ""),
+                SecurityPayload("Invalid scheme", "Basic !!!invalid!!!"),
+                SecurityPayload("Empty bearer", "Bearer "),
+                SecurityPayload("Null bearer", "Bearer null"),
+                SecurityPayload("Undefined bearer", "Bearer undefined"),
+            ),
         )
 }
+
+private fun SecurityTestRequest.toSecurityCases(
+    testType: String,
+    displayName: String,
+    payloads: List<SecurityPayload>,
+): List<AutoTestCase> =
+    payloads.map { payload ->
+        when (location) {
+            ParameterLocation.BODY -> {
+                val body = baseBody.toMutableMap()
+                body[fieldName] = payload.payload
+                toSecurityCase(testType, displayName, payload, body = body)
+            }
+
+            ParameterLocation.PATH -> {
+                val pathParams = basePathParams.toMutableMap()
+                pathParams[fieldName] = payload.payload
+                toSecurityCase(testType, displayName, payload, pathParams = pathParams)
+            }
+
+            ParameterLocation.HEADER -> {
+                val headers = baseHeaders.toMutableMap()
+                headers[fieldName] = payload.payload
+                toSecurityCase(testType, displayName, payload, headers = headers)
+            }
+
+            ParameterLocation.QUERY -> toSecurityCase(testType, displayName, payload)
+        }
+    }
+
+private fun SecurityTestRequest.toSecurityCase(
+    testType: String,
+    displayName: String,
+    payload: SecurityPayload,
+    body: Map<String, Any?> = baseBody,
+    pathParams: Map<String, Any?> = basePathParams,
+    headers: Map<String, String> = baseHeaders,
+): AutoTestCase =
+    AutoTestCase(
+        type = AutoTestType.SECURITY,
+        testType = testType,
+        fieldName = fieldName,
+        invalidValue = payload.payload,
+        description = "$displayName: ${payload.name}",
+        location = location,
+        body = body,
+        pathParams = pathParams,
+        headers = headers,
+        tag = "security - $displayName",
+    )

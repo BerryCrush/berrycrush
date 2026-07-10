@@ -1,7 +1,9 @@
 package org.berrycrush.samples.petstore.provider
 
+import org.berrycrush.autotest.AutoTestCase
+import org.berrycrush.autotest.AutoTestType
 import org.berrycrush.autotest.ParameterLocation
-import org.berrycrush.autotest.provider.SecurityPayload
+import org.berrycrush.autotest.provider.SecurityTestRequest
 import org.berrycrush.autotest.provider.SecurityTestProvider
 
 /**
@@ -20,23 +22,38 @@ class NoSqlInjectionProvider : SecurityTestProvider {
 
     override fun applicableLocations(): Set<ParameterLocation> = setOf(ParameterLocation.BODY, ParameterLocation.QUERY)
 
-    override fun generatePayloads(): List<SecurityPayload> =
+    override fun generateTestCases(request: SecurityTestRequest): List<AutoTestCase> {
+        if (request.location !in applicableLocations()) {
+            return emptyList()
+        }
+
+        return payloads().map { (name, payload) ->
+            val body =
+                if (request.location == ParameterLocation.BODY) {
+                    request.baseBody.toMutableMap().apply { this[request.fieldName] = payload }
+                } else {
+                    request.baseBody
+                }
+            AutoTestCase(
+                type = AutoTestType.SECURITY,
+                testType = testType,
+                fieldName = request.fieldName,
+                invalidValue = payload,
+                description = "$displayName: $name",
+                location = request.location,
+                body = body,
+                pathParams = request.basePathParams,
+                headers = request.baseHeaders,
+                tag = "security - $displayName",
+            )
+        }
+    }
+
+    private fun payloads(): List<Pair<String, String>> =
         listOf(
-            SecurityPayload(
-                name = "MongoDB \$ne operator",
-                payload = "{\"\$ne\": null}",
-            ),
-            SecurityPayload(
-                name = "MongoDB \$gt operator",
-                payload = "{\"\$gt\": \"\"}",
-            ),
-            SecurityPayload(
-                name = "MongoDB \$where",
-                payload = "{\"\$where\": \"sleep(5000)\"}",
-            ),
-            SecurityPayload(
-                name = "MongoDB \$regex",
-                payload = "{\"\$regex\": \".*\"}",
-            ),
+            "MongoDB \$ne operator" to "{\"\$ne\": null}",
+            "MongoDB \$gt operator" to "{\"\$gt\": \"\"}",
+            "MongoDB \$where" to "{\"\$where\": \"sleep(5000)\"}",
+            "MongoDB \$regex" to "{\"\$regex\": \".*\"}",
         )
 }

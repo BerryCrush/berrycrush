@@ -1,6 +1,8 @@
 package org.berrycrush.scenario.parsing
 
+import org.berrycrush.scenario.BooleanValueNode
 import org.berrycrush.scenario.JsonValueNode
+import org.berrycrush.scenario.NullValueNode
 import org.berrycrush.scenario.NumberValueNode
 import org.berrycrush.scenario.ParserState
 import org.berrycrush.scenario.SourceLocation
@@ -23,7 +25,11 @@ internal fun ParserState.parseValue(): ValueNode? {
         -> {
             val value = current().value
             advance()
-            StringValueNode(value, loc)
+            when (value) {
+                "null" -> NullValueNode(loc)
+                "true", "false" -> BooleanValueNode.of(value.toBoolean(), loc)
+                else -> StringValueNode(value, loc)
+            }
         }
         TokenType.NUMBER -> {
             val value = current().value
