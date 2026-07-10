@@ -11,7 +11,12 @@ import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.openapi.SchemaSpec
 import org.berrycrush.plugin.StepContext
 import org.berrycrush.util.FileLoader
+import org.berrycrush.util.toNonNullMap
 import tools.jackson.databind.ObjectMapper
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.OffsetDateTime
+import java.util.UUID
 
 interface UrlResolver {
     fun resolveUrl(
@@ -112,8 +117,8 @@ private class DefaultUrlResolver(
         httpBuilder.buildUrl(
             baseUrl = getBinding(step.specName)?.baseUrl ?: spec.baseUrl,
             path = operation.path,
-            pathParams = context.resolveParams(pathParams ?: step.pathParams),
-            queryParams = context.resolveParams(queryParams ?: step.queryParams),
+            pathParams = context.resolveParams(pathParams ?: step.pathParams).toNonNullMap(),
+            queryParams = context.resolveParams(queryParams ?: step.queryParams).toNonNullMap(),
         )
 
     fun getBinding(name: String?) =
@@ -143,7 +148,7 @@ private class DefaultBodyResolver(
     ): Map<String, Any> {
         val schemaDefaults = operation?.let { getSchemaDefaults(it) } ?: emptyMap()
         val merged = if (schemaDefaults.isEmpty()) properties else mergeBodyProperties(schemaDefaults, properties)
-        return merged.mapValues { (_, value) -> resolveProperty(value, context) }
+        return merged.mapValues { (_, value) -> resolveProperty(value, context) }.toNonNullMap()
     }
 
     override fun resolveBody(
@@ -198,7 +203,7 @@ private class DefaultBodyResolver(
 
         // Generate a sensible default based on type
         return when (schema.type) {
-            "string" -> BodyProperty.Simple("")
+            "string" -> handleFormat(schema)
             "integer", "number" -> BodyProperty.Simple(0)
             "boolean" -> BodyProperty.Simple(false)
             "array" -> BodyProperty.Simple(emptyList<Any>())
@@ -213,6 +218,18 @@ private class DefaultBodyResolver(
             else -> null
         }
     }
+
+    private fun handleFormat(schema: SchemaSpec): BodyProperty? =
+        when (schema.format) {
+            "date" -> BodyProperty.Simple(LocalDate.now().toString())
+            "date-time" -> BodyProperty.Simple(OffsetDateTime.now().toString())
+            "time" -> BodyProperty.Simple(LocalTime.now().toString())
+            "email", "idn-email" -> BodyProperty.Simple("no-reply@berrycrush.org")
+            "uri" -> BodyProperty.Simple("https://berrycrush.org")
+            "uri-reference" -> BodyProperty.Simple("/berrycrush.org")
+            "uuid" -> BodyProperty.Simple(UUID.randomUUID().toString())
+            else -> BodyProperty.Simple("")
+        }
 
     /**
      * Merge schema defaults with user-provided properties.
@@ -241,7 +258,7 @@ private class DefaultBodyResolver(
     private fun resolveProperty(
         value: BodyProperty,
         context: StepContext,
-    ): Any =
+    ): Any? =
         when (value) {
             is BodyProperty.Simple -> context.resolveParam(value.value)
             is BodyProperty.Container -> objectMapper.readTree(context.interpolate(value.value))

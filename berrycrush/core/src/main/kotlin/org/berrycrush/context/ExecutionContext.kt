@@ -407,13 +407,13 @@ class ExecutionContext(
 }
 
 @Suppress("UNCHECKED_CAST")
-fun <T : Any> ExecutionContext.resolveParam(value: T): T =
+fun <T : Any> ExecutionContext.resolveParam(value: T?): T? =
     when (value) {
         is String -> this.interpolate(value) as T
         else -> value
     }
 
-fun <T : Any> ExecutionContext.resolveParams(params: Map<String, T>): Map<String, T> =
+fun <T : Any> ExecutionContext.resolveParams(params: Map<String, T?>): Map<String, T?> =
     params.mapValues { (_, value) -> resolveParam(value) }
 
 fun ExecutionContext?.propagate(other: ExecutionContext) {

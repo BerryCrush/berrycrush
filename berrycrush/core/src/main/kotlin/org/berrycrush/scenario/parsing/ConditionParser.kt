@@ -265,7 +265,7 @@ internal fun ParserState.parseConditionOperatorAndValue(): Pair<ConditionOperato
                 skipWhitespace()
                 ConditionOperator.EQUALS
             }
-            "contains" -> {
+            "contains", "in" -> {
                 advance()
                 skipWhitespace()
                 ConditionOperator.CONTAINS
@@ -297,11 +297,6 @@ internal fun ParserState.parseConditionOperatorAndValue(): Pair<ConditionOperato
             "notempty" -> {
                 advance()
                 return Pair(ConditionOperator.NOT_EMPTY, null)
-            }
-            "in" -> {
-                advance()
-                skipWhitespace()
-                ConditionOperator.CONTAINS
             }
             else -> {
                 ConditionOperator.EQUALS

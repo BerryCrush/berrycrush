@@ -17,10 +17,12 @@ import org.berrycrush.plugin.adapter.StepResultAdapter
 import org.berrycrush.step.StepContextImpl
 import org.berrycrush.util.StepMatch
 import org.berrycrush.util.StepRegistry
+import org.berrycrush.util.forEachNonNull
 import org.berrycrush.webhook.MockWebhookServer
 import java.lang.reflect.InvocationTargetException
 import java.time.Duration
 import java.time.Instant
+import kotlin.collections.forEach
 
 class StepExecutor(
     private val fragmentExecutor: FragmentExecutor,
@@ -282,15 +284,13 @@ internal inline fun ScenarioContext.withIncludeParameters(
         val saved =
             step.includeParameters.keys
                 .filter { context.contains(it) }
-                .associateWith { context.get<Any>(it) as Any }
+                .associateWith { context.get(it) as Any? }
         try {
-            context.resolveParams(step.includeParameters).forEach { (key, value) -> context[key] = value }
+            context.resolveParams(step.includeParameters).forEachNonNull { key, value -> context[key] = value }
             block()
         } finally {
             // Restore original values
-            for ((key, value) in saved) {
-                context[key] = value
-            }
+            saved.forEachNonNull { key, value -> context[key] = value }
         }
     }
 }

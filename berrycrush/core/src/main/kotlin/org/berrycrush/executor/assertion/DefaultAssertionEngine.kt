@@ -13,6 +13,8 @@ import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.openapi.SchemaSpec
 import org.berrycrush.openapi.findResponse
 import tools.jackson.databind.ObjectMapper
+import tools.jackson.databind.node.BooleanNode
+import tools.jackson.databind.node.NullNode
 import java.time.Duration
 import io.swagger.v3.oas.models.media.Schema as SwaggerSchema
 
@@ -426,9 +428,11 @@ class DefaultAssertionEngine(
     private fun resolveConditionValue(
         value: Any,
         context: AssertionContext,
-    ): Any =
+    ): Any? =
         when (value) {
             is String -> context.stepContext.interpolate(value)
+            is NullNode -> null
+            is BooleanNode -> value.asBoolean()
             else -> value
         }
 

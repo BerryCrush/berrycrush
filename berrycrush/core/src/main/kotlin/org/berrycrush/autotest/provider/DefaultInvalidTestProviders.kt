@@ -4,10 +4,12 @@ import io.swagger.v3.oas.models.media.Schema
 import org.berrycrush.autotest.AutoTestCase
 import org.berrycrush.autotest.AutoTestType
 import org.berrycrush.autotest.ParameterLocation
+import java.math.BigDecimal
 import java.util.UUID
 
 private const val EXTRA_LENGTH_CHARS = 10
 private const val EXTRA_ARRAY_ITEMS = 5
+private const val EXTRA_OBJECT_PROPERTIES = 3
 
 /**
  * Represents an invalid test value with its description.
@@ -34,11 +36,18 @@ object DefaultInvalidTestProviders {
             FormatProvider(),
             EnumProvider(),
             MinimumProvider(),
+            ExclusiveMinimumProvider(),
             MaximumProvider(),
+            ExclusiveMaximumProvider(),
+            MultipleOfProvider(),
+            ConstProvider(),
             TypeProvider(),
             RequiredProvider(),
             MinItemsProvider(),
             MaxItemsProvider(),
+            UniqueItemsProvider(),
+            MinPropertiesProvider(),
+            MaxPropertiesProvider(),
         )
 }
 
@@ -130,7 +139,7 @@ class FormatProvider : InvalidTestProvider {
             "date-time" -> "not-a-datetime"
             "ipv4" -> "not.an.ip"
             "ipv6" -> "not:an:ipv6"
-            else -> null
+            else -> "Random string! I've created, so it won't be in any format"
         }
 }
 
@@ -172,6 +181,30 @@ class MinimumProvider : InvalidTestProvider {
 }
 
 /**
+ * Tests for values not satisfying exclusiveMinimum boundary.
+ */
+class ExclusiveMinimumProvider : InvalidTestProvider {
+    override val testType: String = "exclusiveMinimum"
+
+    override fun canHandle(schema: Schema<*>): Boolean =
+        schema.checkType(listOf("integer", "number")) && schema.exclusiveMinimumBoundary() != null
+
+    override fun generateTestCases(request: InvalidTestRequest): List<AutoTestCase> {
+        val values =
+            request.schema.exclusiveMinimumBoundary()?.let { boundary ->
+                listOf(
+                    InvalidTestValue(
+                        value = boundary,
+                        description = "Value not greater than exclusiveMinimum ($boundary)",
+                    ),
+                )
+            } ?: emptyList()
+
+        return request.toInvalidCases(testType, values)
+    }
+}
+
+/**
  * Tests for numeric values above maximum.
  */
 class MaximumProvider : InvalidTestProvider {
@@ -191,35 +224,99 @@ class MaximumProvider : InvalidTestProvider {
 }
 
 /**
+ * Tests for values not satisfying exclusiveMaximum boundary.
+ */
+class ExclusiveMaximumProvider : InvalidTestProvider {
+    override val testType: String = "exclusiveMaximum"
+
+    override fun canHandle(schema: Schema<*>): Boolean =
+        schema.checkType(listOf("integer", "number")) && schema.exclusiveMaximumBoundary() != null
+
+    override fun generateTestCases(request: InvalidTestRequest): List<AutoTestCase> {
+        val values =
+            request.schema.exclusiveMaximumBoundary()?.let { boundary ->
+                listOf(
+                    InvalidTestValue(
+                        value = boundary,
+                        description = "Value not less than exclusiveMaximum ($boundary)",
+                    ),
+                )
+            } ?: emptyList()
+
+        return request.toInvalidCases(testType, values)
+    }
+}
+
+/**
+ * Tests for numeric values that are not a multipleOf the configured value.
+ */
+class MultipleOfProvider : InvalidTestProvider {
+    override val testType: String = "multipleOf"
+
+    override fun canHandle(schema: Schema<*>): Boolean = schema.checkType(listOf("integer", "number")) && schema.multipleOf != null
+
+    override fun generateTestCases(request: InvalidTestRequest): List<AutoTestCase> {
+        val values =
+            request.schema.multipleOf?.let { multipleOf ->
+                val invalidValue = generateNonMultipleValue(multipleOf)
+                listOf(InvalidTestValue(value = invalidValue, description = "Value not multipleOf ($multipleOf)"))
+            } ?: emptyList()
+
+        return request.toInvalidCases(testType, values)
+    }
+}
+
+/**
+ * Tests for values that do not match const.
+ */
+class ConstProvider : InvalidTestProvider {
+    override val testType: String = "const"
+
+    override fun canHandle(schema: Schema<*>): Boolean = schema.`const` != null
+
+    override fun generateTestCases(request: InvalidTestRequest): List<AutoTestCase> {
+        val values =
+            request.schema.`const`?.let { constValue ->
+                val invalidValue = generateInvalidConstValue(constValue)
+                listOf(InvalidTestValue(value = invalidValue, description = "Value different from const ($constValue)"))
+            } ?: emptyList()
+
+        return request.toInvalidCases(testType, values)
+    }
+}
+
+/**
  * Tests for type mismatches (e.g., string instead of number).
  */
 class TypeProvider : InvalidTestProvider {
     override val testType: String = "type"
 
-    override fun canHandle(schema: Schema<*>): Boolean = schema.checkType(listOf("integer", "number", "boolean"))
+    override fun canHandle(schema: Schema<*>): Boolean = schema.type != null || (schema.types != null && schema.types.isNotEmpty())
 
     override fun generateTestCases(request: InvalidTestRequest): List<AutoTestCase> {
         val values =
-            when (val type = request.schema.type ?: request.schema.types?.firstOrNull()) {
-                "integer", "number" ->
-                    listOf(
-                        InvalidTestValue(
-                            value = "not-a-number",
-                            description = "Invalid type (string instead of $type)",
-                        ),
-                    )
-                "boolean" ->
-                    listOf(
-                        InvalidTestValue(
-                            value = "not-a-boolean",
-                            description = "Invalid boolean value",
-                        ),
-                    )
-                else -> emptyList()
-            }
-
+            request.schema.type?.let {
+                listOfNotNull(it.toInvalidTestValue())
+            } ?: request.schema.types?.let {
+                it.mapNotNull { type -> type.toInvalidTestValue() }
+            } ?: emptyList()
         return request.toInvalidCases(testType, values)
     }
+
+    private fun String.toInvalidTestValue(): InvalidTestValue? =
+        when (this) {
+            "integer", "number", "boolean", "array", "object" ->
+                InvalidTestValue(
+                    value = "not-a-$this",
+                    description = "Invalid type (string instead of $this)",
+                )
+            "string" ->
+                InvalidTestValue(
+                    value = listOf("not", "a", "string"),
+                    description = "Invalid string value",
+                )
+            else -> null // `null`, should be
+        }
 }
 
 /**
@@ -307,6 +404,121 @@ class MaxItemsProvider : InvalidTestProvider {
 
         return request.toInvalidCases(testType, values)
     }
+}
+
+/**
+ * Tests for arrays violating uniqueItems.
+ */
+class UniqueItemsProvider : InvalidTestProvider {
+    override val testType: String = "uniqueItems"
+
+    override fun canHandle(schema: Schema<*>): Boolean = schema.checkType("array") && schema.uniqueItems == true
+
+    override fun generateTestCases(request: InvalidTestRequest): List<AutoTestCase> {
+        val values =
+            if (request.schema.uniqueItems == true) {
+                listOf(InvalidTestValue(value = listOf("duplicate-item", "duplicate-item"), description = "Array contains duplicate items"))
+            } else {
+                emptyList()
+            }
+
+        return request.toInvalidCases(testType, values)
+    }
+}
+
+/**
+ * Tests for objects with fewer properties than minProperties.
+ */
+class MinPropertiesProvider : InvalidTestProvider {
+    override val testType: String = "minProperties"
+
+    override fun canHandle(schema: Schema<*>): Boolean = schema.checkType("object") && (schema.minProperties ?: 0) > 0
+
+    override fun generateTestCases(request: InvalidTestRequest): List<AutoTestCase> {
+        val values =
+            request.schema.minProperties?.takeIf { it > 0 }?.let { minProperties ->
+                listOf(
+                    InvalidTestValue(
+                        value = buildObjectWithPropertyCount((minProperties - 1).coerceAtLeast(0)),
+                        description = "Object with fewer properties than minProperties ($minProperties)",
+                    ),
+                )
+            } ?: emptyList()
+
+        return request.toInvalidCases(testType, values)
+    }
+}
+
+/**
+ * Tests for objects with more properties than maxProperties.
+ */
+class MaxPropertiesProvider : InvalidTestProvider {
+    override val testType: String = "maxProperties"
+
+    override fun canHandle(schema: Schema<*>): Boolean = schema.checkType("object") && schema.maxProperties != null
+
+    override fun generateTestCases(request: InvalidTestRequest): List<AutoTestCase> {
+        val values =
+            request.schema.maxProperties?.let { maxProperties ->
+                val invalidPropertyCount = (maxProperties + EXTRA_OBJECT_PROPERTIES).coerceAtLeast(1)
+                listOf(
+                    InvalidTestValue(
+                        value = buildObjectWithPropertyCount(invalidPropertyCount),
+                        description = "Object with more properties than maxProperties ($maxProperties)",
+                    ),
+                )
+            } ?: emptyList()
+
+        return request.toInvalidCases(testType, values)
+    }
+}
+
+private fun generateNonMultipleValue(multipleOf: BigDecimal): BigDecimal {
+    if (multipleOf.compareTo(BigDecimal.ZERO) == 0) {
+        return BigDecimal.ONE
+    }
+
+    val increments = listOf(BigDecimal.ONE, BigDecimal("0.5"), BigDecimal("0.1"))
+    val candidate =
+        increments
+            .asSequence()
+            .map { increment -> multipleOf.add(increment) }
+            .firstOrNull { value -> value.remainder(multipleOf).compareTo(BigDecimal.ZERO) != 0 }
+
+    return candidate ?: multipleOf.add(BigDecimal("0.1"))
+}
+
+private fun generateInvalidConstValue(constValue: Any): Any =
+    when (constValue) {
+        is String -> "${constValue}_INVALID"
+        is Boolean -> !constValue
+        is BigDecimal -> constValue.add(BigDecimal.ONE)
+        is Int -> constValue + 1
+        is Long -> constValue + 1
+        is Float -> constValue + 1f
+        is Double -> constValue + 1.0
+        else -> "INVALID_CONST_VALUE"
+    }
+
+private fun buildObjectWithPropertyCount(propertyCount: Int): Map<String, Any> =
+    (1..propertyCount).associate { index ->
+        "prop$index" to "value$index"
+    }
+
+private fun Schema<*>.exclusiveMinimumBoundary(): BigDecimal? {
+    if (exclusiveMinimumValue != null) {
+        return exclusiveMinimumValue
+    }
+
+    return if (exclusiveMinimum == true) minimum else null
+}
+
+private fun Schema<*>.exclusiveMaximumBoundary(): BigDecimal? {
+    if (exclusiveMaximumValue != null) {
+        return exclusiveMaximumValue
+    }
+
+    return if (exclusiveMaximum == true) maximum else null
 }
 
 private fun InvalidTestRequest.toInvalidCases(

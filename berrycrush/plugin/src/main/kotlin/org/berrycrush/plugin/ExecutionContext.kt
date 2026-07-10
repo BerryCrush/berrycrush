@@ -16,7 +16,7 @@ interface ExecutionContext {
         value: Any,
     )
 
-    fun <T : Any> resolveParam(value: T): T
+    fun <T : Any> resolveParam(value: T?): T?
 
-    fun <T : Any> resolveParams(value: Map<String, T>): Map<String, T>
+    fun <T : Any> resolveParams(value: Map<String, T?>): Map<String, T?>
 }

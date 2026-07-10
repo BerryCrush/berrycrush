@@ -30,11 +30,18 @@ class AutoTestProviderRegistryTest {
                 "format",
                 "enum",
                 "minimum",
+                "exclusiveMinimum",
                 "maximum",
+                "exclusiveMaximum",
+                "multipleOf",
+                "const",
                 "type",
                 "required",
                 "minItems",
                 "maxItems",
+                "uniqueItems",
+                "minProperties",
+                "maxProperties",
             )
 
         expectedTypes.forEach { type ->
@@ -76,7 +83,7 @@ class AutoTestProviderRegistryTest {
     fun `default registry should preserve built-in provider inventory counts`() {
         val registry = AutoTestProviderRegistry.default
 
-        assertEquals(11, registry.getInvalidTestProviders().size, "Invalid provider count should remain stable")
+        assertEquals(18, registry.getInvalidTestProviders().size, "Invalid provider count should remain stable")
         assertEquals(11, registry.getSecurityTestProviders().size, "Security provider count should remain stable")
         assertEquals(2, registry.getMultiTestProviders().size, "Multi provider count should remain stable")
     }
@@ -332,7 +339,7 @@ class AutoTestProviderRegistryTest {
 
         assertTrue(allTypes.contains("minLength"), "Should contain minLength")
         assertTrue(allTypes.contains("SQLInjection"), "Should contain SQLInjection")
-        assertEquals(24, allTypes.size, "Should have 24 built-in test types (11 invalid + 11 security + 2 multi)")
+        assertEquals(31, allTypes.size, "Should have 31 built-in test types (18 invalid + 11 security + 2 multi)")
     }
 
     @Test

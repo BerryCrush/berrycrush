@@ -23,6 +23,7 @@ import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.plugin.StepContext
 import org.berrycrush.scenario.AutoTestType
+import org.berrycrush.util.toNonNullMap
 import tools.jackson.databind.ObjectMapper
 import java.time.Duration
 import java.time.Instant
@@ -98,7 +99,7 @@ class AutoTestExecutor(
                 testTypes = autoTestConfig.types.map { it.toTestType() }.toSet(),
                 baseBody = baseBody,
                 basePathParams = basePathParams,
-                baseHeaders = baseHeaders,
+                baseHeaders = baseHeaders.toNonNullMap(),
             )
 
         // Filter out excluded tests

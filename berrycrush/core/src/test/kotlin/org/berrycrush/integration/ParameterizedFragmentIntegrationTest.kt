@@ -96,6 +96,7 @@ class ParameterizedFragmentIntegrationTest {
             |      numberVal: 42
             |      decimalVal: 99.5
             |      boolVal: true
+            |      nullVal: null
             """.trimMargin()
 
         val scenarios = loader.loadScenariosFromString(source)
@@ -105,7 +106,8 @@ class ParameterizedFragmentIntegrationTest {
         assertEquals(42L, step.includeParameters["numberVal"])
         assertEquals(99.5, step.includeParameters["decimalVal"])
         // Boolean values are parsed as strings (identifiers) by the lexer
-        assertEquals("true", step.includeParameters["boolVal"])
+        assertEquals(true, step.includeParameters["boolVal"])
+        assertEquals(null, step.includeParameters["nullVal"])
     }
 
     @Test

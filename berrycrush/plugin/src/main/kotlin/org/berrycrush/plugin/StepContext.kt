@@ -30,9 +30,9 @@ interface StepContext {
     val responseTime: Duration?
     val operation: StepOperation?
 
-    fun <T : Any> resolveParam(param: T) = scenarioContext.executionContext.resolveParam(param)
+    fun <T : Any> resolveParam(param: T?) = scenarioContext.executionContext.resolveParam(param)
 
-    fun <T : Any> resolveParams(params: Map<String, T>) = scenarioContext.executionContext.resolveParams(params)
+    fun <T : Any> resolveParams(params: Map<String, T?>) = scenarioContext.executionContext.resolveParams(params)
 
     fun interpolate(v: String) = scenarioContext.executionContext.interpolate(v)
 

@@ -9,7 +9,7 @@ import org.berrycrush.scenario.WebhookScope
 sealed class BodyProperty {
     /** A simple value (string, number, boolean, etc.) */
     data class Simple(
-        val value: Any,
+        val value: Any?,
     ) : BodyProperty()
 
     data class Container(
@@ -67,7 +67,7 @@ data class Step(
     val autoAssert: Boolean = true,
     val autoTestConfig: AutoTestConfig? = null,
     val fragmentName: String? = null,
-    val includeParameters: Map<String, Any> = emptyMap(),
+    val includeParameters: Map<String, Any?> = emptyMap(),
     val sourceLocation: SourceLocation? = null,
     val webhookConfig: WebhookConfig? = null,
 )

@@ -1,0 +1,109 @@
+openapi: 3.1.0
+info:
+  title: OpenAPI 3.1.x Schema test
+  version: 0.0.1
+paths:
+  /test:
+    get:
+      summary: Test endpoint
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Hello, OpenAPI 3.1!"
+components:
+  schemas:
+    MinLengthSchema:
+      type: string
+      minLength: 5
+    MaxLengthSchema:
+      type: string
+      maxLength: 10
+    PatternSchema:
+      type: string
+      pattern: "^[a-zA-Z0-9]+$"
+    FormatSchema:
+      type: string
+      format: email
+    EnumSchema:
+      type: string
+      enum:
+        - foo
+        - bar
+    ConstSchema:
+      type: string
+      const: "fixedValue"
+    MinimumSchema:
+      type: number
+      minimum: 1
+    ExclusiveMinimumSchema:
+      type: number
+      exclusiveMinimum: 1
+    MaximumSchema:
+      type: number
+      maximum: 10
+    ExclusiveMaximumSchema:
+      type: number
+      exclusiveMaximum: 10
+    MultipleOfSchema:
+      type: number
+      multipleOf: 2
+    ArraySchema:
+      type: array
+      items:
+        type: string
+      minItems: 1
+      maxItems: 3
+    UniqueItemsSchema:
+      type: array
+      items:
+        type: string
+      uniqueItems: true
+    NullableStringSchema:
+      type:
+        - string
+        - 'null'
+    ObjectSchema:
+      type: object
+      required:
+        - name
+        - age
+      properties:
+        name:
+          type: string
+        age:
+          type: integer
+        gender:
+          type: string
+          enum:
+            - male
+            - female
+            - others
+        married:
+          type: boolean
+    MinPropertiesSchema:
+      type: object
+      minProperties: 2
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        nickName:
+          type: string
+    MaxPropertiesSchema:
+      type: object
+      maxProperties: 2
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        nickName:
+          type: string
