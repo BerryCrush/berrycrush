@@ -25,7 +25,7 @@ parameters:
 # Auto-generated invalid tests
 # -----------------------------------------------------------------------------
 
-scenario: Auto-generated invalid tests - basic
+scenario: Auto-generated invalid tests - basic (invalid)
   when: I create a pet with invalid input
     call ^createPet
       # Generate tests that violate OpenAPI schema constraints
@@ -46,7 +46,7 @@ scenario: Auto-generated invalid tests - basic
 # Auto-generated security tests
 # -----------------------------------------------------------------------------
 
-scenario: Auto-generated security tests - basic
+scenario: Auto-generated security tests - basic (security)
   when: I create a pet with security payloads
     call ^createPet
       # Generate tests with common attack payloads
@@ -91,7 +91,7 @@ scenario: Auto-generated tests - with excludes
     call ^createPet
       auto: [invalid]
       # Exclude specific types of invalid tests
-      excludes: [overflow string_length]
+      excludes: [emoji]
       body:
         name: ExcludeTestPet
         status: available

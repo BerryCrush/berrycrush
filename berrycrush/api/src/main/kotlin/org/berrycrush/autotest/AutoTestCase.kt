@@ -18,8 +18,10 @@ enum class AutoTestType {
  * Represents a generated test case.
  */
 data class AutoTestCase(
-    /** Type of test (invalid/security) */
+    /** Type of auto test (invalid/security) */
     val type: AutoTestType,
+    /** Test type, e.g. minLength, */
+    val testType: String,
     /** Field being tested */
     val fieldName: String,
     /** The invalid/malicious value */

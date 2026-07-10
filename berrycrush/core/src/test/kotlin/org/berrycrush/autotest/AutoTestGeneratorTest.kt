@@ -4,8 +4,12 @@ import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.Operation
 import io.swagger.v3.oas.models.PathItem
 import io.swagger.v3.oas.models.Paths
+import io.swagger.v3.oas.models.media.Content
+import io.swagger.v3.oas.models.media.MediaType
+import io.swagger.v3.oas.models.media.ObjectSchema
 import io.swagger.v3.oas.models.media.StringSchema
 import io.swagger.v3.oas.models.parameters.Parameter
+import io.swagger.v3.oas.models.parameters.RequestBody
 import org.berrycrush.openapi.OpenApiLoader
 import org.berrycrush.openapi.SpecRegistry
 import kotlin.test.Test
@@ -369,16 +373,79 @@ class AutoTestGeneratorTest {
     }
 
     @Test
-    fun `SecurityTestPatterns should have all categories`() {
-        val patterns = SecurityTestPatterns.getAllPatterns()
+    fun `should generate deterministic test case ordering across repeated runs`() {
+        val generator = AutoTestGenerator(openApi)
+        val firstRun =
+            generator.generateTestCases(
+                operationId = "createPet",
+                testTypes = setOf(AutoTestType.INVALID, AutoTestType.SECURITY),
+                baseBody = mapOf("name" to "Fluffy", "status" to "available"),
+            )
 
-        val categories = patterns.map { it.category }.toSet()
-        assertTrue("SQL Injection" in categories)
-        assertTrue("XSS" in categories)
-        assertTrue("Path Traversal" in categories)
-        assertTrue("Command Injection" in categories)
-        assertTrue("LDAP Injection" in categories)
-        assertTrue("XXE" in categories)
+        val secondRun =
+            generator.generateTestCases(
+                operationId = "createPet",
+                testTypes = setOf(AutoTestType.INVALID, AutoTestType.SECURITY),
+                baseBody = mapOf("name" to "Fluffy", "status" to "available"),
+            )
+
+        val firstFingerprint = firstRun.map { "${it.type}|${it.location}|${it.fieldName}|${it.description}|${it.tag}" }
+        val secondFingerprint = secondRun.map { "${it.type}|${it.location}|${it.fieldName}|${it.description}|${it.tag}" }
+
+        assertEquals(firstFingerprint, secondFingerprint, "Generation order should be deterministic")
+    }
+
+    @Test
+    fun `should generate nested required field omission via required provider`() {
+        val nestedRequiredSpec =
+            OpenAPI().apply {
+                paths =
+                    Paths().addPathItem(
+                        "/users",
+                        PathItem().post(
+                            Operation()
+                                .operationId("createUser")
+                                .requestBody(
+                                    RequestBody().content(
+                                        Content().addMediaType(
+                                            "application/json",
+                                            MediaType().schema(
+                                                ObjectSchema()
+                                                    .addRequiredItem("user")
+                                                    .addProperty(
+                                                        "user",
+                                                        ObjectSchema()
+                                                            .addRequiredItem("name")
+                                                            .addProperty("name", StringSchema().minLength(1))
+                                                            .addProperty("email", StringSchema()),
+                                                    ),
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                        ),
+                    )
+            }
+
+        val generator = AutoTestGenerator(nestedRequiredSpec)
+        val testCases =
+            generator.generateTestCases(
+                operationId = "createUser",
+                testTypes = setOf(AutoTestType.INVALID),
+                baseBody = mapOf("user" to mapOf("name" to "Alice", "email" to "a@example.com")),
+            )
+
+        val nestedRequiredCase =
+            testCases.firstOrNull {
+                it.type == AutoTestType.INVALID &&
+                    it.fieldName == "user.name" &&
+                    it.invalidValue == null &&
+                    it.tag == "Invalid request - required"
+            }
+
+        assertNotNull(nestedRequiredCase, "Should generate nested required omission for user.name")
+        val userBody = nestedRequiredCase.body["user"] as? Map<*, *>
+        assertTrue(userBody != null && !userBody.containsKey("name"), "Nested required field should be omitted from body")
     }
 
     @Test
@@ -386,6 +453,7 @@ class AutoTestGeneratorTest {
         val testCase =
             AutoTestCase(
                 type = AutoTestType.INVALID,
+                testType = "foo",
                 fieldName = "testField",
                 invalidValue = "testValue",
                 description = "Test description",

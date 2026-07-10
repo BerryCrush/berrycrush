@@ -40,11 +40,6 @@ interface BodyResolver {
     ): Map<String, Any>
 
     fun resolveBody(
-        properties: Map<String, BodyProperty>,
-        context: StepContext,
-    ): Map<String, Any> = resolveBody(properties, null, context)
-
-    fun resolveBody(
         step: Step,
         operation: ResolvedOperation?,
         context: StepContext,

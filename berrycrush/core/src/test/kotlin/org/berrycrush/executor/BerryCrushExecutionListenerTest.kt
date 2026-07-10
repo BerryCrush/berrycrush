@@ -32,6 +32,7 @@ class BerryCrushExecutionListenerTest {
         val testCase =
             AutoTestCase(
                 type = AutoTestType.INVALID,
+                testType = "test",
                 fieldName = "name",
                 invalidValue = null,
                 description = "invalid name",

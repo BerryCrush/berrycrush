@@ -1,13 +1,13 @@
 # Auto-Test Provider Extensibility
 
-BerryCrush's auto-test feature supports custom test providers through Java's ServiceLoader pattern. This allows users to add custom invalid request tests, security test payloads, and multi-request idempotency tests without modifying the core library.
+BerryCrush's auto-test feature supports custom test providers through Java's ServiceLoader pattern. This allows users to add custom invalid request tests, security tests, and multi-request idempotency tests without modifying the core library.
 
 ## Overview
 
 The auto-test system uses three types of providers:
 
-1. **InvalidTestProvider** - Generates invalid values for schema constraint testing
-2. **SecurityTestProvider** - Generates security attack payloads
+1. **InvalidTestProvider** - Generates complete invalid `AutoTestCase` entries
+2. **SecurityTestProvider** - Generates complete security `AutoTestCase` entries
 3. **MultiTestProvider** - Executes multi-request idempotency tests
 
 All types are discovered automatically via ServiceLoader, allowing you to add custom providers by simply adding classes to your project.
@@ -41,6 +41,12 @@ All types are discovered automatically via ServiceLoader, allowing you to add cu
 | LDAPInjection | LDAP Injection | LDAP query injection payloads |
 | XXE | XXE | XML External Entity payloads |
 | HeaderInjection | Header Injection | HTTP header injection payloads |
+| NoSQLInjection | NoSQL Injection | MongoDB-style operator payloads |
+| SSTI | Template Injection | Server-side template injection payloads |
+| JWT | JWT Attacks | JWT tampering and malformed token payloads |
+| AuthorizationBypass | Authorization Bypass | Missing/invalid auth header payloads |
+
+Built-in provider inventory is intentionally stable so existing `excludes` usage remains compatible.
 
 ### Multi Test Providers
 
@@ -59,7 +65,9 @@ Create a class implementing `InvalidTestProvider`:
 package com.example
 
 import org.berrycrush.autotest.provider.InvalidTestProvider
-import org.berrycrush.autotest.provider.InvalidTestValue
+import org.berrycrush.autotest.AutoTestCase
+import org.berrycrush.autotest.AutoTestType
+import org.berrycrush.autotest.provider.InvalidTestRequest
 import io.swagger.v3.oas.models.media.Schema
 
 class NumericOverflowProvider : InvalidTestProvider {
@@ -72,19 +80,42 @@ class NumericOverflowProvider : InvalidTestProvider {
     override fun canHandle(schema: Schema<*>): Boolean =
         schema.type == "integer" || schema.type == "number"
 
-    override fun generateInvalidValues(
-        fieldName: String,
-        schema: Schema<*>,
-    ): List<InvalidTestValue> = listOf(
-        InvalidTestValue(
-            value = Long.MAX_VALUE,
-            description = "Numeric overflow value",
-        ),
-        InvalidTestValue(
-            value = Double.POSITIVE_INFINITY,
-            description = "Infinity value",
-        ),
-    )
+    override fun generateTestCases(request: InvalidTestRequest): List<AutoTestCase> {
+        if (request.location != org.berrycrush.autotest.ParameterLocation.BODY) return emptyList()
+
+        val overflowBody = request.baseBody.toMutableMap().apply {
+            this[request.fieldName] = Long.MAX_VALUE
+        }
+
+        val infinityBody = request.baseBody.toMutableMap().apply {
+            this[request.fieldName] = Double.POSITIVE_INFINITY
+        }
+
+        return listOf(
+            AutoTestCase(
+                type = AutoTestType.INVALID,
+                fieldName = request.fieldName,
+                invalidValue = Long.MAX_VALUE,
+                description = "Numeric overflow value",
+                location = request.location,
+                body = overflowBody,
+                pathParams = request.basePathParams,
+                headers = request.baseHeaders,
+                tag = "Invalid request - $testType",
+            ),
+            AutoTestCase(
+                type = AutoTestType.INVALID,
+                fieldName = request.fieldName,
+                invalidValue = Double.POSITIVE_INFINITY,
+                description = "Infinity value",
+                location = request.location,
+                body = infinityBody,
+                pathParams = request.basePathParams,
+                headers = request.baseHeaders,
+                tag = "Invalid request - $testType",
+            ),
+        )
+    }
 }
 ```
 
@@ -96,8 +127,10 @@ Create a class implementing `SecurityTestProvider`:
 package com.example
 
 import org.berrycrush.autotest.ParameterLocation
+import org.berrycrush.autotest.AutoTestCase
+import org.berrycrush.autotest.AutoTestType
 import org.berrycrush.autotest.provider.SecurityTestProvider
-import org.berrycrush.autotest.provider.SecurityPayload
+import org.berrycrush.autotest.provider.SecurityTestRequest
 
 class NoSqlInjectionProvider : SecurityTestProvider {
     // Unique identifier for excludes
@@ -112,16 +145,33 @@ class NoSqlInjectionProvider : SecurityTestProvider {
     override fun applicableLocations(): Set<ParameterLocation> =
         setOf(ParameterLocation.BODY, ParameterLocation.QUERY)
 
-    override fun generatePayloads(): List<SecurityPayload> = listOf(
-        SecurityPayload(
-            name = "MongoDB $ne injection",
-            payload = "{\"\$ne\": null}",
-        ),
-        SecurityPayload(
-            name = "MongoDB $where injection",
-            payload = "{\"\$where\": \"sleep(5000)\"}",
-        ),
-    )
+    override fun generateTestCases(request: SecurityTestRequest): List<AutoTestCase> {
+        if (request.location !in applicableLocations()) return emptyList()
+
+        return listOf(
+            "MongoDB \$ne injection" to "{\"\$ne\": null}",
+            "MongoDB \$where injection" to "{\"\$where\": \"sleep(5000)\"}",
+        ).map { (name, payload) ->
+            val body =
+                if (request.location == ParameterLocation.BODY) {
+                    request.baseBody.toMutableMap().apply { this[request.fieldName] = payload }
+                } else {
+                    request.baseBody
+                }
+
+            AutoTestCase(
+                type = AutoTestType.SECURITY,
+                fieldName = request.fieldName,
+                invalidValue = payload,
+                description = "$displayName: $name",
+                location = request.location,
+                body = body,
+                pathParams = request.basePathParams,
+                headers = request.baseHeaders,
+                tag = "security - $displayName",
+            )
+        }
+    }
 }
 ```
 
@@ -140,6 +190,17 @@ com.example.NoSqlInjectionProvider
 ```
 
 The providers will be automatically discovered and registered when the auto-test system initializes.
+
+### Migration Notes
+
+The provider contract now expects complete `AutoTestCase` generation.
+
+- Preferred API:
+    - `InvalidTestProvider.generateTestCases(request)`
+    - `SecurityTestProvider.generateTestCases(request)`
+- Legacy APIs (`generateInvalidValues`, `generatePayloads`) are deprecated compatibility adapters.
+- `AutoTestGenerator` orchestrates provider calls only and no longer assembles provider-specific cases.
+- Missing-required cases are provider-owned via the built-in `required` provider.
 
 ## Provider Priority
 

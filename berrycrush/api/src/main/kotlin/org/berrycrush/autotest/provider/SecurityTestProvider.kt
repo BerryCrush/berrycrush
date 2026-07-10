@@ -1,6 +1,25 @@
 package org.berrycrush.autotest.provider
 
+import org.berrycrush.autotest.AutoTestCase
 import org.berrycrush.autotest.ParameterLocation
+
+/**
+ * Input for security test-case generation.
+ *
+ * Providers must return deterministic [AutoTestCase] outputs for equivalent input.
+ */
+data class SecurityTestRequest(
+    /** Field or parameter name under test. */
+    val fieldName: String,
+    /** Parameter location under test. */
+    val location: ParameterLocation = ParameterLocation.BODY,
+    /** Base body values used as mutation source for body tests. */
+    val baseBody: Map<String, Any?> = emptyMap(),
+    /** Base path params used as mutation source for path tests. */
+    val basePathParams: Map<String, Any?> = emptyMap(),
+    /** Base headers used as mutation source for header tests. */
+    val baseHeaders: Map<String, String> = emptyMap(),
+)
 
 /**
  * Provider interface for generating security test payloads.
@@ -18,16 +37,24 @@ import org.berrycrush.autotest.ParameterLocation
  *     override fun applicableLocations(): Set<ParameterLocation> =
  *         setOf(ParameterLocation.BODY, ParameterLocation.QUERY)
  *
- *     override fun generatePayloads(): List<SecurityPayload> = listOf(
- *         SecurityPayload(
- *             name = "MongoDB injection",
- *             payload = "{\"\$ne\": null}",
- *         ),
- *         SecurityPayload(
- *             name = "MongoDB $where",
- *             payload = "{\"\$where\": \"sleep(5000)\"}",
+ *     override fun generateTestCases(request: SecurityTestRequest): List<AutoTestCase> {
+ *         val payload = "{\"\$ne\": null}"
+ *         val body = request.baseBody.toMutableMap().apply { this[request.fieldName] = payload }
+ *
+ *         return listOf(
+ *             AutoTestCase(
+ *                 type = org.berrycrush.autotest.AutoTestType.SECURITY,
+ *                 fieldName = request.fieldName,
+ *                 invalidValue = payload,
+ *                 description = "$displayName: MongoDB injection",
+ *                 location = request.location,
+ *                 body = body,
+ *                 pathParams = request.basePathParams,
+ *                 headers = request.baseHeaders,
+ *                 tag = "security - $displayName",
+ *             ),
  *         )
- *     )
+ *     }
  * }
  * ```
  *
@@ -38,7 +65,7 @@ import org.berrycrush.autotest.ParameterLocation
  * com.example.NoSqlInjectionProvider
  * ```
  *
- * @see SecurityPayload
+ * @see SecurityTestRequest
  */
 interface SecurityTestProvider {
     /**
@@ -69,11 +96,9 @@ interface SecurityTestProvider {
     fun applicableLocations(): Set<ParameterLocation>
 
     /**
-     * Generate security test payloads.
-     *
-     * @return List of security payloads to test
+     * Generate complete security [AutoTestCase] entries.
      */
-    fun generatePayloads(): List<SecurityPayload>
+    fun generateTestCases(request: SecurityTestRequest): List<AutoTestCase>
 
     /**
      * Priority of this provider. Higher values = higher priority.

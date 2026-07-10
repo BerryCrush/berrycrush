@@ -1,6 +1,33 @@
 package org.berrycrush.autotest.provider
 
 import io.swagger.v3.oas.models.media.Schema
+import org.berrycrush.autotest.AutoTestCase
+import org.berrycrush.autotest.ParameterLocation
+
+/**
+ * Input for invalid test-case generation.
+ *
+ * Providers must treat this as immutable request context and return deterministic
+ * [AutoTestCase] outputs for the same input.
+ */
+data class InvalidTestRequest(
+    /** Field name under test. For nested required tests, this can be dotted (e.g. `user.name`). */
+    val fieldName: String,
+    /** Field path for nested handling; defaults to [fieldName]. */
+    val fieldPath: List<String> = if (fieldName.isBlank()) emptyList() else listOf(fieldName),
+    /** Schema to test for this request. */
+    val schema: Schema<*>,
+    /** Parameter location under test. */
+    val location: ParameterLocation = ParameterLocation.BODY,
+    /** Base body values used as mutation source for body tests. */
+    val baseBody: Map<String, Any?> = emptyMap(),
+    /** Base path params used as mutation source for path tests. */
+    val basePathParams: Map<String, Any?> = emptyMap(),
+    /** Base headers used as mutation source for header tests. */
+    val baseHeaders: Map<String, String> = emptyMap(),
+    /** Required fields for object schemas (used by required providers). */
+    val requiredFields: Set<String> = emptySet(),
+)
 
 /**
  * Provider interface for generating invalid request test values.
@@ -18,15 +45,25 @@ import io.swagger.v3.oas.models.media.Schema
  *     override fun canHandle(schema: Schema<*>): Boolean =
  *         schema.type == "integer" || schema.type == "number"
  *
- *     override fun generateInvalidValues(
- *         fieldName: String,
- *         schema: Schema<*>,
- *     ): List<InvalidTestValue> = listOf(
- *         InvalidTestValue(
- *             value = Long.MAX_VALUE,
- *             description = "Numeric overflow value",
+ *     override fun generateTestCases(request: InvalidTestRequest): List<AutoTestCase> {
+ *         val body = request.baseBody.toMutableMap().apply {
+ *             this[request.fieldName] = Long.MAX_VALUE
+ *         }
+ *
+ *         return listOf(
+ *             AutoTestCase(
+ *                 type = org.berrycrush.autotest.AutoTestType.INVALID,
+ *                 fieldName = request.fieldName,
+ *                 invalidValue = Long.MAX_VALUE,
+ *                 description = "Numeric overflow value",
+ *                 location = request.location,
+ *                 body = body,
+ *                 pathParams = request.basePathParams,
+ *                 headers = request.baseHeaders,
+ *                 tag = "Invalid request - $testType",
+ *             ),
  *         )
- *     )
+ *     }
  * }
  * ```
  *
@@ -37,7 +74,7 @@ import io.swagger.v3.oas.models.media.Schema
  * com.example.NumericOverflowProvider
  * ```
  *
- * @see InvalidTestValue
+ * @see InvalidTestRequest
  */
 interface InvalidTestProvider {
     /**
@@ -59,16 +96,9 @@ interface InvalidTestProvider {
     fun canHandle(schema: Schema<*>): Boolean
 
     /**
-     * Generate invalid test values for the given field and schema.
-     *
-     * @param fieldName The name of the field being tested
-     * @param schema The OpenAPI schema of the field
-     * @return List of invalid values with descriptions
+     * Generate complete invalid [AutoTestCase] entries.
      */
-    fun generateInvalidValues(
-        fieldName: String,
-        schema: Schema<*>,
-    ): List<InvalidTestValue>
+    fun generateTestCases(request: InvalidTestRequest): List<AutoTestCase>
 
     /**
      * Priority of this provider. Higher values = higher priority.
@@ -76,13 +106,3 @@ interface InvalidTestProvider {
      */
     val priority: Int get() = 0
 }
-
-/**
- * Represents an invalid test value with its description.
- */
-data class InvalidTestValue(
-    /** The invalid value to send */
-    val value: Any?,
-    /** Human-readable description for test reports */
-    val description: String,
-)

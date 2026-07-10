@@ -1,6 +1,7 @@
 package org.berrycrush.autotest.provider
 
 import io.swagger.v3.oas.models.media.Schema
+import org.berrycrush.autotest.AutoTestCase
 import org.berrycrush.autotest.AutoTestGenerator
 import org.berrycrush.autotest.AutoTestType
 import org.berrycrush.autotest.ParameterLocation
@@ -57,6 +58,10 @@ class AutoTestProviderRegistryTest {
                 "LDAPInjection",
                 "XXE",
                 "HeaderInjection",
+                "NoSQLInjection",
+                "SSTI",
+                "JWT",
+                "AuthorizationBypass",
             )
 
         expectedTypes.forEach { type ->
@@ -65,6 +70,15 @@ class AutoTestProviderRegistryTest {
                 "Registry should have security test type: $type",
             )
         }
+    }
+
+    @Test
+    fun `default registry should preserve built-in provider inventory counts`() {
+        val registry = AutoTestProviderRegistry.default
+
+        assertEquals(11, registry.getInvalidTestProviders().size, "Invalid provider count should remain stable")
+        assertEquals(11, registry.getSecurityTestProviders().size, "Security provider count should remain stable")
+        assertEquals(2, registry.getMultiTestProviders().size, "Multi provider count should remain stable")
     }
 
     @Test
@@ -83,14 +97,19 @@ class AutoTestProviderRegistryTest {
 
                 override fun canHandle(schema: Schema<*>): Boolean = schema.type == "string" && schema.minLength != null
 
-                override fun generateInvalidValues(
-                    fieldName: String,
-                    schema: Schema<*>,
-                ): List<InvalidTestValue> =
+                override fun generateTestCases(request: InvalidTestRequest): List<AutoTestCase> =
                     listOf(
-                        InvalidTestValue(
-                            value = "CUSTOM_MIN_LENGTH_VALUE",
+                        AutoTestCase(
+                            type = AutoTestType.INVALID,
+                            testType = "foo",
+                            fieldName = request.fieldName,
+                            invalidValue = "CUSTOM_MIN_LENGTH_VALUE",
                             description = "Custom minLength violation",
+                            location = request.location,
+                            body = request.baseBody,
+                            pathParams = request.basePathParams,
+                            headers = request.baseHeaders,
+                            tag = "Invalid request - $testType",
                         ),
                     )
             }
@@ -114,9 +133,20 @@ class AutoTestProviderRegistryTest {
 
                 override fun applicableLocations(): Set<ParameterLocation> = setOf(ParameterLocation.BODY)
 
-                override fun generatePayloads(): List<SecurityPayload> =
+                override fun generateTestCases(request: SecurityTestRequest): List<AutoTestCase> =
                     listOf(
-                        SecurityPayload("Custom payload", "CUSTOM_SQL_INJECTION"),
+                        AutoTestCase(
+                            type = AutoTestType.SECURITY,
+                            testType = testType,
+                            fieldName = request.fieldName,
+                            invalidValue = "CUSTOM_SQL_INJECTION",
+                            description = "$displayName: Custom payload",
+                            location = request.location,
+                            body = request.baseBody,
+                            pathParams = request.basePathParams,
+                            headers = request.baseHeaders,
+                            tag = "security - $displayName",
+                        ),
                     )
             }
 
@@ -138,12 +168,20 @@ class AutoTestProviderRegistryTest {
 
                 override fun canHandle(schema: Schema<*>): Boolean = true
 
-                override fun generateInvalidValues(
-                    fieldName: String,
-                    schema: Schema<*>,
-                ): List<InvalidTestValue> =
+                override fun generateTestCases(request: InvalidTestRequest): List<AutoTestCase> =
                     listOf(
-                        InvalidTestValue("high", "High priority"),
+                        AutoTestCase(
+                            type = AutoTestType.INVALID,
+                            testType = testType,
+                            fieldName = request.fieldName,
+                            invalidValue = "high",
+                            description = "High priority",
+                            location = request.location,
+                            body = request.baseBody,
+                            pathParams = request.basePathParams,
+                            headers = request.baseHeaders,
+                            tag = "Invalid request - $testType",
+                        ),
                     )
             }
 
@@ -155,12 +193,20 @@ class AutoTestProviderRegistryTest {
 
                 override fun canHandle(schema: Schema<*>): Boolean = true
 
-                override fun generateInvalidValues(
-                    fieldName: String,
-                    schema: Schema<*>,
-                ): List<InvalidTestValue> =
+                override fun generateTestCases(request: InvalidTestRequest): List<AutoTestCase> =
                     listOf(
-                        InvalidTestValue("low", "Low priority"),
+                        AutoTestCase(
+                            type = AutoTestType.INVALID,
+                            testType = testType,
+                            fieldName = request.fieldName,
+                            invalidValue = "low",
+                            description = "Low priority",
+                            location = request.location,
+                            body = request.baseBody,
+                            pathParams = request.basePathParams,
+                            headers = request.baseHeaders,
+                            tag = "Invalid request - $testType",
+                        ),
                     )
             }
 
@@ -197,14 +243,19 @@ class AutoTestProviderRegistryTest {
 
                 override fun canHandle(schema: Schema<*>): Boolean = schema.type == "string"
 
-                override fun generateInvalidValues(
-                    fieldName: String,
-                    schema: Schema<*>,
-                ): List<InvalidTestValue> =
+                override fun generateTestCases(request: InvalidTestRequest): List<AutoTestCase> =
                     listOf(
-                        InvalidTestValue(
-                            value = "CUSTOM_INVALID_VALUE",
+                        AutoTestCase(
+                            type = AutoTestType.INVALID,
+                            testType = testType,
+                            fieldName = request.fieldName,
+                            invalidValue = "CUSTOM_INVALID_VALUE",
                             description = "Custom invalid test",
+                            location = request.location,
+                            body = request.baseBody,
+                            pathParams = request.basePathParams,
+                            headers = request.baseHeaders,
+                            tag = "Invalid request - $testType",
                         ),
                     )
             },
@@ -237,9 +288,20 @@ class AutoTestProviderRegistryTest {
 
                 override fun applicableLocations(): Set<ParameterLocation> = setOf(ParameterLocation.BODY)
 
-                override fun generatePayloads(): List<SecurityPayload> =
+                override fun generateTestCases(request: SecurityTestRequest): List<AutoTestCase> =
                     listOf(
-                        SecurityPayload("Test payload", "CUSTOM_PAYLOAD"),
+                        AutoTestCase(
+                            type = AutoTestType.SECURITY,
+                            testType = testType,
+                            fieldName = request.fieldName,
+                            invalidValue = "CUSTOM_PAYLOAD",
+                            description = "$displayName: Test payload",
+                            location = request.location,
+                            body = request.baseBody,
+                            pathParams = request.basePathParams,
+                            headers = request.baseHeaders,
+                            tag = "security - $displayName",
+                        ),
                     )
             },
         )
@@ -270,7 +332,7 @@ class AutoTestProviderRegistryTest {
 
         assertTrue(allTypes.contains("minLength"), "Should contain minLength")
         assertTrue(allTypes.contains("SQLInjection"), "Should contain SQLInjection")
-        assertTrue(allTypes.size >= 18, "Should have at least 18 test types (11 invalid + 7 security)")
+        assertEquals(24, allTypes.size, "Should have 24 built-in test types (11 invalid + 11 security + 2 multi)")
     }
 
     @Test
@@ -285,10 +347,7 @@ class AutoTestProviderRegistryTest {
 
                 override fun canHandle(schema: Schema<*>): Boolean = true
 
-                override fun generateInvalidValues(
-                    fieldName: String,
-                    schema: Schema<*>,
-                ): List<InvalidTestValue> = emptyList()
+                override fun generateTestCases(request: InvalidTestRequest): List<AutoTestCase> = emptyList()
             },
         )
 

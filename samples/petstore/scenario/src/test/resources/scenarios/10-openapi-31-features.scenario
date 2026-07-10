@@ -120,3 +120,18 @@ scenario: Response schema validation with 3.1 features
   then: the response matches 3.1 schema
     assert status 200
     assert schema
+
+scenario: Auto test for OpenAPI 31 - invalid
+  when: I create a pet with invalid data
+    call using openApi31 ^createPet31
+      auto: [invalid]
+      excludes: [emoji]
+    if test.testType equals "type" or test.testType equals "format"
+      assert status 500
+    else
+      assert status 400
+
+scenario: Auto test for OpenAPI 31 - security
+  when: I create a pet with invalid data
+    call using openApi31 ^createPet31
+      auto: [security]
