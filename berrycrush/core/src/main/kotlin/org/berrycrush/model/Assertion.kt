@@ -1,15 +1,49 @@
 package org.berrycrush.model
 
+import org.berrycrush.context.TestExecutionContext
+import org.berrycrush.scenario.SourceLocation
+
 /**
- * Represents an assertion to verify on an API response.
+ * Represents any assertion variant that can be attached to a step.
  *
- * Assertions use the same `Condition` type as conditionals (`if` statements),
- * ensuring consistent evaluation logic between `assert` and `if` conditions.
- *
- * @property condition The condition that must be true for the assertion to pass
- * @property description Optional description for reporting (derived from the condition)
+ * This sealed contract unifies built-in assertions, conditionals, and
+ * programmatic custom assertions under one model type.
  */
-data class Assertion(
-    val condition: Condition,
-    val description: String? = null,
-)
+sealed interface Assertion {
+    /**
+     * Source location for parser-originated assertions.
+     */
+    val sourceLocation: SourceLocation?
+
+    /**
+     * Built-in assertion based on a parsed/evaluated [Condition].
+     */
+    data class BuiltinAssertion(
+        val condition: Condition,
+        val description: String? = null,
+        override val sourceLocation: SourceLocation? = null,
+    ) : Assertion
+
+    /**
+     * Conditional assertion structure (`if` / `else if` / `else`).
+     */
+    data class ConditionalAssertion(
+        val ifBranch: ConditionBranch,
+        val elseIfBranches: List<ConditionBranch> = emptyList(),
+        val elseActions: ConditionalActions? = null,
+        override val sourceLocation: SourceLocation? = null,
+    ) : Assertion {
+        val branches: List<ConditionBranch> by lazy {
+            listOf(ifBranch) + elseIfBranches
+        }
+    }
+
+    /**
+     * Programmatic custom assertion with access to test execution context.
+     */
+    data class CustomAssertion(
+        val description: String,
+        val assertion: (TestExecutionContext) -> Unit,
+        override val sourceLocation: SourceLocation? = null,
+    ) : Assertion
+}

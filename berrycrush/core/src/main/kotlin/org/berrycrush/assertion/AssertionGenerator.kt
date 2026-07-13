@@ -39,29 +39,20 @@ class AssertionGenerator {
 
         // Status code assertion
         if (includeStatusCode) {
-            assertions.add(
-                Assertion(
-                    condition = Condition.Status(expectedStatusCode),
-                    description = "status $expectedStatusCode",
-                ),
-            )
+            assertions.add(Condition.Status(expectedStatusCode).toAssertion("status $expectedStatusCode"))
         }
 
         // Content-Type assertion
         if (includeContentType && response != null) {
             val contentType = response.content.keys.firstOrNull()
             if (contentType != null) {
-                assertions.add(
-                    Assertion(
-                        condition =
-                            Condition.Header(
-                                name = "Content-Type",
-                                operator = ConditionOperator.EQUALS,
-                                expected = contentType,
-                            ),
-                        description = "header Content-Type equals \"$contentType\"",
-                    ),
-                )
+                val condition =
+                    Condition.Header(
+                        name = "Content-Type",
+                        operator = ConditionOperator.EQUALS,
+                        expected = contentType,
+                    )
+                assertions.add(condition.toAssertion("header Content-Type equals \"$contentType\""))
             }
         }
 
@@ -72,12 +63,7 @@ class AssertionGenerator {
                     .firstOrNull()
                     ?.schema
             if (schema != null) {
-                assertions.add(
-                    Assertion(
-                        condition = Condition.Schema,
-                        description = "matches schema",
-                    ),
-                )
+                assertions.add(Condition.Schema.toAssertion("matches schema"))
             }
         }
 

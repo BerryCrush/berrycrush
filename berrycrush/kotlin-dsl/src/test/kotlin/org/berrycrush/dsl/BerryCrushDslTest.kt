@@ -12,15 +12,18 @@ import kotlin.test.assertTrue
 
 class BerryCrushDslTest {
     // Helper functions for checking assertion types
+    private val Assertion.builtinCondition: Condition?
+        get() = (this as? Assertion.BuiltinAssertion)?.condition
+
     private fun Assertion.isStatusAssertion(): Boolean =
-        when (val c = condition) {
+        when (val c = builtinCondition) {
             is Condition.Status -> true
             is Condition.Negated -> c.condition is Condition.Status
             else -> false
         }
 
     private fun Assertion.isBodyContainsAssertion(): Boolean =
-        when (val c = condition) {
+        when (val c = builtinCondition) {
             is Condition.BodyContains -> true
             is Condition.Negated -> c.condition is Condition.BodyContains
             else -> false
@@ -28,7 +31,7 @@ class BerryCrushDslTest {
 
     private fun Assertion.isJsonPathAssertion(): Boolean {
         val c =
-            when (val c = condition) {
+            when (val c = builtinCondition) {
                 is Condition.Negated -> c.condition
                 else -> c
             }
@@ -37,7 +40,7 @@ class BerryCrushDslTest {
 
     private fun Assertion.isHeaderExistsAssertion(): Boolean {
         val c =
-            when (val c = condition) {
+            when (val c = builtinCondition) {
                 is Condition.Negated -> c.condition
                 else -> c
             }

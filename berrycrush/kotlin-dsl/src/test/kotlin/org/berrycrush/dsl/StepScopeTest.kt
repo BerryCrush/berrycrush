@@ -34,7 +34,6 @@ class StepScopeTest {
                 }
             }
         val step = suite.scenarios[0].steps[0]
-        assertEquals(10, step.assertions.size)
-        assertEquals(1, step.conditionals.size)
+        assertEquals(12, step.assertions.size)
     }
 }

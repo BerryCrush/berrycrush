@@ -1,5 +1,6 @@
 package org.berrycrush.plugin.adapter
 
+import org.berrycrush.model.Assertion
 import org.berrycrush.model.Condition
 import org.berrycrush.model.HttpResponse
 import org.berrycrush.plugin.AssertionFailure
@@ -31,14 +32,13 @@ class StepResultAdapter(
             modelResult.assertionResults
                 .firstOrNull { !it.passed }
                 ?.let { failedAssertion ->
-                    val condition = failedAssertion.assertion.condition
                     AssertionFailure(
                         message = failedAssertion.message,
-                        expected = getExpectedFromCondition(condition),
+                        expected = getExpectedFromAssertion(failedAssertion.assertion),
                         actual = failedAssertion.actual,
                         diff = null,
                         stepDescription = modelResult.step.description,
-                        assertionType = getConditionTypeName(condition),
+                        assertionType = getAssertionTypeName(failedAssertion.assertion),
                         requestSnapshot = null,
                         responseSnapshot = null,
                     )
@@ -49,6 +49,20 @@ class StepResultAdapter(
 
     override val isCustomStep: Boolean
         get() = modelResult.isCustomStep
+
+    private fun getExpectedFromAssertion(assertion: Assertion): Any? =
+        when (assertion) {
+            is Assertion.BuiltinAssertion -> getExpectedFromCondition(assertion.condition)
+            is Assertion.CustomAssertion -> assertion.description
+            is Assertion.ConditionalAssertion -> "conditional"
+        }
+
+    private fun getAssertionTypeName(assertion: Assertion): String =
+        when (assertion) {
+            is Assertion.BuiltinAssertion -> getConditionTypeName(assertion.condition)
+            is Assertion.CustomAssertion -> "CUSTOM"
+            is Assertion.ConditionalAssertion -> "CONDITIONAL"
+        }
 
     /**
      * Extract expected value from a Condition for error reporting.

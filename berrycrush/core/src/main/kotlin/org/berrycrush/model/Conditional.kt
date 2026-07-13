@@ -4,36 +4,7 @@ import org.berrycrush.context.TestExecutionContext
 import org.berrycrush.scenario.SourceLocation
 import java.time.Duration
 
-/**
- * Represents a conditional assertion structure.
- *
- * Conditionals allow different assertions or actions based on response conditions.
- *
- * Example:
- * ```
- * if status 201
- *   assert $.status equals "available"
- * else if status 200
- *   assert $.status equals "in-progress"
- * else
- *   fail "status must be 200 or 201"
- * ```
- *
- * @property ifBranch Primary condition and its actions
- * @property elseIfBranches Optional alternative conditions
- * @property elseActions Actions to execute if no condition matches
- * @property sourceLocation Source location for error reporting
- */
-data class ConditionalAssertion(
-    val ifBranch: ConditionBranch,
-    val elseIfBranches: List<ConditionBranch> = emptyList(),
-    val elseActions: ConditionalActions? = null,
-    val sourceLocation: SourceLocation? = null,
-) {
-    val branches: List<ConditionBranch> by lazy {
-        listOf(ifBranch) + elseIfBranches
-    }
-}
+typealias ConditionalAssertion = Assertion.ConditionalAssertion
 
 /**
  * A condition with associated actions.
@@ -64,7 +35,12 @@ data class ConditionalActions(
 /**
  * Represents a condition to evaluate against the response.
  */
-sealed class Condition {
+sealed interface Condition {
+    fun toAssertion(
+        description: String? = null,
+        sourceLocation: SourceLocation? = null,
+    ): Assertion = Assertion.BuiltinAssertion(condition = this, description = description, sourceLocation = sourceLocation)
+
     /**
      * Status code condition.
      *
@@ -72,7 +48,7 @@ sealed class Condition {
      */
     data class Status(
         val expected: Any,
-    ) : Condition()
+    ) : Condition
 
     /**
      * JSON path condition.
@@ -85,7 +61,7 @@ sealed class Condition {
         val path: String,
         val operator: ConditionOperator,
         val expected: Any? = null,
-    ) : Condition()
+    ) : Condition
 
     /**
      * Header condition.
@@ -98,7 +74,7 @@ sealed class Condition {
         val name: String,
         val operator: ConditionOperator,
         val expected: Any? = null,
-    ) : Condition()
+    ) : Condition
 
     /**
      * Variable condition.
@@ -111,7 +87,7 @@ sealed class Condition {
         val name: String,
         val operator: ConditionOperator,
         val expected: Any? = null,
-    ) : Condition()
+    ) : Condition
 
     /**
      * Negated condition.
@@ -120,7 +96,7 @@ sealed class Condition {
      */
     data class Negated(
         val condition: Condition,
-    ) : Condition()
+    ) : Condition
 
     /**
      * Compound condition with logical operator.
@@ -133,7 +109,7 @@ sealed class Condition {
         val left: Condition,
         val operator: LogicalOperator,
         val right: Condition,
-    ) : Condition()
+    ) : Condition
 
     /**
      * Body contains condition (assertion-specific).
@@ -142,13 +118,13 @@ sealed class Condition {
      */
     data class BodyContains(
         val text: Any,
-    ) : Condition()
+    ) : Condition
 
     /**
      * Schema validation condition (assertion-specific).
      * Validates response against OpenAPI schema.
      */
-    data object Schema : Condition()
+    data object Schema : Condition
 
     /**
      * Response time condition (assertion-specific).
@@ -157,7 +133,7 @@ sealed class Condition {
      */
     data class ResponseTime(
         val duration: Any,
-    ) : Condition() {
+    ) : Condition {
         constructor(maxMs: Long) : this(Duration.ofMillis(maxMs))
     }
 
@@ -168,7 +144,7 @@ sealed class Condition {
      */
     data class CustomAssertion(
         val pattern: String,
-    ) : Condition()
+    ) : Condition
 
     /**
      * Programmatic condition using a predicate function.
@@ -179,7 +155,7 @@ sealed class Condition {
      */
     data class Custom(
         val predicate: (TestExecutionContext) -> Boolean,
-    ) : Condition()
+    ) : Condition
 }
 
 /**

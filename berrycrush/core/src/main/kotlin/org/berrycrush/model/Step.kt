@@ -38,9 +38,7 @@ sealed class BodyProperty {
  *                    Supports: classpath:path/to/file.json, file:./relative/path.json, or /absolute/path.json
  *                    Variables in the file content are interpolated at runtime.
  * @property extractions Values to extract from response
- * @property assertions Assertions to verify on response
- * @property customAssertions Custom assertions with programmatic logic
- * @property conditionals Conditional assertions (if/else if/else branches)
+ * @property assertions Assertions to verify on response (built-in, custom, and conditionals)
  * @property failMessage If set, fail with this message unconditionally
  * @property autoAssert Whether to generate assertions from OpenAPI spec
  * @property autoTestConfig Configuration for auto-generating invalid/security tests
@@ -61,8 +59,6 @@ data class Step(
     val bodyFile: String? = null,
     val extractions: List<Extraction> = emptyList(),
     val assertions: List<Assertion> = emptyList(),
-    val customAssertions: List<CustomAssertionDefinition> = emptyList(),
-    val conditionals: List<ConditionalAssertion> = emptyList(),
     val failMessage: String? = null,
     val autoAssert: Boolean = true,
     val autoTestConfig: AutoTestConfig? = null,

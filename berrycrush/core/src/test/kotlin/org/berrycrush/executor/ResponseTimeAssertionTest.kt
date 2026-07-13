@@ -54,12 +54,7 @@ class ResponseTimeAssertionTest {
                         description = "calling API",
                         operationId = "listPets",
                         assertions =
-                            listOf(
-                                Assertion(
-                                    condition = Condition.ResponseTime(duration = threshold),
-                                    description = "responseTime check",
-                                ),
-                            ),
+                            listOf(Condition.ResponseTime(duration = threshold).toAssertion("responseTime check")),
                     ),
                 ),
         )
@@ -90,7 +85,10 @@ class ResponseTimeAssertionTest {
         val result = executeWithNetworkSkip(scenario) ?: return
 
         val stepResult = result.stepResults.firstOrNull() ?: return
-        val responseTimeAssertion = stepResult.assertionResults.find { it.assertion.condition is Condition.ResponseTime }
+        val responseTimeAssertion =
+            stepResult.assertionResults.find {
+                (it.assertion as? Assertion.BuiltinAssertion)?.condition is Condition.ResponseTime
+            }
 
         assertNotNull(responseTimeAssertion, "Response time assertion should be present")
     }
@@ -168,5 +166,5 @@ class ResponseTimeAssertionTest {
             stepResults
                 .firstOrNull()
                 ?.assertionResults
-                ?.find { it.assertion.condition is Condition.ResponseTime }
+                ?.find { (it.assertion as? Assertion.BuiltinAssertion)?.condition is Condition.ResponseTime }
 }

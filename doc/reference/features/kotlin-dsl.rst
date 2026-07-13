@@ -917,6 +917,17 @@ Use ``@ScenarioTest`` when you want:
 Use ``BerryCrushExtension`` when you need:
 
 - Access to the ``ScenarioResult`` for custom assertions
+
+DSL Assertion Model Note
+------------------------
+
+All assertion styles declared in the Kotlin DSL are stored in a unified step assertion collection:
+
+- Built-in assertions (status/body/header/schema/response-time)
+- Conditional assertions
+- Programmatic custom assertions
+
+This keeps runtime assertion handling consistent across DSL and scenario-file execution.
 - Dynamic configuration per test (e.g., Spring Boot's random port)
 - Complex test setup that requires injected parameters
 

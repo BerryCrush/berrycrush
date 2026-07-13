@@ -52,32 +52,19 @@ class ResponseProcessor(
         }
 
         val extractedValues = extractValues(step, context)
-        val assertionResults =
-            assertionExecutor
-                .runAssertions(
-                    response,
-                    step.assertions,
-                    context,
-                ).toMutableList()
-
-        // Run conditional assertions
-        val conditionalResults = assertionExecutor.runConditionals(response, step.conditionals, context)
-        assertionResults.addAll(conditionalResults.assertionResults)
-
-        // Run custom assertions (DSL assert blocks)
-        val customAssertionResults = assertionExecutor.runCustomAssertions(step.customAssertions, context)
-        assertionResults.addAll(customAssertionResults)
+        val evaluatedAssertions = assertionExecutor.runAssertions(response, step.assertions, context)
+        val assertionResults = evaluatedAssertions.assertionResults
 
         // Check for conditional fail
-        if (conditionalResults.failMessage != null) {
+        if (evaluatedAssertions.failMessage != null) {
             return StepResult(
                 step = step,
                 status = ResultStatus.FAILED,
                 response = response,
                 duration = context.response?.duration ?: Duration.ZERO,
-                extractedValues = extractedValues + conditionalResults.extractedValues,
+                extractedValues = extractedValues + evaluatedAssertions.extractedValues,
                 assertionResults = assertionResults,
-                error = AssertionError(conditionalResults.failMessage),
+                error = AssertionError(evaluatedAssertions.failMessage),
                 isCustomStep = isCustom,
             )
         }
@@ -88,7 +75,7 @@ class ResponseProcessor(
             status = if (allPassed) ResultStatus.PASSED else ResultStatus.FAILED,
             response = response,
             duration = context.response?.duration ?: Duration.ZERO,
-            extractedValues = extractedValues + conditionalResults.extractedValues,
+            extractedValues = extractedValues + evaluatedAssertions.extractedValues,
             assertionResults = assertionResults,
             isCustomStep = isCustom,
         )

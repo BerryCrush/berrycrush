@@ -7,7 +7,6 @@ import org.berrycrush.model.Assertion
 import org.berrycrush.model.AutoTestConfig
 import org.berrycrush.model.Condition
 import org.berrycrush.model.ConditionOperator
-import org.berrycrush.model.CustomAssertionDefinition
 import org.berrycrush.model.Extraction
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepType
@@ -32,8 +31,6 @@ class StepScope internal constructor(
     private var body: String? = null
     private val extractions = mutableListOf<Extraction>()
     private val assertions = mutableListOf<Assertion>()
-    private val customAssertions = mutableListOf<CustomAssertionDefinition>()
-    private val conditionals = mutableListOf<org.berrycrush.model.ConditionalAssertion>()
     private var autoAssert: Boolean = true
     private var autoTestConfig: AutoTestConfig? = null
 
@@ -86,36 +83,21 @@ class StepScope internal constructor(
      * Assert exact status code.
      */
     fun statusCode(expected: Int) {
-        assertions.add(
-            Assertion(
-                condition = Condition.Status(expected),
-                description = "status $expected",
-            ),
-        )
+        assertions.add(Condition.Status(expected).toAssertion("status $expected"))
     }
 
     /**
      * Assert status code in range.
      */
     fun statusCode(range: IntRange) {
-        assertions.add(
-            Assertion(
-                condition = Condition.Status(range),
-                description = "status ${range.first}-${range.last}",
-            ),
-        )
+        assertions.add(Condition.Status(range).toAssertion("status ${range.first}-${range.last}"))
     }
 
     /**
      * Assert response body contains a string.
      */
     fun bodyContains(substring: String) {
-        assertions.add(
-            Assertion(
-                condition = Condition.BodyContains(substring),
-                description = "body contains \"$substring\"",
-            ),
-        )
+        assertions.add(Condition.BodyContains(substring).toAssertion("body contains \"$substring\""))
     }
 
     /**
@@ -125,17 +107,13 @@ class StepScope internal constructor(
         jsonPath: String,
         expected: Any,
     ) {
-        assertions.add(
-            Assertion(
-                condition =
-                    Condition.JsonPath(
-                        path = jsonPath,
-                        operator = ConditionOperator.EQUALS,
-                        expected = expected,
-                    ),
-                description = "$jsonPath equals $expected",
-            ),
-        )
+        val condition =
+            Condition.JsonPath(
+                path = jsonPath,
+                operator = ConditionOperator.EQUALS,
+                expected = expected,
+            )
+        assertions.add(condition.toAssertion("$jsonPath equals $expected"))
     }
 
     /**
@@ -145,17 +123,13 @@ class StepScope internal constructor(
         jsonPath: String,
         pattern: String,
     ) {
-        assertions.add(
-            Assertion(
-                condition =
-                    Condition.JsonPath(
-                        path = jsonPath,
-                        operator = ConditionOperator.MATCHES,
-                        expected = pattern,
-                    ),
-                description = "$jsonPath matches $pattern",
-            ),
-        )
+        val condition =
+            Condition.JsonPath(
+                path = jsonPath,
+                operator = ConditionOperator.MATCHES,
+                expected = pattern,
+            )
+        assertions.add(condition.toAssertion("$jsonPath matches $pattern"))
     }
 
     /**
@@ -165,51 +139,39 @@ class StepScope internal constructor(
         jsonPath: String,
         expected: Int,
     ) {
-        assertions.add(
-            Assertion(
-                condition =
-                    Condition.JsonPath(
-                        path = jsonPath,
-                        operator = ConditionOperator.HAS_SIZE,
-                        expected = expected,
-                    ),
-                description = "$jsonPath hasSize $expected",
-            ),
-        )
+        val condition =
+            Condition.JsonPath(
+                path = jsonPath,
+                operator = ConditionOperator.HAS_SIZE,
+                expected = expected,
+            )
+        assertions.add(condition.toAssertion("$jsonPath hasSize $expected"))
     }
 
     /**
      * Assert body array is not empty.
      */
     fun bodyArrayNotEmpty(jsonPath: String) {
-        assertions.add(
-            Assertion(
-                condition =
-                    Condition.JsonPath(
-                        path = jsonPath,
-                        operator = ConditionOperator.NOT_EMPTY,
-                        expected = null,
-                    ),
-                description = "$jsonPath notEmpty",
-            ),
-        )
+        val condition =
+            Condition.JsonPath(
+                path = jsonPath,
+                operator = ConditionOperator.NOT_EMPTY,
+                expected = null,
+            )
+        assertions.add(condition.toAssertion("$jsonPath notEmpty"))
     }
 
     /**
      * Assert header exists.
      */
     fun headerExists(name: String) {
-        assertions.add(
-            Assertion(
-                condition =
-                    Condition.Header(
-                        name = name,
-                        operator = ConditionOperator.EXISTS,
-                        expected = null,
-                    ),
-                description = "header $name exists",
-            ),
-        )
+        val condition =
+            Condition.Header(
+                name = name,
+                operator = ConditionOperator.EXISTS,
+                expected = null,
+            )
+        assertions.add(condition.toAssertion("header $name exists"))
     }
 
     /**
@@ -219,53 +181,34 @@ class StepScope internal constructor(
         name: String,
         expected: String,
     ) {
-        assertions.add(
-            Assertion(
-                condition =
-                    Condition.Header(
-                        name = name,
-                        operator = ConditionOperator.EQUALS,
-                        expected = expected,
-                    ),
-                description = "header $name equals \"$expected\"",
-            ),
-        )
+        val condition =
+            Condition.Header(
+                name = name,
+                operator = ConditionOperator.EQUALS,
+                expected = expected,
+            )
+        assertions.add(condition.toAssertion("header $name equals \"$expected\""))
     }
 
     /**
      * Assert response matches OpenAPI schema.
      */
     fun matchesSchema() {
-        assertions.add(
-            Assertion(
-                condition = Condition.Schema,
-                description = "matches schema",
-            ),
-        )
+        assertions.add(Condition.Schema.toAssertion("matches schema"))
     }
 
     /**
      * Assert response time is under threshold (milliseconds).
      */
     fun responseTime(maxMillis: Long) {
-        assertions.add(
-            Assertion(
-                condition = Condition.ResponseTime(maxMillis),
-                description = "responseTime < $maxMillis ms",
-            ),
-        )
+        assertions.add(Condition.ResponseTime(maxMillis).toAssertion("responseTime < $maxMillis ms"))
     }
 
     /**
      * Assert response time in under threshold
      */
     fun responseTime(duration: Duration) {
-        assertions.add(
-            Assertion(
-                condition = Condition.ResponseTime(duration),
-                description = "responseTime < $duration",
-            ),
-        )
+        assertions.add(Condition.ResponseTime(duration).toAssertion("responseTime < $duration"))
     }
 
     // ========== Custom Assertions ==========
@@ -298,7 +241,7 @@ class StepScope internal constructor(
         description: String,
         assertion: (TestExecutionContext) -> Unit,
     ) {
-        customAssertions.add(CustomAssertionDefinition(description, assertion))
+        assertions.add(Assertion.CustomAssertion(description, assertion))
     }
 
     // ========== Conditional Logic ==========
@@ -344,9 +287,7 @@ class StepScope internal constructor(
             headers = headers.toMap(),
             body = body,
             extractions = extractions.toList(),
-            assertions = assertions.toList(),
-            customAssertions = customAssertions.toList(),
-            conditionals = conditionals + conditionalBuilders.map { it.build() },
+            assertions = assertions + conditionalBuilders.map { it.build() },
             autoAssert = autoAssert,
             autoTestConfig = autoTestConfig,
         )
