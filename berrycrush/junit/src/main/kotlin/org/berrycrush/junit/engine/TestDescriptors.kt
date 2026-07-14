@@ -96,14 +96,13 @@ class IndividualScenarioDescriptor(
     uniqueId: UniqueId,
     displayName: String,
     val scenario: Scenario,
-    val hasAutoTests: Boolean = false,
-    testSource: TestSource? = null,
+    val testSource: TestSource? = null,
 ) : AbstractTestDescriptor(uniqueId, displayName, testSource) {
     /**
      * For auto-test scenarios, use CONTAINER_AND_TEST to hold child tests.
      * For regular scenarios, use TEST for simpler IDE handling.
      */
-    override fun getType(): TestDescriptor.Type = if (hasAutoTests) TestDescriptor.Type.CONTAINER_AND_TEST else TestDescriptor.Type.TEST
+    override fun getType(): TestDescriptor.Type = TestDescriptor.Type.TEST
 
     companion object {
         /**
@@ -127,4 +126,12 @@ class IndividualScenarioDescriptor(
             } ?: FileSource.from(scenarioFile)
         }
     }
+}
+
+class ContainerDescriptor(
+    uniqueId: UniqueId,
+    displayName: String,
+    testSource: TestSource? = null,
+) : AbstractTestDescriptor(uniqueId, displayName, testSource) {
+    override fun getType(): TestDescriptor.Type = TestDescriptor.Type.CONTAINER
 }

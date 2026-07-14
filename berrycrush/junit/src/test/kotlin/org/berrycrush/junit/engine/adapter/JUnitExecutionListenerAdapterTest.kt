@@ -5,7 +5,6 @@ import org.berrycrush.autotest.MultiTestResult
 import org.berrycrush.autotest.ParameterLocation
 import org.berrycrush.junit.engine.AutoTestDescriptor
 import org.berrycrush.junit.engine.IndividualScenarioDescriptor
-import org.berrycrush.junit.engine.MultiTestDescriptor
 import org.berrycrush.model.AutoTestResult
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Scenario
@@ -171,7 +170,7 @@ internal class JUnitExecutionListenerAdapterTest {
         whenever { scenarioDescriptor.uniqueId } doReturn uniqueId
         listenerAdapter.onMultiTestStarting(mode, 1)
 
-        val captor = argumentCaptor<MultiTestDescriptor>()
+        val captor = argumentCaptor<AutoTestDescriptor>()
         verify(scenarioDescriptor).addChild(captor.capture())
         val v = captor.firstValue
         verify(listener).dynamicTestRegistered(v)

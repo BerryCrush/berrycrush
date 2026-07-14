@@ -11,6 +11,7 @@ class CustomStep {
         expected: Any?,
         context: StepContext,
     ) {
+        println("Checking $name with $expected")
         assertEquals(expected, context.variable(name).toString())
     }
 }

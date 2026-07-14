@@ -79,8 +79,11 @@ data class ScenarioFilters(
      * @param name The scenario name from the parsed scenario
      * @return true if the name matches the filter or no filter is set
      */
-    fun matchesScenarioName(name: String): Boolean {
-        val filter = scenarioName ?: return true
+    fun matchesScenarioName(
+        name: String,
+        currentFeatureName: String? = null,
+    ): Boolean {
+        val filter = scenarioName ?: return featureName == null || featureName == currentFeatureName
         return name.equals(filter, ignoreCase = true)
     }
 
@@ -91,7 +94,7 @@ data class ScenarioFilters(
      * @return true if the name matches the filter or no filter is set
      */
     fun matchesFeatureName(name: String): Boolean {
-        val filter = featureName ?: return true
+        val filter = featureName ?: return scenarioName == null
         return name.equals(filter, ignoreCase = true)
     }
 }

@@ -59,14 +59,12 @@ class TestDescriptorsTest {
                 uniqueId = UniqueId.forEngine("berrycrush").append("scenario", "regular"),
                 displayName = "regular",
                 scenario = scenario,
-                hasAutoTests = false,
             )
         val withAutoTests =
             IndividualScenarioDescriptor(
                 uniqueId = UniqueId.forEngine("berrycrush").append("scenario", "auto"),
                 displayName = "auto",
                 scenario = scenario,
-                hasAutoTests = true,
             )
 
         assertEquals(TestDescriptor.Type.TEST, regular.type)

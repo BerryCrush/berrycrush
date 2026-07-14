@@ -7,4 +7,6 @@ package org.berrycrush.model
  */
 data class ExampleRow(
     val values: Map<String, Any?>,
-)
+) {
+    override fun toString(): String = values.toString()
+}
