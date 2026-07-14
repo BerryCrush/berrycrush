@@ -120,7 +120,7 @@ object ScenarioTestDiscoverer {
         scenarioFile: File?,
     ) {
         // Add standalone scenarios (expanding outlines), filtered by scenario name
-        content.standaloneScenarios
+        content.scenarios
             .addToDescriptor(filters, fileDescriptor.uniqueId, scenarioFile, fileDescriptor)
 
         // Add feature groups, filtered by feature name
@@ -185,7 +185,7 @@ object ScenarioTestDiscoverer {
                     addChild(
                         IndividualScenarioDescriptor(
                             uniqueId = scenarioId,
-                            displayName = "** Auto test preparation **",
+                            displayName = "** Auto test **",
                             scenario = scenario,
                             testSource = testSource,
                         ),

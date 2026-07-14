@@ -17,6 +17,7 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.junit.platform.engine.EngineExecutionListener
+import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.TestExecutionResult
 import org.junit.platform.engine.UniqueId
 import org.mockito.Answers
@@ -28,10 +29,15 @@ import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import java.util.Optional
 import kotlin.test.assertEquals
 
 internal class JUnitExecutionListenerAdapterTest {
-    val scenarioDescriptor: IndividualScenarioDescriptor = mock()
+    val container: TestDescriptor = mock()
+    val scenarioDescriptor: IndividualScenarioDescriptor =
+        mock {
+            on { parent } doReturn Optional.of(container)
+        }
     val listener: EngineExecutionListener = mock()
     val listenerAdapter: JUnitExecutionListenerAdapter = JUnitExecutionListenerAdapter(scenarioDescriptor, listener)
 
@@ -121,10 +127,11 @@ internal class JUnitExecutionListenerAdapterTest {
         whenever { autoTestCase.location } doReturn parameterLocation
         whenever { autoTestCase.description } doReturn "Test on complete scenario"
         whenever { scenarioDescriptor.uniqueId } doReturn uniqueId
+        listenerAdapter.onAutoTestStepStarting(step)
 
         listenerAdapter.onAutoTestStarting(autoTestCase)
         val captor = argumentCaptor<AutoTestDescriptor>()
-        verify(scenarioDescriptor).addChild(captor.capture())
+        verify(container).addChild(captor.capture())
         val v = captor.firstValue
         verify(listener).dynamicTestRegistered(v)
         verify(listener).executionStarted(v)
@@ -168,10 +175,11 @@ internal class JUnitExecutionListenerAdapterTest {
         passed: Boolean,
     ) {
         whenever { scenarioDescriptor.uniqueId } doReturn uniqueId
+        listenerAdapter.onAutoTestStepStarting(step)
         listenerAdapter.onMultiTestStarting(mode, 1)
 
         val captor = argumentCaptor<AutoTestDescriptor>()
-        verify(scenarioDescriptor).addChild(captor.capture())
+        verify(container).addChild(captor.capture())
         val v = captor.firstValue
         verify(listener).dynamicTestRegistered(v)
         verify(listener).executionStarted(v)

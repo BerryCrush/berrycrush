@@ -68,7 +68,7 @@ class TestDescriptorsTest {
             )
 
         assertEquals(TestDescriptor.Type.TEST, regular.type)
-        assertEquals(TestDescriptor.Type.CONTAINER_AND_TEST, withAutoTests.type)
+        assertEquals(TestDescriptor.Type.TEST, withAutoTests.type)
     }
 
     @Test
