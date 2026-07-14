@@ -2,7 +2,6 @@ package org.berrycrush.executor
 
 import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.exception.ConfigurationException
-import org.berrycrush.model.Assertion
 import org.berrycrush.model.Condition
 import org.berrycrush.model.Fragment
 import org.berrycrush.model.FragmentRegistry
@@ -98,7 +97,7 @@ class BerryCrushScenarioExecutorBranchTest {
                         Step(
                             type = StepType.THEN,
                             description = "assert status without request",
-                            assertions = listOf(Assertion(condition = Condition.Status(expected = 200))),
+                            assertions = listOf(Condition.Status(expected = 200).toAssertion()),
                         ),
                     ),
             )

@@ -1018,6 +1018,17 @@ Best Practices
 
 5. **Leverage background for shared setup** - When multiple scenarios need the same preconditions
 
+Assertion Model Note
+--------------------
+
+BerryCrush uses a unified internal assertion model for all assertion forms in a step:
+
+- Built-in assertions (for example ``assert status 200``)
+- Conditional assertion blocks (``if / else if / else``)
+- Programmatic custom assertions
+
+This is an internal model/API detail and does not change scenario syntax.
+
 See Also
 --------
 

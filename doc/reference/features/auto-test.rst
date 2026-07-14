@@ -616,6 +616,13 @@ Best Practices
            status: "available"    # This is also a base value
 
 2. **Use conditional assertions**
+
+Assertion Execution Note
+------------------------
+
+Auto-test execution uses the same unified assertion handling path as regular scenario execution.
+Built-in assertions, conditional assertions, and custom assertions are represented through
+the same step assertion model during evaluation.
    
    Handle different test types appropriately:
 

@@ -14,11 +14,14 @@ org.berrycrush.model
 ├── Fragment                    # Reusable step collection
 ├── ExampleRow                  # Parameter row for scenario outline
 ├── Extraction                  # Value extraction definition
-├── Assertion                   # Assertion definition
-├── AssertionType               # Enum: STATUS_CODE, JSON_PATH, SCHEMA, etc.
+├── Assertion (sealed)          # Unified assertion model
+│   ├── BuiltinAssertion        # Condition-based assertion
+│   ├── ConditionalAssertion    # if/else assertion tree
+│   └── CustomAssertion         # Programmatic assertion callback
 ├── ScenarioResult              # Execution result for a scenario
 ├── StepResult                  # Execution result for a step
 ├── AssertionResult             # Result of an assertion
+├── AssertionResults            # Aggregated assertion evaluation result
 ├── ResultStatus                # Enum: PASSED, FAILED, SKIPPED, ERROR
 ├── ValidationError             # Schema validation error
 └── FragmentRegistry            # Registry for fragments by name
@@ -96,9 +99,10 @@ org.berrycrush.executor
 ├── HttpRequestBuilder          # Builds HTTP requests
 │   ├── build(operation, params)
 │   └── substituteVariables(template, context)
-└── ResponseHandler             # Processes HTTP responses
-    ├── handleResponse(response, step)
-    └── runAssertions(response, assertions)
+├── AssertionExecutor           # Unified assertion execution entrypoint
+│   └── runAssertions(response, assertions, context): AssertionResults
+└── ResponseProcessor           # Processes HTTP responses
+    └── process(step, response, context)
 ```
 
 ### OpenAPI Integration

@@ -54,7 +54,6 @@ class OperationStepExecutor(
             configuration = configuration,
             httpExecutor = httpExecutor,
             assertionRunner = assertionExecutor::runAssertions,
-            conditionalRunner = assertionExecutor::runConditionals,
         )
     }
 

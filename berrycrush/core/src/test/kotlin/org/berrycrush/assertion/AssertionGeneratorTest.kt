@@ -11,28 +11,36 @@ import kotlin.test.assertTrue
 class AssertionGeneratorTest {
     private val generator = AssertionGenerator()
 
+    private val Assertion.builtinCondition: Condition?
+        get() = (this as? Assertion.BuiltinAssertion)?.condition
+
     private fun loadPetstoreResolver(): OperationResolver {
         val spec = SwaggerParserAdapter().parse("/petstore.yaml")
         return OperationResolver(spec)
     }
 
     // Helper to check if assertion is a status assertion
-    private fun Assertion.isStatusAssertion(): Boolean =
-        condition is Condition.Status || (condition is Condition.Negated && condition.condition is Condition.Status)
+    private fun Assertion.isStatusAssertion(): Boolean {
+        val c = builtinCondition
+        return c is Condition.Status || (c is Condition.Negated && c.condition is Condition.Status)
+    }
 
     // Helper to check if assertion is a header assertion
     private fun Assertion.isHeaderAssertion(): Boolean {
-        val c = if (condition is Condition.Negated) condition.condition else condition
-        return c is Condition.Header
+        val c = builtinCondition ?: return false
+        val unwrapped = if (c is Condition.Negated) c.condition else c
+        return unwrapped is Condition.Header
     }
 
     // Helper to check if assertion is a schema assertion
-    private fun Assertion.isSchemaAssertion(): Boolean =
-        condition is Condition.Schema || (condition is Condition.Negated && condition.condition is Condition.Schema)
+    private fun Assertion.isSchemaAssertion(): Boolean {
+        val c = builtinCondition
+        return c is Condition.Schema || (c is Condition.Negated && c.condition is Condition.Schema)
+    }
 
     // Helper to get expected status code
     private fun Assertion.getExpectedStatus(): Any? =
-        when (val c = condition) {
+        when (val c = builtinCondition) {
             is Condition.Status -> c.expected
             is Condition.Negated -> (c.condition as? Condition.Status)?.expected
             else -> null
@@ -40,8 +48,9 @@ class AssertionGeneratorTest {
 
     // Helper to get header name
     private fun Assertion.getHeaderName(): String? {
-        val c = if (condition is Condition.Negated) condition.condition else condition
-        return (c as? Condition.Header)?.name
+        val c = builtinCondition ?: return null
+        val unwrapped = if (c is Condition.Negated) c.condition else c
+        return (unwrapped as? Condition.Header)?.name
     }
 
     @Test

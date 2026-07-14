@@ -161,7 +161,7 @@ For detailed documentation, see [OpenAPI Version Support](openapi-versioning.md)
          │
          ▼
 ┌──────────────────┐
-│ ResponseHandler  │
+│ ResponseProcessor│
 │                  │
 │ Process response │
 │ Run assertions   │
@@ -172,7 +172,8 @@ For detailed documentation, see [OpenAPI Version Support](openapi-versioning.md)
 **Key Classes:**
 - `ScenarioExecutor` - Orchestrates scenario execution
 - `HttpRequestBuilder` - Constructs HTTP requests from OpenAPI operations
-- `ResponseHandler` - Processes responses, runs assertions, extracts values
+- `AssertionExecutor` - Executes unified `Step.assertions` and returns `AssertionResults`
+- `ResponseProcessor` - Processes responses, applies assertion results, extracts values
 - `StepRegistry` - Manages custom step definitions
 
 ### 5. Plugin System

@@ -8,12 +8,10 @@ import org.berrycrush.autotest.provider.AutoTestProviderRegistry
 import org.berrycrush.autotest.provider.MultiTestProvider
 import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.BerryCrushExecutionListener
-import org.berrycrush.executor.assertion.AssertionExecutor
 import org.berrycrush.executor.http.HttpExecutor
 import org.berrycrush.model.Assertion
-import org.berrycrush.model.AssertionResult
+import org.berrycrush.model.AssertionResults
 import org.berrycrush.model.AutoTestResult
-import org.berrycrush.model.ConditionalAssertion
 import org.berrycrush.model.HttpRequest
 import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.ResultStatus
@@ -53,8 +51,7 @@ class AutoTestExecutor(
     private val specRegistry: SpecRegistry,
     private val configuration: BerryCrushConfigurationProvider,
     private val httpExecutor: HttpExecutor,
-    private val assertionRunner: (HttpResponse, List<Assertion>, StepContext) -> List<AssertionResult>,
-    private val conditionalRunner: (HttpResponse, List<ConditionalAssertion>, StepContext) -> AssertionExecutor.ConditionalRunResult,
+    private val assertionRunner: (HttpResponse, List<Assertion>, StepContext) -> AssertionResults,
     private val objectMapper: ObjectMapper = ObjectMapper(),
 ) {
     /**
@@ -279,8 +276,7 @@ class AutoTestExecutor(
             )
         val response = httpExecutor.execute(request, context)
         val assertionResults = assertionRunner(response, step.assertions, context)
-        val conditionalResult = conditionalRunner(response, step.conditionals, context)
-        val allResults = assertionResults + conditionalResult.assertionResults
+        val allResults = assertionResults.assertionResults
 
         return AutoTestResult(
             testCase = testCase,

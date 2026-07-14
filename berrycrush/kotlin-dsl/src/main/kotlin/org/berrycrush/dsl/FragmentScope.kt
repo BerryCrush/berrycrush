@@ -1,6 +1,7 @@
 package org.berrycrush.dsl
 
 import org.berrycrush.model.Assertion
+import org.berrycrush.model.Condition
 import org.berrycrush.model.Extraction
 import org.berrycrush.model.Fragment
 import org.berrycrush.model.Step
@@ -132,14 +133,7 @@ class FragmentStepScope internal constructor(
     }
 
     fun statusCode(expected: Int) {
-        assertions.add(
-            Assertion(
-                condition =
-                    org.berrycrush.model.Condition
-                        .Status(expected),
-                description = "status $expected",
-            ),
-        )
+        assertions.add(Condition.Status(expected).toAssertion("status $expected"))
     }
 
     internal fun build(): Step =

@@ -8,9 +8,6 @@ import java.time.Duration
  *
  * @property step The step that was executed
  * @property status Result status
- * @property statusCode HTTP status code from response
- * @property responseBody Response body content
- * @property responseHeaders Response headers
  * @property duration Time taken to execute the step
  * @property extractedValues Values extracted from response
  * @property assertionResults Results of each assertion
@@ -42,4 +39,13 @@ data class AssertionResult(
     val passed: Boolean,
     val message: String,
     val actual: Any? = null,
+)
+
+/**
+ * Aggregated results from evaluating a set of assertions.
+ */
+data class AssertionResults(
+    val assertionResults: List<AssertionResult> = emptyList(),
+    val extractedValues: Map<String, Any?> = emptyMap(),
+    val failMessage: String? = null,
 )

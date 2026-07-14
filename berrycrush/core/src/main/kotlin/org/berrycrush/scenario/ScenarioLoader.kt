@@ -306,7 +306,6 @@ class ScenarioLoader {
         private var pendingCall: CallNode? = null
         private val extractions = mutableListOf<Extraction>()
         private val assertions = mutableListOf<Assertion>()
-        private val conditionals = mutableListOf<ConditionalAssertion>()
         private var failMessage: String? = null
 
         fun processAction(action: ActionNode) {
@@ -315,7 +314,7 @@ class ScenarioLoader {
                 is ExtractNode -> extractions.add(Extraction(action.variableName, action.jsonPath))
                 is AssertNode -> assertions.add(transformAssertion(action))
                 is IncludeNode -> processIncludeNode(action)
-                is ConditionalNode -> conditionals.add(transformConditional(action))
+                is ConditionalNode -> assertions.add(transformConditional(action))
                 is FailNode -> failMessage = action.message
                 is WebhookNode -> processWebhookNode(action)
             }
@@ -391,7 +390,6 @@ class ScenarioLoader {
                 bodyFile = call.bodyFile,
                 extractions = extractions.toList(),
                 assertions = assertions.toList(),
-                conditionals = conditionals.toList(),
                 failMessage = failMessage,
                 autoTestConfig = call.autoTestConfig?.let { transformAutoTestConfig(it) },
                 sourceLocation = call.location,
@@ -401,7 +399,6 @@ class ScenarioLoader {
         private fun resetAccumulators() {
             extractions.clear()
             assertions.clear()
-            conditionals.clear()
             failMessage = null
         }
 
@@ -410,7 +407,6 @@ class ScenarioLoader {
                 (
                     extractions.isNotEmpty() ||
                         assertions.isNotEmpty() ||
-                        conditionals.isNotEmpty() ||
                         failMessage != null
                 )
 
@@ -424,7 +420,6 @@ class ScenarioLoader {
                         description = description,
                         extractions = extractions.toList(),
                         assertions = assertions.toList(),
-                        conditionals = conditionals.toList(),
                         failMessage = failMessage,
                         sourceLocation = defaultLocation,
                     ),
@@ -464,10 +459,7 @@ class ScenarioLoader {
      */
     private fun transformAssertion(node: AssertNode): Assertion {
         val condition = transformCondition(node.condition)
-        return Assertion(
-            condition = condition,
-            description = describeCondition(condition),
-        )
+        return condition.toAssertion(describeCondition(condition), node.location)
     }
 
     /**
@@ -541,7 +533,7 @@ class ScenarioLoader {
         val elseIfBranches = node.elseIfBranches.map { transformConditionBranch(it) }
         val elseActions = node.elseActions?.let { transformConditionalActions(it) }
 
-        return ConditionalAssertion(
+        return Assertion.ConditionalAssertion(
             ifBranch = ifBranch,
             elseIfBranches = elseIfBranches,
             elseActions = elseActions,
@@ -641,7 +633,7 @@ class ScenarioLoader {
     private fun transformConditionalActions(actions: List<ActionNode>): ConditionalActions {
         val assertions = mutableListOf<Assertion>()
         val extractions = mutableListOf<Extraction>()
-        val conditionals = mutableListOf<ConditionalAssertion>()
+        val conditionals = mutableListOf<Assertion.ConditionalAssertion>()
         var failMessage: String? = null
 
         for (action in actions) {
