@@ -50,15 +50,13 @@ data class FeatureGroup(
 /**
  * Result of loading a scenario file.
  *
- * @property scenarios List of all parsed scenarios (flat, for backward compatibility)
  * @property features List of feature groups (for structured reporting)
- * @property standaloneScenarios Scenarios not in any feature block
+ * @property scenarios Scenarios not in any feature block
  * @property parameters Optional file-level configuration parameters
  */
 data class ScenarioFileContent(
-    val scenarios: List<Scenario>,
     val features: List<FeatureGroup> = emptyList(),
-    val standaloneScenarios: List<Scenario> = emptyList(),
+    val scenarios: List<Scenario> = emptyList(),
     override val parameters: Map<String, Any> = emptyMap(),
 ) : HasParameters
 
@@ -132,7 +130,7 @@ class ScenarioLoader {
         val result = parseOrThrow(source, fileName)
 
         // Transform standalone scenarios (not in any feature)
-        val standaloneScenarios = result.ast!!.scenarios.map { transformScenario(it) }
+        val scenarios = result.ast!!.scenarios.map { transformScenario(it) }
 
         // Transform features with their scenarios (with optional background steps prepended)
         val featureGroups =
@@ -146,15 +144,11 @@ class ScenarioLoader {
                 )
             }
 
-        // All scenarios in flat list for backward compatibility
-        val allScenarios = standaloneScenarios + featureGroups.flatMap { it.scenarios }
-
         val parameters = result.ast.parameters?.values ?: emptyMap()
 
         return ScenarioFileContent(
-            scenarios = allScenarios,
             features = featureGroups,
-            standaloneScenarios = standaloneScenarios,
+            scenarios = scenarios,
             parameters = parameters,
         )
     }

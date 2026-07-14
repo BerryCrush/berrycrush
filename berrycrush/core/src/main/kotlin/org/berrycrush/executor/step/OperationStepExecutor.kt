@@ -8,13 +8,11 @@ import org.berrycrush.executor.http.DefaultHttpExecutor
 import org.berrycrush.executor.http.HttpExecutor
 import org.berrycrush.executor.http.RetryingHttpExecutor
 import org.berrycrush.executor.response.ResponseProcessor
-import org.berrycrush.model.AutoTestConfig
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepResult
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.plugin.StepContext
-import org.berrycrush.scenario.AutoTestType
 import java.time.Duration
 import java.time.Instant
 
@@ -68,7 +66,7 @@ class OperationStepExecutor(
                 // Check if this step has auto-test configuration
                 val autoTestConfig = step.autoTestConfig
                 if (autoTestConfig != null) {
-                    executeAutoTestStep(step, stepContext, stepStartTime, autoTestConfig, listener)
+                    executeAutoTestStep(step, stepContext, stepStartTime, listener)
                 } else {
                     executeHttpRequest(step, stepContext)
                 }
@@ -101,77 +99,19 @@ class OperationStepExecutor(
         step: Step,
         stepContext: StepContext,
         stepStartTime: Instant,
-        autoTestConfig: AutoTestConfig,
         listener: BerryCrushExecutionListener,
     ): StepResult {
-        val hasMulti = AutoTestType.MULTI in autoTestConfig.types
-        val hasInvalidOrSecurity =
-            autoTestConfig.types.any {
-                it == AutoTestType.INVALID || it == AutoTestType.SECURITY
-            }
-
         // Extract step-level multi-test parameters from pathParams
         val stepMultiTestParams = step.pathParams.filterKeys { it.startsWith("multiTest") }
 
         // Merge configuration defaults -> context params -> step params (step wins)
-        val multiTestParams =
+        val parameters =
             configuration.multiTestConfig.mapKeys { "multiTest.${it.key}" } +
                 stepContext.allExecutionVariables() +
                 stepMultiTestParams
-
-        return when {
-            // Both MULTI and INVALID/SECURITY - run both
-            hasMulti && hasInvalidOrSecurity -> {
-                val multiResult =
-                    autoTestExecutor.executeMultiTests(
-                        step,
-                        stepContext,
-                        stepStartTime,
-                        multiTestParams,
-                        listener,
-                    )
-                val autoResult =
-                    autoTestExecutor.executeAutoTests(
-                        step,
-                        stepContext,
-                        stepStartTime,
-                        listener,
-                    )
-                combineAutoTestResults(step, stepStartTime, multiResult, autoResult)
-            }
-            // Only MULTI
-            hasMulti ->
-                autoTestExecutor.executeMultiTests(
-                    step,
-                    stepContext,
-                    stepStartTime,
-                    multiTestParams,
-                    listener,
-                )
-            // Only INVALID/SECURITY
-            else -> autoTestExecutor.executeAutoTests(step, stepContext, stepStartTime, listener)
+        listener.onAutoTestStepStarting(step)
+        return autoTestExecutor.execute(step, stepContext, stepStartTime, parameters, listener).apply {
+            listener.onAutoTestStepCompleted(this)
         }
-    }
-
-    /**
-     * Combine multi-test and auto-test results into a single StepResult.
-     */
-    private fun combineAutoTestResults(
-        step: Step,
-        stepStartTime: Instant,
-        multiResult: StepResult,
-        autoResult: StepResult,
-    ): StepResult {
-        val passed =
-            multiResult.status == ResultStatus.PASSED &&
-                autoResult.status == ResultStatus.PASSED
-        return StepResult(
-            step = step,
-            status = if (passed) ResultStatus.PASSED else ResultStatus.FAILED,
-            duration = Duration.between(stepStartTime, Instant.now()),
-            message = "${multiResult.message}; ${autoResult.message}",
-            multiTestResults = multiResult.multiTestResults,
-            autoTestResults = autoResult.autoTestResults,
-        )
     }
 }

@@ -54,6 +54,57 @@ class AutoTestExecutor(
     private val assertionRunner: (HttpResponse, List<Assertion>, StepContext) -> AssertionResults,
     private val objectMapper: ObjectMapper = ObjectMapper(),
 ) {
+    fun execute(
+        step: Step,
+        stepContext: StepContext,
+        stepStartTime: Instant,
+        parameters: Map<String, Any?>,
+        listener: BerryCrushExecutionListener = BerryCrushExecutionListener.NOOP,
+    ): StepResult {
+        val autoTestConfig = step.autoTestConfig
+        require(autoTestConfig != null) {
+            "Step $step is not a auto test step"
+        }
+        val hasMulti = AutoTestType.MULTI in autoTestConfig.types
+        val hasInvalidOrSecurity =
+            autoTestConfig.types.any {
+                it == AutoTestType.INVALID || it == AutoTestType.SECURITY
+            }
+
+        return when {
+            // Both MULTI and INVALID/SECURITY - run both
+            hasMulti && hasInvalidOrSecurity -> {
+                val multiResult =
+                    executeMultiTests(
+                        step,
+                        stepContext,
+                        stepStartTime,
+                        parameters,
+                        listener,
+                    )
+                val autoResult =
+                    executeAutoTests(
+                        step,
+                        stepContext,
+                        stepStartTime,
+                        listener,
+                    )
+                combineAutoTestResults(step, stepStartTime, multiResult, autoResult)
+            }
+            // Only MULTI
+            hasMulti ->
+                executeMultiTests(
+                    step,
+                    stepContext,
+                    stepStartTime,
+                    parameters,
+                    listener,
+                )
+            // Only INVALID/SECURITY
+            else -> executeAutoTests(step, stepContext, stepStartTime, listener)
+        }
+    }
+
     /**
      * Execute auto-generated tests for a step with autoTestConfig.
      *
@@ -66,7 +117,7 @@ class AutoTestExecutor(
      * @param listener Listener for execution events
      * @return StepResult containing all auto-test results
      */
-    fun executeAutoTests(
+    private fun executeAutoTests(
         step: Step,
         context: StepContext,
         stepStartTime: Instant,
@@ -162,13 +213,6 @@ class AutoTestExecutor(
                 httpExecutor.resolveBody(maybeStep, operation, context)?.let { body ->
                     objectMapper.readValue(body, Map::class.java) as Map<String, Any>
                 }
-        }
-
-    private fun Step.check(): Step? =
-        if (body != null || bodyProperties != null || bodyFile != null) {
-            this
-        } else {
-            null
         }
 
     /**
@@ -395,7 +439,7 @@ class AutoTestExecutor(
      * @param listener Listener for execution events
      * @return StepResult containing multi-test results
      */
-    fun executeMultiTests(
+    private fun executeMultiTests(
         step: Step,
         context: StepContext,
         stepStartTime: Instant,
@@ -549,3 +593,32 @@ private fun AutoTestType.toTestType() =
         AutoTestType.SECURITY -> TestType.SECURITY
         AutoTestType.MULTI -> TestType.MULTI
     }
+
+private fun Step.check(): Step? =
+    if (body != null || bodyProperties != null || bodyFile != null) {
+        this
+    } else {
+        null
+    }
+
+/**
+ * Combine multi-test and auto-test results into a single StepResult.
+ */
+private fun combineAutoTestResults(
+    step: Step,
+    stepStartTime: Instant,
+    multiResult: StepResult,
+    autoResult: StepResult,
+): StepResult {
+    val passed =
+        multiResult.status == ResultStatus.PASSED &&
+            autoResult.status == ResultStatus.PASSED
+    return StepResult(
+        step = step,
+        status = if (passed) ResultStatus.PASSED else ResultStatus.FAILED,
+        duration = Duration.between(stepStartTime, Instant.now()),
+        message = "${multiResult.message}; ${autoResult.message}",
+        multiTestResults = multiResult.multiTestResults,
+        autoTestResults = autoResult.autoTestResults,
+    )
+}

@@ -11,8 +11,10 @@ import org.berrycrush.model.AutoTestResult
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Scenario
 import org.berrycrush.model.ScenarioResult
+import org.berrycrush.model.Step
 import org.berrycrush.model.StepResult
 import org.junit.platform.engine.EngineExecutionListener
+import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.TestExecutionResult
 
 /**
@@ -33,10 +35,11 @@ internal class JUnitExecutionListenerAdapter(
 ) : BerryCrushExecutionListener {
     private var testIndex = 0
     private val descriptors = mutableMapOf<AutoTestCase, AutoTestDescriptor>()
-    private val multiDescriptors = mutableMapOf<String, MultiTestDescriptor>()
+    private val multiDescriptors = mutableMapOf<String, AutoTestDescriptor>()
     private var autoTestFailureCount = 0
     private var multiTestFailureCount = 0
     private var lastScenarioResult: ScenarioResult? = null
+    private lateinit var container: TestDescriptor
 
     /**
      * Returns true if the scenario execution started.
@@ -95,20 +98,22 @@ internal class JUnitExecutionListenerAdapter(
         listener.executionFinished(scenarioDescriptor, testResult)
     }
 
+    override fun onAutoTestStepStarting(step: Step) {
+        container = scenarioDescriptor.parent.orElseThrow { IllegalStateException("Wrongly configured scenario descriptor") }
+    }
+
     override fun onAutoTestStarting(testCase: AutoTestCase) {
-        val displayName = AutoTestDescriptor.createDisplayName(testCase)
         val testId = scenarioDescriptor.uniqueId.append("auto-test", "${++testIndex}")
 
         val descriptor =
             AutoTestDescriptor(
                 uniqueId = testId,
-                displayName = displayName,
-                testCase = testCase,
-                stepDescription = testCase.description,
+                displayName = AutoTestDescriptor.createDisplayName(testCase),
+                testSource = scenarioDescriptor.testSource,
             )
 
         // Register the dynamic test with JUnit
-        scenarioDescriptor.addChild(descriptor)
+        container.addChild(descriptor)
         listener.dynamicTestRegistered(descriptor)
 
         // Start execution immediately for real-time output
@@ -128,7 +133,7 @@ internal class JUnitExecutionListenerAdapter(
             listener.executionFinished(descriptor, TestExecutionResult.successful())
         } else {
             autoTestFailureCount++
-            val errorMessage = buildAutoTestFailureMessage(result)
+            val errorMessage = AutoTestDescriptor.buildAutoTestFailureMessage(result)
             listener.executionFinished(
                 descriptor,
                 TestExecutionResult.failed(AssertionError(errorMessage)),
@@ -140,19 +145,19 @@ internal class JUnitExecutionListenerAdapter(
         mode: String,
         requestCount: Int,
     ) {
+        val parent = scenarioDescriptor.parent.orElseThrow { IllegalStateException("Wrongly configured scenario descriptor") }
         val displayName = MultiTestDescriptor.createDisplayName(mode, requestCount)
         val testId = scenarioDescriptor.uniqueId.append("multi-test", "${++testIndex}")
 
         val descriptor =
-            MultiTestDescriptor(
+            AutoTestDescriptor(
                 uniqueId = testId,
                 displayName = displayName,
-                mode = mode,
-                requestCount = requestCount,
+                testSource = scenarioDescriptor.testSource,
             )
 
         // Register the dynamic test with JUnit
-        scenarioDescriptor.addChild(descriptor)
+        parent.addChild(descriptor)
         listener.dynamicTestRegistered(descriptor)
 
         // Start execution immediately for real-time output
@@ -178,23 +183,6 @@ internal class JUnitExecutionListenerAdapter(
             )
         }
     }
-
-    private fun buildAutoTestFailureMessage(autoResult: AutoTestResult): String =
-        buildString {
-            append(AutoTestDescriptor.createDisplayName(autoResult.testCase))
-            append("\n")
-            if (autoResult.error != null) {
-                append("  Error: ${autoResult.error}")
-            } else {
-                append("  Status: ${autoResult.statusCode ?: "N/A"}")
-                autoResult.assertionResults.filter { !it.passed }.forEach { assertion ->
-                    append("\n  - ${assertion.message}")
-                }
-            }
-            if (autoResult.responseBody != null) {
-                append("\n  Response: ${autoResult.responseBody}")
-            }
-        }
 
     /**
      * Builds a formatted error message for failed steps in a scenario.

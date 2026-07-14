@@ -95,6 +95,24 @@ interface BerryCrushExecutionListener {
     }
 
     /**
+     * Called just before an auto-test step starts execution.
+     *
+     * @param step
+     */
+    fun onAutoTestStepStarting(step: Step) {
+        // do nothing by default
+    }
+
+    /**
+     * Called immediately after an auto-test step finishes execution.
+     *
+     * @param result The result of the test execution
+     */
+    fun onAutoTestStepCompleted(result: StepResult) {
+        // do nothing by default
+    }
+
+    /**
      * Called just before an auto-test case starts execution.
      *
      * @param testCase The test case about to be executed

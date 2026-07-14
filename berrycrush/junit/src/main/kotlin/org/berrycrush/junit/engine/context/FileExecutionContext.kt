@@ -3,12 +3,14 @@ package org.berrycrush.junit.engine.context
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.context.propagate
 import org.berrycrush.junit.engine.ClassTestDescriptor
+import org.berrycrush.junit.engine.ContainerDescriptor
 import org.berrycrush.junit.engine.FeatureDescriptor
 import org.berrycrush.junit.engine.IndividualScenarioDescriptor
 import org.berrycrush.junit.engine.ScenarioFileDescriptor
 import org.berrycrush.junit.engine.adapter.JUnitExecutionListenerAdapter
 import org.berrycrush.runner.ScenarioRunner
 import org.junit.platform.engine.EngineExecutionListener
+import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.TestExecutionResult
 import java.io.File
 
@@ -30,17 +32,43 @@ internal data class FileExecutionContext(
         }
 
         return fileDescriptor.children
-            .map { child ->
-                when (child) {
-                    is IndividualScenarioDescriptor ->
-                        executeScenario(child, classDescriptor, listener, fileContext)
-                    is FeatureDescriptor ->
-                        executeFeature(child, classDescriptor, listener, fileContext)
-                    else -> false
-                }
-            }.any { it }
+            .map { child -> dispatchExecution(child, classDescriptor, listener, fileContext) }
+            .any { it }
     }
 }
+
+private fun FileExecutionContext.dispatchExecution(
+    child: TestDescriptor,
+    classDescriptor: ClassTestDescriptor,
+    listener: EngineExecutionListener,
+    context: ExecutionContext,
+): Boolean =
+    when (child) {
+        is IndividualScenarioDescriptor ->
+            executeScenario(child, classDescriptor, listener, context)
+
+        is FeatureDescriptor ->
+            executeFeature(child, classDescriptor, listener, context)
+
+        is ContainerDescriptor -> {
+            listener.executionStarted(child)
+            val hasFailure =
+                child.children
+                    .map { dispatchExecution(it, classDescriptor, listener, context) }
+                    .any { it }
+            val testExecutionResult =
+                if (!hasFailure) {
+                    TestExecutionResult.successful()
+                } else {
+                    TestExecutionResult.failed(
+                        AssertionError("One or more scenarios in example '${child.displayName}' failed"),
+                    )
+                }
+            listener.executionFinished(child, testExecutionResult)
+            hasFailure
+        }
+        else -> false
+    }
 
 private fun FileExecutionContext.executeFeature(
     featureDescriptor: FeatureDescriptor,
@@ -57,8 +85,7 @@ private fun FileExecutionContext.executeFeature(
     val featureContext = ExecutionContext(featureShareVariables, featureDescriptor.parameters, parentContext)
     val hasFailure =
         featureDescriptor.children
-            .filterIsInstance<IndividualScenarioDescriptor>()
-            .map { executeScenario(it, classDescriptor, listener, featureContext) }
+            .map { child -> dispatchExecution(child, classDescriptor, listener, featureContext) }
             .any { it }
     if (!hasFailure) {
         parentContext.propagate(featureContext)

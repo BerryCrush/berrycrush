@@ -78,7 +78,7 @@ class ScenarioParametersIntegrationTest {
         val content = loader.loadFileContent(path)
 
         // Find the outline in standalone scenarios
-        val outline = content.standaloneScenarios.find { it.name == "Test multiple pets with parameters" }
+        val outline = content.scenarios.find { it.name == "Test multiple pets with parameters" }
         assertNotNull(outline)
 
         // Should have examples

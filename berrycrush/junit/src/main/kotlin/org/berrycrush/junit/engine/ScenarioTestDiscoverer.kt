@@ -8,6 +8,7 @@ import org.berrycrush.scenario.FeatureGroup
 import org.berrycrush.scenario.ScenarioFileContent
 import org.berrycrush.scenario.ScenarioLoader
 import org.junit.jupiter.api.Disabled
+import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.UniqueId
 import org.junit.platform.engine.support.descriptor.AbstractTestDescriptor
 import org.junit.platform.engine.support.descriptor.EngineDescriptor
@@ -119,7 +120,7 @@ object ScenarioTestDiscoverer {
         scenarioFile: File?,
     ) {
         // Add standalone scenarios (expanding outlines), filtered by scenario name
-        content.standaloneScenarios
+        content.scenarios
             .addToDescriptor(filters, fileDescriptor.uniqueId, scenarioFile, fileDescriptor)
 
         // Add feature groups, filtered by feature name
@@ -134,9 +135,9 @@ object ScenarioTestDiscoverer {
         featureId: UniqueId,
         scenarioFile: File?,
         descriptor: AbstractTestDescriptor,
+        featureName: String? = null,
     ) = this
-        .flatMap { scenario -> expandScenarioIfOutline(scenario) }
-        .filter { scenario -> filters.matchesScenarioName(scenario.name) }
+        .filter { scenario -> filters.matchesScenarioName(scenario.name, featureName) }
         .map { scenario -> createScenarioDescriptor(featureId, scenario, scenarioFile) }
         .forEach { descriptor.addChild(it) }
 
@@ -153,7 +154,7 @@ object ScenarioTestDiscoverer {
         // Expand into one scenario per example row
         return examples.mapIndexed { index, row ->
             scenario.copy(
-                name = "${scenario.name} (Example ${index + 1})",
+                name = "Example ${index + 1} - $row",
                 examples = listOf(row), // Keep only this row's data
             )
         }
@@ -163,18 +164,43 @@ object ScenarioTestDiscoverer {
         parentId: UniqueId,
         scenario: Scenario,
         scenarioFile: File? = null,
-    ): IndividualScenarioDescriptor {
-        val scenarioId = parentId.append("scenario", scenario.name)
-        val hasAutoTests = scenario.steps.any { it.autoTestConfig != null }
+        example: Boolean = false,
+    ): TestDescriptor {
         val testSource = IndividualScenarioDescriptor.createTestSource(scenarioFile, scenario.sourceLocation)
 
-        return IndividualScenarioDescriptor(
-            uniqueId = scenarioId,
-            displayName = scenario.name,
-            scenario = scenario,
-            hasAutoTests = hasAutoTests,
-            testSource = testSource,
-        )
+        return if (!example && !scenario.examples.isNullOrEmpty()) {
+            val containerId = parentId.append("container", scenario.name)
+            expandScenarioIfOutline(scenario)
+                .fold(ContainerDescriptor(containerId, scenario.name, testSource)) { acc, scenario ->
+                    val child = createScenarioDescriptor(acc.uniqueId, scenario, scenarioFile, true)
+                    acc.addChild(child)
+                    acc
+                }
+        } else {
+            val hasAutoTests = scenario.steps.any { it.autoTestConfig != null }
+            if (hasAutoTests) {
+                val containerId = parentId.append("container", scenario.name)
+                ContainerDescriptor(containerId, scenario.name, testSource).apply {
+                    val scenarioId = containerId.append("scenario", scenario.name)
+                    addChild(
+                        IndividualScenarioDescriptor(
+                            uniqueId = scenarioId,
+                            displayName = "** Auto test **",
+                            scenario = scenario,
+                            testSource = testSource,
+                        ),
+                    )
+                }
+            } else {
+                val scenarioId = parentId.append("scenario", scenario.name)
+                IndividualScenarioDescriptor(
+                    uniqueId = scenarioId,
+                    displayName = scenario.name,
+                    scenario = scenario,
+                    testSource = testSource,
+                )
+            }
+        }
         // Note: No placeholder children are added during discovery
         // Auto-tests are added dynamically during execution
     }
@@ -196,7 +222,7 @@ object ScenarioTestDiscoverer {
                 testSource = testSource,
             )
 
-        feature.scenarios.addToDescriptor(filters, featureId, scenarioFile, featureDescriptor)
+        feature.scenarios.addToDescriptor(filters, featureId, scenarioFile, featureDescriptor, feature.name)
         return featureDescriptor
     }
 
