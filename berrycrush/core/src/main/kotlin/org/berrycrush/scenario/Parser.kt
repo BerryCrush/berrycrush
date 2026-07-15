@@ -57,9 +57,8 @@ class Parser(
      * Parse the token stream into an AST.
      */
     fun parse(): ParserResult {
-        val scenarios = mutableListOf<ScenarioNode>()
+        val stories = mutableListOf<StoryNode>()
         val fragments = mutableListOf<FragmentNode>()
-        val features = mutableListOf<FeatureNode>()
         var parameters: ParametersNode? = null
         val startLocation = state.currentLocation()
 
@@ -70,29 +69,13 @@ class Parser(
             val tags = state.parseTags()
 
             when (state.current().type) {
-                TokenType.PARAMETERS -> {
-                    parameters = state.parseParameters()
-                }
-                TokenType.SCENARIO -> {
-                    val scenario = state.parseScenario(tags)
-                    if (scenario != null) scenarios.add(scenario)
-                }
-                TokenType.OUTLINE -> {
-                    val scenario = state.parseScenarioOutline(tags)
-                    if (scenario != null) scenarios.add(scenario)
-                }
-                TokenType.FEATURE -> {
-                    val feature = state.parseFeature(tags)
-                    if (feature != null) features.add(feature)
-                }
-                TokenType.FRAGMENT -> {
-                    val fragment = state.parseFragment()
-                    if (fragment != null) fragments.add(fragment)
-                }
+                TokenType.PARAMETERS -> parameters = state.parseParameters()
+                TokenType.SCENARIO -> state.parseScenario(tags)?.let(stories::add)
+                TokenType.OUTLINE -> state.parseScenarioOutline(tags)?.let(stories::add)
+                TokenType.FEATURE -> state.parseFeature(tags)?.let(stories::add)
+                TokenType.FRAGMENT -> state.parseFragment()?.let(fragments::add)
                 TokenType.EOF -> break
-                TokenType.NEWLINE, TokenType.INDENT, TokenType.DEDENT -> {
-                    state.advance()
-                }
+                TokenType.NEWLINE, TokenType.INDENT, TokenType.DEDENT -> state.advance()
                 else -> {
                     state.addError(
                         "Unexpected token",
@@ -107,7 +90,7 @@ class Parser(
 
         val ast =
             if (state.errors.isEmpty()) {
-                ScenarioFileNode(scenarios, fragments, features, parameters, startLocation)
+                ScenarioFileNode(stories, fragments, parameters, startLocation)
             } else {
                 null
             }

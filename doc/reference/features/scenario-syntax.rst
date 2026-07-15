@@ -505,6 +505,37 @@ In this example:
 * "valid login" has tags: ``api``, ``regression``, ``smoke``
 * "incomplete test" has tags: ``api``, ``regression``, ``ignore``
 
+Top-Level Execution Order
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+BerryCrush preserves authored order across mixed top-level entries in a ``.scenario`` file.
+This means ``feature``, standalone ``scenario``, and ``outline`` entries run in the exact order they appear.
+
+.. code-block:: berrycrush
+
+    feature: Feature first
+      scenario: inside feature
+        when: run
+          call ^featureCall
+
+    scenario: standalone second
+      when: run
+        call ^standaloneCall
+
+    outline: third entry
+      when: run <id>
+        call ^outlineCall
+          id: "<id>"
+      examples:
+        | id |
+        | 1  |
+
+Effective execution order:
+
+1. ``inside feature``
+2. ``standalone second``
+3. ``third entry``
+
 Scenario-Level Parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 

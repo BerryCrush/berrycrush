@@ -91,6 +91,11 @@ suite.scenario("List all pets") {
 - `Parser` - Builds Abstract Syntax Tree from tokens
 - `ScenarioLoader` - Transforms AST into executable `Scenario` objects
 
+**Top-level ordering model:**
+- `Parser` emits `ScenarioFileNode.stories` where `feature`, `scenario`, and `outline` entries coexist in authored file order.
+- `ScenarioLoader` exposes `ScenarioFileContent.stories` (`ScenarioEntry` and `FeatureGroup`) and uses that ordered collection for downstream consumption.
+- Execution/discovery paths must iterate ordered top-level entries rather than concatenating standalone and feature-derived scenarios.
+
 ### 3. OpenAPI Integration
 
 BerryCrush uses an abstraction layer to support multiple OpenAPI versions (3.0.x, 3.1.x, and future versions).

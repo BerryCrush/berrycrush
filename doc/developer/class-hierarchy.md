@@ -79,11 +79,16 @@ org.berrycrush.scenario
 │   ├── loadScenariosFromString(source)
 │   ├── loadFileContent(path)   # Returns ScenarioFileContent
 │   └── loadFragmentsFromFile(path)
-├── ScenarioFileContent         # Parsed file with scenarios and parameters
+├── ScenarioFileContent         # Parsed file with ordered top-level entries and parameters
+├── Story (sealed)              # Ordered loader/runtime top-level entry
+│   ├── ScenarioEntry
+│   └── FeatureGroup
 ├── Token                       # Lexer token
 ├── TokenType                   # Token type enum
 └── AST Node Classes
+    ├── StoryNode (sealed)      # Ordered top-level AST entry
     ├── ScenarioNode
+    ├── FeatureNode
     ├── StepNode
     ├── FragmentNode
     └── ParametersNode

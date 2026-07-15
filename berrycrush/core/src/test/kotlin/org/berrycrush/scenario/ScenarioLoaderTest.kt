@@ -419,4 +419,69 @@ class ScenarioLoaderTest {
         assertEquals("Pet API", featureGroup.name)
         assertEquals("https://api.example.com", featureGroup.parameters["baseUrl"])
     }
+
+    @Test
+    fun `should preserve top-level content order for mixed entries`() {
+        val source =
+            """
+            |feature: Feature first
+            |  scenario: Feature scenario
+            |    when I run feature scenario
+            |      call ^featureCall
+            |
+            |scenario: Standalone scenario
+            |  when I run standalone scenario
+            |    call ^standaloneCall
+            |
+            |outline: Standalone outline
+            |  when I run outline "<id>"
+            |    call ^outlineCall
+            |      id: "<id>"
+            |  examples:
+            |    | id |
+            |    | 1  |
+            """.trimMargin()
+
+        val content = loader.loadFileContentFromString(source)
+
+        assertEquals(3, content.stories.size)
+        assertTrue(content.stories[0] is FeatureGroup)
+        assertTrue(content.stories[1] is ScenarioEntry)
+        assertTrue(content.stories[2] is ScenarioEntry)
+
+        val firstScenarioName = (content.stories[1] as ScenarioEntry).scenario.name
+        val secondScenarioName = (content.stories[2] as ScenarioEntry).scenario.name
+        assertEquals("Standalone scenario", firstScenarioName)
+        assertEquals("Standalone outline", secondScenarioName)
+    }
+
+    @Test
+    fun `should load scenarios in authored top-level order`() {
+        val source =
+            """
+            |feature: Feature first
+            |  scenario: Feature scenario
+            |    when I run feature scenario
+            |      call ^featureCall
+            |
+            |scenario: Standalone scenario
+            |  when I run standalone scenario
+            |    call ^standaloneCall
+            |
+            |outline: Standalone outline
+            |  when I run outline "<id>"
+            |    call ^outlineCall
+            |      id: "<id>"
+            |  examples:
+            |    | id |
+            |    | 1  |
+            """.trimMargin()
+
+        val scenarios = loader.loadScenariosFromString(source)
+
+        assertEquals(
+            listOf("Feature scenario", "Standalone scenario", "Standalone outline"),
+            scenarios.map { it.name },
+        )
+    }
 }

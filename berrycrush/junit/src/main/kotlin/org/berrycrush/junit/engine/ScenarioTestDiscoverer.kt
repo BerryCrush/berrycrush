@@ -5,8 +5,10 @@ import org.berrycrush.junit.discovery.DiscoveredScenario
 import org.berrycrush.junit.discovery.ScenarioDiscovery
 import org.berrycrush.model.Scenario
 import org.berrycrush.scenario.FeatureGroup
+import org.berrycrush.scenario.ScenarioEntry
 import org.berrycrush.scenario.ScenarioFileContent
 import org.berrycrush.scenario.ScenarioLoader
+import org.berrycrush.scenario.Story
 import org.junit.jupiter.api.Disabled
 import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.UniqueId
@@ -119,15 +121,21 @@ object ScenarioTestDiscoverer {
         filters: ScenarioFilters,
         scenarioFile: File?,
     ) {
-        // Add standalone scenarios (expanding outlines), filtered by scenario name
-        content.scenarios
-            .addToDescriptor(filters, fileDescriptor.uniqueId, scenarioFile, fileDescriptor)
+        content.stories.forEach { entry: Story ->
+            when (entry) {
+                is ScenarioEntry ->
+                    listOf(entry.scenario)
+                        .addToDescriptor(filters, fileDescriptor.uniqueId, scenarioFile, fileDescriptor)
 
-        // Add feature groups, filtered by feature name
-        content.features
-            .filter { feature -> filters.matchesFeatureName(feature.name) }
-            .map { feature -> createFeatureDescriptor(fileDescriptor.uniqueId, feature, filters, scenarioFile) }
-            .forEach { fileDescriptor.addChild(it) }
+                is FeatureGroup -> {
+                    if (filters.matchesFeatureName(entry.name)) {
+                        fileDescriptor.addChild(
+                            createFeatureDescriptor(fileDescriptor.uniqueId, entry, filters, scenarioFile),
+                        )
+                    }
+                }
+            }
+        }
     }
 
     private fun List<Scenario>.addToDescriptor(

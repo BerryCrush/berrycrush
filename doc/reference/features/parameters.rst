@@ -317,8 +317,11 @@ through the ``ScenarioFileContent`` class:
    val loader = ScenarioLoader()
    val content = loader.loadFileContent(path)
 
-   // Access scenarios
-   val scenarios = content.scenarios
+  // Access ordered top-level entries (ScenarioEntry / FeatureGroup)
+  val stories = content.stories
+
+  // Extract standalone scenarios from ordered top-level entries
+  val standaloneScenarios = content.scenarios
 
    // Access parameters
    val parameters = content.parameters
@@ -332,7 +335,7 @@ To run scenarios with file-level parameters, use the ``runWithParameters`` metho
    val runner = ScenarioRunner(specRegistry, configuration, pluginRegistry)
 
    // Run with file-level parameter overrides
-   val result = runner.runWithParameters(content.scenarios, content.parameters)
+  val result = runner.runWithParameters(standaloneScenarios, content.parameters)
 
    // Or apply parameters to configuration manually
    val modifiedConfig = configuration.withParameters(content.parameters)
