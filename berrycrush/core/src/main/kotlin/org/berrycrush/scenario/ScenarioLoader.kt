@@ -31,6 +31,20 @@ interface HasParameters {
 }
 
 /**
+ * Ordered top-level content in a loaded scenario file.
+ */
+sealed interface Story : HasParameters
+
+/**
+ * Standalone top-level scenario entry.
+ */
+data class ScenarioEntry(
+    val scenario: Scenario,
+) : Story {
+    override val parameters: Map<String, Any> get() = scenario.parameters
+}
+
+/**
  * Represents a group of scenarios within a feature block.
  *
  * @property name Feature name
@@ -45,7 +59,7 @@ data class FeatureGroup(
     val tags: Set<String> = emptySet(),
     override val parameters: Map<String, Any> = emptyMap(),
     val sourceLocation: SourceLocation? = null,
-) : HasParameters
+) : Story
 
 /**
  * Result of loading a scenario file.
@@ -55,10 +69,24 @@ data class FeatureGroup(
  * @property parameters Optional file-level configuration parameters
  */
 data class ScenarioFileContent(
-    val features: List<FeatureGroup> = emptyList(),
-    val scenarios: List<Scenario> = emptyList(),
+    val stories: List<Story> = emptyList(),
     override val parameters: Map<String, Any> = emptyMap(),
-) : HasParameters
+) : HasParameters {
+    /**
+     * Read-only compatibility accessor for features.
+     */
+    val features: List<FeatureGroup>
+        get() = stories.filterIsInstance<FeatureGroup>()
+
+    /**
+     * Read-only compatibility accessor for standalone top-level scenarios.
+     */
+    val scenarios: List<Scenario>
+        get() =
+            stories
+                .filterIsInstance<ScenarioEntry>()
+                .map { it.scenario }
+}
 
 /**
  * Loads and transforms scenario files into executable Scenario objects.
@@ -129,26 +157,18 @@ class ScenarioLoader {
     ): ScenarioFileContent {
         val result = parseOrThrow(source, fileName)
 
-        // Transform standalone scenarios (not in any feature)
-        val scenarios = result.ast!!.scenarios.map { transformScenario(it) }
-
-        // Transform features with their scenarios (with optional background steps prepended)
-        val featureGroups =
-            result.ast.features.map { feature ->
-                FeatureGroup(
-                    name = feature.name,
-                    scenarios = transformFeature(feature),
-                    tags = feature.tags,
-                    parameters = feature.parameters?.values ?: emptyMap(),
-                    sourceLocation = feature.location,
-                )
+        val stories =
+            result.ast!!.stories.map { node ->
+                when (node) {
+                    is ScenarioNode -> ScenarioEntry(transformScenario(node))
+                    is FeatureNode -> transformFeatureGroup(node)
+                }
             }
 
         val parameters = result.ast.parameters?.values ?: emptyMap()
 
         return ScenarioFileContent(
-            features = featureGroups,
-            scenarios = scenarios,
+            stories = stories,
             parameters = parameters,
         )
     }
@@ -166,11 +186,12 @@ class ScenarioLoader {
     ): List<Scenario> {
         val result = parseOrThrow(source, fileName)
 
-        // Transform and combine scenarios
-        val standaloneScenarios = result.ast!!.scenarios.map { transformScenario(it) }
-        val featureScenarios = result.ast.features.flatMap { transformFeature(it) }
-
-        return standaloneScenarios + featureScenarios
+        return result.ast!!.stories.flatMap { node ->
+            when (node) {
+                is ScenarioNode -> listOf(transformScenario(node))
+                is FeatureNode -> transformFeatureScenarios(node)
+            }
+        }
     }
 
     /**
@@ -245,7 +266,16 @@ class ScenarioLoader {
      * Feature tags are inherited by scenarios unless the scenario overrides them.
      * Feature parameters are inherited by scenarios, with scenario parameters taking precedence.
      */
-    private fun transformFeature(node: FeatureNode): List<Scenario> {
+    private fun transformFeatureGroup(node: FeatureNode): FeatureGroup =
+        FeatureGroup(
+            name = node.name,
+            scenarios = transformFeatureScenarios(node),
+            tags = node.tags,
+            parameters = node.parameters?.values ?: emptyMap(),
+            sourceLocation = node.location,
+        )
+
+    private fun transformFeatureScenarios(node: FeatureNode): List<Scenario> {
         // Transform background steps if present
         val backgroundSteps =
             node.background?.steps?.flatMap { transformStep(it) } ?: emptyList()

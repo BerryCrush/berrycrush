@@ -8,6 +8,13 @@ sealed interface AstNode {
 }
 
 /**
+ * Top-level AST node in a scenario file.
+ *
+ * Top-level nodes are emitted and consumed in authored source order.
+ */
+sealed interface StoryNode : AstNode
+
+/**
  * Interface for AST nodes that can have parameters.
  *
  * Parameters provide configuration that can be applied at different levels:
@@ -25,13 +32,24 @@ interface Parameterized {
  * Root node representing a scenario file.
  */
 data class ScenarioFileNode(
-    val scenarios: List<ScenarioNode>,
+    val stories: List<StoryNode> = emptyList(),
     val fragments: List<FragmentNode>,
-    val features: List<FeatureNode> = emptyList(),
     override val parameters: ParametersNode? = null,
     override val location: SourceLocation,
 ) : AstNode,
-    Parameterized
+    Parameterized {
+    /**
+     * Read-only compatibility accessor for standalone scenarios.
+     */
+    val scenarios: List<ScenarioNode>
+        get() = stories.filterIsInstance<ScenarioNode>()
+
+    /**
+     * Read-only compatibility accessor for features.
+     */
+    val features: List<FeatureNode>
+        get() = stories.filterIsInstance<FeatureNode>()
+}
 
 /**
  * Represents file-level configuration parameters.
@@ -79,7 +97,7 @@ data class FeatureNode(
     val scenarios: List<ScenarioNode>,
     val tags: Set<String> = emptySet(),
     override val location: SourceLocation,
-) : AstNode,
+) : StoryNode,
     Parameterized
 
 /**
@@ -117,7 +135,7 @@ data class ScenarioNode(
     val tags: Set<String> = emptySet(),
     override val parameters: ParametersNode? = null,
     override val location: SourceLocation,
-) : AstNode,
+) : StoryNode,
     Parameterized
 
 /**

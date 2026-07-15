@@ -122,4 +122,34 @@ class ScenarioParametersIntegrationTest {
         assertEquals("staging", listScenario.parameters["environment"])
         assertEquals(60L, listScenario.parameters["timeout"])
     }
+
+    @Test
+    fun `should preserve authored order for mixed top-level execution list`() {
+        val source =
+            """
+            feature: Feature first
+              scenario: Feature scenario
+                when: run feature
+                  call ^featureCall
+
+            scenario: Standalone scenario
+              when: run standalone
+                call ^standaloneCall
+
+            outline: Standalone outline
+              when: run outline "<id>"
+                call ^outlineCall
+                  id: "<id>"
+              examples:
+                | id |
+                | 1  |
+            """.trimIndent()
+
+        val scenarios = loader.loadScenariosFromString(source)
+
+        assertEquals(
+            listOf("Feature scenario", "Standalone scenario", "Standalone outline"),
+            scenarios.map { it.name },
+        )
+    }
 }

@@ -624,6 +624,46 @@ class ParserTest {
     }
 
     @Test
+    fun `should preserve authored top-level order for mixed entries`() {
+        val source =
+            """
+            feature: Feature first
+              scenario: Feature scenario
+                when: run
+                  call ^featureCall
+
+            scenario: Standalone scenario
+              when: run
+                call ^standaloneCall
+
+            outline: Standalone outline
+              when: run <id>
+                call ^outlineCall
+                  id: "<id>"
+              examples:
+                | id |
+                | 1  |
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val topLevelNodes = result.ast!!.stories
+        assertEquals(3, topLevelNodes.size)
+
+        assertTrue(topLevelNodes[0] is FeatureNode)
+        assertEquals("Feature first", (topLevelNodes[0] as FeatureNode).name)
+
+        assertTrue(topLevelNodes[1] is ScenarioNode)
+        assertEquals("Standalone scenario", (topLevelNodes[1] as ScenarioNode).name)
+
+        assertTrue(topLevelNodes[2] is ScenarioNode)
+        val outline = topLevelNodes[2] as ScenarioNode
+        assertEquals("Standalone outline", outline.name)
+        assertTrue(outline.isOutline)
+    }
+
+    @Test
     fun `should parse feature with parameters`() {
         val source =
             """
