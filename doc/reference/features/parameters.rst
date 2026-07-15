@@ -318,7 +318,7 @@ through the ``ScenarioFileContent`` class:
    val content = loader.loadFileContent(path)
 
   // Access ordered top-level entries (ScenarioEntry / FeatureGroup)
-  val topLevelEntries = content.topLevelEntries
+  val stories = content.stories
 
   // Extract standalone scenarios from ordered top-level entries
   val standaloneScenarios = content.scenarios

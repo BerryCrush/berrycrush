@@ -76,7 +76,6 @@ class Parser(
                 TokenType.FRAGMENT -> state.parseFragment()?.let(fragments::add)
                 TokenType.EOF -> break
                 TokenType.NEWLINE, TokenType.INDENT, TokenType.DEDENT -> state.advance()
-
                 else -> {
                     state.addError(
                         "Unexpected token",

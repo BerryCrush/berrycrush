@@ -92,8 +92,8 @@ suite.scenario("List all pets") {
 - `ScenarioLoader` - Transforms AST into executable `Scenario` objects
 
 **Top-level ordering model:**
-- `Parser` emits `ScenarioFileNode.topLevelNodes` where `feature`, `scenario`, and `outline` entries coexist in authored file order.
-- `ScenarioLoader` exposes `ScenarioFileContent.topLevelEntries` (`ScenarioEntry` and `FeatureGroup`) and uses that ordered collection for downstream consumption.
+- `Parser` emits `ScenarioFileNode.stories` where `feature`, `scenario`, and `outline` entries coexist in authored file order.
+- `ScenarioLoader` exposes `ScenarioFileContent.stories` (`ScenarioEntry` and `FeatureGroup`) and uses that ordered collection for downstream consumption.
 - Execution/discovery paths must iterate ordered top-level entries rather than concatenating standalone and feature-derived scenarios.
 
 ### 3. OpenAPI Integration
