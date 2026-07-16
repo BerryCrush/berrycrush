@@ -102,12 +102,18 @@ private fun buildResult(
     results: List<RequestResult>,
     totalDuration: Duration,
 ): MultiTestResult {
-    // Default verification: all responses should have the same status code
-    val statusCodes = results.mapNotNull { it.response?.statusCode }.distinct()
-    val passed = statusCodes.size == 1
+    val passed = results.all { it.assertionResults.all { it.passed } }
     val failureReason =
         if (!passed) {
-            "Inconsistent status codes: ${statusCodes.joinToString(", ")}"
+            results.filter { it.assertionResults.any { !it.passed } }
+                .joinToString("\n") { result ->
+                    val failedAssertions =
+                        result.assertionResults.filter { !it.passed }
+                    val assertionMessages =
+                        failedAssertions.filter { it.message != null}
+                            .joinToString("; ") { it.message!! }
+                    "Request ${result.requestIndex + 1}: $assertionMessages"
+                }
         } else {
             null
         }

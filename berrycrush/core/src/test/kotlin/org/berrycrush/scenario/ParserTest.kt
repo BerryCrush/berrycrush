@@ -45,10 +45,15 @@ class ParserTest {
      */
     private fun AssertNode.isCustomAssertion(): Boolean = unwrapCondition() is ConditionNode.CustomAssertionCondition
 
+    private fun AssertNode.isVariableAssertion(): Boolean = unwrapCondition() is ConditionNode.VariableCondition
+
     /**
      * Get the pattern from a CustomAssertionCondition assertion.
      */
     private fun AssertNode.getCustomPattern(): String? = (unwrapCondition() as? ConditionNode.CustomAssertionCondition)?.pattern
+
+    private val AssertNode.variableName: String?
+        get() = (unwrapCondition() as? ConditionNode.VariableCondition)?.variableName
 
     /**
      * Check if an assertion is negated (wrapped in NegatedCondition).

@@ -26,8 +26,7 @@ import tools.jackson.databind.ObjectMapper
 import java.time.Duration
 import java.time.Instant
 import org.berrycrush.autotest.AutoTestType as TestType
-
-private const val RESPONSE_BODY_PREVIEW_LENGTH = 500
+import org.berrycrush.assertion.AssertionResult as ModelAssertionResult
 
 /**
  * Executes auto-generated invalid and security tests for API endpoints.
@@ -261,17 +260,6 @@ class AutoTestExecutor(
         context["test.location"] = testCase.location.name.lowercase()
     }
 
-    private fun isSecurityTestBlocked(
-        testCase: AutoTestCase,
-        error: Exception,
-    ): Boolean {
-        val isSecurityTest = testCase.type == AutoTestType.SECURITY.toTestType()
-        val isUrlError =
-            error.message?.contains("Illegal character") == true ||
-                error.message?.contains("Invalid URL") == true
-        return isSecurityTest && isUrlError
-    }
-
     /**
      * Execute a single auto-test case.
      *
@@ -296,7 +284,7 @@ class AutoTestExecutor(
         }.getOrElse { e ->
             AutoTestResult(
                 testCase = testCase,
-                passed = isSecurityTestBlocked(testCase, e as Exception),
+                passed = false,
                 error = e.message ?: e.javaClass.simpleName,
                 duration = Duration.between(testStartTime, Instant.now()),
             )
@@ -325,8 +313,7 @@ class AutoTestExecutor(
         return AutoTestResult(
             testCase = testCase,
             passed = allResults.all { it.passed },
-            statusCode = response.statusCode,
-            responseBody = response.body?.take(RESPONSE_BODY_PREVIEW_LENGTH),
+            response = response,
             assertionResults = allResults,
             duration = Duration.between(testStartTime, Instant.now()),
         )
@@ -553,10 +540,19 @@ class AutoTestExecutor(
 
         return runCatching {
             val response = httpExecutor.execute(step, specRegistry, context)
-
+            val assertionResults = assertionRunner(response, step.assertions, context)
+            val allResults = assertionResults.assertionResults
             RequestResult.create(
                 requestIndex = requestIndex,
                 response = response,
+                duration = Duration.between(Instant.now(), requestStartTime),
+                assertionResults = allResults.map {
+                    if (it.passed) {
+                        ModelAssertionResult.passed(it.message)
+                    } else {
+                        ModelAssertionResult.failed(it.message)
+                    }
+                },
             )
         }.getOrElse { _ ->
             RequestResult.create(

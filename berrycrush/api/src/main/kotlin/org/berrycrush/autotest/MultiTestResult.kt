@@ -2,6 +2,7 @@ package org.berrycrush.autotest
 
 import org.berrycrush.model.HttpResponse
 import java.time.Duration
+import org.berrycrush.assertion.AssertionResult
 
 /**
  * Result of a multi-request idempotency test.
@@ -66,6 +67,7 @@ data class RequestResult(
     val response: HttpResponse?,
     val threadName: String? = null,
     val duration: Duration,
+    val assertionResults: List<AssertionResult>,
 ) {
     companion object {
         /**
@@ -75,12 +77,14 @@ data class RequestResult(
             requestIndex: Int,
             response: HttpResponse? = null,
             duration: Duration? = null,
+            assertionResults: List<AssertionResult> = emptyList(),
         ): RequestResult =
             RequestResult(
                 requestIndex = requestIndex,
                 response = response,
                 threadName = Thread.currentThread().name,
                 duration = response?.duration ?: duration ?: Duration.ZERO,
+                assertionResults = assertionResults,
             )
     }
 }

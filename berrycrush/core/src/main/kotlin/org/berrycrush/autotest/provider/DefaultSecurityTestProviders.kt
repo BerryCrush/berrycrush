@@ -90,7 +90,7 @@ class PathTraversalProvider : SecurityTestProvider {
             displayName,
             listOf(
                 SecurityPayload("Unix relative", "../../../etc/passwd"),
-                SecurityPayload("Windows relative", "..\\..\\..\\windows\\system32\\config\\sam"),
+                SecurityPayload("Windows relative", "..%5C..%5C..%5Cwindows%5Csystem32%5Cconfig%5Csam"),
                 SecurityPayload("URL encoded", "..%2F..%2F..%2Fetc%2Fpasswd"),
                 SecurityPayload("Double encoded", "..%252F..%252F..%252Fetc%252Fpasswd"),
             ),

@@ -24,6 +24,7 @@ outline: Top level parameters test
     call ^getTest
       auto: [multi]
       excludes: [concurrent]
+    assert status -1
   then the param name "{{parameterName}}" must be {{parameterValue}}
   examples:
     | parameterName     | parameterValue |

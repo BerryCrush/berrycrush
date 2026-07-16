@@ -51,6 +51,7 @@ scenario: Auto-generated security tests for pet creation
 scenario: Security tests excluding XSS and XXE
   when: updating pet with injection payloads
     call ^updatePet
+      petId: 1
       auto: [security]
       excludes: [XSS, XXE]
       body:

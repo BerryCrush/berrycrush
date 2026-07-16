@@ -3,6 +3,8 @@ package org.berrycrush.model
 import org.berrycrush.autotest.AutoTestCase
 import java.time.Duration
 
+private const val RESPONSE_BODY_PREVIEW_LENGTH = 500
+
 /**
  * Result of executing a single auto-generated test case.
  *
@@ -17,9 +19,11 @@ import java.time.Duration
 data class AutoTestResult(
     val testCase: AutoTestCase,
     val passed: Boolean,
-    val statusCode: Int? = null,
-    val responseBody: String? = null,
+    val response: HttpResponse? = null,
     val assertionResults: List<AssertionResult> = emptyList(),
     val duration: Duration = Duration.ZERO,
     val error: String? = null,
-)
+) {
+    val statusCode: Int? = response?.statusCode
+    val responseBody: String? = response?.body?.take(RESPONSE_BODY_PREVIEW_LENGTH)
+}
