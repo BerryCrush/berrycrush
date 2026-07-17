@@ -46,19 +46,18 @@ object ScenarioTestDiscoverer {
         testClass: KClass<*>,
         filters: ScenarioFilters = ScenarioFilters.EMPTY,
     ) {
-        if (testClass.hasAnnotation<Disabled>()) return
-        val annotation = testClass.findAnnotation<BerryCrushScenarios>() ?: return
+        if (testClass.hasAnnotation<Disabled>() || engineDescriptor.alreadyDiscovered(testClass)) return
+        testClass.findAnnotation<BerryCrushScenarios>()?.let { annotation ->
+            if (annotation.locations.isEmpty()) return
 
-        if (engineDescriptor.alreadyDiscovered(testClass)) return
-        if (annotation.locations.isEmpty()) return
+            val discoveredFiles =
+                discoverScenarioFiles(testClass.java.classLoader, annotation.locations)
+                    .filter { filters.matchesFile(it.path, it.name) }
+            val classDescriptor = createClassDescriptor(engineDescriptor.uniqueId, testClass, discoveredFiles, filters)
 
-        val discoveredFiles =
-            discoverScenarioFiles(testClass.java.classLoader, annotation.locations)
-                .filter { filters.matchesFile(it.path, it.name) }
-        val classDescriptor = createClassDescriptor(engineDescriptor.uniqueId, testClass, discoveredFiles, filters)
-
-        if (classDescriptor.children.isNotEmpty() || discoveredFiles.isEmpty()) {
-            engineDescriptor.addChild(classDescriptor)
+            if (classDescriptor.children.isNotEmpty() || discoveredFiles.isEmpty()) {
+                engineDescriptor.addChild(classDescriptor)
+            }
         }
     }
 

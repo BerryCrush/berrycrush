@@ -249,16 +249,11 @@ class BerryCrushExtension :
         }
 
         // Get the test class to read configuration annotation
-        val testClass =
-            findRootTestClass(context)
-                ?: return null
-
-        val newRegistry =
-            RegistryFactory.createStepRegistry(testClass)
-                ?: return null
-
-        context.getStore(NAMESPACE).put(STEP_REGISTRY_KEY, newRegistry)
-        return newRegistry
+        return findRootTestClass(context)?.let { testClass ->
+            RegistryFactory.createStepRegistry(testClass)?.apply {
+                context.getStore(NAMESPACE).put(STEP_REGISTRY_KEY, this)
+            }
+        }
     }
 
     /**
@@ -278,16 +273,11 @@ class BerryCrushExtension :
         }
 
         // Get the test class to read configuration annotation
-        val testClass =
-            findRootTestClass(context)
-                ?: return null
-
-        val newRegistry =
-            RegistryFactory.createAssertionRegistry(testClass)
-                ?: return null
-
-        context.getStore(NAMESPACE).put(ASSERTION_REGISTRY_KEY, newRegistry)
-        return newRegistry
+        return findRootTestClass(context)?.let { testClass ->
+            RegistryFactory.createAssertionRegistry(testClass).apply {
+                context.getStore(NAMESPACE).put(ASSERTION_REGISTRY_KEY, this)
+            }
+        }
     }
 
     /**
