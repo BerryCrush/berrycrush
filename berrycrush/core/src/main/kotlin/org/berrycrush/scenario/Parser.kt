@@ -77,7 +77,7 @@ class Parser(
                 TokenType.EOF -> break
                 TokenType.NEWLINE, TokenType.INDENT, TokenType.DEDENT -> state.advance()
                 else -> {
-                    state.addError(
+                    state.addError<Unit>(
                         "Unexpected token",
                         expected = "parameters, scenario, outline, feature, or fragment",
                         found = state.current().value,

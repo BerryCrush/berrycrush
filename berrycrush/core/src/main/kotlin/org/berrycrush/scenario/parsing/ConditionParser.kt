@@ -10,6 +10,24 @@ import org.berrycrush.scenario.SourceLocation
 import org.berrycrush.scenario.TokenType
 import org.berrycrush.scenario.ValueNode
 
+private val VALID_OPERATORS =
+    setOf(
+        "equals",
+        "=",
+        "matches",
+        "exists",
+        "hassize",
+        "size",
+        "arraysize",
+        "notempty",
+        "contains",
+        "greaterthan",
+        ">",
+        "lessthan",
+        "<",
+        "in",
+    )
+
 /**
  * Context for condition parsing - affects parsing style for some conditions.
  */
@@ -65,57 +83,93 @@ internal fun ParserState.parseCondition(
 ): ConditionNode? =
     when {
         keyword == "status" || keyword == "statuscode" -> {
-            advance()
-            skipWhitespace()
-            parseStatusValue()?.let { expected ->
-                applyNegation(ConditionNode.StatusCondition(expected, loc), negate, loc)
-            }
+            parseStatusCondition(loc, negate)
         }
         keyword == "schema" || keyword == "matchesschema" -> {
-            advance()
-            skipWhitespace()
-            applyNegation(ConditionNode.SchemaCondition(loc), negate, loc)
+            parseSchemaCondition(loc, negate)
         }
         keyword == "header" -> {
-            advance()
-            skipWhitespace()
-            val headerName = parseHeaderName()
-            skipWhitespace()
-
-            val cond =
-                if (context == ConditionContext.ASSERT) {
-                    if (current().type == TokenType.EQUALS || current().type == TokenType.COLON) {
-                        advance()
-                        skipWhitespace()
-                        ConditionNode.HeaderCondition(headerName, ConditionOperator.EQUALS, parseValue(), loc)
-                    } else {
-                        ConditionNode.HeaderCondition(headerName, ConditionOperator.EXISTS, null, loc)
-                    }
-                } else {
-                    val (op, expected) = parseConditionOperatorAndValue()
-                    ConditionNode.HeaderCondition(headerName, op, expected, loc)
-                }
-            applyNegation(cond, negate, loc)
+            parseHeaderCondition(context, loc, negate)
         }
         keyword == "contains" || keyword == "bodycontains" -> {
-            advance()
-            skipWhitespace()
-            parseValue()?.let { text ->
-                applyNegation(ConditionNode.BodyContainsCondition(text, loc), negate, loc)
-            }
+            parseContainsCondition(loc, negate)
         }
         keyword == "responsetime" -> {
-            advance()
-            skipWhitespace()
-            parseValue()?.let { maxMs ->
-                applyNegation(ConditionNode.ResponseTimeCondition(maxMs, loc), negate, loc)
-            }
+            parseResponseTimeCondition(loc, negate)
         }
         keyword.startsWith("$") || current().type == TokenType.JSON_PATH -> {
             parseJsonPathCondition(keyword, loc, context, negate)
         }
         else -> null
     }
+
+private fun ParserState.parseResponseTimeCondition(
+    loc: SourceLocation,
+    negate: Boolean,
+): ConditionNode? {
+    advance()
+    skipWhitespace()
+    return parseValue()?.let { maxMs ->
+        applyNegation(ConditionNode.ResponseTimeCondition(maxMs, loc), negate, loc)
+    }
+}
+
+private fun ParserState.parseContainsCondition(
+    loc: SourceLocation,
+    negate: Boolean,
+): ConditionNode? {
+    advance()
+    skipWhitespace()
+    return parseValue()?.let { text ->
+        applyNegation(ConditionNode.BodyContainsCondition(text, loc), negate, loc)
+    }
+}
+
+private fun ParserState.parseHeaderCondition(
+    context: ConditionContext,
+    loc: SourceLocation,
+    negate: Boolean,
+): ConditionNode {
+    advance()
+    skipWhitespace()
+    val headerName = parseHeaderName()
+    skipWhitespace()
+
+    val cond =
+        if (context == ConditionContext.ASSERT) {
+            if (current().type == TokenType.EQUALS || current().type == TokenType.COLON) {
+                advance()
+                skipWhitespace()
+                ConditionNode.HeaderCondition(headerName, ConditionOperator.EQUALS, parseValue(), loc)
+            } else {
+                ConditionNode.HeaderCondition(headerName, ConditionOperator.EXISTS, null, loc)
+            }
+        } else {
+            val (op, expected) = parseConditionOperatorAndValue()
+            ConditionNode.HeaderCondition(headerName, op, expected, loc)
+        }
+    return applyNegation(cond, negate, loc)
+}
+
+private fun ParserState.parseSchemaCondition(
+    loc: SourceLocation,
+    negate: Boolean,
+): ConditionNode {
+    advance()
+    skipWhitespace()
+    return applyNegation(ConditionNode.SchemaCondition(loc), negate, loc)
+}
+
+private fun ParserState.parseStatusCondition(
+    loc: SourceLocation,
+    negate: Boolean,
+): ConditionNode? {
+    advance()
+    skipWhitespace()
+    return parseStatusValue()?.let { expected ->
+        applyNegation(ConditionNode.StatusCondition(expected, loc), negate, loc)
+    }
+}
 
 /**
  * Parse a JSON path condition with operator validation for assertions.
@@ -147,34 +201,15 @@ internal fun ParserState.parseJsonPathCondition(
     // For assertions, validate operators
     if (context == ConditionContext.ASSERT) {
         val operatorText = current().value.lowercase()
-        val validOperators =
-            setOf(
-                "equals",
-                "=",
-                "matches",
-                "exists",
-                "hassize",
-                "size",
-                "arraysize",
-                "notempty",
-                "contains",
-                "greaterthan",
-                ">",
-                "lessthan",
-                "<",
-                "in",
-            )
-
-        if (!validOperators.contains(operatorText) &&
+        if (!VALID_OPERATORS.contains(operatorText) &&
             current().type != TokenType.EQUALS &&
             current().type != TokenType.NEWLINE &&
             current().type != TokenType.DEDENT
         ) {
-            addError(
+            return addError(
                 "Unknown assertion action '$operatorText' for JSON path. " +
                     "Expected: equals, matches, exists, hasSize, size, arraySize, notEmpty, contains, greaterThan, lessThan, or in",
             )
-            return null
         }
     }
 
@@ -207,8 +242,7 @@ internal fun ParserState.parseAssertCondition(
         skipWhitespace()
 
         // Check if there's a condition operator following the variable
-        val opText = current().value.lowercase()
-        if (opText in listOf("equals", "=", "matches", "contains", "notempty", "greaterthan", ">", "lessthan", "<")) {
+        if (current().value.lowercase() in VALID_OPERATORS) {
             val (op, expected) = parseConditionOperatorAndValue()
             val cond = ConditionNode.VariableCondition(varName, op, expected, loc)
             return if (initialNegate) {
@@ -238,17 +272,16 @@ internal fun ParserState.parseAssertCondition(
         advance()
     }
 
-    val pattern = patternBuilder.toString().trim()
-    if (pattern.isEmpty()) {
-        addError("Empty assertion pattern")
-        return null
-    }
-
-    val condition = ConditionNode.CustomAssertionCondition(pattern, loc)
-    return if (initialNegate) {
-        ConditionNode.NegatedCondition(condition, loc)
-    } else {
-        condition
+    return when (val pattern = patternBuilder.toString().trim()) {
+        "" -> addError("Empty assertion pattern")
+        else ->
+            ConditionNode.CustomAssertionCondition(pattern, loc).let { condition ->
+                if (initialNegate) {
+                    ConditionNode.NegatedCondition(condition, loc)
+                } else {
+                    condition
+                }
+            }
     }
 }
 

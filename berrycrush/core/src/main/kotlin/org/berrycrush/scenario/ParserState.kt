@@ -35,6 +35,13 @@ class ParserState(
         return tokens[pos - 1]
     }
 
+    fun advanceIf(type: TokenType): Token =
+        if (current().type == type) {
+            advance()
+        } else {
+            current()
+        }
+
     /**
      * Retreat to the previous token.
      * Used when we need to "unread" a token after peeking ahead.
@@ -92,12 +99,13 @@ class ParserState(
     /**
      * Add a parse error.
      */
-    fun addError(
+    fun <T> addError(
         message: String,
         location: SourceLocation = currentLocation(),
         expected: String? = null,
         found: String? = null,
-    ) {
+    ): T? {
         errors.add(ParseError(message, location, expected, found))
+        return null
     }
 }

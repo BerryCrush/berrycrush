@@ -13,9 +13,7 @@ internal fun ParserState.parseSteps(): List<StepNode> {
     val steps = mutableListOf<StepNode>()
 
     // Expect indent
-    if (current().type == TokenType.INDENT) {
-        advance()
-    }
+    advanceIf(TokenType.INDENT)
 
     while (!isAtEnd()) {
         val stepKeyword =
@@ -28,17 +26,16 @@ internal fun ParserState.parseSteps(): List<StepNode> {
                 TokenType.DEDENT, TokenType.SCENARIO, TokenType.OUTLINE, TokenType.FRAGMENT, TokenType.EXAMPLES, TokenType.EOF -> break
                 else -> {
                     advance()
-                    continue
+                    null
                 }
             }
-
-        steps.add(parseStep(stepKeyword))
+        if (stepKeyword != null) {
+            steps.add(parseStep(stepKeyword))
+        }
     }
 
     // Consume dedent if present
-    if (current().type == TokenType.DEDENT) {
-        advance()
-    }
+    advanceIf(TokenType.DEDENT)
 
     return steps
 }

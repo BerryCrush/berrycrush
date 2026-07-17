@@ -59,8 +59,7 @@ internal fun ParserState.parseCallAction(): CallNode? {
 
     // Get operation ID
     if (current().type != TokenType.OPERATION_ID && current().type != TokenType.IDENTIFIER) {
-        addError("Expected operation ID")
-        return null
+        return addError("Expected operation ID")
     }
 
     val operationId = current().value
@@ -163,26 +162,22 @@ internal fun ParserState.parseBodyContent(): BodyParseResult {
 
     // Check for content after newline + indent
     skipNewlines()
-    if (current().type == TokenType.INDENT) {
+    return if (current().type == TokenType.INDENT) {
         advance()
 
         // Check if next token is a STRING (could be triple-quoted content from lexer)
         if (current().type == TokenType.STRING) {
             val value = parseValue()
-            if (current().type == TokenType.DEDENT) {
-                advance()
-            }
-            return BodyParseResult.Raw(value)
+            advanceIf(TokenType.DEDENT)
+            BodyParseResult.Raw(value)
+        } else {
+            val properties = parseBodyProperties()
+            advanceIf(TokenType.DEDENT)
+            BodyParseResult.Properties(properties)
         }
-
-        val properties = parseBodyProperties()
-        if (current().type == TokenType.DEDENT) {
-            advance()
-        }
-        return BodyParseResult.Properties(properties)
+    } else {
+        BodyParseResult.Raw(null)
     }
-
-    return BodyParseResult.Raw(null)
 }
 
 /**
@@ -204,22 +199,8 @@ internal fun ParserState.parseBodyProperties(): Map<String, BodyPropertyValue> {
                 }
 
                 // Check if this is a nested object (newline + indent)
-                if (current().type == TokenType.NEWLINE) {
-                    skipNewlines()
-                    if (current().type == TokenType.INDENT) {
-                        advance()
-                        val nestedProps = parseBodyProperties()
-                        if (current().type == TokenType.DEDENT) {
-                            advance()
-                        }
-                        properties[propName] = BodyPropertyValue.Nested(nestedProps)
-                    }
-                } else {
-                    val value = parseValue()
-                    if (value != null) {
-                        properties[propName] = BodyPropertyValue.Simple(value)
-                    }
-                }
+                val value = parsePropertyValue()
+                value?.let { properties[propName] = it }
             }
             TokenType.NEWLINE -> advance()
             else -> advance()
@@ -228,6 +209,26 @@ internal fun ParserState.parseBodyProperties(): Map<String, BodyPropertyValue> {
 
     return properties
 }
+
+private fun ParserState.parsePropertyValue(): BodyPropertyValue? =
+    if (current().type == TokenType.NEWLINE) {
+        skipNewlines()
+        if (current().type == TokenType.INDENT) {
+            advance()
+            val nestedProps = parseBodyProperties()
+            advanceIf(TokenType.DEDENT)
+            BodyPropertyValue.Nested(nestedProps)
+        } else {
+            null
+        }
+    } else {
+        val value = parseValue()
+        if (value != null) {
+            BodyPropertyValue.Simple(value)
+        } else {
+            null
+        }
+    }
 
 /**
  * Parse a body file path.
@@ -261,30 +262,30 @@ internal fun ParserState.parseBodyFilePath(): String? {
 
 /**
  * Parse auto test configuration.
+ *
+ * We allow 2 ways
+ * ```berrycrush
+ * auto: invalid security, multi
+ * # or
+ * auto: [invalid, security multi]
+ * ```
+ * The latter case ignores newline as well, so can be multiple lines
+ *
+ * NOTE: `,` is not needed either.
  */
 internal fun ParserState.parseAutoTestConfig(): AutoTestConfig? {
     val loc = currentLocation()
     val types = mutableSetOf<AutoTestType>()
-
-    if (current().type != TokenType.OPEN_BRACKET) {
-        // Parse as bare identifiers without brackets
-        while (!isAtEnd() && current().type != TokenType.NEWLINE && current().type != TokenType.DEDENT) {
-            if (current().type == TokenType.IDENTIFIER || current().type == TokenType.OPERATION_ID) {
-                val typeName = current().value.lowercase()
-                when (typeName) {
-                    "invalid" -> types.add(AutoTestType.INVALID)
-                    "security" -> types.add(AutoTestType.SECURITY)
-                    "multi" -> types.add(AutoTestType.MULTI)
-                }
-            }
-            advance()
+    val endMark =
+        if (current().type == TokenType.OPEN_BRACKET) {
+            listOf(TokenType.CLOSE_BRACKET)
+        } else {
+            listOf(TokenType.NEWLINE, TokenType.DEDENT)
         }
-        return if (types.isNotEmpty()) AutoTestConfig(types, emptySet(), loc) else null
-    }
+    // consume [ or auto keyword
+    if (current().type == TokenType.OPEN_BRACKET) advance()
 
-    advance() // consume [
-
-    while (!isAtEnd() && current().type != TokenType.CLOSE_BRACKET) {
+    while (!isAtEnd() && current().type !in endMark) {
         when (current().type) {
             TokenType.IDENTIFIER, TokenType.OPERATION_ID -> {
                 val typeName = current().value.lowercase()
@@ -295,12 +296,11 @@ internal fun ParserState.parseAutoTestConfig(): AutoTestConfig? {
                 }
                 advance()
             }
-            TokenType.COMMA -> advance()
             else -> advance()
         }
     }
 
-    if (current().type == TokenType.CLOSE_BRACKET) {
+    if (current().type in endMark) {
         advance()
     }
 
@@ -331,36 +331,30 @@ internal fun ParserState.parseExtractAction(): ExtractNode? {
     skipWhitespace()
 
     if (current().type != TokenType.JSON_PATH && current().type != TokenType.STRING) {
-        addError("Expected JSON path")
-        return null
+        return addError("Expected JSON path")
     }
     val jsonPath = current().value
     advance()
     skipWhitespace()
 
     if (current().type != TokenType.ARROW) {
-        addError("Expected '=>' or '->'")
-        return null
+        return addError("Expected '=>' or '->'")
     }
     advance()
     skipWhitespace()
 
     val current = current()
-    val variableName =
-        when (current.type) {
-            TokenType.VARIABLE, TokenType.IDENTIFIER -> current.value
-            else -> {
-                addError("Expected variable name")
-                return null
-            }
+    return when (current.type) {
+        TokenType.VARIABLE, TokenType.IDENTIFIER -> {
+            advance()
+            ExtractNode(
+                variableName = current.value,
+                jsonPath = jsonPath,
+                location = loc,
+            )
         }
-    advance()
-
-    return ExtractNode(
-        variableName = variableName,
-        jsonPath = jsonPath,
-        location = loc,
-    )
+        else -> addError("Expected variable name")
+    }
 }
 
 /**
@@ -372,8 +366,7 @@ internal fun ParserState.parseIncludeAction(): IncludeNode? {
     skipWhitespace()
 
     if (current().type != TokenType.IDENTIFIER && current().type != TokenType.OPERATION_ID) {
-        addError("Expected fragment name")
-        return null
+        return addError("Expected fragment name")
     }
 
     val fragmentName = current().value
@@ -467,13 +460,12 @@ internal fun ParserState.parseWebhookAction(): WebhookNode? {
 
     skipNewlines()
     if (current().type != TokenType.INDENT) {
-        if (name == null) {
+        return if (name == null) {
             addError("Expected webhook name or indented webhook configuration")
         } else {
             // No indented block - error if we don't have hooks
             addError("webhook requires 'hook' or 'hooks' property", loc)
         }
-        return null
     }
 
     advance() // consume INDENT
@@ -495,27 +487,18 @@ internal fun ParserState.parseWebhookAction(): WebhookNode? {
                 }
 
                 when (propName) {
-                    "name" -> {
-                        // Allow name in block too (override if already set on same line)
-                        name = parseStringOrIdentifier()
-                    }
-                    "port" -> {
-                        port = parseIntValue() ?: 0
-                    }
-                    "hook" -> {
-                        parseStringOrIdentifier()?.let { hooks.add(it) }
-                    }
-                    "hooks" -> {
-                        hooks.addAll(parseHookList())
-                    }
-                    "scope" -> {
-                        val scopeValue = parseStringOrIdentifier()?.lowercase()
+                    // Allow name in block too (override if already set on same line)
+                    "name" -> name = parseStringOrIdentifier()
+
+                    "port" -> port = parseIntValue() ?: 0
+                    "hook" -> parseStringOrIdentifier()?.let { hooks.add(it) }
+                    "hooks" -> hooks.addAll(parseHookList())
+                    "scope" ->
                         scope =
-                            when (scopeValue) {
+                            when (parseStringOrIdentifier()?.lowercase()) {
                                 "feature" -> WebhookScope.FEATURE
                                 else -> WebhookScope.SCENARIO
                             }
-                    }
                 }
             }
             TokenType.NEWLINE -> advance()
@@ -527,14 +510,8 @@ internal fun ParserState.parseWebhookAction(): WebhookNode? {
         advance()
     }
     return when {
-        name == null -> {
-            addError("webhook requires 'name' property", loc)
-            null
-        }
-        hooks.isEmpty() -> {
-            addError("webhook requires 'hook' or 'hooks' property", loc)
-            null
-        }
+        name == null -> addError("webhook requires 'name' property", loc)
+        hooks.isEmpty() -> addError("webhook requires 'hook' or 'hooks' property", loc)
         else ->
             WebhookNode(
                 name = name,

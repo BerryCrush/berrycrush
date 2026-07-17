@@ -172,24 +172,19 @@ class AutoTestGenerator(
 
     @Suppress("UNCHECKED_CAST")
     private fun extractRequestBodySchema(operation: Operation): Schema<*>? {
-        val requestBody = operation.requestBody ?: return null
-        val content = requestBody.content ?: return null
-
+        val content = operation.requestBody?.content
         // Try JSON content types
         val mediaType =
-            content["application/json"]
-                ?: content.entries.firstOrNull()?.value
-                ?: return null
-
-        var schema = mediaType.schema ?: return null
+            content?.get("application/json")
+                ?: content?.entries?.firstOrNull()?.value
+        val schema = mediaType?.schema
 
         // Resolve $ref if present
-        if (schema.`$ref` != null) {
-            val refName = schema.`$ref`.substringAfterLast("/")
-            schema = openApi.components?.schemas?.get(refName) ?: return null
-        }
-
-        return schema
+        return schema?.`$ref`?.substringAfterLast("/")?.let { refName ->
+            // if the schema is $ref and the ref name doesn't exist, then
+            // we should return null
+            openApi.components?.schemas?.get(refName) ?: return null
+        } ?: schema
     }
 
     /**

@@ -21,42 +21,17 @@ internal fun ParserState.parseExamples(): List<ExampleRowNode>? {
     }
     skipNewlines()
 
-    val rows = mutableListOf<ExampleRowNode>()
-
     // Expect indent
     if (current().type == TokenType.INDENT) {
         advance()
     }
 
     // Parse header row (column names)
-    val headers = mutableListOf<String>()
-    if (current().type == TokenType.PIPE) {
-        advance()
-        while (!isAtEnd() && current().type != TokenType.NEWLINE) {
-            when (current().type) {
-                TokenType.IDENTIFIER, TokenType.OPERATION_ID, TokenType.STRING -> {
-                    headers.add(current().value)
-                    advance()
-                }
-                TokenType.PIPE -> {
-                    advance()
-                }
-                else -> {
-                    advance()
-                }
-            }
-        }
-        skipNewlines()
-    }
+    val headers = parseExampleHeader()
 
+    val rows = mutableListOf<ExampleRowNode>()
     // Parse data rows
-    while (
-        !isAtEnd() &&
-        current().type != TokenType.DEDENT &&
-        current().type != TokenType.SCENARIO &&
-        current().type != TokenType.OUTLINE &&
-        current().type != TokenType.FRAGMENT
-    ) {
+    while (isExampleEnd()) {
         if (current().type == TokenType.PIPE) {
             val row = parseExampleRow(headers)
             if (row != null) {
@@ -76,6 +51,32 @@ internal fun ParserState.parseExamples(): List<ExampleRowNode>? {
 
     return rows.ifEmpty { null }
 }
+
+private fun ParserState.parseExampleHeader(): List<String> {
+    val headers = mutableListOf<String>()
+    if (current().type == TokenType.PIPE) {
+        advance()
+        while (!isAtEnd() && current().type != TokenType.NEWLINE) {
+            when (current().type) {
+                TokenType.IDENTIFIER, TokenType.OPERATION_ID, TokenType.STRING -> {
+                    headers.add(current().value)
+                    advance()
+                }
+                TokenType.PIPE -> advance()
+                else -> advance()
+            }
+        }
+        skipNewlines()
+    }
+    return headers
+}
+
+private fun ParserState.isExampleEnd(): Boolean =
+    !isAtEnd() &&
+        current().type != TokenType.DEDENT &&
+        current().type != TokenType.SCENARIO &&
+        current().type != TokenType.OUTLINE &&
+        current().type != TokenType.FRAGMENT
 
 /**
  * Parse a single example row.

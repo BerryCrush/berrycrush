@@ -85,38 +85,38 @@ class Lexer(
         // Skip whitespace (but not newlines)
         skipWhitespace()
 
-        if (isAtEnd()) {
+        return if (isAtEnd()) {
             // Handle any remaining dedents
-            return scanDedent()
-        }
-
-        val c = peek()
-        // Handle newlines
-        return when {
-            c == '\n' || c == '\r' -> scanNewline()
-            // Handle comments
-            c == '#' -> {
-                skipComment()
-                nextToken()
+            scanDedent()
+        } else {
+            val c = peek()
+            // Handle newlines
+            when {
+                c == '\n' || c == '\r' -> scanNewline()
+                // Handle comments
+                c == '#' -> {
+                    skipComment()
+                    nextToken()
+                }
+                // Handle triple-quoted strings first (""")
+                c == '"' && peekAhead(1) == '"' && peekAhead(2) == '"' -> scanTripleQuote()
+                // Handle strings
+                c == '"' || c == '\'' -> scanString()
+                // Handle JSON path
+                c == '$' -> scanJsonPath()
+                // Handle tags (@tagname)
+                c == '@' -> scanTag()
+                // Handle variable reference
+                c == '{' && peekAhead(1) == '{' -> scanVariable()
+                // Handle numbers
+                c.isDigit() || c == '-' && peekAhead(1)?.isDigit() == true -> scanNumber()
+                // Handle operation ID prefix (^operationId)
+                c == '^' -> scanOperationId()
+                // Handle identifiers and keywords
+                c.isLetter() || c == '_' -> scanIdentifier()
+                // Handle symbols
+                else -> scanSymbol()
             }
-            // Handle triple-quoted strings first (""")
-            c == '"' && peekAhead(1) == '"' && peekAhead(2) == '"' -> scanTripleQuote()
-            // Handle strings
-            c == '"' || c == '\'' -> scanString()
-            // Handle JSON path
-            c == '$' -> scanJsonPath()
-            // Handle tags (@tagname)
-            c == '@' -> scanTag()
-            // Handle variable reference
-            c == '{' && peekAhead(1) == '{' -> scanVariable()
-            // Handle numbers
-            c.isDigit() || c == '-' && peekAhead(1)?.isDigit() == true -> scanNumber()
-            // Handle operation ID prefix (^operationId)
-            c == '^' -> scanOperationId()
-            // Handle identifiers and keywords
-            c.isLetter() || c == '_' -> scanIdentifier()
-            // Handle symbols
-            else -> scanSymbol()
         }
     }
 
@@ -150,30 +150,29 @@ class Lexer(
         val indent = scanIndent()
 
         // Skip lines that are only whitespace
-        if (!isAtEnd() && (peek() == '\n' || peek() == '\r' || peek() == '#')) {
+        return if (!isAtEnd() && (peek() == '\n' || peek() == '\r' || peek() == '#')) {
             if (peek() == '#') skipComment()
-            return handleIndentation()
-        }
-
-        val currentIndent = indentStack.last()
-
-        return when {
-            indent > currentIndent -> {
-                indentStack.add(indent)
-                Token(TokenType.INDENT, " ".repeat(indent), currentLocation())
-            }
-            indent < currentIndent -> {
-                while (indentStack.size > 1 && indentStack.last() > indent) {
-                    indentStack.removeLast()
-                    pendingTokens.add(Token(TokenType.DEDENT, "", currentLocation()))
+            handleIndentation()
+        } else {
+            val currentIndent = indentStack.last()
+            when {
+                indent > currentIndent -> {
+                    indentStack.add(indent)
+                    Token(TokenType.INDENT, " ".repeat(indent), currentLocation())
                 }
-                if (pendingTokens.isNotEmpty()) {
-                    pendingTokens.removeAt(0)
-                } else {
-                    null
+                indent < currentIndent -> {
+                    while (indentStack.size > 1 && indentStack.last() > indent) {
+                        indentStack.removeLast()
+                        pendingTokens.add(Token(TokenType.DEDENT, "", currentLocation()))
+                    }
+                    if (pendingTokens.isNotEmpty()) {
+                        pendingTokens.removeAt(0)
+                    } else {
+                        null
+                    }
                 }
+                else -> null
             }
-            else -> null
         }
     }
 
@@ -332,7 +331,7 @@ class Lexer(
 
         while (!isAtEnd()) {
             val c = peek()
-            if (c.isLetterOrDigit() || c == '.' || c == '[' || c == ']' || c == '*' || c == '?' || c == '@' || c == '_') {
+            if (isJsonPathChar(c)) {
                 sb.append(advance())
             } else {
                 break
@@ -585,6 +584,9 @@ class Lexer(
         return c
     }
 }
+
+private fun isJsonPathChar(c: Char): Boolean =
+    c.isLetterOrDigit() || c == '.' || c == '[' || c == ']' || c == '*' || c == '?' || c == '@' || c == '_'
 
 private fun Char.isNewLine() = this == '\n' || this == '\r'
 

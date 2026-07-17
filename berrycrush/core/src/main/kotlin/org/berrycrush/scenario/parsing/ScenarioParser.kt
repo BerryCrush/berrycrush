@@ -128,22 +128,12 @@ internal fun ParserState.parseScenarioOutline(tags: Set<String> = emptySet()): S
  */
 internal fun ParserState.parseFeature(tags: Set<String> = emptySet()): FeatureNode? {
     val loc = currentLocation()
-
-    if (!expect(TokenType.FEATURE)) return null
-    skipWhitespace()
-
-    if (!expect(TokenType.COLON)) return null
-    skipWhitespace()
-
-    val name = parseScenarioName() ?: return null
+    val name = parseScenarioHeader(TokenType.FEATURE) ?: return null
     skipNewlines()
-
+    val parameters: ParametersNode? = parseOptionalParameters()
     // Expect indent for feature body
-    if (current().type == TokenType.INDENT) {
-        advance()
-    }
+    advanceIf(TokenType.INDENT)
 
-    var parameters: ParametersNode? = null
     var background: BackgroundNode? = null
     val scenarios = mutableListOf<ScenarioNode>()
 
@@ -155,49 +145,19 @@ internal fun ParserState.parseFeature(tags: Set<String> = emptySet()): FeatureNo
         val scenarioTags = parseTags()
 
         when (current().type) {
-            TokenType.PARAMETERS -> {
-                if (scenarios.isNotEmpty()) {
-                    addError(
-                        "Feature parameters must appear before scenarios",
-                        expected = "scenario or outline",
-                        found = "parameters",
-                    )
-                }
-                parameters = parseParameters()
-            }
-            TokenType.BACKGROUND -> {
-                background = parseBackground()
-            }
-            TokenType.SCENARIO -> {
-                val scenario = parseScenario(scenarioTags)
-                if (scenario != null) scenarios.add(scenario)
-            }
-            TokenType.OUTLINE -> {
-                val scenario = parseScenarioOutline(scenarioTags)
-                if (scenario != null) scenarios.add(scenario)
-            }
-            TokenType.NEWLINE, TokenType.INDENT -> {
-                advance()
-            }
+            TokenType.BACKGROUND -> background = parseBackground()
+            TokenType.SCENARIO -> parseScenario(scenarioTags)?.let(scenarios::add)
+            TokenType.OUTLINE -> parseScenarioOutline(scenarioTags)?.let(scenarios::add)
+            TokenType.NEWLINE, TokenType.INDENT -> advance()
             else -> {
-                if (current().type != TokenType.DEDENT && current().type != TokenType.EOF) {
-                    addError(
-                        "Unexpected token in feature",
-                        expected = "parameters, background, scenario, or outline",
-                        found = current().value,
-                    )
-                    advance()
-                }
+                addParseFeatureError()
                 break
             }
         }
         skipNewlines()
     }
-
     // Consume dedent if present
-    if (current().type == TokenType.DEDENT) {
-        advance()
-    }
+    advanceIf(TokenType.DEDENT)
 
     return FeatureNode(
         name = name,
@@ -207,6 +167,24 @@ internal fun ParserState.parseFeature(tags: Set<String> = emptySet()): FeatureNo
         tags = tags,
         location = loc,
     )
+}
+
+private fun ParserState.addParseFeatureError() {
+    if (current().type == TokenType.PARAMETERS) {
+        addError<Unit>(
+            "Feature parameters must appear before scenarios",
+            expected = "scenario or outline",
+            found = "parameters",
+        )
+    }
+    if (current().type != TokenType.DEDENT && current().type != TokenType.EOF) {
+        addError<Unit>(
+            "Unexpected token in feature",
+            expected = "background, scenario, or outline",
+            found = current().value,
+        )
+        advance()
+    }
 }
 
 /**
@@ -241,16 +219,15 @@ internal fun ParserState.parseFragment(): FragmentNode? {
     if (!expect(TokenType.COLON)) return null
     skipWhitespace()
 
-    val name = parseFragmentName() ?: return null
-    skipNewlines()
-
-    val steps = parseSteps()
-
-    return FragmentNode(
-        name = name,
-        steps = steps,
-        location = loc,
-    )
+    return parseFragmentName()?.let { name ->
+        skipNewlines()
+        val steps = parseSteps()
+        FragmentNode(
+            name = name,
+            steps = steps,
+            location = loc,
+        )
+    }
 }
 
 /**
@@ -359,7 +336,7 @@ private fun ParserState.parseParameterEntries(
         skipWhitespace()
 
         if (!expect(TokenType.COLON)) {
-            addError("Expected ':' after parameter name")
+            addError<Unit>("Expected ':' after parameter name")
             break
         }
         skipWhitespace()
@@ -453,10 +430,7 @@ internal fun ParserState.parseParameterValue(): Any? =
                 else -> value
             }
         }
-        else -> {
-            addError("Expected parameter value")
-            null
-        }
+        else -> addError("Expected parameter value")
     }
 
 /**
@@ -470,12 +444,11 @@ internal fun ParserState.parseScenarioName(): String? {
         advance()
     }
 
-    if (nameParts.isEmpty()) {
+    return if (nameParts.isEmpty()) {
         addError("Expected scenario name")
-        return null
+    } else {
+        nameParts.joinToString(" ").trim()
     }
-
-    return nameParts.joinToString(" ").trim()
 }
 
 /**

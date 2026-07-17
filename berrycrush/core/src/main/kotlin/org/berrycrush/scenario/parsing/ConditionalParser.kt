@@ -62,29 +62,27 @@ internal fun ParserState.parseConditional(): ConditionalNode? {
 /**
  * Parse a condition that may include `and`/`or` operators.
  */
-internal fun ParserState.parseConditionWithLogicalOps(): ConditionNode? {
-    val left = parseSimpleCondition() ?: return null
-
-    skipWhitespace()
-    val operatorText = current().value.lowercase()
-
-    if (operatorText == "and" || operatorText == "or") {
-        val op = if (operatorText == "and") LogicalOperator.AND else LogicalOperator.OR
-        advance()
+internal fun ParserState.parseConditionWithLogicalOps(): ConditionNode? =
+    parseSimpleCondition()?.let { left ->
         skipWhitespace()
+        val operatorText = current().value.lowercase()
 
-        val right = parseConditionWithLogicalOps() ?: return null
-
-        return ConditionNode.CompoundCondition(
-            left = left,
-            operator = op,
-            right = right,
-            location = left.location,
-        )
+        if (operatorText == "and" || operatorText == "or") {
+            val op = if (operatorText == "and") LogicalOperator.AND else LogicalOperator.OR
+            advance()
+            skipWhitespace()
+            parseConditionWithLogicalOps()?.let { right ->
+                ConditionNode.CompoundCondition(
+                    left = left,
+                    operator = op,
+                    right = right,
+                    location = left.location,
+                )
+            }
+        } else {
+            left
+        }
     }
-
-    return left
-}
 
 /**
  * Parse a simple condition (not including logical operators).
@@ -118,10 +116,7 @@ internal fun ParserState.parseSimpleCondition(): ConditionNode? {
             val cond = ConditionNode.VariableCondition(varName, op, expected, loc)
             if (negate) ConditionNode.NegatedCondition(cond, loc) else cond
         }
-        else -> {
-            addError("Expected condition (status, header, jsonpath, contains, schema, responseTime, or variable)")
-            null
-        }
+        else -> addError("Expected condition (status, header, jsonpath, contains, schema, responseTime, or variable)")
     }
 }
 
