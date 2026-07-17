@@ -25,8 +25,8 @@ import org.berrycrush.util.toNonNullMap
 import tools.jackson.databind.ObjectMapper
 import java.time.Duration
 import java.time.Instant
-import org.berrycrush.autotest.AutoTestType as TestType
 import org.berrycrush.assertion.AssertionResult as ModelAssertionResult
+import org.berrycrush.autotest.AutoTestType as TestType
 
 /**
  * Executes auto-generated invalid and security tests for API endpoints.
@@ -45,7 +45,6 @@ import org.berrycrush.assertion.AssertionResult as ModelAssertionResult
  * @property configuration Execution configuration
  * @property assertionRunner Function to run assertions against responses
  */
-@Suppress("TooManyFunctions")
 class AutoTestExecutor(
     private val specRegistry: SpecRegistry,
     private val configuration: BerryCrushConfigurationProvider,
@@ -124,33 +123,26 @@ class AutoTestExecutor(
     ): StepResult {
         val autoTestConfig = step.autoTestConfig!!
         val operationId = step.operationId!!
-
         // Resolve the operation to get the OpenAPI spec
         val (spec, operation) = specRegistry.resolve(operationId, step.specName)
-
         // Create the auto-test generator
         val generator = AutoTestGenerator.fromSpec(spec)
-
         // Extract base body from step if present
         val baseBody = extractBaseBody(step, operation, context)
-
         // Extract base path params from step
         val basePathParams = context.resolveParams(step.pathParams)
         // Extract base headers from step
         val baseHeaders = context.resolveParams(step.headers)
-
         // Generate test cases
-        val allTestCases =
-            generator.generateTestCases(
-                operationId = operationId,
-                testTypes = autoTestConfig.types.map { it.toTestType() }.toSet(),
-                baseBody = baseBody,
-                basePathParams = basePathParams,
-                baseHeaders = baseHeaders.toNonNullMap(),
-            )
-
-        // Filter out excluded tests
-        val testCases = filterExcludedTests(allTestCases, autoTestConfig.excludes)
+        val testCases =
+            generator
+                .generateTestCases(
+                    operationId = operationId,
+                    testTypes = autoTestConfig.types.map { it.toTestType() }.toSet(),
+                    baseBody = baseBody,
+                    basePathParams = basePathParams,
+                    baseHeaders = baseHeaders.toNonNullMap(),
+                ).filterExcludedTests(autoTestConfig.excludes)
 
         if (testCases.isEmpty()) {
             // No test cases generated - just pass
@@ -163,22 +155,16 @@ class AutoTestExecutor(
         }
 
         // Execute each test case and collect results
-        val allResults = mutableListOf<AutoTestResult>()
-
-        for (testCase in testCases) {
-            // Notify listener that test is starting
-            listener.onAutoTestStarting(testCase)
-
-            val testResult = executeAutoTestCase(step, testCase, context)
-            allResults.add(testResult)
-
-            // Notify listener that test finished
-            listener.onAutoTestCompleted(testResult)
-
-            // Log the test case execution
-            logAutoTestCase(testCase, testResult)
-        }
-
+        val allResults =
+            testCases.map { testCase ->
+                listener.onAutoTestStarting(testCase)
+                executeAutoTestCase(step, testCase, context).also { testResult ->
+                    // Notify listener that test finished
+                    listener.onAutoTestCompleted(testResult)
+                    // Log the test case execution
+                    logAutoTestCase(testCase, testResult)
+                }
+            }
         // Aggregate results
         val failedCount = allResults.count { !it.passed }
         val totalCount = allResults.size
@@ -297,15 +283,10 @@ class AutoTestExecutor(
         context: StepContext,
         testStartTime: Instant,
     ): AutoTestResult {
-        val params = buildTestCaseParams(step, testCase)
+        val (body, pathParams, headers) = buildTestCaseParams(step, testCase)
         val (spec, operation) = specRegistry.resolve(step.operationId!!, step.specName)
-        val request =
-            HttpRequest(
-                operation.method,
-                httpExecutor.resolveUrl(step, spec, operation, context, params.pathParams),
-                params.headers,
-                params.body,
-            )
+        val url = httpExecutor.resolveUrl(step, spec, operation, context, pathParams)
+        val request = HttpRequest(operation.method, url, headers, body)
         val response = httpExecutor.execute(request, context)
         val assertionResults = assertionRunner(response, step.assertions, context)
         val allResults = assertionResults.assertionResults
@@ -338,79 +319,8 @@ class AutoTestExecutor(
                     append("${testCase.description} ")
                     append("(field=${testCase.fieldName}, status=${result.statusCode ?: "N/A"})")
                 }
-            println(message)
+            configuration.getEffectiveHttpLogger().log(message)
         }
-    }
-
-    /**
-     * Filter out test cases that match any of the exclude patterns.
-     *
-     * Excludes can match:
-     * - Security test categories (e.g., "SQLInjection", "XSS", "PathTraversal")
-     * - Invalid test types (e.g., "minLength", "maxLength", "required", "pattern", "enum", "type")
-     * - Test description keywords (case-insensitive partial match)
-     *
-     * @param testCases The generated test cases
-     * @param excludes Set of exclude patterns
-     * @return Filtered list of test cases
-     */
-    private fun filterExcludedTests(
-        testCases: List<AutoTestCase>,
-        excludes: Set<String>,
-    ): List<AutoTestCase> {
-        if (excludes.isEmpty()) {
-            return testCases
-        }
-
-        // Normalize exclude patterns for case-insensitive matching
-        val normalizedExcludes = excludes.map { it.lowercase().replace(" ", "") }
-
-        return testCases.filter { testCase ->
-            val description = testCase.description.lowercase().replace(" ", "")
-            val tag = testCase.tag.lowercase().replace(" ", "")
-
-            // Check if any exclude pattern matches
-            !normalizedExcludes.any { exclude ->
-                description.contains(exclude) ||
-                    tag.contains(exclude) ||
-                    // Also match common category name formats
-                    matchesCategoryPattern(description, exclude)
-            }
-        }
-    }
-
-    /**
-     * Check if a description matches a category pattern.
-     *
-     * Supports various naming conventions:
-     * - "SQLInjection" matches "sql injection", "SQL Injection", "SQL_Injection"
-     * - "maxLength" matches "maxlength", "max_length", "max length", "Maximum length"
-     */
-    private fun matchesCategoryPattern(
-        description: String,
-        pattern: String,
-    ): Boolean {
-        // Map common pattern aliases
-        val patternAliases =
-            mapOf(
-                "sqlinjection" to listOf("sql", "injection", "union", "select", "drop"),
-                "xss" to listOf("script", "alert", "onerror", "javascript"),
-                "pathtraversal" to listOf("path", "traversal", "../", "..\\"),
-                "commandinjection" to listOf("command", "injection", "exec", "system"),
-                "ldapinjection" to listOf("ldap", "filter"),
-                "xxe" to listOf("xxe", "entity", "doctype"),
-                "xmlinjection" to listOf("xml", "cdata"),
-                "headerinjection" to listOf("header", "crlf", "injection"),
-                "minlength" to listOf("minimum", "minlength", "too short", "below minimum"),
-                "maxlength" to listOf("maximum", "maxlength", "too long", "exceeds maximum"),
-                "required" to listOf("required", "missing"),
-                "pattern" to listOf("pattern", "format", "invalid format"),
-                "enum" to listOf("enum", "invalid value", "not in allowed"),
-                "type" to listOf("type", "invalid type", "wrong type"),
-            )
-
-        val aliases = patternAliases[pattern] ?: return false
-        return aliases.any { alias -> description.contains(alias) }
     }
 
     /**
@@ -471,7 +381,10 @@ class AutoTestExecutor(
     ) {
         val count = parameters["multiTest.${provider.mode}.count"] as Int? ?: provider.defaultCount
         listener.onMultiTestStarting(provider.mode, count)
-        val result = executeMultiTestMode(step, context, provider, count)
+        val result =
+            provider.executeMultiTest(count) { requestIndex ->
+                executeRequestForMultiTest(step, context, requestIndex)
+            }
         context.setupParameters(provider.mode, count, result)
         results.add(result)
         listener.onMultiTestCompleted(result)
@@ -516,19 +429,6 @@ class AutoTestExecutor(
     }
 
     /**
-     * Execute a single multi-test mode using the given provider.
-     */
-    private fun executeMultiTestMode(
-        step: Step,
-        context: StepContext,
-        provider: MultiTestProvider,
-        count: Int,
-    ): MultiTestResult =
-        provider.executeMultiTest(count) { requestIndex ->
-            executeRequestForMultiTest(step, context, requestIndex)
-        }
-
-    /**
      * Execute a single HTTP request for multi-test.
      */
     private fun executeRequestForMultiTest(
@@ -546,18 +446,20 @@ class AutoTestExecutor(
                 requestIndex = requestIndex,
                 response = response,
                 duration = Duration.between(Instant.now(), requestStartTime),
-                assertionResults = allResults.map {
-                    if (it.passed) {
-                        ModelAssertionResult.passed(it.message)
-                    } else {
-                        ModelAssertionResult.failed(it.message)
-                    }
-                },
+                assertionResults =
+                    allResults.map {
+                        if (it.passed) {
+                            ModelAssertionResult.passed(it.message)
+                        } else {
+                            ModelAssertionResult.failed(it.message)
+                        }
+                    },
             )
-        }.getOrElse { _ ->
+        }.getOrElse { e ->
             RequestResult.create(
                 requestIndex = requestIndex,
                 duration = Duration.between(requestStartTime, Instant.now()),
+                assertionResults = listOf(ModelAssertionResult.failed(e.message ?: e.javaClass.simpleName)),
             )
         }
     }
@@ -578,7 +480,37 @@ class AutoTestExecutor(
                         append(" - ${result.failureReason}")
                     }
                 }
-            println(message)
+            configuration.getEffectiveHttpLogger().log(message)
+        }
+    }
+}
+
+/**
+ * Filter out test cases that match any of the exclude patterns.
+ *
+ * Excludes can match:
+ * - Security test categories (e.g., "SQLInjection", "XSS", "PathTraversal")
+ * - Invalid test types (e.g., "minLength", "maxLength", "required", "pattern", "enum", "type")
+ * - Test description keywords (case-insensitive partial match)
+ *
+ * @param excludes Set of exclude patterns
+ * @return Filtered list of test cases
+ */
+private fun List<AutoTestCase>.filterExcludedTests(excludes: Set<String>): List<AutoTestCase> {
+    if (excludes.isEmpty()) {
+        return this
+    }
+
+    // Normalize exclude patterns for case-insensitive matching
+    val normalizedExcludes = excludes.map { it.lowercase().replace(" ", "") }
+
+    return this.filter { testCase ->
+        val description = testCase.description.lowercase().replace(" ", "")
+        val tag = testCase.tag.lowercase().replace(" ", "")
+
+        // Check if any exclude pattern matches
+        !normalizedExcludes.any { exclude ->
+            description.contains(exclude) || tag.contains(exclude)
         }
     }
 }

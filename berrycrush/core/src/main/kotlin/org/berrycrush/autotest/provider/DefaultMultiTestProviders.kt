@@ -105,12 +105,14 @@ private fun buildResult(
     val passed = results.all { it.assertionResults.all { it.passed } }
     val failureReason =
         if (!passed) {
-            results.filter { it.assertionResults.any { !it.passed } }
+            results
+                .filter { it.assertionResults.any { !it.passed } }
                 .joinToString("\n") { result ->
                     val failedAssertions =
                         result.assertionResults.filter { !it.passed }
                     val assertionMessages =
-                        failedAssertions.filter { it.message != null}
+                        failedAssertions
+                            .filter { it.message != null }
                             .joinToString("; ") { it.message!! }
                     "Request ${result.requestIndex + 1}: $assertionMessages"
                 }

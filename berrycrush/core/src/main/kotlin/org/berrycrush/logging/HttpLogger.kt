@@ -39,6 +39,13 @@ interface HttpLogger {
         response: HttpResponse,
         durationMs: Long,
     )
+
+    /**
+     * General log message
+     */
+    fun log(message: String) {
+        // default do nothing
+    }
 }
 
 /**

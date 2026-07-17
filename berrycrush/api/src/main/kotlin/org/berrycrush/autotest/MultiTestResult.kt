@@ -1,8 +1,8 @@
 package org.berrycrush.autotest
 
+import org.berrycrush.assertion.AssertionResult
 import org.berrycrush.model.HttpResponse
 import java.time.Duration
-import org.berrycrush.assertion.AssertionResult
 
 /**
  * Result of a multi-request idempotency test.

@@ -33,4 +33,8 @@ class ConsoleHttpLogger(
         val message = formatter.formatResponse(method, url, response, durationMs)
         println(message)
     }
+
+    override fun log(message: String) {
+        println(message)
+    }
 }
