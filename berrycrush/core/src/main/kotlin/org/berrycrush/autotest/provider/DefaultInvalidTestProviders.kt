@@ -172,7 +172,7 @@ class MinimumProvider : InvalidTestProvider {
     override fun generateTestCases(request: InvalidTestRequest): List<AutoTestCase> {
         val values =
             request.schema.minimum?.let { min ->
-                val invalidValue = min.subtract(java.math.BigDecimal.ONE)
+                val invalidValue = min.subtract(BigDecimal.ONE)
                 listOf(InvalidTestValue(value = invalidValue, description = "Value below minimum ($min)"))
             } ?: emptyList()
 
@@ -215,7 +215,7 @@ class MaximumProvider : InvalidTestProvider {
     override fun generateTestCases(request: InvalidTestRequest): List<AutoTestCase> {
         val values =
             request.schema.maximum?.let { max ->
-                val invalidValue = max.add(java.math.BigDecimal.ONE)
+                val invalidValue = max.add(BigDecimal.ONE)
                 listOf(InvalidTestValue(value = invalidValue, description = "Value above maximum ($max)"))
             } ?: emptyList()
 

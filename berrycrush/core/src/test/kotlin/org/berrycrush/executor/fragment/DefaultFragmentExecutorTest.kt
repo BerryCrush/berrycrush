@@ -76,7 +76,6 @@ class DefaultFragmentExecutorTest {
 
     @Test
     fun `ExecutionContext#withIncludeParameters - injects simple string parameters`() {
-        val executor = DefaultFragmentExecutor(null)
         val step =
             createStep(
                 fragmentName = "createEntity",

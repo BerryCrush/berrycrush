@@ -47,12 +47,12 @@ class SecurityTestProviderTest {
         val cases = provider.generateTestCases(request())
         assertTrue(cases.isNotEmpty(), "Should generate payloads")
         assertTrue(
-            cases.any { it.invalidValue?.toString()?.contains("\$ne") == true },
-            "Should include MongoDB \$ne payload",
+            cases.any { it.invalidValue?.toString()?.contains($$"$ne") == true },
+            $$"Should include MongoDB $ne payload",
         )
         assertTrue(
-            cases.any { it.invalidValue?.toString()?.contains("\$where") == true },
-            "Should include MongoDB \$where payload",
+            cases.any { it.invalidValue?.toString()?.contains($$"$where") == true },
+            $$"Should include MongoDB $where payload",
         )
     }
 

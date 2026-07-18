@@ -77,7 +77,7 @@ class ValueExtractorTest {
     @Test
     fun `should extract`() {
         val extraction =
-            org.berrycrush.model.Extraction(
+            Extraction(
                 variableName = "petId",
                 jsonPath = "$.pets[0].id",
             )

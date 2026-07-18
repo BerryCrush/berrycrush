@@ -107,12 +107,12 @@ scenario: List all items
 
 ## Key Annotations
 
-| Annotation | Purpose |
-|------------|---------|
-| `@BerryCrushContextConfiguration` | Enables Spring context integration |
-| `@SpringBootTest` | Starts Spring Boot test context |
-| `@BerryCrushScenarios` | Specifies scenario file locations |
-| `@BerryCrushConfiguration` | Configures bindings and OpenAPI spec |
+| Annotation                        | Purpose                              |
+|-----------------------------------|--------------------------------------|
+| `@BerryCrushContextConfiguration` | Enables Spring context integration   |
+| `@SpringBootTest`                 | Starts Spring Boot test context      |
+| `@BerryCrushScenarios`            | Specifies scenario file locations    |
+| `@BerryCrushConfiguration`        | Configures bindings and OpenAPI spec |
 
 ## Important Notes
 

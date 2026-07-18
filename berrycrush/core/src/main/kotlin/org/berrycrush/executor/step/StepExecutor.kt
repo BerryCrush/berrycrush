@@ -284,7 +284,7 @@ internal inline fun ScenarioContext.withIncludeParameters(
         val saved =
             step.includeParameters.keys
                 .filter { context.contains(it) }
-                .associateWith { context.get(it) as Any? }
+                .associateWith { context[it] as Any? }
         try {
             context.resolveParams(step.includeParameters).forEachNonNull { key, value -> context[key] = value }
             block()

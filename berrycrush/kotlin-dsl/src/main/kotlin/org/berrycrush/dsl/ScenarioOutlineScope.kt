@@ -6,7 +6,6 @@ import org.berrycrush.model.Fragment
 import org.berrycrush.model.Scenario
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepType
-import org.berrycrush.step.dsl.steps
 
 /**
  * DSL scope for defining a scenario outline (parameterized scenario).
