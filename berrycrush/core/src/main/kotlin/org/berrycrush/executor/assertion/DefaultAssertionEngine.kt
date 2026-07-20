@@ -152,6 +152,7 @@ class DefaultAssertionEngine(
             ConditionOperator.NOT_CONTAINS -> !(actualValue?.contains(expectedValue?.toString() ?: "") ?: false)
             ConditionOperator.MATCHES -> actualValue?.matches((expectedValue?.toString() ?: "").toRegex()) ?: false
             ConditionOperator.GREATER_THAN, ConditionOperator.LESS_THAN,
+            ConditionOperator.GREATER_THAN_OR_EQUALS, ConditionOperator.LESS_THAN_OR_EQUALS,
             ConditionOperator.HAS_SIZE, ConditionOperator.NOT_EMPTY,
             -> false // Not applicable for headers
         }
@@ -374,7 +375,9 @@ class DefaultAssertionEngine(
                 actual?.toString()?.matches(pattern.toRegex()) ?: false
             }
             ConditionOperator.GREATER_THAN -> compareAsNumbers(actual, expected) { a, e -> a > e }
+            ConditionOperator.GREATER_THAN_OR_EQUALS -> compareAsNumbers(actual, expected) { a, e -> a >= e }
             ConditionOperator.LESS_THAN -> compareAsNumbers(actual, expected) { a, e -> a < e }
+            ConditionOperator.LESS_THAN_OR_EQUALS -> compareAsNumbers(actual, expected) { a, e -> a <= e }
             ConditionOperator.HAS_SIZE -> {
                 val actualSize = sizeOf(actual) ?: return false
                 val expectedSize =

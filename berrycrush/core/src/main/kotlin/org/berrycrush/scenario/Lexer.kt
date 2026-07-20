@@ -551,6 +551,13 @@ class Lexer(
                 ',' -> TokenType.COMMA
                 '|' -> TokenType.PIPE
                 '.' -> TokenType.DOT
+                '>', '<' -> {
+                    if (!isAtEnd() && peek() == '=') {
+                        advance()
+                        return Token(TokenType.ERROR, "$c=", loc)
+                    }
+                    TokenType.ERROR
+                }
                 else -> TokenType.ERROR
             }
 
@@ -586,7 +593,7 @@ class Lexer(
 }
 
 private fun isJsonPathChar(c: Char): Boolean =
-    c.isLetterOrDigit() || c == '.' || c == '[' || c == ']' || c == '*' || c == '?' || c == '@' || c == '_'
+    c.isLetterOrDigit() || c == '.' || c == '[' || c == ']' || c == '*' || c == '?' || c == '@' || c == '_' || c == '(' || c == ')'
 
 private fun Char.isNewLine() = this == '\n' || this == '\r'
 

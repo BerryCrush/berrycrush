@@ -647,6 +647,8 @@ class ScenarioLoader {
             ConditionOperator.NOT_EXISTS -> ModelConditionOperator.NOT_EXISTS
             ConditionOperator.GREATER_THAN -> ModelConditionOperator.GREATER_THAN
             ConditionOperator.LESS_THAN -> ModelConditionOperator.LESS_THAN
+            ConditionOperator.GREATER_THAN_OR_EQUALS -> ModelConditionOperator.GREATER_THAN_OR_EQUALS
+            ConditionOperator.LESS_THAN_OR_EQUALS -> ModelConditionOperator.LESS_THAN_OR_EQUALS
             ConditionOperator.HAS_SIZE -> ModelConditionOperator.HAS_SIZE
             ConditionOperator.NOT_EMPTY -> ModelConditionOperator.NOT_EMPTY
         }
