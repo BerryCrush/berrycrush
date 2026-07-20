@@ -358,12 +358,19 @@ private fun ParserState.parseParameterEntries(
             // Value on same line - parse it
             val value = parseParameterValue()
             if (value != null) {
-                result[prefix + paramName] = value
+                val fullKey = prefix + paramName
+                if (result.containsKey(fullKey) && fullKey.isAliasParameterKey()) {
+                    addError<Unit>("Duplicate alias declaration in the same parameters block", found = fullKey)
+                }
+                result[fullKey] = value
             }
             skipNewlines()
         }
     }
 }
+
+private fun String.isAliasParameterKey(): Boolean =
+    startsWith("binding.alias.") || Regex("^binding\\.[^.]+\\.alias\\.").containsMatchIn(this)
 
 /**
  * Parse a parameter name, supporting compound names with dots and hyphens.

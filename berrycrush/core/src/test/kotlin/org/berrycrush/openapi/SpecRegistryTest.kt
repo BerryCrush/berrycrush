@@ -117,6 +117,48 @@ class SpecRegistryTest {
         assertContains(error.message ?: "", "Spec 'missing' not found")
     }
 
+    @Test
+    fun `resolveStep should resolve alias to operation id`() {
+        val registry = SpecRegistry()
+        registry.registerDefault(petstoreSpecPath())
+
+        val bindings =
+            mapOf(
+                "default" to org.berrycrush.config.BindingConfig("default", operationAliases = mapOf("petLookup" to "getPetById")),
+            )
+        val (_, resolved) = registry.resolve("petLookup", bindings = bindings)
+
+        assertEquals("getPetById", resolved.operationId)
+    }
+
+    @Test
+    fun `resolveStep should resolve alias to method path route shape`() {
+        val registry = SpecRegistry()
+        registry.registerDefault(petstoreSpecPath())
+
+        val bindings =
+            mapOf(
+                "default" to org.berrycrush.config.BindingConfig("default", operationAliases = mapOf("petLookup" to "GET /pets/{id}")),
+            )
+        val (_, resolved) = registry.resolve("petLookup", bindings = bindings)
+
+        assertEquals("getPetById", resolved.operationId)
+    }
+
+    @Test
+    fun `resolve should prefer direct operation over alias mapping`() {
+        val registry = SpecRegistry()
+        registry.registerDefault(petstoreSpecPath())
+
+        val bindings =
+            mapOf(
+                "default" to org.berrycrush.config.BindingConfig("default", operationAliases = mapOf("listPets" to "getPetById")),
+            )
+        val (_, resolved) = registry.resolve("listPets", bindings = bindings)
+
+        assertEquals("listPets", resolved.operationId)
+    }
+
     private fun petstoreSpecPath(): String =
         javaClass.getResource("/petstore.yaml")?.path
             ?: error("petstore.yaml not found")

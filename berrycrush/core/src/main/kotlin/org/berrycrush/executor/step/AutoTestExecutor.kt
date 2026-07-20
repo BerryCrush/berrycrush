@@ -124,7 +124,7 @@ class AutoTestExecutor(
         val autoTestConfig = step.autoTestConfig!!
         val operationId = step.operationId!!
         // Resolve the operation to get the OpenAPI spec
-        val (spec, operation) = specRegistry.resolve(operationId, step.specName)
+        val (spec, operation) = specRegistry.resolve(operationId, step.specName, configuration.bindings)
         // Create the auto-test generator
         val generator = AutoTestGenerator.fromSpec(spec)
         // Extract base body from step if present
@@ -284,7 +284,7 @@ class AutoTestExecutor(
         testStartTime: Instant,
     ): AutoTestResult {
         val (body, pathParams, headers) = buildTestCaseParams(step, testCase)
-        val (spec, operation) = specRegistry.resolve(step.operationId!!, step.specName)
+        val (spec, operation) = specRegistry.resolve(step.operationId!!, step.specName, configuration.bindings)
         val url = httpExecutor.resolveUrl(step, spec, operation, context, pathParams)
         val request = HttpRequest(operation.method, url, headers, body)
         val response = httpExecutor.execute(request, context)

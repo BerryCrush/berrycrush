@@ -70,6 +70,7 @@ class SpringContextAdapter(
             throw ConfigurationException(
                 "Failed to initialize Spring context for test class: ${testClass.name}. " +
                     "Ensure the class has @SpringBootTest annotation and a valid Spring configuration.",
+                it,
             )
         }
     }

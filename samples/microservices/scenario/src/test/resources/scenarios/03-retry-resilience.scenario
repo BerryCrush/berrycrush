@@ -21,6 +21,8 @@ parameters:
     maxDelay: "2s"
     backoff: exponential
     jitter: true
+  binding.alias:
+    listInventory: "GET /api/inventory"
 
 # -----------------------------------------------------------------------------
 # Basic Chaos Testing
@@ -31,7 +33,7 @@ scenario: API recovers after transient 503 errors
   description: Demonstrates automatic retry when service returns 503
   given: chaos mode is enabled to fail 2 requests
     call ^enableChaos
-      failCount: 2
+      query_failCount: 2
       statusCode: 503
     assert status 200
     assert $.enabled equals true
@@ -49,7 +51,7 @@ scenario: Get specific item with retry on 503
   description: Fetching a specific item recovers from transient failures
   given: chaos is configured for 1 failure
     call ^enableChaos
-      failCount: 1
+      query_failCount: 1
       statusCode: 503
     assert status 200
   when: I request a specific inventory item
@@ -70,7 +72,7 @@ scenario: Availability check succeeds after transient failures
   description: Checking availability with automatic retry
   given: chaos mode simulates intermittent failures
     call ^enableChaos
-      failCount: 2
+      query_failCount: 2
       statusCode: 503
     assert status 200
   when: I check item availability
@@ -98,7 +100,7 @@ scenario: Verify chaos status endpoint
 scenario: Enable and disable chaos mode
   given: I enable chaos mode
     call ^enableChaos
-      failCount: 3
+      query_failCount: 3
       statusCode: 503
     assert status 200
     assert $.enabled equals true
@@ -116,7 +118,7 @@ scenario: Enable and disable chaos mode
 scenario: Reset chaos counter mid-test
   given: chaos is enabled and partially used
     call ^enableChaos
-      failCount: 10
+      query_failCount: 10
       statusCode: 503
     # Note: We can't easily trigger a partial failure here
     # but we can show the reset functionality
@@ -142,13 +144,13 @@ scenario: Order flow with resilient inventory check
   description: Creating an order while inventory service has transient issues
   given: inventory service will initially fail
     call ^enableChaos
-      failCount: 1
+      query_failCount: 1
       statusCode: 503
     assert status 200
   when: I check inventory before ordering
     call ^checkAvailability
       sku: "SKU-001"
-      quantity: 2
+      query_quantity: 2
   then: availability check succeeds after retry
     assert status 200
     assert $.available equals true

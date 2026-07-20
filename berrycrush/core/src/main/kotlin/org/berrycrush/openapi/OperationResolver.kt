@@ -12,8 +12,17 @@ private const val STATUS_CODE_RANGE_DIVISOR = 100
 class OperationResolver(
     private val spec: OpenApiSpec,
 ) {
+    private data class MethodPathKey(
+        val method: HttpMethod,
+        val routeShape: String,
+    )
+
     private val operationIndex: Map<String, ResolvedOperation> by lazy {
         buildOperationIndex()
+    }
+
+    private val methodPathIndex: Map<MethodPathKey, ResolvedOperation> by lazy {
+        buildMethodPathIndex()
     }
 
     /**
@@ -26,6 +35,17 @@ class OperationResolver(
     fun resolve(operationId: String): ResolvedOperation =
         operationIndex[operationId]
             ?: throw OperationNotFoundException(operationId, operationIndex.keys.toList())
+
+    /**
+     * Resolve an operation by method and path, matching on route shape.
+     *
+     * Route shape matching ignores path variable names, so `/pets/{id}` and
+     * `/pets/{petId}` are treated as equivalent.
+     */
+    fun resolve(
+        method: HttpMethod,
+        path: String,
+    ): ResolvedOperation? = methodPathIndex[MethodPathKey(method, normalizeRouteShape(path))]
 
     /**
      * Check if an operation ID exists.
@@ -50,6 +70,33 @@ class OperationResolver(
                         operation = op,
                     )
             }
+
+    private fun buildMethodPathIndex(): Map<MethodPathKey, ResolvedOperation> =
+        spec
+            .getAllOperations()
+            .associate { op ->
+                MethodPathKey(op.method, normalizeRouteShape(op.path)) to
+                    ResolvedOperation(
+                        operationId = op.operationId ?: "${op.method} ${op.path}",
+                        path = op.path,
+                        method = op.method,
+                        operation = op,
+                    )
+            }
+
+    private fun normalizeRouteShape(path: String): String {
+        val trimmed = path.trim().let { if (it == "/") it else it.trimEnd('/') }
+        return trimmed
+            .split('/')
+            .filter { it.isNotEmpty() }
+            .joinToString(separator = "/", prefix = "/") { segment ->
+                if (segment.startsWith("{") && segment.endsWith("}")) {
+                    "{}"
+                } else {
+                    segment
+                }
+            }
+    }
 }
 
 /**

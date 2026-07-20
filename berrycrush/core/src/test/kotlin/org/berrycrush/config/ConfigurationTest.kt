@@ -184,6 +184,32 @@ class ConfigurationTest {
     }
 
     @Test
+    fun `should apply default binding alias parameter`() {
+        val config = BerryCrushConfiguration()
+
+        val modified =
+            config.withParameters(
+                mapOf("binding.alias.petLookup" to "getPetById"),
+            )
+
+        val defaultBinding = modified.bindings[BindingConfig.DEFAULT_BINDING_NAME]
+        assertEquals("getPetById", defaultBinding?.operationAliases?.get("petLookup"))
+    }
+
+    @Test
+    fun `should apply named binding alias parameter`() {
+        val config = BerryCrushConfiguration()
+
+        val modified =
+            config.withParameters(
+                mapOf("binding.petstore.alias.petLookup" to "GET /pets/{id}"),
+            )
+
+        val binding = modified.bindings["petstore"]
+        assertEquals("GET /pets/{id}", binding?.operationAliases?.get("petLookup"))
+    }
+
+    @Test
     fun `should apply error context parameters`() {
         val config = BerryCrushConfiguration()
         val modified =

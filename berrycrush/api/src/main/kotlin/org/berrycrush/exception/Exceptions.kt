@@ -352,7 +352,8 @@ class AssertionException(
  */
 class ConfigurationException(
     message: String,
-) : BerryCrushException(message)
+    cause: Throwable? = null,
+) : BerryCrushException(message, cause)
 
 /**
  * Thrown when scenario parsing fails.
