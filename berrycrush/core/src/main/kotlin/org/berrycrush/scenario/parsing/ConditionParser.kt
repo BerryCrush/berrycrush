@@ -25,6 +25,8 @@ private val VALID_OPERATORS =
         ">",
         "lessthan",
         "<",
+        ">=",
+        "<=",
         "in",
     )
 
@@ -330,6 +332,16 @@ internal fun ParserState.parseConditionOperatorAndValue(): Pair<ConditionOperato
             "notempty" -> {
                 advance()
                 return Pair(ConditionOperator.NOT_EMPTY, null)
+            }
+            ">=" -> {
+                advance()
+                skipWhitespace()
+                ConditionOperator.GREATER_THAN_OR_EQUALS
+            }
+            "<=" -> {
+                advance()
+                skipWhitespace()
+                ConditionOperator.LESS_THAN_OR_EQUALS
             }
             else -> {
                 ConditionOperator.EQUALS
