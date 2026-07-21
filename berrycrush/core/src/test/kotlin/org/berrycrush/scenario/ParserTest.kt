@@ -1,5 +1,6 @@
 package org.berrycrush.scenario
 
+import org.berrycrush.model.SourceLocation
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

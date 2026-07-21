@@ -1,6 +1,8 @@
 package org.berrycrush.scenario
 
 import org.berrycrush.exception.ScenarioParseException
+import org.berrycrush.model.Feature
+import org.berrycrush.model.Scenario
 import org.berrycrush.model.StepType
 import java.nio.file.Paths
 import kotlin.test.Test
@@ -10,8 +12,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ScenarioLoaderTest {
-    private val loader = ScenarioLoader()
-
     private fun getResourcePath(name: String): java.nio.file.Path {
         val url = javaClass.getResource("/scenarios/$name") ?: error("Resource not found: /scenarios/$name")
         return Paths.get(url.toURI())
@@ -20,7 +20,7 @@ class ScenarioLoaderTest {
     @Test
     fun `should load scenarios from valid file`() {
         val path = getResourcePath("valid/petstore-crud.scenario")
-        val scenarios = loader.loadScenariosFromFile(path)
+        val scenarios = ScenarioLoader.loadFileContent(path).scenarios
 
         assertEquals(3, scenarios.size)
         assertEquals("List all pets", scenarios[0].name)
@@ -31,7 +31,7 @@ class ScenarioLoaderTest {
     @Test
     fun `should load fragments from valid file`() {
         val path = getResourcePath("valid/auth.fragment")
-        val fragments = loader.loadFragmentsFromFile(path)
+        val fragments = ScenarioLoader.loadFragmentsFromFile(path)
 
         assertEquals(2, fragments.size)
         assertTrue(fragments.containsKey("authenticate"))
@@ -41,7 +41,7 @@ class ScenarioLoaderTest {
     @Test
     fun `should load parameterized scenario with examples`() {
         val path = getResourcePath("valid/parameterized.scenario")
-        val scenarios = loader.loadScenariosFromFile(path)
+        val scenarios = ScenarioLoader.loadFileContent(path).scenarios
 
         assertEquals(1, scenarios.size)
         val scenario = scenarios[0]
@@ -55,22 +55,14 @@ class ScenarioLoaderTest {
         val path = getResourcePath("invalid/random-content.scenario")
 
         assertFailsWith<ScenarioParseException> {
-            loader.loadScenariosFromFile(path)
+            ScenarioLoader.loadFileContent(path).scenarios
         }
-    }
-
-    @Test
-    fun `should load scenarios from directory`() {
-        val path = getResourcePath("valid")
-        val scenarios = loader.loadScenariosFromDirectory(path)
-
-        assertTrue(scenarios.size >= 4) // At least from two .scenario files
     }
 
     @Test
     fun `should load fragments from directory`() {
         val path = getResourcePath("valid")
-        val fragments = loader.loadFragmentsFromDirectory(path)
+        val fragments = ScenarioLoader.loadFragmentsFromDirectory(path)
 
         assertTrue(fragments.isNotEmpty())
     }
@@ -86,7 +78,7 @@ class ScenarioLoaderTest {
             |    assert status 200
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
 
         assertEquals(1, scenarios.size)
         val scenario = scenarios[0]
@@ -103,7 +95,7 @@ class ScenarioLoaderTest {
             |    call ^listPets
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
         val step = scenarios[0].steps.first { it.operationId != null }
 
         assertEquals("listPets", step.operationId)
@@ -120,7 +112,7 @@ class ScenarioLoaderTest {
             |  and another assertion
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
         val steps = scenarios[0].steps
 
         assertTrue(steps.any { it.type == StepType.GIVEN })
@@ -139,7 +131,7 @@ class ScenarioLoaderTest {
             |    extract $.id => petId
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
         val step = scenarios[0].steps.first()
 
         assertTrue(step.extractions.isNotEmpty())
@@ -157,7 +149,7 @@ class ScenarioLoaderTest {
             |    assert $.name equals "Fluffy"
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
         val step = scenarios[0].steps.first()
 
         assertTrue(step.assertions.isNotEmpty())
@@ -174,7 +166,7 @@ class ScenarioLoaderTest {
             |    call ^getProtected
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
         val steps = scenarios[0].steps
 
         assertTrue(steps.any { it.fragmentName == "authenticate" })
@@ -194,7 +186,7 @@ class ScenarioLoaderTest {
             |    call ^getUser
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
         val step = scenarios[0].steps.first { it.fragmentName != null }
 
         assertEquals("createUser", step.fragmentName)
@@ -214,7 +206,7 @@ class ScenarioLoaderTest {
             |      query_include: "details"
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
         val step = scenarios[0].steps.first { it.operationId != null }
 
         assertEquals(123L, step.pathParams["petId"])
@@ -232,7 +224,7 @@ class ScenarioLoaderTest {
             |      body: {"name": "Fluffy"}
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
         val step = scenarios[0].steps.first { it.operationId != null }
 
         assertEquals("Bearer token", step.headers["Authorization"])
@@ -253,7 +245,7 @@ class ScenarioLoaderTest {
             |    call ^listPets
             """.trimMargin()
 
-        val content = loader.loadFileContentFromString(source)
+        val content = ScenarioLoader.loadFileContentFromString(source)
 
         assertEquals(1, content.scenarios.size)
         assertEquals(3, content.parameters.size)
@@ -271,7 +263,7 @@ class ScenarioLoaderTest {
             |    call ^listPets
             """.trimMargin()
 
-        val content = loader.loadFileContentFromString(source)
+        val content = ScenarioLoader.loadFileContentFromString(source)
 
         assertEquals(1, content.scenarios.size)
         assertTrue(content.parameters.isEmpty())
@@ -291,7 +283,7 @@ class ScenarioLoaderTest {
             |    call ^listPets
             """.trimMargin()
 
-        val content = loader.loadFileContentFromString(source)
+        val content = ScenarioLoader.loadFileContentFromString(source)
 
         assertEquals(1, content.scenarios.size)
         assertEquals("Bearer test-token", content.parameters["header.Authorization"])
@@ -315,7 +307,7 @@ class ScenarioLoaderTest {
             |    call ^createPet
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
 
         assertEquals(1, scenarios.size)
         val scenario = scenarios[0]
@@ -334,7 +326,7 @@ class ScenarioLoaderTest {
             |    call ^listPets
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
 
         assertEquals(1, scenarios.size)
         assertTrue(scenarios[0].parameters.isEmpty())
@@ -356,10 +348,11 @@ class ScenarioLoaderTest {
             |      call ^createPet
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val stories = ScenarioLoader.loadFileContentFromString(source).stories
 
-        assertEquals(1, scenarios.size)
-        val scenario = scenarios[0]
+        assertEquals(1, stories.size)
+        assertTrue(stories[0] is Feature)
+        val scenario = (stories[0] as Feature).scenarios[0]
         // Scenario should have merged parameters (scenario overrides feature)
         assertEquals(2, scenario.parameters.size)
         assertEquals("staging", scenario.parameters["environment"])
@@ -381,10 +374,12 @@ class ScenarioLoaderTest {
             |      call petLookup
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val stories = ScenarioLoader.loadFileContentFromString(source).stories
 
-        assertEquals(1, scenarios.size)
-        assertEquals("listPets", scenarios[0].parameters["binding.alias.petLookup"])
+        assertEquals(1, stories.size)
+        assertTrue(stories[0] is Feature)
+        val scenario = (stories[0] as Feature).scenarios[0]
+        assertEquals("listPets", scenario.parameters["binding.alias.petLookup"])
     }
 
     @Test
@@ -400,7 +395,7 @@ class ScenarioLoaderTest {
             """.trimMargin()
 
         assertFailsWith<ScenarioParseException> {
-            loader.loadScenariosFromString(source)
+            ScenarioLoader.loadFileContentFromString(source).scenarios
         }
     }
 
@@ -418,10 +413,11 @@ class ScenarioLoaderTest {
             |      call ^listPets
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val stories = ScenarioLoader.loadFileContentFromString(source).stories
 
-        assertEquals(1, scenarios.size)
-        val scenario = scenarios[0]
+        assertEquals(1, stories.size)
+        assertTrue(stories[0] is Feature)
+        val scenario = (stories[0] as Feature).scenarios[0]
         assertEquals(2, scenario.parameters.size)
         assertEquals(60L, scenario.parameters["timeout"])
         assertEquals("production", scenario.parameters["environment"])
@@ -443,7 +439,7 @@ class ScenarioLoaderTest {
             |    | Buddy  |
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
 
         assertEquals(1, scenarios.size)
         val scenario = scenarios[0]
@@ -465,7 +461,7 @@ class ScenarioLoaderTest {
             |      call ^createPet
             """.trimMargin()
 
-        val content = loader.loadFileContentFromString(source)
+        val content = ScenarioLoader.loadFileContentFromString(source)
 
         assertEquals(1, content.features.size)
         val featureGroup = content.features[0]
@@ -495,15 +491,15 @@ class ScenarioLoaderTest {
             |    | 1  |
             """.trimMargin()
 
-        val content = loader.loadFileContentFromString(source)
+        val content = ScenarioLoader.loadFileContentFromString(source)
 
         assertEquals(3, content.stories.size)
-        assertTrue(content.stories[0] is FeatureGroup)
-        assertTrue(content.stories[1] is ScenarioEntry)
-        assertTrue(content.stories[2] is ScenarioEntry)
+        assertTrue(content.stories[0] is Feature)
+        assertTrue(content.stories[1] is Scenario)
+        assertTrue(content.stories[2] is Scenario)
 
-        val firstScenarioName = (content.stories[1] as ScenarioEntry).scenario.name
-        val secondScenarioName = (content.stories[2] as ScenarioEntry).scenario.name
+        val firstScenarioName = (content.stories[1] as Scenario).name
+        val secondScenarioName = (content.stories[2] as Scenario).name
         assertEquals("Standalone scenario", firstScenarioName)
         assertEquals("Standalone outline", secondScenarioName)
     }
@@ -530,11 +526,11 @@ class ScenarioLoaderTest {
             |    | 1  |
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val stories = ScenarioLoader.loadFileContentFromString(source).stories
 
         assertEquals(
-            listOf("Feature scenario", "Standalone scenario", "Standalone outline"),
-            scenarios.map { it.name },
+            listOf("Feature first", "Standalone scenario", "Standalone outline"),
+            stories.map { it.name },
         )
     }
 }

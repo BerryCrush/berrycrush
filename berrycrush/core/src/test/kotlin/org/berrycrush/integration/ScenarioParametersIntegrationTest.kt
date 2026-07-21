@@ -1,5 +1,8 @@
 package org.berrycrush.integration
 
+import org.berrycrush.model.Feature
+import org.berrycrush.model.Scenario
+import org.berrycrush.scenario.ScenarioFileContent
 import org.berrycrush.scenario.ScenarioLoader
 import java.nio.file.Paths
 import kotlin.test.Test
@@ -14,7 +17,14 @@ import kotlin.test.assertTrue
  * are correctly parsed, merged, and accessible.
  */
 class ScenarioParametersIntegrationTest {
-    private val loader = ScenarioLoader()
+    private val ScenarioFileContent.allScenarios: List<Scenario>
+        get() =
+            this.stories.flatMap {
+                when (it) {
+                    is Scenario -> listOf(it)
+                    is Feature -> it.scenarios
+                }
+            }
 
     private fun getResourcePath(name: String): java.nio.file.Path {
         val url =
@@ -26,7 +36,7 @@ class ScenarioParametersIntegrationTest {
     @Test
     fun `should load file with scenario-level parameters`() {
         val path = getResourcePath("valid/scenario-parameters.scenario")
-        val content = loader.loadFileContent(path)
+        val content = ScenarioLoader.loadFileContent(path)
 
         // File-level parameters
         assertEquals(true, content.parameters["shareVariablesAcrossScenarios"])
@@ -59,7 +69,7 @@ class ScenarioParametersIntegrationTest {
     @Test
     fun `should merge feature parameters with scenario parameters`() {
         val path = getResourcePath("valid/scenario-parameters.scenario")
-        val scenarios = loader.loadScenariosFromFile(path)
+        val scenarios = ScenarioLoader.loadFileContent(path).allScenarios
 
         // Find the scenario with overridden timeout
         val createScenario = scenarios.find { it.name == "Create pet with custom timeout" }
@@ -75,7 +85,7 @@ class ScenarioParametersIntegrationTest {
     @Test
     fun `should load standalone outline with parameters`() {
         val path = getResourcePath("valid/scenario-parameters.scenario")
-        val content = loader.loadFileContent(path)
+        val content = ScenarioLoader.loadFileContent(path)
 
         // Find the outline in standalone scenarios
         val outline = content.scenarios.find { it.name == "Test multiple pets with parameters" }
@@ -92,8 +102,7 @@ class ScenarioParametersIntegrationTest {
     @Test
     fun `should preserve parameter hierarchy in all scenarios`() {
         val path = getResourcePath("valid/scenario-parameters.scenario")
-        val allScenarios = loader.loadScenariosFromFile(path)
-
+        val allScenarios = ScenarioLoader.loadFileContent(path).allScenarios
         // All scenarios from file: 2 from feature + 1 outline
         assertEquals(3, allScenarios.size)
 
@@ -111,7 +120,7 @@ class ScenarioParametersIntegrationTest {
     @Test
     fun `should handle scenario without parameters in feature with parameters`() {
         val path = getResourcePath("valid/scenario-parameters.scenario")
-        val scenarios = loader.loadScenariosFromFile(path)
+        val scenarios = ScenarioLoader.loadFileContent(path).allScenarios
 
         // Find the scenario that only inherits feature parameters
         val listScenario = scenarios.find { it.name == "List pets with default timeout" }
@@ -145,11 +154,11 @@ class ScenarioParametersIntegrationTest {
                 | 1  |
             """.trimIndent()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source)
 
         assertEquals(
-            listOf("Feature scenario", "Standalone scenario", "Standalone outline"),
-            scenarios.map { it.name },
+            listOf("Feature first", "Standalone scenario", "Standalone outline"),
+            scenarios.stories.map { it.name },
         )
     }
 }

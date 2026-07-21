@@ -1,5 +1,7 @@
 package org.berrycrush.scenario
 
+import org.berrycrush.model.SourceLocation
+
 /**
  * Holds the shared state for parsing scenario files.
  *

@@ -1,5 +1,7 @@
 package org.berrycrush.scenario
 
+import org.berrycrush.model.SourceLocation
+
 /**
  * Abstract Syntax Tree nodes for parsed scenario files.
  */

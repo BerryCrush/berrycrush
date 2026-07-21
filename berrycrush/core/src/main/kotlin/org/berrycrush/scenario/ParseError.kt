@@ -1,5 +1,7 @@
 package org.berrycrush.scenario
 
+import org.berrycrush.model.SourceLocation
+
 /**
  * Represents a parse error encountered during scenario file parsing.
  *

@@ -8,10 +8,13 @@ import org.berrycrush.model.ConditionalActions
 import org.berrycrush.model.ConditionalAssertion
 import org.berrycrush.model.ExampleRow
 import org.berrycrush.model.Extraction
+import org.berrycrush.model.Feature
 import org.berrycrush.model.Fragment
 import org.berrycrush.model.Scenario
+import org.berrycrush.model.SourceLocation
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepType
+import org.berrycrush.model.Story
 import org.berrycrush.model.WebhookConfig
 import org.berrycrush.util.toNonNullMap
 import java.nio.file.Files
@@ -21,77 +24,32 @@ import org.berrycrush.model.ConditionOperator as ModelConditionOperator
 import org.berrycrush.model.LogicalOperator as ModelLogicalOperator
 
 /**
- * Interface for loaded content that carries configuration parameters.
- *
- * Parameters provide configuration that is resolved at execution time.
- * The parameter values support variable interpolation using `${variable}` syntax.
- */
-interface HasParameters {
-    val parameters: Map<String, Any>
-}
-
-/**
- * Ordered top-level content in a loaded scenario file.
- */
-sealed interface Story : HasParameters
-
-/**
- * Standalone top-level scenario entry.
- */
-data class ScenarioEntry(
-    val scenario: Scenario,
-) : Story {
-    override val parameters: Map<String, Any> get() = scenario.parameters
-}
-
-/**
- * Represents a group of scenarios within a feature block.
- *
- * @property name Feature name
- * @property scenarios List of scenarios belonging to this feature
- * @property tags Tags applied to the feature
- * @property parameters Feature-level parameters that override file-level parameters
- * @property sourceLocation Source location of the feature for IDE navigation
- */
-data class FeatureGroup(
-    val name: String,
-    val scenarios: List<Scenario>,
-    val tags: Set<String> = emptySet(),
-    override val parameters: Map<String, Any> = emptyMap(),
-    val sourceLocation: SourceLocation? = null,
-) : Story
-
-/**
  * Result of loading a scenario file.
  *
- * @property features List of feature groups (for structured reporting)
- * @property scenarios Scenarios not in any feature block
+ * @property stories List of stories
  * @property parameters Optional file-level configuration parameters
  */
 data class ScenarioFileContent(
     val stories: List<Story> = emptyList(),
-    override val parameters: Map<String, Any> = emptyMap(),
-) : HasParameters {
+    val parameters: Map<String, Any> = emptyMap(),
+) {
     /**
      * Read-only compatibility accessor for features.
      */
-    val features: List<FeatureGroup>
-        get() = stories.filterIsInstance<FeatureGroup>()
+    val features: List<Feature>
+        get() = stories.filterIsInstance<Feature>()
 
     /**
      * Read-only compatibility accessor for standalone top-level scenarios.
      */
     val scenarios: List<Scenario>
-        get() =
-            stories
-                .filterIsInstance<ScenarioEntry>()
-                .map { it.scenario }
+        get() = stories.filterIsInstance<Scenario>()
 }
 
 /**
  * Loads and transforms scenario files into executable Scenario objects.
  */
-class ScenarioLoader {
+object ScenarioLoader {
     /**
      * Parse scenario source and throw if parsing fails.
      */
@@ -105,31 +63,6 @@ class ScenarioLoader {
             throw ScenarioParseException("Failed to parse scenario file:\n$errorMessages")
         }
         return result
-    }
-
-    /**
-     * Load scenarios from a directory.
-     *
-     * @param directory Path to directory containing .scenario files
-     * @return List of parsed Scenario objects
-     */
-    fun loadScenariosFromDirectory(directory: Path): List<Scenario> =
-        Files
-            .walk(directory)
-            .filter { it.toString().endsWith(".scenario") }
-            .flatMap { loadScenariosFromFile(it).stream() }
-            .toList()
-
-    /**
-     * Load scenarios from a single file.
-     *
-     * @param path Path to the .scenario file
-     * @return List of parsed Scenario objects
-     */
-    fun loadScenariosFromFile(path: Path): List<Scenario> {
-        val content = Files.readString(path)
-        val fileName = path.fileName.toString()
-        return loadScenariosFromString(content, fileName)
     }
 
     /**
@@ -160,7 +93,7 @@ class ScenarioLoader {
         val stories =
             result.ast!!.stories.map { node ->
                 when (node) {
-                    is ScenarioNode -> ScenarioEntry(transformScenario(node))
+                    is ScenarioNode -> transformScenario(node)
                     is FeatureNode -> transformFeatureGroup(node)
                 }
             }
@@ -171,27 +104,6 @@ class ScenarioLoader {
             stories = stories,
             parameters = parameters,
         )
-    }
-
-    /**
-     * Load scenarios from a string.
-     *
-     * @param source The scenario file content
-     * @param fileName Optional filename for error reporting
-     * @return List of parsed Scenario objects
-     */
-    fun loadScenariosFromString(
-        source: String,
-        fileName: String? = null,
-    ): List<Scenario> {
-        val result = parseOrThrow(source, fileName)
-
-        return result.ast!!.stories.flatMap { node ->
-            when (node) {
-                is ScenarioNode -> listOf(transformScenario(node))
-                is FeatureNode -> transformFeatureScenarios(node)
-            }
-        }
     }
 
     /**
@@ -266,8 +178,8 @@ class ScenarioLoader {
      * Feature tags are inherited by scenarios unless the scenario overrides them.
      * Feature parameters are inherited by scenarios, with scenario parameters taking precedence.
      */
-    private fun transformFeatureGroup(node: FeatureNode): FeatureGroup =
-        FeatureGroup(
+    private fun transformFeatureGroup(node: FeatureNode): Feature =
+        Feature(
             name = node.name,
             scenarios = transformFeatureScenarios(node),
             tags = node.tags,
@@ -321,7 +233,7 @@ class ScenarioLoader {
     /**
      * Builder for accumulating step components before finalizing.
      */
-    private inner class StepBuilder(
+    private class StepBuilder(
         private val stepType: StepType,
         private val description: String,
         private val defaultLocation: SourceLocation?,

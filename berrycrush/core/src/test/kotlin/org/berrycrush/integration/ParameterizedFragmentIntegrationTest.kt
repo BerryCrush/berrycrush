@@ -18,8 +18,6 @@ import kotlin.test.assertTrue
  * 4. Variable interpolation within fragment execution
  */
 class ParameterizedFragmentIntegrationTest {
-    private val loader = ScenarioLoader()
-
     @Test
     fun `should parse include directive with parameters`() {
         val source =
@@ -34,7 +32,7 @@ class ParameterizedFragmentIntegrationTest {
             |    assert status 201
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
 
         assertEquals(1, scenarios.size)
         val step = scenarios[0].steps.first { it.fragmentName != null }
@@ -59,7 +57,7 @@ class ParameterizedFragmentIntegrationTest {
             |      age: 25
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
 
         assertEquals(1, scenarios.size)
         val step = scenarios[0].steps.first { it.fragmentName != null }
@@ -74,7 +72,7 @@ class ParameterizedFragmentIntegrationTest {
     @Test
     fun `should load parameterized fragment file`() {
         val path = getResourcePath("valid/parameterized-fragment.fragment")
-        val fragments = loader.loadFragmentsFromFile(path)
+        val fragments = ScenarioLoader.loadFragmentsFromFile(path)
 
         assertEquals(2, fragments.size)
         assertTrue(fragments.containsKey("create_user"))
@@ -99,7 +97,7 @@ class ParameterizedFragmentIntegrationTest {
             |      nullVal: null
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
         val step = scenarios[0].steps.first { it.fragmentName != null }
 
         assertEquals("hello", step.includeParameters["stringVal"])
@@ -120,7 +118,7 @@ class ParameterizedFragmentIntegrationTest {
             |  then I am logged in
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
         val step = scenarios[0].steps.first { it.fragmentName != null }
 
         assertEquals("authenticate", step.fragmentName)
@@ -137,7 +135,7 @@ class ParameterizedFragmentIntegrationTest {
             |      metadata: {"key": "value", "nested": {"a": 1}}
             """.trimMargin()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
         val step = scenarios[0].steps.first { it.fragmentName != null }
 
         assertNotNull(step.includeParameters["metadata"])

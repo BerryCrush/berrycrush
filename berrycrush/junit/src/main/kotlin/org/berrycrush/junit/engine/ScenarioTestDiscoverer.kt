@@ -3,22 +3,19 @@ package org.berrycrush.junit.engine
 import org.berrycrush.junit.BerryCrushScenarios
 import org.berrycrush.junit.discovery.DiscoveredScenario
 import org.berrycrush.junit.discovery.ScenarioDiscovery
+import org.berrycrush.model.Feature
 import org.berrycrush.model.Scenario
-import org.berrycrush.scenario.FeatureGroup
-import org.berrycrush.scenario.ScenarioEntry
+import org.berrycrush.model.Story
 import org.berrycrush.scenario.ScenarioFileContent
 import org.berrycrush.scenario.ScenarioLoader
-import org.berrycrush.scenario.Story
 import org.junit.jupiter.api.Disabled
 import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.UniqueId
 import org.junit.platform.engine.support.descriptor.AbstractTestDescriptor
 import org.junit.platform.engine.support.descriptor.EngineDescriptor
 import java.io.File
-import java.io.InputStreamReader
 import java.net.URL
-import java.util.logging.Level
-import java.util.logging.Logger
+import java.nio.file.Paths
 import kotlin.reflect.KClass
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.hasAnnotation
@@ -77,10 +74,9 @@ object ScenarioTestDiscoverer {
     ): ClassTestDescriptor {
         val classUniqueId = parentId.append("class", testClass.jvmName)
         val classDescriptor = ClassTestDescriptor(classUniqueId, testClass)
-        val scenarioLoader = ScenarioLoader()
 
         files
-            .map { file -> createFileDescriptor(classUniqueId, file, scenarioLoader, filters) }
+            .map { file -> createFileDescriptor(classUniqueId, file, filters) }
             .forEach { classDescriptor.addChild(it) }
 
         return classDescriptor
@@ -89,7 +85,6 @@ object ScenarioTestDiscoverer {
     private fun createFileDescriptor(
         parentId: UniqueId,
         file: DiscoveredScenario,
-        loader: ScenarioLoader,
         filters: ScenarioFilters,
     ): ScenarioFileDescriptor {
         val fileId = parentId.append("file", file.name.removeSuffix(".scenario"))
@@ -105,12 +100,8 @@ object ScenarioTestDiscoverer {
         // Build output files are mapped back to source files
         val scenarioFile = file.url.toFileOrNull()
 
-        runCatching { loadScenarioFromUrl(loader, file.url) }
-            .onSuccess { populateFileDescriptor(fileDescriptor, it, filters, scenarioFile) }
-            .onFailure { e ->
-                logger.log(Level.SEVERE, e) { "Failed to parse ${file.path} during discovery: ${e.message}" }
-            }
-
+        val content = loadScenarioFromUrl(file.url)
+        populateFileDescriptor(fileDescriptor, content, filters, scenarioFile)
         return fileDescriptor
     }
 
@@ -122,11 +113,11 @@ object ScenarioTestDiscoverer {
     ) {
         content.stories.forEach { entry: Story ->
             when (entry) {
-                is ScenarioEntry ->
-                    listOf(entry.scenario)
+                is Scenario ->
+                    listOf(entry)
                         .addToDescriptor(filters, fileDescriptor.uniqueId, scenarioFile, fileDescriptor)
 
-                is FeatureGroup -> {
+                is Feature -> {
                     if (filters.matchesFeatureName(entry.name)) {
                         fileDescriptor.addChild(
                             createFeatureDescriptor(fileDescriptor.uniqueId, entry, filters, scenarioFile),
@@ -214,7 +205,7 @@ object ScenarioTestDiscoverer {
 
     private fun createFeatureDescriptor(
         parentId: UniqueId,
-        feature: FeatureGroup,
+        feature: Feature,
         filters: ScenarioFilters,
         scenarioFile: File? = null,
     ): FeatureDescriptor {
@@ -233,17 +224,7 @@ object ScenarioTestDiscoverer {
         return featureDescriptor
     }
 
-    fun loadScenarioFromUrl(
-        loader: ScenarioLoader,
-        url: URL,
-    ): ScenarioFileContent =
-        url.openStream().use { input ->
-            val content = InputStreamReader(input).readText()
-            val fileName = url.path.substringAfterLast("/")
-            loader.loadFileContentFromString(content, fileName)
-        }
-
-    private val logger = Logger.getLogger(ScenarioTestDiscoverer::class.java.name)
+    fun loadScenarioFromUrl(url: URL): ScenarioFileContent = ScenarioLoader.loadFileContent(Paths.get(url.toURI()))
 }
 
 /**

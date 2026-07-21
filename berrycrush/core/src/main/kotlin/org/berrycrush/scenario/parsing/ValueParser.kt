@@ -1,11 +1,11 @@
 package org.berrycrush.scenario.parsing
 
+import org.berrycrush.model.SourceLocation
 import org.berrycrush.scenario.BooleanValueNode
 import org.berrycrush.scenario.JsonValueNode
 import org.berrycrush.scenario.NullValueNode
 import org.berrycrush.scenario.NumberValueNode
 import org.berrycrush.scenario.ParserState
-import org.berrycrush.scenario.SourceLocation
 import org.berrycrush.scenario.StatusRangeNode
 import org.berrycrush.scenario.StringValueNode
 import org.berrycrush.scenario.TokenType

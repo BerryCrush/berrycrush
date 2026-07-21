@@ -1,4 +1,4 @@
-package org.berrycrush.scenario
+package org.berrycrush.model
 
 /**
  * Represents a location in the source file.

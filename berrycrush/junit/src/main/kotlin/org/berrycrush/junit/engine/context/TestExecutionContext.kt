@@ -16,7 +16,6 @@ import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.ScenarioResult
 import org.berrycrush.plugin.PluginRegistry
 import org.berrycrush.runner.ScenarioRunner
-import org.berrycrush.scenario.ScenarioLoader
 import org.berrycrush.util.StepRegistry
 import org.junit.platform.engine.EngineExecutionListener
 import org.junit.platform.engine.TestExecutionResult
@@ -143,8 +142,7 @@ private fun TestExecutionContext.buildFileContext(
     fileDescriptor: ScenarioFileDescriptor,
     classDescriptor: ClassTestDescriptor,
 ): FileExecutionContext {
-    val scenarioLoader = ScenarioLoader()
-    val fileContent = ScenarioTestDiscoverer.loadScenarioFromUrl(scenarioLoader, fileDescriptor.scenarioSource)
+    val fileContent = ScenarioTestDiscoverer.loadScenarioFromUrl(fileDescriptor.scenarioSource)
 
     val fileConfig =
         if (fileContent.parameters.isNotEmpty()) {

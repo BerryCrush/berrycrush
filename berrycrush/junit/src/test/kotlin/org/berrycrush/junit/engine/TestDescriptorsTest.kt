@@ -2,7 +2,7 @@ package org.berrycrush.junit.engine
 
 import org.berrycrush.junit.ScenarioTest
 import org.berrycrush.model.Scenario
-import org.berrycrush.scenario.SourceLocation
+import org.berrycrush.model.SourceLocation
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.platform.engine.TestDescriptor

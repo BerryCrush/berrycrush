@@ -1,5 +1,7 @@
 package org.berrycrush.scenario
 
+import org.berrycrush.model.SourceLocation
+
 private val IDENTIFIER_SYMBOLS = listOf('-', '_', '.')
 
 /**

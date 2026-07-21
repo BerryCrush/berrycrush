@@ -284,14 +284,13 @@ class ScenarioTestExecutor(
 
         if (fragmentLocations.isEmpty()) return registry
 
-        val loader = ScenarioLoader()
         FragmentDiscovery
             .discoverFragments(classDescriptor.testClass.java.classLoader, fragmentLocations)
             .forEach { fragment ->
                 runCatching {
                     fragment.url.openStream().use { input ->
                         val content = input.bufferedReader().readText()
-                        val fragments = loader.loadFragmentsFromString(content, fragment.name)
+                        val fragments = ScenarioLoader.loadFragmentsFromString(content, fragment.name)
                         registry.registerAll(fragments)
                     }
                 }.onFailure {

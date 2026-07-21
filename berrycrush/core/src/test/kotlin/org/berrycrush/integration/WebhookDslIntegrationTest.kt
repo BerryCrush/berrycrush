@@ -22,7 +22,7 @@ import kotlin.test.assertTrue
 class WebhookDslIntegrationTest {
     private val specRegistry = SpecRegistry()
     private val config = BerryCrushConfigurationProvider.from(BerryCrushConfiguration())
-    private val loader = ScenarioLoader()
+    private val loader = ScenarioLoader
 
     @Test
     fun `should parse and execute webhook step successfully`() {
@@ -35,7 +35,7 @@ class WebhookDslIntegrationTest {
                   hook: onPaymentReceived
             """.trimIndent()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
         assertEquals(1, scenarios.size)
 
         val scenario = scenarios.first()
@@ -68,7 +68,7 @@ class WebhookDslIntegrationTest {
                     - onPush
             """.trimIndent()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
         val step = scenarios.first().steps.first()
 
         assertNotNull(step.webhookConfig)
@@ -89,7 +89,7 @@ class WebhookDslIntegrationTest {
                   scope: feature
             """.trimIndent()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
         val step = scenarios.first().steps.first()
 
         assertEquals(WebhookScope.FEATURE, step.webhookConfig!!.scope)
@@ -112,7 +112,7 @@ class WebhookDslIntegrationTest {
                     - onSms
             """.trimIndent()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
         assertEquals(1, scenarios.size)
         assertEquals(2, scenarios.first().steps.size)
 
@@ -139,7 +139,7 @@ class WebhookDslIntegrationTest {
                   hook: onEmail
             """.trimIndent()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
         val executor = BerryCrushScenarioExecutor(specRegistry, config)
         val result = executor.execute(scenarios.first())
 
@@ -159,7 +159,7 @@ class WebhookDslIntegrationTest {
                   hook: event
             """.trimIndent()
 
-        val scenarios = loader.loadScenariosFromString(source)
+        val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
         val localContext = ExecutionContext()
         val executor = BerryCrushScenarioExecutor(specRegistry, config)
 

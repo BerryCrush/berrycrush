@@ -1,7 +1,7 @@
 package org.berrycrush.junit.engine
 
 import org.berrycrush.model.Scenario
-import org.berrycrush.scenario.SourceLocation
+import org.berrycrush.model.SourceLocation
 import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.TestSource
 import org.junit.platform.engine.UniqueId

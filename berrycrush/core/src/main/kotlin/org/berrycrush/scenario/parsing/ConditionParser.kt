@@ -2,11 +2,11 @@
 
 package org.berrycrush.scenario.parsing
 
+import org.berrycrush.model.SourceLocation
 import org.berrycrush.scenario.AssertNode
 import org.berrycrush.scenario.ConditionNode
 import org.berrycrush.scenario.ConditionOperator
 import org.berrycrush.scenario.ParserState
-import org.berrycrush.scenario.SourceLocation
 import org.berrycrush.scenario.TokenType
 import org.berrycrush.scenario.ValueNode
 

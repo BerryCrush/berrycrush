@@ -1,7 +1,6 @@
 package org.berrycrush.model
 
 import org.berrycrush.context.TestExecutionContext
-import org.berrycrush.scenario.SourceLocation
 
 /**
  * Represents any assertion variant that can be attached to a step.

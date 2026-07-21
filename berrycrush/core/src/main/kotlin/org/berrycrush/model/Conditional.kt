@@ -1,7 +1,6 @@
 package org.berrycrush.model
 
 import org.berrycrush.context.TestExecutionContext
-import org.berrycrush.scenario.SourceLocation
 import java.time.Duration
 
 typealias ConditionalAssertion = Assertion.ConditionalAssertion

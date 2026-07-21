@@ -1,6 +1,17 @@
 package org.berrycrush.model
 
-import org.berrycrush.scenario.SourceLocation
+sealed interface Story {
+    val name: String
+    val parameters: Map<String, Any>
+}
+
+data class Feature(
+    override val name: String,
+    val scenarios: List<Scenario>,
+    val tags: Set<String> = emptySet(),
+    override val parameters: Map<String, Any> = emptyMap(),
+    val sourceLocation: SourceLocation? = null,
+) : Story
 
 /**
  * Represents a BDD scenario containing a sequence of steps.
@@ -14,14 +25,14 @@ import org.berrycrush.scenario.SourceLocation
  * @property sourceLocation Optional source location for error reporting
  */
 data class Scenario(
-    val name: String,
+    override val name: String,
     val tags: Set<String> = emptySet(),
     val steps: List<Step> = emptyList(),
     val background: List<Step> = emptyList(),
     val examples: List<ExampleRow>? = null,
-    val parameters: Map<String, Any> = emptyMap(),
+    override val parameters: Map<String, Any> = emptyMap(),
     val sourceLocation: SourceLocation? = null,
-) {
+) : Story {
     init {
         require(name.isNotBlank()) { "Scenario name cannot be blank" }
     }

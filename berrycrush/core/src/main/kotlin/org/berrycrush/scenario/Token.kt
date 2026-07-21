@@ -1,5 +1,7 @@
 package org.berrycrush.scenario
 
+import org.berrycrush.model.SourceLocation
+
 /**
  * Token types for the scenario file lexer.
  */

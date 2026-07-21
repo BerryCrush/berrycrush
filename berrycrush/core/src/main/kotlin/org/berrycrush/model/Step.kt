@@ -1,6 +1,5 @@
 package org.berrycrush.model
 
-import org.berrycrush.scenario.SourceLocation
 import org.berrycrush.scenario.WebhookScope
 
 /**
