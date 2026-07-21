@@ -2,6 +2,7 @@
 
 package org.berrycrush.scenario.parsing
 
+import com.jayway.jsonpath.JsonPath
 import org.berrycrush.model.SourceLocation
 import org.berrycrush.scenario.AssertNode
 import org.berrycrush.scenario.ConditionNode
@@ -79,8 +80,8 @@ internal fun ParserState.parseCondition(
         keyword == "responsetime" -> {
             parseResponseTimeCondition(loc, negate)
         }
-        keyword.startsWith("$") || current().type == TokenType.JSON_PATH -> {
-            parseJsonPathCondition(keyword, loc, context, negate)
+        keyword.startsWith("$") && current().type == TokenType.JSON_PATH -> {
+            parseJsonPathCondition(loc, context, negate)
         }
         else -> null
     }
@@ -159,41 +160,40 @@ private val JSON_PATH_TOKE_TYPES = listOf(TokenType.COMPARATOR, TokenType.EQUALS
  * Parse a JSON path condition with operator validation for assertions.
  */
 internal fun ParserState.parseJsonPathCondition(
-    keyword: String,
     loc: SourceLocation,
     context: ConditionContext,
     initialNegate: Boolean,
-): ConditionNode? {
-    val path =
-        if (current().type == TokenType.JSON_PATH) {
-            current().value.also { advance() }
+): ConditionNode? =
+    runCatching {
+        val path = current().value.also { advance() }
+        JsonPath.compile(path)
+        skipWhitespace()
+
+        // Check for "not" after the JSON path (e.g., "$.name not equals ...")
+        val negate =
+            if (current().value.lowercase() == "not") {
+                advance()
+                skipWhitespace()
+                true
+            } else {
+                initialNegate
+            }
+
+        // For assertions, validate operators
+        if (context == ConditionContext.ASSERT && current().type !in JSON_PATH_TOKE_TYPES) {
+            val operatorText = current().value.lowercase()
+            addError(
+                "Unknown assertion action '$operatorText' for JSON path. " +
+                    "Expected: equals, matches, exists, hasSize, size, arraySize, notEmpty, contains, greaterThan, lessThan, or in",
+            )
         } else {
-            keyword.also { advance() }
+            val (op, expected) = parseConditionOperatorAndValue()
+            applyNegation(ConditionNode.JsonPathCondition(path, op, expected, loc), negate, loc)
         }
-    skipWhitespace()
-
-    // Check for "not" after the JSON path (e.g., "$.name not equals ...")
-    val negate =
-        if (current().value.lowercase() == "not") {
-            advance()
-            skipWhitespace()
-            true
-        } else {
-            initialNegate
-        }
-
-    // For assertions, validate operators
-    if (context == ConditionContext.ASSERT && current().type !in JSON_PATH_TOKE_TYPES) {
-        val operatorText = current().value.lowercase()
-        return addError(
-            "Unknown assertion action '$operatorText' for JSON path. " +
-                "Expected: equals, matches, exists, hasSize, size, arraySize, notEmpty, contains, greaterThan, lessThan, or in",
-        )
-    }
-
-    val (op, expected) = parseConditionOperatorAndValue()
-    return applyNegation(ConditionNode.JsonPathCondition(path, op, expected, loc), negate, loc)
-}
+    }.onFailure { e ->
+        val message = e.message ?: e.toString()
+        addError<ConditionNode>("JSON Path error: $message")
+    }.getOrNull()
 
 /**
  * Parse a condition for an assertion.

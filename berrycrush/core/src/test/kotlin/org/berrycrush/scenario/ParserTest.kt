@@ -3,6 +3,7 @@ package org.berrycrush.scenario
 import org.berrycrush.model.SourceLocation
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -2846,21 +2847,16 @@ class ParserTest {
     }
 
     @Test
-    fun check() {
+    fun `should report error on invalid JSON Path`() {
         val source =
             """
             scenario: Custom assertion with variable
               when: foo
-                call ^op
-                  auto: [
-                    invalid,
-                    security,
-                    multi
-                  ]
+                assert $.. = 2
             """.trimIndent()
 
         val result = Parser.parse(source)
 
-        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        assertFalse(result.isSuccess, "Parse should not succeed: ${result.errors}")
     }
 }
