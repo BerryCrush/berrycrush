@@ -10,26 +10,6 @@ import org.berrycrush.scenario.ParserState
 import org.berrycrush.scenario.TokenType
 import org.berrycrush.scenario.ValueNode
 
-private val VALID_OPERATORS =
-    setOf(
-        "equals",
-        "=",
-        "matches",
-        "exists",
-        "hassize",
-        "size",
-        "arraysize",
-        "notempty",
-        "contains",
-        "greaterthan",
-        ">",
-        "lessthan",
-        "<",
-        ">=",
-        "<=",
-        "in",
-    )
-
 /**
  * Context for condition parsing - affects parsing style for some conditions.
  */
@@ -173,6 +153,8 @@ private fun ParserState.parseStatusCondition(
     }
 }
 
+private val JSON_PATH_TOKE_TYPES = listOf(TokenType.COMPARATOR, TokenType.EQUALS, TokenType.NEWLINE, TokenType.DEDENT)
+
 /**
  * Parse a JSON path condition with operator validation for assertions.
  */
@@ -201,18 +183,12 @@ internal fun ParserState.parseJsonPathCondition(
         }
 
     // For assertions, validate operators
-    if (context == ConditionContext.ASSERT) {
+    if (context == ConditionContext.ASSERT && current().type !in JSON_PATH_TOKE_TYPES) {
         val operatorText = current().value.lowercase()
-        if (!VALID_OPERATORS.contains(operatorText) &&
-            current().type != TokenType.EQUALS &&
-            current().type != TokenType.NEWLINE &&
-            current().type != TokenType.DEDENT
-        ) {
-            return addError(
-                "Unknown assertion action '$operatorText' for JSON path. " +
-                    "Expected: equals, matches, exists, hasSize, size, arraySize, notEmpty, contains, greaterThan, lessThan, or in",
-            )
-        }
+        return addError(
+            "Unknown assertion action '$operatorText' for JSON path. " +
+                "Expected: equals, matches, exists, hasSize, size, arraySize, notEmpty, contains, greaterThan, lessThan, or in",
+        )
     }
 
     val (op, expected) = parseConditionOperatorAndValue()
@@ -244,7 +220,7 @@ internal fun ParserState.parseAssertCondition(
         skipWhitespace()
 
         // Check if there's a condition operator following the variable
-        if (current().value.lowercase() in VALID_OPERATORS) {
+        if (current().type == TokenType.EQUALS || current().type == TokenType.COMPARATOR) {
             val (op, expected) = parseConditionOperatorAndValue()
             val cond = ConditionNode.VariableCondition(varName, op, expected, loc)
             return if (initialNegate) {

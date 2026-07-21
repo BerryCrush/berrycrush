@@ -51,6 +51,17 @@ class Lexer(
                 "else" to TokenType.ELSE,
                 "fail" to TokenType.FAIL,
                 "webhook" to TokenType.WEBHOOK,
+                "equals" to TokenType.COMPARATOR,
+                "matches" to TokenType.COMPARATOR,
+                "exists" to TokenType.COMPARATOR,
+                "hassize" to TokenType.COMPARATOR,
+                "size" to TokenType.COMPARATOR,
+                "arraysize" to TokenType.COMPARATOR,
+                "notempty" to TokenType.COMPARATOR,
+                "contains" to TokenType.COMPARATOR,
+                "greaterthan" to TokenType.COMPARATOR,
+                "lessthan" to TokenType.COMPARATOR,
+                "in" to TokenType.COMPARATOR,
             )
     }
 
@@ -534,7 +545,11 @@ class Lexer(
                     advance()
                     Token(TokenType.ARROW, "$c>", loc)
                 } else {
-                    TokenType.EQUALS.toToken(c, loc)
+                    if (c == '=') {
+                        TokenType.EQUALS.toToken(c, loc)
+                    } else {
+                        TokenType.ERROR.toToken(c, loc)
+                    }
                 }
             '(' -> TokenType.OPEN_PAREN.toToken(c, loc)
             ')' -> TokenType.CLOSE_PAREN.toToken(c, loc)
@@ -548,9 +563,9 @@ class Lexer(
             '>', '<' ->
                 if (!isAtEnd() && peek() == '=') {
                     advance()
-                    Token(TokenType.ERROR, "$c=", loc)
+                    Token(TokenType.COMPARATOR, "$c=", loc)
                 } else {
-                    TokenType.ERROR.toToken(c, loc)
+                    TokenType.COMPARATOR.toToken(c, loc)
                 }
 
             else -> TokenType.ERROR.toToken(c, loc)

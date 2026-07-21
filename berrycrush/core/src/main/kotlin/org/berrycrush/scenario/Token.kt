@@ -43,6 +43,7 @@ enum class TokenType {
     COLON,
     ARROW,
     EQUALS,
+    COMPARATOR, // >=, <= or other operators
     OPEN_PAREN,
     CLOSE_PAREN,
     OPEN_BRACE,
