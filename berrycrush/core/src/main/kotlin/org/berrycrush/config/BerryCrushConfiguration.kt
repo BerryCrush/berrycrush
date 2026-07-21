@@ -303,13 +303,13 @@ data class BerryCrushConfiguration(
 /**
  * Configuration for automatic assertion generation from OpenAPI spec.
  *
- * @property enabled Whether auto-assertions are enabled globally
+ * @property enabled Whether auto-assertions are enabled (default false)
  * @property statusCode Auto-assert correct status code
  * @property contentType Auto-assert Content-Type header
  * @property schema Auto-assert response matches schema
  */
 data class AutoAssertionConfig(
-    var enabled: Boolean = true,
+    var enabled: Boolean = false,
     var statusCode: Boolean = true,
     var contentType: Boolean = true,
     var schema: Boolean = true,

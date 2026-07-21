@@ -1,5 +1,6 @@
 package org.berrycrush.samples.tictactoe
 
+import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.junit.binding.OpenApiSpecValue
 import org.berrycrush.junit.BerryCrushBindings
 import org.springframework.boot.test.web.server.LocalServerPort
@@ -25,4 +26,8 @@ class TicTacToeBindings : BerryCrushBindings {
         mapOf(
             BerryCrushBindings.DEFAULT_BINDING_NAME to OpenApiSpecValue.of("openapi/tictactoe.yaml", "http://localhost:$port"),
         )
+
+    override fun configure(config: BerryCrushConfiguration) {
+        config.autoAssertions.enabled = false
+    }
 }

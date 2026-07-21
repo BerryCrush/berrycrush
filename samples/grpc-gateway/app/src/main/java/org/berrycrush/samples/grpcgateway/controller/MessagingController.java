@@ -62,10 +62,10 @@ public class MessagingController {
      * Maps to: rpc GetMessage(GetMessageRequest) returns (Message)
      */
     @GetMapping("/messages/{messageId}")
-    public Message getMessage(@PathVariable Long messageId) {
+    public ResponseEntity<?> getMessage(@PathVariable Long messageId) {
         return repository.findById(messageId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
-                "Message not found: " + messageId));
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
     
     /**

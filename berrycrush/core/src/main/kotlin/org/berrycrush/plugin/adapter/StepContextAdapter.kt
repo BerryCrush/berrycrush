@@ -3,7 +3,6 @@ package org.berrycrush.plugin.adapter
 import org.berrycrush.model.HttpRequest
 import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.Step
-import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.plugin.ScenarioContext
 import org.berrycrush.plugin.StepContext
 import org.berrycrush.plugin.StepOperation
@@ -25,8 +24,6 @@ class StepContextAdapter(
     private var httpResponse: HttpResponse? = scenarioContext.audits.lastOrNull()?.response
     private var duration: Duration? = null
 
-    var currentOperation: StepOperation? = scenarioContext.operations.lastOrNull()
-
     override val responseTime
         get() = duration
 
@@ -46,7 +43,7 @@ class StepContextAdapter(
         get() = httpResponse
 
     override val operation: StepOperation?
-        get() = currentOperation
+        get() = scenarioContext.operations.lastOrNull()
 
     /**
      * Update the request snapshot after HTTP call is prepared.
@@ -64,10 +61,6 @@ class StepContextAdapter(
 
     fun updateResponseTime(responseTime: Duration) {
         this.duration = responseTime
-    }
-
-    fun updateCurrentOperation(operation: ResolvedOperation) {
-        this.currentOperation = StepOperationAdapter(operation)
     }
 
     private fun mapStepType(modelType: ModelStepType): StepType =

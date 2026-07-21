@@ -42,6 +42,7 @@
 #   retry.maxAttempts, retry.delay, etc.
 
 parameters:
+  autoAssertions.enabled: false
   retry:
     maxAttempts: 3
     delay: "500ms"

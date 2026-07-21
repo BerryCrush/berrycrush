@@ -46,6 +46,7 @@ class AutoTestDslTest {
     @BeforeEach
     fun setup(config: BerryCrushConfiguration) {
         config.baseUrl = "http://localhost:$port/api/v1"
+        config.autoAssertions.enabled = false
     }
 
     // ========== INVALID Auto-Tests ==========
@@ -54,7 +55,7 @@ class AutoTestDslTest {
     @DisplayName("Create pet with invalid input tests")
     fun invalidAutoTests(suite: BerryCrushSuite): Scenario {
         suite.configuration.baseUrl = "http://localhost:$port/api/v1"
-
+        suite.configuration.autoAssertions.enabled = false
         return suite.scenario("Create pet - Invalid input tests") {
             whenever("I create a pet with invalid data") {
                 call("createPet") {
@@ -139,7 +140,7 @@ class AutoTestDslTest {
     @DisplayName("Create pet with boolean auto-test config")
     fun booleanAutoTestConfig(suite: BerryCrushSuite): Scenario {
         suite.configuration.baseUrl = "http://localhost:$port/api/v1"
-
+        suite.configuration.autoAssertions.enabled = false
         return suite.scenario("Create pet - Boolean config") {
             whenever("I test with boolean auto-test configuration") {
                 call("createPet") {

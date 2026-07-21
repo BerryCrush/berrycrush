@@ -1,7 +1,11 @@
 package org.berrycrush.executor.response
 
+import org.berrycrush.config.AutoAssertionConfig
 import org.berrycrush.context.ValueExtractor
+import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.assertion.AssertionExecutor
+import org.berrycrush.model.Assertion
+import org.berrycrush.model.Condition
 import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Step
@@ -17,7 +21,12 @@ import java.time.Duration
  */
 class ResponseProcessor(
     private val assertionExecutor: AssertionExecutor,
+    private val configuration: BerryCrushConfigurationProvider,
 ) {
+    private val autoAssertions: List<Assertion> by lazy {
+        configuration.autoAssertions.toAssertions()
+    }
+
     /**
      * Process an HTTP response for a step.
      *
@@ -52,7 +61,7 @@ class ResponseProcessor(
         }
 
         val extractedValues = extractValues(step, context)
-        val evaluatedAssertions = assertionExecutor.runAssertions(response, step.assertions, context)
+        val evaluatedAssertions = assertionExecutor.runAssertions(response, autoAssertions + step.assertions, context)
         val assertionResults = evaluatedAssertions.assertionResults
 
         // Check for conditional fail
@@ -94,4 +103,14 @@ class ResponseProcessor(
             value?.let { context[extraction.variableName] = it }
             extraction.variableName to value
         }
+}
+
+private fun AutoAssertionConfig.toAssertions(): List<Assertion> {
+    val result = mutableListOf<Assertion>()
+    if (enabled) {
+        if (schema) {
+            result += Condition.Schema.toAssertion("auto schema check")
+        }
+    }
+    return result
 }

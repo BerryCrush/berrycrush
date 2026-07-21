@@ -536,9 +536,7 @@ class Lexer(
 
     private fun scanSymbol(): Token {
         val loc = currentLocation()
-        val c = advance()
-
-        return when (c) {
+        return when (val c = advance()) {
             ':' -> TokenType.COLON.toToken(c, loc)
             '=', '-' ->
                 if (!isAtEnd() && peek() == '>') {
