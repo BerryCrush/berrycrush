@@ -52,7 +52,7 @@ class BerryCrushScenarioExecutor(
         ): StepExecutor {
             val fragmentExecutor = DefaultFragmentExecutor(fragmentRegistry)
             val assertionExecutor = AssertionExecutor(DefaultAssertionEngine(assertionRegistry))
-            val responseProcessor = ResponseProcessor(assertionExecutor)
+            val responseProcessor = ResponseProcessor(assertionExecutor, configuration)
             val operationStepExecutor =
                 OperationStepExecutor(
                     specRegistry,

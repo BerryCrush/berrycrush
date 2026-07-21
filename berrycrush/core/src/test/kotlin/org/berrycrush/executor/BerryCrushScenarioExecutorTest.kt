@@ -71,6 +71,7 @@ class BerryCrushScenarioExecutorTest {
         val config =
             BerryCrushConfiguration().apply {
                 baseUrl = "http://nonexistent.invalid"
+                autoAssertions.enabled = true
             }
         val executor = BerryCrushScenarioExecutor(registry, BerryCrushConfigurationProvider.from(config))
 

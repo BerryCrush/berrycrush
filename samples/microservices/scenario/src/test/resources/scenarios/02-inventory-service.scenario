@@ -4,6 +4,7 @@
 # Demonstrates testing an inventory management microservice
 
 parameters:
+  autoAssertions.enabled: false # 404 returns body but API spec says nothing
   binding.alias:
     listInventory: "GET /api/inventory"
 

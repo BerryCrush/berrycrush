@@ -10,7 +10,8 @@
 # - if/then/else conditional schemas
 
 # TODO implement dynamic spec config
-# parameters:
+parameters:
+  autoAssertions.enabled: false
 #   spec: "petstore-31.yaml"
 
 # -----------------------------------------------------------------------------

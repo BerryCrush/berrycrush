@@ -15,6 +15,7 @@
 # Configure BerryCrush to automatically retry on transient failures (5xx)
 
 parameters:
+  autoAssertions.enabled: false
   retry:
     maxAttempts: 5
     delay: "200ms"

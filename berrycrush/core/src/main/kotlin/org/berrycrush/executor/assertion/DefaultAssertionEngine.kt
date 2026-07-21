@@ -209,24 +209,32 @@ class DefaultAssertionEngine(
     /**
      * Evaluate a schema condition by validating the response against the OpenAPI schema.
      */
-    @Suppress("ReturnCount") // Multiple early returns for validation guards
     private fun evaluateSchemaCondition(
         response: HttpResponse?,
         context: AssertionContext,
     ): Boolean {
-        val operation = context.currentOperation ?: return true // Can't validate without operation
-        val responseBody = response?.body ?: return true // Empty body passes validation
-
+        if (response == null) return false
+        val responseBody = response.body
         // Find the schema for this response status code
-        val schemaSpec = findResponseSchema(operation, response.statusCode) ?: return true
+        val schemaSpec =
+            context.currentOperation?.let {
+                findResponseSchema(it, response.statusCode)
+            }
 
-        // Get raw swagger schema for validation
-        @Suppress("UNCHECKED_CAST")
-        val rawSchema = schemaSpec.rawSchema as? SwaggerSchema<*> ?: return true
-
-        // Validate the response body against the schema
-        val errors = schemaValidator.validate(responseBody, rawSchema)
-        return errors.isEmpty()
+        return if (responseBody.isNullOrEmpty() && schemaSpec == null) {
+            // 204 or other no content
+            true
+        } else if (responseBody.isNullOrEmpty() || schemaSpec == null) {
+            // something is returned but no spec or vice versa
+            false
+        } else {
+            // Get raw swagger schema for validation
+            (schemaSpec.rawSchema as SwaggerSchema<*>?)?.let { rawSchema ->
+                // Validate the response body against the schema
+                val errors = schemaValidator.validate(responseBody, rawSchema)
+                errors.isEmpty()
+            } ?: false
+        }
     }
 
     /**
@@ -239,8 +247,8 @@ class DefaultAssertionEngine(
         val response = operation.findResponse(statusCode) ?: return null
         return response.content
             .values
-            .first()
-            .schema
+            .firstOrNull()
+            ?.schema
     }
 
     /**

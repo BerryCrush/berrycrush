@@ -60,5 +60,6 @@ public class PetstoreBindings implements BerryCrushBindings {
         // This enables true multi-host API testing
         config.setLogRequests(true);
         config.setLogResponses(true);
+        config.getAutoAssertions().setEnabled(true);
     }
 }
