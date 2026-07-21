@@ -154,7 +154,7 @@ private fun ParserState.parseStatusCondition(
     }
 }
 
-private val JSON_PATH_TOKE_TYPES = listOf(TokenType.COMPARATOR, TokenType.EQUALS, TokenType.NEWLINE, TokenType.DEDENT)
+private val JSON_PATH_TOKEN_TYPES = listOf(TokenType.COMPARATOR, TokenType.EQUALS, TokenType.NEWLINE, TokenType.DEDENT)
 
 /**
  * Parse a JSON path condition with operator validation for assertions.
@@ -180,7 +180,7 @@ internal fun ParserState.parseJsonPathCondition(
             }
 
         // For assertions, validate operators
-        if (context == ConditionContext.ASSERT && current().type !in JSON_PATH_TOKE_TYPES) {
+        if (context == ConditionContext.ASSERT && current().type !in JSON_PATH_TOKEN_TYPES) {
             val operatorText = current().value.lowercase()
             addError(
                 "Unknown assertion action '$operatorText' for JSON path. " +
@@ -204,33 +204,27 @@ internal fun ParserState.parseAssertCondition(
     loc: SourceLocation,
     initialNegate: Boolean,
 ): ConditionNode? {
+    // Check for variable conditions starting with {{...}}
+    // (e.g., {{server.hook.length}} equals 1)
+    if (current().type == TokenType.VARIABLE) {
+        val result = parseVariableCondition(loc, initialNegate)
+        if (result != null) {
+            return result
+        }
+    }
+    return parseBuiltinOrCustomAssertCondition(loc, initialNegate)
+}
+
+internal fun ParserState.parseBuiltinOrCustomAssertCondition(
+    loc: SourceLocation,
+    initialNegate: Boolean,
+): ConditionNode? {
     val typeOrPath = current().value.lowercase()
 
     // Use unified condition parsing for built-in conditions
     val result = parseCondition(typeOrPath, loc, ConditionContext.ASSERT, initialNegate)
     if (result != null) {
         return result
-    }
-
-    // Check for variable conditions starting with {{...}}
-    // (e.g., {{server.hook.length}} equals 1)
-    if (current().type == TokenType.VARIABLE) {
-        val savedPos = pos
-        val varName = buildVariablePath()
-        skipWhitespace()
-
-        // Check if there's a condition operator following the variable
-        if (current().type == TokenType.EQUALS || current().type == TokenType.COMPARATOR) {
-            val (op, expected) = parseConditionOperatorAndValue()
-            val cond = ConditionNode.VariableCondition(varName, op, expected, loc)
-            return if (initialNegate) {
-                ConditionNode.NegatedCondition(cond, loc)
-            } else {
-                cond
-            }
-        }
-        // No valid operator - restore position and fall through to custom assertion
-        pos = savedPos
     }
 
     // No built-in condition matched - treat as custom assertion pattern
@@ -263,69 +257,58 @@ internal fun ParserState.parseAssertCondition(
     }
 }
 
+private fun ParserState.parseVariableCondition(
+    loc: SourceLocation,
+    initialNegate: Boolean,
+): ConditionNode? {
+    val savedPos = pos
+    val varName = buildVariablePath()
+    skipWhitespace()
+
+    // Check if there's a condition operator following the variable
+    if (current().type == TokenType.EQUALS || current().type == TokenType.COMPARATOR) {
+        val (op, expected) = parseConditionOperatorAndValue()
+        val cond = ConditionNode.VariableCondition(varName, op, expected, loc)
+        return if (initialNegate) {
+            ConditionNode.NegatedCondition(cond, loc)
+        } else {
+            cond
+        }
+    }
+    // No valid operator - restore position and fall through to custom assertion
+    pos = savedPos
+    return null
+}
+
 /**
  * Parse a condition operator and expected value.
  */
 internal fun ParserState.parseConditionOperatorAndValue(): Pair<ConditionOperator, ValueNode?> {
-    val opText = current().value.lowercase()
-
     val op =
-        when (opText) {
-            "equals", "=" -> {
-                advance()
-                skipWhitespace()
-                ConditionOperator.EQUALS
-            }
-            "contains", "in" -> {
-                advance()
-                skipWhitespace()
-                ConditionOperator.CONTAINS
-            }
-            "matches" -> {
-                advance()
-                skipWhitespace()
-                ConditionOperator.MATCHES
-            }
-            "exists" -> {
-                advance()
-                return Pair(ConditionOperator.EXISTS, null)
-            }
-            "greaterthan", ">" -> {
-                advance()
-                skipWhitespace()
-                ConditionOperator.GREATER_THAN
-            }
-            "lessthan", "<" -> {
-                advance()
-                skipWhitespace()
-                ConditionOperator.LESS_THAN
-            }
-            "hassize", "size", "arraysize" -> {
-                advance()
-                skipWhitespace()
-                ConditionOperator.HAS_SIZE
-            }
-            "notempty" -> {
-                advance()
-                return Pair(ConditionOperator.NOT_EMPTY, null)
-            }
-            ">=" -> {
-                advance()
-                skipWhitespace()
-                ConditionOperator.GREATER_THAN_OR_EQUALS
-            }
-            "<=" -> {
-                advance()
-                skipWhitespace()
-                ConditionOperator.LESS_THAN_OR_EQUALS
-            }
-            else -> {
-                ConditionOperator.EQUALS
-            }
+        when (current().value.lowercase()) {
+            "equals", "=" -> ConditionOperator.EQUALS
+            "contains", "in" -> ConditionOperator.CONTAINS
+            "matches" -> ConditionOperator.MATCHES
+            "exists" -> ConditionOperator.EXISTS
+            "greaterthan", ">" -> ConditionOperator.GREATER_THAN
+            "lessthan", "<" -> ConditionOperator.LESS_THAN
+            "hassize", "size", "arraysize" -> ConditionOperator.HAS_SIZE
+            "notempty" -> ConditionOperator.NOT_EMPTY
+            ">=" -> ConditionOperator.GREATER_THAN_OR_EQUALS
+            "<=" -> ConditionOperator.LESS_THAN_OR_EQUALS
+            else -> ConditionOperator.EQUALS
         }
 
-    val expected = parseValue()
-    return Pair(op, expected)
+    advance()
+
+    return when (op) {
+        ConditionOperator.EXISTS, ConditionOperator.NOT_EMPTY -> op to null
+
+        else -> {
+            skipWhitespace()
+            op to parseValue()
+        }
+    }
 }
 
 /**
