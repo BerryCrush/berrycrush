@@ -525,43 +525,34 @@ class Lexer(
         val loc = currentLocation()
         val c = advance()
 
-        val type =
-            when (c) {
-                ':' -> TokenType.COLON
-                '=' -> {
-                    if (!isAtEnd() && peek() == '>') {
-                        advance()
-                        return Token(TokenType.ARROW, "=>", loc)
-                    }
-                    TokenType.EQUALS
+        return when (c) {
+            ':' -> TokenType.COLON.toToken(c, loc)
+            '=', '-' ->
+                if (!isAtEnd() && peek() == '>') {
+                    advance()
+                    Token(TokenType.ARROW, "$c>", loc)
+                } else {
+                    TokenType.EQUALS.toToken(c, loc)
                 }
-                '-' -> {
-                    if (!isAtEnd() && peek() == '>') {
-                        advance()
-                        return Token(TokenType.ARROW, "->", loc)
-                    }
-                    TokenType.ERROR
+            '(' -> TokenType.OPEN_PAREN.toToken(c, loc)
+            ')' -> TokenType.CLOSE_PAREN.toToken(c, loc)
+            '{' -> TokenType.OPEN_BRACE.toToken(c, loc)
+            '}' -> TokenType.CLOSE_BRACE.toToken(c, loc)
+            '[' -> TokenType.OPEN_BRACKET.toToken(c, loc)
+            ']' -> TokenType.CLOSE_BRACKET.toToken(c, loc)
+            ',' -> TokenType.COMMA.toToken(c, loc)
+            '|' -> TokenType.PIPE.toToken(c, loc)
+            '.' -> TokenType.DOT.toToken(c, loc)
+            '>', '<' ->
+                if (!isAtEnd() && peek() == '=') {
+                    advance()
+                    Token(TokenType.ERROR, "$c=", loc)
+                } else {
+                    TokenType.ERROR.toToken(c, loc)
                 }
-                '(' -> TokenType.OPEN_PAREN
-                ')' -> TokenType.CLOSE_PAREN
-                '{' -> TokenType.OPEN_BRACE
-                '}' -> TokenType.CLOSE_BRACE
-                '[' -> TokenType.OPEN_BRACKET
-                ']' -> TokenType.CLOSE_BRACKET
-                ',' -> TokenType.COMMA
-                '|' -> TokenType.PIPE
-                '.' -> TokenType.DOT
-                '>', '<' -> {
-                    if (!isAtEnd() && peek() == '=') {
-                        advance()
-                        return Token(TokenType.ERROR, "$c=", loc)
-                    }
-                    TokenType.ERROR
-                }
-                else -> TokenType.ERROR
-            }
 
-        return Token(type, c.toString(), loc)
+            else -> TokenType.ERROR.toToken(c, loc)
+        }
     }
 
     private fun skipWhitespace() {
@@ -591,6 +582,16 @@ class Lexer(
         return c
     }
 }
+
+private fun TokenType.toToken(
+    value: Char,
+    loc: SourceLocation,
+): Token = toToken(value.toString(), loc)
+
+private fun TokenType.toToken(
+    value: String,
+    loc: SourceLocation,
+): Token = Token(this, value, loc)
 
 private fun isJsonPathChar(c: Char): Boolean =
     c.isLetterOrDigit() || c == '.' || c == '[' || c == ']' || c == '*' || c == '?' || c == '@' || c == '_' || c == '(' || c == ')'

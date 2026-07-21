@@ -95,6 +95,21 @@ class ScenarioLoaderTest {
     }
 
     @Test
+    fun `should parse explicit operation id step`() {
+        val source =
+            """
+            |scenario: Explicit call
+            |  when I call endpoint
+            |    call ^listPets
+            """.trimMargin()
+
+        val scenarios = loader.loadScenariosFromString(source)
+        val step = scenarios[0].steps.first { it.operationId != null }
+
+        assertEquals("listPets", step.operationId)
+    }
+
+    @Test
     fun `should transform step types correctly`() {
         val source =
             """
@@ -349,6 +364,44 @@ class ScenarioLoaderTest {
         assertEquals(2, scenario.parameters.size)
         assertEquals("staging", scenario.parameters["environment"])
         assertEquals(120L, scenario.parameters["timeout"])
+    }
+
+    @Test
+    fun `should merge alias parameters with scenario precedence`() {
+        val source =
+            """
+            |feature: Pet management
+            |  parameters:
+            |    binding.alias.petLookup: getPetById
+            |
+            |  scenario: Override alias
+            |    parameters:
+            |      binding.alias.petLookup: listPets
+            |    when I call
+            |      call petLookup
+            """.trimMargin()
+
+        val scenarios = loader.loadScenariosFromString(source)
+
+        assertEquals(1, scenarios.size)
+        assertEquals("listPets", scenarios[0].parameters["binding.alias.petLookup"])
+    }
+
+    @Test
+    fun `should fail when duplicate alias appears in same scope`() {
+        val source =
+            """
+            |scenario: duplicate alias
+            |  parameters:
+            |    binding.alias.petLookup: getPetById
+            |    binding.alias.petLookup: listPets
+            |  when I call
+            |    call petLookup
+            """.trimMargin()
+
+        assertFailsWith<ScenarioParseException> {
+            loader.loadScenariosFromString(source)
+        }
     }
 
     @Test

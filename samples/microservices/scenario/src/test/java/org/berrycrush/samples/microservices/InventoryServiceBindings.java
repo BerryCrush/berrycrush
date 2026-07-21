@@ -25,7 +25,7 @@ public class InventoryServiceBindings implements BerryCrushBindings {
     public Map<String, Object> getBindings() {
         String host = "http://localhost:" + port;
         return Map.of(
-            "default", new OpenApiSpecValue("inventory-service.yaml", host + "/api")
+            "default", new OpenApiSpecValue("inventory-service.yaml", host)
         );
     }
 

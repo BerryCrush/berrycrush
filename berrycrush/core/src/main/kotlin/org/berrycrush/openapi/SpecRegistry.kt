@@ -14,6 +14,11 @@ import org.berrycrush.util.FileLoader
  * Supports both single-spec and multi-spec scenarios.
  */
 class SpecRegistry {
+    private data class MethodPathTarget(
+        val method: HttpMethod,
+        val path: String,
+    )
+
     companion object {
         private val parser: OpenApiParser = SwaggerParserAdapter()
 
@@ -105,11 +110,15 @@ class SpecRegistry {
     fun resolve(
         operationId: String,
         specName: String? = null,
-        bindings: Map<String, LoadedSpecProvider>? = null,
+        bindings: Map<String, BindingConfig> = emptyMap(),
     ): Pair<LoadedSpec, ResolvedOperation> {
         if (specName != null) {
             val spec = get(specName, bindings)
-            return spec to spec.resolver.resolve(operationId)
+            return if (spec.hasOperation(operationId)) {
+                spec to spec.resolver.resolve(operationId)
+            } else {
+                handleAlias(operationId, specName, bindings) { spec.allOperationIds().toList() }
+            }
         }
 
         // Auto-resolve: find all specs containing this operationId
@@ -117,8 +126,7 @@ class SpecRegistry {
 
         return when {
             matches.isEmpty() -> {
-                val allOps = specs.values.flatMap { it.allOperationIds() }
-                throw OperationNotFoundException(operationId, allOps)
+                handleAlias(operationId, null, bindings) { specs.values.flatMap { it.allOperationIds() } }
             }
             matches.size == 1 -> {
                 val spec = matches.single()
@@ -133,6 +141,18 @@ class SpecRegistry {
         }
     }
 
+    private fun handleAlias(
+        operationId: String,
+        specName: String?,
+        bindings: Map<String, BindingConfig>,
+        operationIdProvider: () -> List<String>,
+    ): Pair<LoadedSpec, ResolvedOperation> {
+        val aliasTarget =
+            findAliasTarget(operationId, specName, bindings)
+                ?: throw OperationNotFoundException(operationId, operationIdProvider())
+        return resolveAliasTarget(operationId, aliasTarget, specName, bindings)
+    }
+
     /**
      * Check if any spec is registered.
      */
@@ -142,6 +162,79 @@ class SpecRegistry {
      * Get all registered spec names.
      */
     fun specNames(): Set<String> = specs.keys.toSet()
+
+    private fun findAliasTarget(
+        alias: String,
+        specName: String?,
+        bindings: Map<String, BindingConfig>,
+    ): String? {
+        val bindingName = specName ?: BindingConfig.DEFAULT_BINDING_NAME
+        return bindings[bindingName]?.operationAliases?.get(alias)
+            ?: if (specName == null) bindings[BindingConfig.DEFAULT_BINDING_NAME]?.operationAliases?.get(alias) else null
+    }
+
+    private fun resolveAliasTarget(
+        alias: String,
+        target: String,
+        specName: String?,
+        bindings: Map<String, BindingConfig>,
+    ): Pair<LoadedSpec, ResolvedOperation> {
+        val methodPath = parseMethodPathTarget(target)
+        return if (methodPath == null) {
+            resolve(target.removePrefix("^").trim(), specName, bindings)
+        } else {
+            resolveByMethodAndPath(alias, target, methodPath, specName, bindings)
+        }
+    }
+
+    private fun resolveByMethodAndPath(
+        alias: String,
+        target: String,
+        methodPath: MethodPathTarget,
+        specName: String?,
+        bindings: Map<String, BindingConfig>,
+    ): Pair<LoadedSpec, ResolvedOperation> {
+        if (specName != null) {
+            val spec = get(specName, bindings)
+            val resolved = spec.resolver.resolve(methodPath.method, methodPath.path)
+            return if (resolved != null) {
+                spec to resolved
+            } else {
+                throwOperationNotFoundException("$alias -> $target", spec.allOperationIds().toList())
+            }
+        }
+
+        val matches =
+            specs.values.mapNotNull { spec ->
+                spec.resolver.resolve(methodPath.method, methodPath.path)?.let { spec to it }
+            }
+
+        return when {
+            matches.isEmpty() ->
+                throwOperationNotFoundException("$alias -> $target", specs.values.flatMap { it.allOperationIds() })
+
+            matches.size == 1 -> matches.single()
+
+            else -> throw AmbiguousOperationException(
+                "$alias -> $target",
+                matches.map { it.first.name },
+            )
+        }
+    }
+
+    private fun parseMethodPathTarget(target: String): MethodPathTarget? {
+        val trimmed = target.trim()
+        val split = trimmed.split(Regex("\\s+"), limit = 2)
+        if (split.size != 2 || !split[1].startsWith('/')) {
+            return null
+        }
+
+        return parseMethod(split[0])?.let { method ->
+            MethodPathTarget(method, split[1].trim())
+        }
+    }
+
+    private fun parseMethod(method: String): HttpMethod? = HttpMethod.fromName(method)
 
     /**
      * Update the base URL for a registered spec.
@@ -208,4 +301,13 @@ class AmbiguousOperationException(
 ) : RuntimeException(
         "Operation '$operationId' found in multiple specs: ${specs.joinToString(", ")}. " +
             "Use 'using(\"specName\")' to specify which spec to use.",
+    )
+
+private fun throwOperationNotFoundException(
+    operationId: String,
+    operationIds: List<String>,
+): Nothing =
+    throw OperationNotFoundException(
+        operationId,
+        operationIds,
     )

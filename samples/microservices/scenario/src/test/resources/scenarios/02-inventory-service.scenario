@@ -3,6 +3,10 @@
 # =============================================================================
 # Demonstrates testing an inventory management microservice
 
+parameters:
+  binding.alias:
+    listInventory: "GET /api/inventory"
+
 # -----------------------------------------------------------------------------
 # List Inventory
 # -----------------------------------------------------------------------------
@@ -29,7 +33,7 @@ scenario: Get inventory item by SKU
     assert $.quantity > 0
 
 scenario: Get non-existent item returns 404
-  when: I request an item that doesn't exist
+  when: I request an item that doesn't exist'
     call ^getInventoryItem
       sku: "NON-EXISTENT"
   then: I receive a not found error
@@ -70,7 +74,7 @@ scenario: Check item availability - insufficient stock
   when: I check availability for large quantity
     call ^checkAvailability
       sku: "SKU-001"
-      quantity: 10000
+      query_quantity: 10000
   then: item is not available
     assert status 200
     assert $.available equals false
@@ -83,13 +87,13 @@ scenario: Reserve inventory for an order
   given: the item is available
     call ^checkAvailability
       sku: "SKU-002"
-      quantity: 2
+      query_quantity: 2
     assert status 200
     assert $.available equals true
   when: I reserve inventory
     call ^reserveInventory
       sku: "SKU-002"
-      quantity: 2
+      query_quantity: 2
   then: inventory is reserved
     assert status 200
     assert $.reservedQuantity equals 2

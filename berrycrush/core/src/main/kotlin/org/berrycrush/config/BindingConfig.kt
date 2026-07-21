@@ -8,6 +8,7 @@ data class BindingConfig(
     val name: String,
     val baseUrl: String? = null,
     val location: String? = null,
+    val operationAliases: Map<String, String> = emptyMap(),
 ) : LoadedSpecProvider {
     override val spec: LoadedSpec? by lazy {
         location?.let {

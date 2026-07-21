@@ -346,6 +346,50 @@ class ParserTest {
     }
 
     @Test
+    fun `should parse explicit operation id call`() {
+        val source =
+            """
+            scenario: explicit operation call
+              when I call
+                call ^listPets
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val call =
+            result.ast!!
+                .scenarios[0]
+                .steps[0]
+                .actions
+                .filterIsInstance<CallNode>()
+                .single()
+        assertEquals("listPets", call.operationId)
+    }
+
+    @Test
+    fun `should parse call reference`() {
+        val source =
+            """
+            scenario: alias style call
+              when I call
+                call petLookup
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val call =
+            result.ast!!
+                .scenarios[0]
+                .steps[0]
+                .actions
+                .filterIsInstance<CallNode>()
+                .single()
+        assertEquals("petLookup", call.operationId)
+    }
+
+    @Test
     fun `should handle and keyword`() {
         val source =
             """
@@ -2781,5 +2825,41 @@ class ParserTest {
 
         assertEquals("shared", webhookAction.name)
         assertEquals(WebhookScope.FEATURE, webhookAction.scope)
+    }
+
+    @Test
+    fun `should parse variable condition assertion with variable placeholder`() {
+        val source =
+            """
+            scenario: Custom assertion with variable
+              then: check ownership
+                assert {{name}} equals "John"
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val assertions = extractAssertions(result.ast!!.scenarios[0])
+        assertTrue(assertions[0].isVariableAssertion(), "Should be a variable assertion")
+        assertEquals("name", assertions[0].variableName)
+    }
+
+    @Test
+    fun check() {
+        val source =
+            """
+            scenario: Custom assertion with variable
+              when: foo
+                call ^op
+                  auto: [
+                    invalid,
+                    security,
+                    multi
+                  ]
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
     }
 }

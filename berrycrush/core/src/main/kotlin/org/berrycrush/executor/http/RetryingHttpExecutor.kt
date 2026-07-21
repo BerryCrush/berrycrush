@@ -7,6 +7,7 @@ import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.Step
 import org.berrycrush.openapi.LoadedSpec
 import org.berrycrush.openapi.ResolvedOperation
+import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.plugin.StepContext
 import java.net.URI
 import java.time.Duration
@@ -39,6 +40,12 @@ class RetryingHttpExecutor(
         operation: ResolvedOperation,
         context: StepContext,
     ): HttpResponse = execute(delegate.resolve(step, spec, operation, context), context)
+
+    override fun execute(
+        step: Step,
+        specRegistry: SpecRegistry,
+        stepContext: StepContext,
+    ): HttpResponse = super.execute(step, specRegistry, stepContext)
 
     override fun execute(
         request: HttpRequest,

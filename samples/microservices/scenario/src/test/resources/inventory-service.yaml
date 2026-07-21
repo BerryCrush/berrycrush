@@ -11,7 +11,7 @@ servers:
 paths:
   /api/inventory:
     get:
-      operationId: listInventory
+      # operationId: listInventory
       summary: List all inventory items
       responses:
         '200':

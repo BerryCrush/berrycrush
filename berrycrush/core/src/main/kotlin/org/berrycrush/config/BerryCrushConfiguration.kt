@@ -10,6 +10,8 @@ private const val DEFAULT_MAX_ERROR_BODY_SIZE = 4096
 private const val MULTI_TEST_DEFAULT_SEQUENTIAL_COUNT = 3
 private const val MULTI_TEST_DEFAULT_CONCURRENT_COUNT = 5
 
+private const val ALIAS_MARKER = "alias."
+
 /**
  * Configuration for BerryCrush test execution.
  *
@@ -164,7 +166,7 @@ data class BerryCrushConfiguration(
                 autoAssertions = this.autoAssertions.copy(),
                 errorContextConfig = this.errorContextConfig.copy(),
                 retryConfig = this.retryConfig.copy(),
-                bindings = this.bindings.toMutableMap(),
+                bindings = this.bindings.mapValues { (_, binding) -> binding.copy() }.toMutableMap(),
             )
 
         for ((key, value) in parameters) {
@@ -180,7 +182,7 @@ data class BerryCrushConfiguration(
     ) {
         when (key) {
             "baseUrl" -> applyBindingParam("baseUrl", value)
-            "timeout" -> timeout = parseTimeout(value)
+            "timeout" -> timeout = parseTimeout(value, timeout)
             "environment" -> environment = value.toString()
             "strictSchemaValidation" -> strictSchemaValidation = value.toString().toBoolean()
             "followRedirects" -> followRedirects = value.toString().toBoolean()
@@ -259,21 +261,34 @@ data class BerryCrushConfiguration(
         key: String,
         value: Any,
     ) {
-        val (name, param) =
-            key.indexOf('.').let {
-                if (it == -1) {
-                    BindingConfig.DEFAULT_BINDING_NAME to key
-                } else {
-                    key.substring(0, it) to key.substring(it + 1)
-                }
-            }
+        val (name, param) = parseBindingParam(key)
         bindings.compute(name) { _, binding ->
-            when (param) {
-                "baseUrl" -> binding?.copy(baseUrl = value.toString()) ?: BindingConfig(name, baseUrl = value.toString())
-                "location" -> binding?.copy(location = value.toString()) ?: BindingConfig(name, location = value.toString())
+            when {
+                param == "baseUrl" -> binding?.copy(baseUrl = value.toString()) ?: BindingConfig(name, baseUrl = value.toString())
+                param == "location" -> binding?.copy(location = value.toString()) ?: BindingConfig(name, location = value.toString())
+                param.startsWith(ALIAS_MARKER) -> applyBindingAlias(binding, name, param, value)
                 else -> binding
             }
         }
+    }
+
+    private fun applyBindingAlias(
+        binding: BindingConfig?,
+        name: String,
+        param: String,
+        value: Any,
+    ): BindingConfig? {
+        if (!param.startsWith(ALIAS_MARKER)) {
+            return binding
+        }
+
+        val alias = param.removePrefix(ALIAS_MARKER).trim()
+        if (alias.isBlank()) {
+            return binding
+        }
+
+        val current = binding ?: BindingConfig(name)
+        return current.copy(operationAliases = current.operationAliases + (alias to value.toString()))
     }
 
     private fun parseBackoffStrategy(value: Any): BackoffStrategy =
@@ -282,40 +297,6 @@ data class BerryCrushConfiguration(
             "linear" -> BackoffStrategy.LINEAR
             "exponential" -> BackoffStrategy.EXPONENTIAL
             else -> retryConfig.backoff
-        }
-
-    private fun parseDuration(
-        value: Any,
-        default: Duration,
-    ): Duration {
-        val str = value.toString().trim().lowercase()
-        return try {
-            when {
-                str.endsWith("ms") -> Duration.ofMillis(str.removeSuffix("ms").trim().toLong())
-                str.endsWith("s") -> Duration.ofSeconds(str.removeSuffix("s").trim().toLong())
-                str.endsWith("m") -> Duration.ofMinutes(str.removeSuffix("m").trim().toLong())
-                else -> Duration.ofMillis(str.toLong())
-            }
-        } catch (_: NumberFormatException) {
-            default
-        }
-    }
-
-    private fun parseTimeout(value: Any): Duration =
-        when (value) {
-            is Number -> Duration.ofSeconds(value.toLong())
-            is String -> Duration.ofSeconds(value.toLong())
-            else -> timeout
-        }
-
-    private fun parseIntOrDefault(
-        value: Any,
-        default: Int,
-    ): Int =
-        when (value) {
-            is Number -> value.toInt()
-            is String -> value.toIntOrNull() ?: default
-            else -> default
         }
 }
 
@@ -357,4 +338,56 @@ data class SpecConfiguration(
     ) {
         defaultHeaders[name] = value
     }
+}
+
+private fun parseDuration(
+    value: Any,
+    default: Duration,
+): Duration {
+    val str = value.toString().trim().lowercase()
+    return try {
+        when {
+            str.endsWith("ms") -> Duration.ofMillis(str.removeSuffix("ms").trim().toLong())
+            str.endsWith("s") -> Duration.ofSeconds(str.removeSuffix("s").trim().toLong())
+            str.endsWith("m") -> Duration.ofMinutes(str.removeSuffix("m").trim().toLong())
+            else -> Duration.ofMillis(str.toLong())
+        }
+    } catch (_: NumberFormatException) {
+        default
+    }
+}
+
+private fun parseTimeout(
+    value: Any,
+    defaultTimeout: Duration,
+): Duration =
+    when (value) {
+        is Number -> Duration.ofSeconds(value.toLong())
+        is String -> Duration.ofSeconds(value.toLong())
+        else -> defaultTimeout
+    }
+
+private fun parseIntOrDefault(
+    value: Any,
+    default: Int,
+): Int =
+    when (value) {
+        is Number -> value.toInt()
+        is String -> value.toIntOrNull() ?: default
+        else -> default
+    }
+
+private fun parseBindingParam(key: String): Pair<String, String> {
+    if (key.startsWith(ALIAS_MARKER)) {
+        return BindingConfig.DEFAULT_BINDING_NAME to key
+    }
+
+    val firstDot = key.indexOf('.')
+    if (firstDot == -1) {
+        return BindingConfig.DEFAULT_BINDING_NAME to key
+    }
+
+    val bindingName = key.substring(0, firstDot)
+    val param = key.substring(firstDot + 1)
+    return bindingName to param
 }

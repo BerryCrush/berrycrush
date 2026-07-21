@@ -6,6 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class OperationResolverTest {
@@ -116,5 +117,25 @@ class OperationResolverTest {
         assertNotNull(operation.operation.parameters)
         assertTrue(operation.operation.parameters.any { it.name == "limit" })
         assertTrue(operation.operation.parameters.any { it.name == "status" })
+    }
+
+    @Test
+    fun `should resolve by method and route shape`() {
+        val resolver = loadPetstoreResolver()
+
+        val operation = resolver.resolve(HttpMethod.GET, "/pets/{id}")
+
+        assertNotNull(operation)
+        assertEquals("getPetById", operation.operationId)
+        assertEquals(HttpMethod.GET, operation.method)
+    }
+
+    @Test
+    fun `should return null for unknown method path target`() {
+        val resolver = loadPetstoreResolver()
+
+        val operation = resolver.resolve(HttpMethod.PATCH, "/pets/{id}")
+
+        assertNull(operation)
     }
 }

@@ -80,6 +80,12 @@ class SpringBindingsProviderTest {
         assertTrue(exception.message!!.contains("not initialized"))
     }
 
+    @Test
+    fun `createTestInstance throws when context not initialized`() {
+        assertThrows<ConfigurationException> {
+            provider.createTestInstance(SpringBindingsProviderTest::class.java)
+        }
+    }
     // Test fixtures
 
     @SpringBootApplication(exclude = [DataSourceAutoConfiguration::class])

@@ -18,7 +18,7 @@ import org.berrycrush.samples.microservices.inventory.InventoryServiceApplicatio
 @Suite
 @IncludeEngines("berrycrush")
 @SpringBootTest(
-    classes = InventoryServiceApplication.class,
+    classes = {InventoryServiceApplication.class, InventoryServiceBindings.class},
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
 )
 @BerryCrushContextConfiguration

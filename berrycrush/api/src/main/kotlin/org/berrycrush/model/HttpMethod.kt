@@ -13,4 +13,12 @@ enum class HttpMethod {
     OPTIONS,
     TRACE,
     UNKNOWN,
+    ;
+
+    companion object {
+        fun fromName(name: String): HttpMethod? =
+            HttpMethod.entries.find {
+                it.name == name
+            }
+    }
 }
