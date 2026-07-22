@@ -5,6 +5,7 @@ plugins {
     //alias(libs.plugins.dokka.core)
     //alias(libs.plugins.dokka.javadoc)
     alias(libs.plugins.owasp.dependency.check)
+    alias(libs.plugins.dependency.update)
 }
 
 // OWASP Dependency Check configuration
@@ -20,7 +21,7 @@ dependencyCheck {
 allprojects {
     group = "org.berrycrush"
     version = version
-
+    pluginManager.apply("com.github.ben-manes.versions")
     repositories {
         mavenCentral()
     }

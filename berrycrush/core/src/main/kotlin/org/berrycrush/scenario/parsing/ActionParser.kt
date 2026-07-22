@@ -137,16 +137,29 @@ private fun ParserState.parseCallParameter(state: CallParseState) {
             val headerName = paramName.removePrefix("header_").removePrefix("Header_")
             parseValue()?.let { state.headers[headerName] = it }
         }
+
         paramName == "body" -> {
             when (val bodyResult = parseBodyContent()) {
                 is BodyParseResult.Raw -> state.body = bodyResult.value
                 is BodyParseResult.Properties -> state.bodyProperties = bodyResult.properties
             }
         }
-        paramName == "bodyFile" -> state.bodyFile = parseBodyFilePath()
-        paramName == "auto" -> state.autoTestConfig = parseAutoTestConfig()
-        paramName == "excludes" -> state.autoTestExcludes = parseAutoTestExcludes()
-        else -> parseValue()?.let { state.parameters[paramName] = it }
+
+        paramName == "bodyFile" -> {
+            state.bodyFile = parseBodyFilePath()
+        }
+
+        paramName == "auto" -> {
+            state.autoTestConfig = parseAutoTestConfig()
+        }
+
+        paramName == "excludes" -> {
+            state.autoTestExcludes = parseAutoTestExcludes()
+        }
+
+        else -> {
+            parseValue()?.let { state.parameters[paramName] = it }
+        }
     }
 }
 
@@ -202,8 +215,14 @@ internal fun ParserState.parseBodyProperties(): Map<String, BodyPropertyValue> {
                 val value = parsePropertyValue()
                 value?.let { properties[propName] = it }
             }
-            TokenType.NEWLINE -> advance()
-            else -> advance()
+
+            TokenType.NEWLINE -> {
+                advance()
+            }
+
+            else -> {
+                advance()
+            }
         }
     }
 
@@ -243,10 +262,22 @@ internal fun ParserState.parseBodyFilePath(): String? {
     val sb = StringBuilder()
     while (!isAtEnd() && current().type != TokenType.NEWLINE && current().type != TokenType.DEDENT) {
         when (current().type) {
-            TokenType.IDENTIFIER, TokenType.OPERATION_ID -> sb.append(current().value)
-            TokenType.COLON -> sb.append(':')
-            TokenType.DOT -> sb.append('.')
-            TokenType.NUMBER -> sb.append(current().value)
+            TokenType.IDENTIFIER, TokenType.OPERATION_ID -> {
+                sb.append(current().value)
+            }
+
+            TokenType.COLON -> {
+                sb.append(':')
+            }
+
+            TokenType.DOT -> {
+                sb.append('.')
+            }
+
+            TokenType.NUMBER -> {
+                sb.append(current().value)
+            }
+
             else -> {
                 val value = current().value
                 if (value.isNotBlank() && value !in listOf("{", "}", "[", "]", "(", ")", ",", "|")) {
@@ -296,7 +327,10 @@ internal fun ParserState.parseAutoTestConfig(): AutoTestConfig? {
                 }
                 advance()
             }
-            else -> advance()
+
+            else -> {
+                advance()
+            }
         }
     }
 
@@ -353,7 +387,10 @@ internal fun ParserState.parseExtractAction(): ExtractNode? {
                 location = loc,
             )
         }
-        else -> addError("Expected variable name")
+
+        else -> {
+            addError("Expected variable name")
+        }
     }
 }
 
@@ -412,8 +449,14 @@ private fun ParserState.parseIncludeParameters(): Map<String, ValueNode> {
 
                 parseValue()?.let { parameters[paramName] = it }
             }
-            TokenType.NEWLINE -> advance()
-            else -> advance()
+
+            TokenType.NEWLINE -> {
+                advance()
+            }
+
+            else -> {
+                advance()
+            }
         }
     }
 
@@ -488,21 +531,39 @@ internal fun ParserState.parseWebhookAction(): WebhookNode? {
 
                 when (propName) {
                     // Allow name in block too (override if already set on same line)
-                    "name" -> name = parseStringOrIdentifier()
+                    "name" -> {
+                        name = parseStringOrIdentifier()
+                    }
 
-                    "port" -> port = parseIntValue() ?: 0
-                    "hook" -> parseStringOrIdentifier()?.let { hooks.add(it) }
-                    "hooks" -> hooks.addAll(parseHookList())
-                    "scope" ->
+                    "port" -> {
+                        port = parseIntValue() ?: 0
+                    }
+
+                    "hook" -> {
+                        parseStringOrIdentifier()?.let { hooks.add(it) }
+                    }
+
+                    "hooks" -> {
+                        hooks.addAll(parseHookList())
+                    }
+
+                    "scope" -> {
                         scope =
                             when (parseStringOrIdentifier()?.lowercase()) {
                                 "feature" -> WebhookScope.FEATURE
                                 else -> WebhookScope.SCENARIO
                             }
+                    }
                 }
             }
-            TokenType.NEWLINE -> advance()
-            else -> advance()
+
+            TokenType.NEWLINE -> {
+                advance()
+            }
+
+            else -> {
+                advance()
+            }
         }
     }
 
@@ -510,9 +571,15 @@ internal fun ParserState.parseWebhookAction(): WebhookNode? {
         advance()
     }
     return when {
-        name == null -> addError("webhook requires 'name' property", loc)
-        hooks.isEmpty() -> addError("webhook requires 'hook' or 'hooks' property", loc)
-        else ->
+        name == null -> {
+            addError("webhook requires 'name' property", loc)
+        }
+
+        hooks.isEmpty() -> {
+            addError("webhook requires 'hook' or 'hooks' property", loc)
+        }
+
+        else -> {
             WebhookNode(
                 name = name,
                 port = port,
@@ -520,6 +587,7 @@ internal fun ParserState.parseWebhookAction(): WebhookNode? {
                 scope = scope,
                 location = loc,
             )
+        }
     }
 }
 
@@ -538,7 +606,10 @@ private fun ParserState.parseStringOrIdentifier(): String? =
             advance()
             value
         }
-        else -> null
+
+        else -> {
+            null
+        }
     }
 
 /**
@@ -551,7 +622,10 @@ private fun ParserState.parseIntValue(): Int? =
             advance()
             value
         }
-        else -> null
+
+        else -> {
+            null
+        }
     }
 
 /**
@@ -585,6 +659,7 @@ private fun ParserState.parseHookList(): List<String> {
                     skipWhitespace()
                     parseStringOrIdentifier()?.let { hooks.add(it) }
                 }
+
                 TokenType.STRING, TokenType.IDENTIFIER, TokenType.OPERATION_ID -> {
                     // Also accept bare identifiers (for YAML-style list items parsed differently)
                     val value = current().value
@@ -593,8 +668,14 @@ private fun ParserState.parseHookList(): List<String> {
                     }
                     advance()
                 }
-                TokenType.NEWLINE -> advance()
-                else -> advance()
+
+                TokenType.NEWLINE -> {
+                    advance()
+                }
+
+                else -> {
+                    advance()
+                }
             }
         }
         if (current().type == TokenType.DEDENT) {
@@ -614,8 +695,14 @@ private fun ParserState.parseInlineList(): List<String> {
                 elements.add(current().value)
                 advance()
             }
-            TokenType.COMMA -> advance()
-            else -> advance()
+
+            TokenType.COMMA -> {
+                advance()
+            }
+
+            else -> {
+                advance()
+            }
         }
     }
     if (current().type == TokenType.CLOSE_BRACKET) {

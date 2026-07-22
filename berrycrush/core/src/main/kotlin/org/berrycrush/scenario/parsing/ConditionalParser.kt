@@ -116,7 +116,10 @@ internal fun ParserState.parseSimpleCondition(): ConditionNode? {
             val cond = ConditionNode.VariableCondition(varName, op, expected, loc)
             if (negate) ConditionNode.NegatedCondition(cond, loc) else cond
         }
-        else -> addError("Expected condition (status, header, jsonpath, contains, schema, responseTime, or variable)")
+
+        else -> {
+            addError("Expected condition (status, header, jsonpath, contains, schema, responseTime, or variable)")
+        }
     }
 }
 
@@ -131,12 +134,16 @@ internal fun ParserState.buildVariablePath(): String {
             parts.add(current().value)
             advance()
         }
+
         TokenType.VARIABLE -> {
             parts.add(current().value)
             advance()
             return parts.joinToString(".")
         }
-        else -> return ""
+
+        else -> {
+            return ""
+        }
     }
 
     while (!isAtEnd() && current().type == TokenType.DOT) {
@@ -172,6 +179,7 @@ internal fun ParserState.parseFailAction(): FailNode {
                 advance()
                 msg
             }
+
             else -> {
                 val parts = mutableListOf<String>()
                 while (!isAtEnd() && current().type != TokenType.NEWLINE && current().type != TokenType.DEDENT) {

@@ -305,17 +305,23 @@ class TypeProvider : InvalidTestProvider {
 
     private fun String.toInvalidTestValue(): InvalidTestValue? =
         when (this) {
-            "integer", "number", "boolean", "array", "object" ->
+            "integer", "number", "boolean", "array", "object" -> {
                 InvalidTestValue(
                     value = "not-a-$this",
                     description = "Invalid type (string instead of $this)",
                 )
-            "string" ->
+            }
+
+            "string" -> {
                 InvalidTestValue(
                     value = listOf("not", "a", "string"),
                     description = "Invalid string value",
                 )
-            else -> null // `null`, should be
+            }
+
+            else -> {
+                null
+            } // `null`, should be
         }
 }
 
@@ -536,17 +542,22 @@ private fun InvalidTestRequest.toInvalidCases(
                 }
                 toInvalidCase(value, testType, body = modifiedBody)
             }
+
             ParameterLocation.PATH -> {
                 val pathParams = basePathParams.toMutableMap()
                 pathParams[fieldName] = value.value
                 toInvalidCase(value, testType, pathParams = pathParams)
             }
+
             ParameterLocation.HEADER -> {
                 val headers = baseHeaders.toMutableMap()
                 headers[fieldName] = value.value?.toString() ?: ""
                 toInvalidCase(value, testType, headers = headers)
             }
-            ParameterLocation.QUERY -> toInvalidCase(value, testType)
+
+            ParameterLocation.QUERY -> {
+                toInvalidCase(value, testType)
+            }
         }
     }
 

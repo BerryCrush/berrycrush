@@ -203,10 +203,22 @@ private class DefaultBodyResolver(
 
         // Generate a sensible default based on type
         return when (schema.type) {
-            "string" -> handleFormat(schema)
-            "integer", "number" -> BodyProperty.Simple(0)
-            "boolean" -> BodyProperty.Simple(false)
-            "array" -> BodyProperty.Simple(emptyList<Any>())
+            "string" -> {
+                handleFormat(schema)
+            }
+
+            "integer", "number" -> {
+                BodyProperty.Simple(0)
+            }
+
+            "boolean" -> {
+                BodyProperty.Simple(false)
+            }
+
+            "array" -> {
+                BodyProperty.Simple(emptyList<Any>())
+            }
+
             "object" -> {
                 val nestedProps = extractPropertiesFromSchemaSpec(schema)
                 if (nestedProps.isNotEmpty()) {
@@ -215,7 +227,10 @@ private class DefaultBodyResolver(
                     BodyProperty.Simple(emptyMap<String, Any>())
                 }
             }
-            else -> null
+
+            else -> {
+                null
+            }
         }
     }
 

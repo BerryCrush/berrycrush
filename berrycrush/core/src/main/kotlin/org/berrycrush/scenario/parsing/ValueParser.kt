@@ -31,6 +31,7 @@ internal fun ParserState.parseValue(): ValueNode? {
                 else -> StringValueNode(value, loc)
             }
         }
+
         TokenType.NUMBER -> {
             val value = current().value
             advance()
@@ -42,18 +43,24 @@ internal fun ParserState.parseValue(): ValueNode? {
                 }
             NumberValueNode(num, loc)
         }
+
         TokenType.VARIABLE -> {
             val name = current().value
             advance()
             VariableValueNode(name, loc)
         }
+
         TokenType.OPEN_BRACE -> {
             parseJsonObject(loc)
         }
+
         TokenType.OPEN_BRACKET -> {
             parseJsonArray(loc)
         }
-        else -> null
+
+        else -> {
+            null
+        }
     }
 }
 
@@ -99,6 +106,7 @@ internal fun ParserState.parseJsonObject(loc: SourceLocation): ValueNode {
                 depth++
                 sb.append('{')
             }
+
             TokenType.CLOSE_BRACE -> {
                 depth--
                 sb.append('}')
@@ -107,13 +115,35 @@ internal fun ParserState.parseJsonObject(loc: SourceLocation): ValueNode {
                     return JsonValueNode.ObjectValueNode(sb.toString(), loc)
                 }
             }
-            TokenType.STRING -> sb.append('"').append(current().value).append('"')
-            TokenType.NUMBER -> sb.append(current().value)
-            TokenType.COLON -> sb.append(':')
-            TokenType.COMMA -> sb.append(',')
-            TokenType.OPEN_BRACKET -> sb.append('[')
-            TokenType.CLOSE_BRACKET -> sb.append(']')
-            TokenType.IDENTIFIER -> sb.append('"').append(current().value).append('"')
+
+            TokenType.STRING -> {
+                sb.append('"').append(current().value).append('"')
+            }
+
+            TokenType.NUMBER -> {
+                sb.append(current().value)
+            }
+
+            TokenType.COLON -> {
+                sb.append(':')
+            }
+
+            TokenType.COMMA -> {
+                sb.append(',')
+            }
+
+            TokenType.OPEN_BRACKET -> {
+                sb.append('[')
+            }
+
+            TokenType.CLOSE_BRACKET -> {
+                sb.append(']')
+            }
+
+            TokenType.IDENTIFIER -> {
+                sb.append('"').append(current().value).append('"')
+            }
+
             else -> {}
         }
         advance()
@@ -135,6 +165,7 @@ internal fun ParserState.parseJsonArray(loc: SourceLocation): ValueNode {
                 depth++
                 sb.append('[')
             }
+
             TokenType.CLOSE_BRACKET -> {
                 depth--
                 sb.append(']')
@@ -143,13 +174,35 @@ internal fun ParserState.parseJsonArray(loc: SourceLocation): ValueNode {
                     return JsonValueNode.ArrayValueNode(sb.toString(), loc)
                 }
             }
-            TokenType.STRING -> sb.append('"').append(current().value).append('"')
-            TokenType.NUMBER -> sb.append(current().value)
-            TokenType.COLON -> sb.append(':')
-            TokenType.COMMA -> sb.append(',')
-            TokenType.OPEN_BRACE -> sb.append('{')
-            TokenType.CLOSE_BRACE -> sb.append('}')
-            TokenType.IDENTIFIER -> sb.append('"').append(current().value).append('"')
+
+            TokenType.STRING -> {
+                sb.append('"').append(current().value).append('"')
+            }
+
+            TokenType.NUMBER -> {
+                sb.append(current().value)
+            }
+
+            TokenType.COLON -> {
+                sb.append(':')
+            }
+
+            TokenType.COMMA -> {
+                sb.append(',')
+            }
+
+            TokenType.OPEN_BRACE -> {
+                sb.append('{')
+            }
+
+            TokenType.CLOSE_BRACE -> {
+                sb.append('}')
+            }
+
+            TokenType.IDENTIFIER -> {
+                sb.append('"').append(current().value).append('"')
+            }
+
             else -> {}
         }
         advance()

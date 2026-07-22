@@ -44,11 +44,13 @@ private fun FileExecutionContext.dispatchExecution(
     context: ExecutionContext,
 ): Boolean =
     when (child) {
-        is IndividualScenarioDescriptor ->
+        is IndividualScenarioDescriptor -> {
             executeScenario(child, classDescriptor, listener, context)
+        }
 
-        is FeatureDescriptor ->
+        is FeatureDescriptor -> {
             executeFeature(child, classDescriptor, listener, context)
+        }
 
         is ContainerDescriptor -> {
             listener.executionStarted(child)
@@ -67,7 +69,10 @@ private fun FileExecutionContext.dispatchExecution(
             listener.executionFinished(child, testExecutionResult)
             hasFailure
         }
-        else -> false
+
+        else -> {
+            false
+        }
     }
 
 private fun FileExecutionContext.executeFeature(

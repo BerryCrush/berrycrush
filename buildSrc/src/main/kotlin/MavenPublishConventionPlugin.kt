@@ -50,13 +50,13 @@ class MavenPublishConventionPlugin : Plugin<Project> {
             afterEvaluate {
                 val sourceSets = project.extensions.getByType<SourceSetContainer>()
                 // Create source and javadoc jars
-                val sourcesJar by tasks.registering(Jar::class) {
+                val sourcesJar = tasks.register<Jar>("sourcesJar") {
                     description = "source jar generation"
                     archiveClassifier.set("sources")
                     from(sourceSets.named("main").get().allSource)
                 }
 
-                val javadocJar by tasks.registering(Jar::class) {
+                val javadocJar = tasks.register<Jar>("javadocJar") {
                     description = "javadoc jar generation"
                     archiveClassifier.set("javadoc")
                     val dokkaGeneratePublicationJavadoc = tasks.named("dokkaGeneratePublicationJavadoc")
@@ -74,8 +74,8 @@ class MavenPublishConventionPlugin : Plugin<Project> {
                     if (name != "mavenJava") return@all
 
                     from(components["java"])
-                    artifact(sourcesJar)
-                    artifact(javadocJar)
+                    artifact(sourcesJar.get())
+                    artifact(javadocJar.get())
                     pom {
                         url.set("https://github.com/ktakashi/berrycrush")
 

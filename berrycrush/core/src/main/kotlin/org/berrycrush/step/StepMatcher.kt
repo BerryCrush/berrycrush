@@ -97,6 +97,7 @@ class StepMatcher {
                         groupIndex += 2
                         doubleQuoted ?: singleQuoted ?: ""
                     }
+
                     else -> {
                         val rawValue = matcher.group(groupIndex++) ?: ""
                         PLACEHOLDER_CONVERTERS[placeholder]?.invoke(rawValue) ?: rawValue

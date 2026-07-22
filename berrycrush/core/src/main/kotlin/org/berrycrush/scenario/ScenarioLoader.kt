@@ -404,17 +404,27 @@ object ScenarioLoader {
     private fun describeCondition(condition: Condition): String =
         when (condition) {
             is Condition.Status -> "status ${condition.expected}"
+
             is Condition.JsonPath -> "${condition.path} ${condition.operator.name.lowercase()} ${condition.expected ?: ""}"
+
             is Condition.Header -> "header ${condition.name} ${condition.operator.name.lowercase()} ${condition.expected ?: ""}"
+
             is Condition.Variable -> "${condition.name} ${condition.operator.name.lowercase()} ${condition.expected ?: ""}"
+
             is Condition.BodyContains -> "body contains \"${condition.text}\""
+
             is Condition.Schema -> "matches schema"
+
             is Condition.ResponseTime -> "responseTime < ${condition.duration} ms"
+
             is Condition.Negated -> "not (${describeCondition(condition.condition)})"
+
             is Condition.Compound -> "(${describeCondition(
                 condition.left,
             )}) ${condition.operator.name} (${describeCondition(condition.right)})"
+
             is Condition.CustomAssertion -> condition.pattern
+
             is Condition.Custom -> "<custom predicate>"
         }
 
@@ -453,12 +463,16 @@ object ScenarioLoader {
 
     private fun transformBodyPropertyValue(value: BodyPropertyValue): BodyProperty =
         when (value) {
-            is BodyPropertyValue.Simple ->
+            is BodyPropertyValue.Simple -> {
                 when (val v = value.value) {
                     is JsonValueNode -> BodyProperty.Container(v.json)
                     else -> BodyProperty.Simple(extractValue(value.value))
                 }
-            is BodyPropertyValue.Nested -> BodyProperty.Nested(transformBodyProperties(value.properties))
+            }
+
+            is BodyPropertyValue.Nested -> {
+                BodyProperty.Nested(transformBodyProperties(value.properties))
+            }
         }
 
     /**
@@ -491,49 +505,67 @@ object ScenarioLoader {
      */
     private fun transformCondition(node: ConditionNode): Condition =
         when (node) {
-            is ConditionNode.StatusCondition ->
+            is ConditionNode.StatusCondition -> {
                 extractValue(node.expected)?.let {
                     Condition.Status(it)
                 } ?: error("Invalid status condition: ${node.location}")
-            is ConditionNode.JsonPathCondition ->
+            }
+
+            is ConditionNode.JsonPathCondition -> {
                 Condition.JsonPath(
                     path = node.path,
                     operator = transformConditionOperator(node.operator),
                     expected = node.expected?.let { extractValue(it) },
                 )
-            is ConditionNode.HeaderCondition ->
+            }
+
+            is ConditionNode.HeaderCondition -> {
                 Condition.Header(
                     name = node.headerName,
                     operator = node.operator?.let { transformConditionOperator(it) } ?: ModelConditionOperator.EXISTS,
                     expected = node.expected?.let { extractValue(it) },
                 )
-            is ConditionNode.VariableCondition ->
+            }
+
+            is ConditionNode.VariableCondition -> {
                 Condition.Variable(
                     name = node.variableName,
                     operator = transformConditionOperator(node.operator),
                     expected = node.expected?.let { extractValue(it) },
                 )
-            is ConditionNode.NegatedCondition ->
+            }
+
+            is ConditionNode.NegatedCondition -> {
                 Condition.Negated(condition = transformCondition(node.condition))
-            is ConditionNode.CompoundCondition ->
+            }
+
+            is ConditionNode.CompoundCondition -> {
                 Condition.Compound(
                     left = transformCondition(node.left),
                     operator = transformLogicalOperator(node.operator),
                     right = transformCondition(node.right),
                 )
-            is ConditionNode.BodyContainsCondition ->
+            }
+
+            is ConditionNode.BodyContainsCondition -> {
                 extractValue(node.text)?.let {
                     Condition.BodyContains(text = it)
                 } ?: error("Invalid body contains condition: ${node.location}")
+            }
 
-            is ConditionNode.SchemaCondition ->
+            is ConditionNode.SchemaCondition -> {
                 Condition.Schema
-            is ConditionNode.ResponseTimeCondition ->
+            }
+
+            is ConditionNode.ResponseTimeCondition -> {
                 extractValue(node.maxMs)?.let {
                     Condition.ResponseTime(duration = it)
                 } ?: error("Invalid response time condition: ${node.location}")
-            is ConditionNode.CustomAssertionCondition ->
+            }
+
+            is ConditionNode.CustomAssertionCondition -> {
                 Condition.CustomAssertion(pattern = node.pattern)
+            }
         }
 
     /**
@@ -576,16 +608,27 @@ object ScenarioLoader {
 
         for (action in actions) {
             when (action) {
-                is AssertNode -> assertions.add(transformAssertion(action))
-                is ExtractNode ->
+                is AssertNode -> {
+                    assertions.add(transformAssertion(action))
+                }
+
+                is ExtractNode -> {
                     extractions.add(
                         Extraction(
                             variableName = action.variableName,
                             jsonPath = action.jsonPath,
                         ),
                     )
-                is ConditionalNode -> conditionals.add(transformConditional(action))
-                is FailNode -> failMessage = action.message
+                }
+
+                is ConditionalNode -> {
+                    conditionals.add(transformConditional(action))
+                }
+
+                is FailNode -> {
+                    failMessage = action.message
+                }
+
                 is CallNode, is IncludeNode, is WebhookNode -> {
                     // Calls, includes, and webhooks are not allowed in conditional branches
                     // They should be ignored or logged as a warning

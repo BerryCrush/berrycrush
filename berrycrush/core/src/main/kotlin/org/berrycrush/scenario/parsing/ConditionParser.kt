@@ -68,22 +68,30 @@ internal fun ParserState.parseCondition(
         keyword == "status" || keyword == "statuscode" -> {
             parseStatusCondition(loc, negate)
         }
+
         keyword == "schema" || keyword == "matchesschema" -> {
             parseSchemaCondition(loc, negate)
         }
+
         keyword == "header" -> {
             parseHeaderCondition(context, loc, negate)
         }
+
         keyword == "contains" || keyword == "bodycontains" -> {
             parseContainsCondition(loc, negate)
         }
+
         keyword == "responsetime" -> {
             parseResponseTimeCondition(loc, negate)
         }
+
         keyword.startsWith("$") && current().type == TokenType.JSON_PATH -> {
             parseJsonPathCondition(loc, context, negate)
         }
-        else -> null
+
+        else -> {
+            null
+        }
     }
 
 private fun ParserState.parseResponseTimeCondition(
@@ -245,8 +253,11 @@ internal fun ParserState.parseBuiltinOrCustomAssertCondition(
     }
 
     return when (val pattern = patternBuilder.toString().trim()) {
-        "" -> addError("Empty assertion pattern")
-        else ->
+        "" -> {
+            addError("Empty assertion pattern")
+        }
+
+        else -> {
             ConditionNode.CustomAssertionCondition(pattern, loc).let { condition ->
                 if (initialNegate) {
                     ConditionNode.NegatedCondition(condition, loc)
@@ -254,6 +265,7 @@ internal fun ParserState.parseBuiltinOrCustomAssertCondition(
                     condition
                 }
             }
+        }
     }
 }
 
@@ -302,7 +314,9 @@ internal fun ParserState.parseConditionOperatorAndValue(): Pair<ConditionOperato
     advance()
 
     return when (op) {
-        ConditionOperator.EXISTS, ConditionOperator.NOT_EMPTY -> op to null
+        ConditionOperator.EXISTS, ConditionOperator.NOT_EMPTY -> {
+            op to null
+        }
 
         else -> {
             skipWhitespace()

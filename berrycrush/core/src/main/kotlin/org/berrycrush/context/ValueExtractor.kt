@@ -27,14 +27,18 @@ object ValueExtractor {
                 onSuccess = { it },
                 onFailure = { e ->
                     when (e) {
-                        is PathNotFoundException -> null
-                        else ->
+                        is PathNotFoundException -> {
+                            null
+                        }
+
+                        else -> {
                             throw ExtractionException(
                                 variableName = "unknown",
                                 jsonPath = jsonPath,
                                 responseBody = body,
                                 cause = e,
                             )
+                        }
                     }
                 },
             )

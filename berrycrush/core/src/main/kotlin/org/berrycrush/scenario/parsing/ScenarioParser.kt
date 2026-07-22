@@ -145,10 +145,22 @@ internal fun ParserState.parseFeature(tags: Set<String> = emptySet()): FeatureNo
         val scenarioTags = parseTags()
 
         when (current().type) {
-            TokenType.BACKGROUND -> background = parseBackground()
-            TokenType.SCENARIO -> parseScenario(scenarioTags)?.let(scenarios::add)
-            TokenType.OUTLINE -> parseScenarioOutline(scenarioTags)?.let(scenarios::add)
-            TokenType.NEWLINE, TokenType.INDENT -> advance()
+            TokenType.BACKGROUND -> {
+                background = parseBackground()
+            }
+
+            TokenType.SCENARIO -> {
+                parseScenario(scenarioTags)?.let(scenarios::add)
+            }
+
+            TokenType.OUTLINE -> {
+                parseScenarioOutline(scenarioTags)?.let(scenarios::add)
+            }
+
+            TokenType.NEWLINE, TokenType.INDENT -> {
+                advance()
+            }
+
             else -> {
                 addParseFeatureError()
                 break
@@ -323,13 +335,19 @@ private fun ParserState.parseParameterEntries(
         // Parse parameter name (supports keywords like 'include' as names)
         val paramName =
             when {
-                current().type == TokenType.IDENTIFIER -> parseParameterName()
+                current().type == TokenType.IDENTIFIER -> {
+                    parseParameterName()
+                }
+
                 isKeywordToken(current().type) -> {
                     val name = current().value
                     advance()
                     name
                 }
-                else -> null
+
+                else -> {
+                    null
+                }
             }
 
         if (paramName == null) break
@@ -389,14 +407,17 @@ internal fun ParserState.parseParameterName(): String? {
                 parts.append(".")
                 advance()
             }
+
             TokenType.IDENTIFIER -> {
                 parts.append(current().value)
                 advance()
             }
+
             TokenType.NUMBER -> {
                 parts.append(current().value)
                 advance()
             }
+
             TokenType.ERROR -> {
                 val value = current().value
                 if (value == "-" || value.startsWith("-")) {
@@ -406,7 +427,10 @@ internal fun ParserState.parseParameterName(): String? {
                     break
                 }
             }
-            else -> break
+
+            else -> {
+                break
+            }
         }
     }
 
@@ -423,11 +447,13 @@ internal fun ParserState.parseParameterValue(): Any? =
             advance()
             value
         }
+
         TokenType.NUMBER -> {
             val value = current().value
             advance()
             if (value.contains('.')) value.toDouble() else value.toLong()
         }
+
         TokenType.IDENTIFIER -> {
             val value = current().value
             advance()
@@ -437,7 +463,10 @@ internal fun ParserState.parseParameterValue(): Any? =
                 else -> value
             }
         }
-        else -> addError("Expected parameter value")
+
+        else -> {
+            addError("Expected parameter value")
+        }
     }
 
 /**

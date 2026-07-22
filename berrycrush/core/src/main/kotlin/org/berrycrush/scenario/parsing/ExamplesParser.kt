@@ -62,8 +62,14 @@ private fun ParserState.parseExampleHeader(): List<String> {
                     headers.add(current().value)
                     advance()
                 }
-                TokenType.PIPE -> advance()
-                else -> advance()
+
+                TokenType.PIPE -> {
+                    advance()
+                }
+
+                else -> {
+                    advance()
+                }
             }
         }
         skipNewlines()
@@ -93,6 +99,7 @@ internal fun ParserState.parseExampleRow(headers: List<String>): ExampleRowNode?
             TokenType.PIPE -> {
                 advance()
             }
+
             else -> {
                 val value = parseValue()
                 if (value != null && columnIndex < headers.size) {

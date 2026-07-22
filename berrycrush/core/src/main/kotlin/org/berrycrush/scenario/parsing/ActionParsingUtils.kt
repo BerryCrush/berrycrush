@@ -24,12 +24,30 @@ internal fun ParserState.parseBlockActions(allowNestedConditionals: Boolean): Li
 
         while (!isAtEnd()) {
             when (current().type) {
-                TokenType.CALL -> parseCallAction()?.let { actions.add(it) }
-                TokenType.EXTRACT -> parseExtractAction()?.let { actions.add(it) }
-                TokenType.ASSERT -> parseAssertAction()?.let { actions.add(it) }
-                TokenType.INCLUDE -> parseIncludeAction()?.let { actions.add(it) }
-                TokenType.FAIL -> actions.add(parseFailAction())
-                TokenType.WEBHOOK -> parseWebhookAction()?.let { actions.add(it) }
+                TokenType.CALL -> {
+                    parseCallAction()?.let { actions.add(it) }
+                }
+
+                TokenType.EXTRACT -> {
+                    parseExtractAction()?.let { actions.add(it) }
+                }
+
+                TokenType.ASSERT -> {
+                    parseAssertAction()?.let { actions.add(it) }
+                }
+
+                TokenType.INCLUDE -> {
+                    parseIncludeAction()?.let { actions.add(it) }
+                }
+
+                TokenType.FAIL -> {
+                    actions.add(parseFailAction())
+                }
+
+                TokenType.WEBHOOK -> {
+                    parseWebhookAction()?.let { actions.add(it) }
+                }
+
                 TokenType.IF -> {
                     if (allowNestedConditionals) {
                         parseConditional()?.let { actions.add(it) }
@@ -37,7 +55,11 @@ internal fun ParserState.parseBlockActions(allowNestedConditionals: Boolean): Li
                         break
                     }
                 }
-                TokenType.NEWLINE -> advance()
+
+                TokenType.NEWLINE -> {
+                    advance()
+                }
+
                 TokenType.DEDENT,
                 TokenType.ELSE,
                 TokenType.GIVEN,
@@ -50,8 +72,13 @@ internal fun ParserState.parseBlockActions(allowNestedConditionals: Boolean): Li
                 TokenType.FRAGMENT,
                 TokenType.EXAMPLES,
                 TokenType.EOF,
-                -> break
-                else -> advance()
+                -> {
+                    break
+                }
+
+                else -> {
+                    advance()
+                }
             }
         }
 

@@ -68,19 +68,27 @@ class ParameterResolver(
     fun resolveAll(params: Map<String, Any>): Map<String, Any> =
         params.mapValues { (_, value) ->
             when (value) {
-                is String -> resolve(value)
+                is String -> {
+                    resolve(value)
+                }
+
                 is Map<*, *> -> {
                     @Suppress("UNCHECKED_CAST")
                     resolveAll(value as Map<String, Any>)
                 }
-                is List<*> ->
+
+                is List<*> -> {
                     value.map { item ->
                         when (item) {
                             is String -> resolve(item)
                             else -> item
                         }
                     }
-                else -> value
+                }
+
+                else -> {
+                    value
+                }
             }
         }
 

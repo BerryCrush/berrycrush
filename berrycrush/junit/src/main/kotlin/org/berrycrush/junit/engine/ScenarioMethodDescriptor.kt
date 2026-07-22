@@ -65,6 +65,7 @@ class ScenarioMethodDescriptor(
                 .map { param ->
                     when {
                         BerryCrushSuite::class.java.isAssignableFrom(param.type) -> suite
+
                         else -> throw IllegalArgumentException(
                             "Unsupported parameter type ${param.type.name} in @Scenario method ${method.name}. " +
                                 "Only BerryCrushSuite is supported.",

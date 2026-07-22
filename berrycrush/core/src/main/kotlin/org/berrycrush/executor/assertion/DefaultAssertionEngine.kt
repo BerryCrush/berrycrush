@@ -96,8 +96,14 @@ class DefaultAssertionEngine(
     ): Boolean {
         val actual = response?.statusCode ?: return false
         return when (val expected = condition.expected) {
-            is Number -> actual == expected.toInt()
-            is IntRange -> actual in expected
+            is Number -> {
+                actual == expected.toInt()
+            }
+
+            is IntRange -> {
+                actual in expected
+            }
+
             is String -> {
                 // Handle patterns like "2xx", "20x", "200-299"
                 val pattern = expected.lowercase()
@@ -106,14 +112,21 @@ class DefaultAssertionEngine(
                         val (start, end) = pattern.split('-').map { it.trim().toIntOrNull() }
                         start?.let { s -> end?.let { e -> actual in s..e } } ?: false
                     }
+
                     pattern.contains('x') -> {
                         val regex = pattern.replace("x", "\\d").toRegex()
                         actual.toString().matches(regex)
                     }
-                    else -> expected.toIntOrNull()?.let { actual == it } ?: false
+
+                    else -> {
+                        expected.toIntOrNull()?.let { actual == it } ?: false
+                    }
                 }
             }
-            else -> false
+
+            else -> {
+                false
+            }
         }
     }
 
@@ -145,12 +158,19 @@ class DefaultAssertionEngine(
 
         return when (condition.operator) {
             ConditionOperator.EXISTS -> headerValues.isNotEmpty()
+
             ConditionOperator.NOT_EXISTS -> headerValues.isEmpty()
+
             ConditionOperator.EQUALS -> actualValue == expectedValue?.toString()
+
             ConditionOperator.NOT_EQUALS -> actualValue != expectedValue?.toString()
+
             ConditionOperator.CONTAINS -> actualValue?.contains(expectedValue?.toString() ?: "") ?: false
+
             ConditionOperator.NOT_CONTAINS -> !(actualValue?.contains(expectedValue?.toString() ?: "") ?: false)
+
             ConditionOperator.MATCHES -> actualValue?.matches((expectedValue?.toString() ?: "").toRegex()) ?: false
+
             ConditionOperator.GREATER_THAN, ConditionOperator.LESS_THAN,
             ConditionOperator.GREATER_THAN_OR_EQUALS, ConditionOperator.LESS_THAN_OR_EQUALS,
             ConditionOperator.HAS_SIZE, ConditionOperator.NOT_EMPTY,
@@ -273,19 +293,34 @@ class DefaultAssertionEngine(
         context: AssertionContext,
     ): Long =
         when (value) {
-            is Number -> value.toLong()
-            is Duration -> value.toMillis()
+            is Number -> {
+                value.toLong()
+            }
+
+            is Duration -> {
+                value.toMillis()
+            }
+
             is String -> {
                 val resolved = context.stepContext.interpolate(value)
                 when {
-                    resolved.endsWith("ms") -> resolved.dropLast(2).trim().toLongOrNull() ?: 0L
+                    resolved.endsWith("ms") -> {
+                        resolved.dropLast(2).trim().toLongOrNull() ?: 0L
+                    }
+
                     resolved.endsWith("s") -> {
                         (resolved.dropLast(1).trim().toDoubleOrNull() ?: 0.0).times(MS_PER_SECOND).toLong()
                     }
-                    else -> resolved.toLongOrNull() ?: 0L
+
+                    else -> {
+                        resolved.toLongOrNull() ?: 0L
+                    }
                 }
             }
-            else -> 0L
+
+            else -> {
+                0L
+            }
         }
 
     /**
@@ -362,30 +397,59 @@ class DefaultAssertionEngine(
         operator: ConditionOperator,
     ): Boolean =
         when (operator) {
-            ConditionOperator.EXISTS -> actual != null
-            ConditionOperator.NOT_EXISTS -> actual == null
-            ConditionOperator.EQUALS -> actual == expected || actual?.toString() == expected?.toString()
-            ConditionOperator.NOT_EQUALS -> actual != expected && actual?.toString() != expected?.toString()
-            ConditionOperator.CONTAINS ->
+            ConditionOperator.EXISTS -> {
+                actual != null
+            }
+
+            ConditionOperator.NOT_EXISTS -> {
+                actual == null
+            }
+
+            ConditionOperator.EQUALS -> {
+                actual == expected || actual?.toString() == expected?.toString()
+            }
+
+            ConditionOperator.NOT_EQUALS -> {
+                actual != expected && actual?.toString() != expected?.toString()
+            }
+
+            ConditionOperator.CONTAINS -> {
                 when (actual) {
                     is String -> actual.contains(expected?.toString() ?: "")
                     is Collection<*> -> actual.contains(expected)
                     else -> false
                 }
-            ConditionOperator.NOT_CONTAINS ->
+            }
+
+            ConditionOperator.NOT_CONTAINS -> {
                 when (actual) {
                     is String -> !actual.contains(expected?.toString() ?: "")
                     is Collection<*> -> !actual.contains(expected)
                     else -> true
                 }
+            }
+
             ConditionOperator.MATCHES -> {
                 val pattern = expected?.toString() ?: ""
                 actual?.toString()?.matches(pattern.toRegex()) ?: false
             }
-            ConditionOperator.GREATER_THAN -> compareAsNumbers(actual, expected) { a, e -> a > e }
-            ConditionOperator.GREATER_THAN_OR_EQUALS -> compareAsNumbers(actual, expected) { a, e -> a >= e }
-            ConditionOperator.LESS_THAN -> compareAsNumbers(actual, expected) { a, e -> a < e }
-            ConditionOperator.LESS_THAN_OR_EQUALS -> compareAsNumbers(actual, expected) { a, e -> a <= e }
+
+            ConditionOperator.GREATER_THAN -> {
+                compareAsNumbers(actual, expected) { a, e -> a > e }
+            }
+
+            ConditionOperator.GREATER_THAN_OR_EQUALS -> {
+                compareAsNumbers(actual, expected) { a, e -> a >= e }
+            }
+
+            ConditionOperator.LESS_THAN -> {
+                compareAsNumbers(actual, expected) { a, e -> a < e }
+            }
+
+            ConditionOperator.LESS_THAN_OR_EQUALS -> {
+                compareAsNumbers(actual, expected) { a, e -> a <= e }
+            }
+
             ConditionOperator.HAS_SIZE -> {
                 val actualSize = sizeOf(actual) ?: return false
                 val expectedSize =
@@ -394,13 +458,15 @@ class DefaultAssertionEngine(
                         ?: return false
                 actualSize == expectedSize
             }
-            ConditionOperator.NOT_EMPTY ->
+
+            ConditionOperator.NOT_EMPTY -> {
                 when (actual) {
                     is Collection<*> -> actual.isNotEmpty()
                     is String -> actual.isNotEmpty()
                     is Array<*> -> actual.isNotEmpty()
                     else -> actual != null
                 }
+            }
         }
 
     /**
@@ -581,16 +647,37 @@ class DefaultAssertionEngine(
         condition: Condition,
     ): Any? =
         when (condition) {
-            is Condition.Status -> context.statusCode
+            is Condition.Status -> {
+                context.statusCode
+            }
+
             is Condition.JsonPath -> {
                 val body = context.responseBody ?: ""
                 runCatching { JsonPath.read<Any>(body, condition.path) }.getOrNull()
             }
-            is Condition.Header -> context.responseHeaders[condition.name]?.firstOrNull()
-            is Condition.BodyContains -> context.responseBody?.take(BODY_PREVIEW_LENGTH)
-            is Condition.Variable -> context.variables[condition.name]
-            is Condition.ResponseTime -> context.responseTime
-            is Condition.Negated -> getActualValueForCondition(context, condition.condition)
-            else -> null
+
+            is Condition.Header -> {
+                context.responseHeaders[condition.name]?.firstOrNull()
+            }
+
+            is Condition.BodyContains -> {
+                context.responseBody?.take(BODY_PREVIEW_LENGTH)
+            }
+
+            is Condition.Variable -> {
+                context.variables[condition.name]
+            }
+
+            is Condition.ResponseTime -> {
+                context.responseTime
+            }
+
+            is Condition.Negated -> {
+                getActualValueForCondition(context, condition.condition)
+            }
+
+            else -> {
+                null
+            }
         }
 }

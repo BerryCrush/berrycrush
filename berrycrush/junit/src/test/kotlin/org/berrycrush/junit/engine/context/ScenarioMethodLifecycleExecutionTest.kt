@@ -256,9 +256,7 @@ class FailingBeforeEachFixture {
     }
 
     @BeforeEach
-    fun beforeEach() {
-        throw IllegalStateException("beforeEach failed")
-    }
+    fun beforeEach(): Unit = throw IllegalStateException("beforeEach failed")
 
     @ScenarioTest
     fun first(suite: BerryCrushSuite): Scenario = createScenario("first", suite)

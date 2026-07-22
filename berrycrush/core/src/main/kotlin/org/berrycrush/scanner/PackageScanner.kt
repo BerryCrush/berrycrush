@@ -112,11 +112,15 @@ internal fun findClasses(
                     val directory = File(resource.toURI())
                     findClassesInDirectory(directory, packageName, classLoader).asSequence()
                 }
+
                 "jar" -> {
                     val connection = resource.openConnection() as JarURLConnection
                     findClassesInJar(connection.jarFile, packageName, classLoader).asSequence()
                 }
-                else -> emptySequence()
+
+                else -> {
+                    emptySequence()
+                }
             }
         }.toList()
 }
@@ -134,15 +138,20 @@ private fun findClassesInDirectory(
 
     return files.flatMap { file ->
         when {
-            file.isDirectory ->
+            file.isDirectory -> {
                 findClassesInDirectory(file, "$packageName.${file.name}", classLoader)
+            }
+
             file.name.endsWith(CLASS_FILE_EXTENSION) -> {
                 val className = "$packageName.${file.name.removeSuffix(CLASS_FILE_EXTENSION)}"
                 listOfNotNull(
                     runCatching { classLoader.loadClass(className) }.getOrNull(),
                 )
             }
-            else -> emptyList()
+
+            else -> {
+                emptyList()
+            }
         }
     }
 }

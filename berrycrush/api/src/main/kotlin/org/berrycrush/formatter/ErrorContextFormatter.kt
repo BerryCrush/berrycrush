@@ -311,7 +311,10 @@ class ErrorContextFormatter(
                 expectedLines.forEachIndexed { i, line ->
                     val actualLine = actualLines.getOrNull(i)
                     when {
-                        actualLine == null -> appendLine(colorize("- $line", AnsiColors.RED))
+                        actualLine == null -> {
+                            appendLine(colorize("- $line", AnsiColors.RED))
+                        }
+
                         actualLine != line -> {
                             appendLine(colorize("- $line", AnsiColors.RED))
                             appendLine(colorize("+ $actualLine", AnsiColors.GREEN))

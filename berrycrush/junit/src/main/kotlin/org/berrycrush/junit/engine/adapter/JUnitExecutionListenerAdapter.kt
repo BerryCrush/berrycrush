@@ -80,14 +80,17 @@ internal class JUnitExecutionListenerAdapter(
                         AssertionError("$totalFailures/$totalTests auto/multi-tests failed"),
                     )
                 }
+
                 // Scenario passed
                 result.status == ResultStatus.PASSED -> {
                     TestExecutionResult.successful()
                 }
+
                 // Scenario skipped
                 result.status == ResultStatus.SKIPPED -> {
                     TestExecutionResult.aborted(null)
                 }
+
                 // Scenario failed
                 else -> {
                     val message = buildFailedStepsMessage(scenario.name, result)

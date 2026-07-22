@@ -337,9 +337,13 @@ class AssertionException(
         ): String? {
             if (expected is String && actual is String) {
                 return when {
-                    expected.length != actual.length ->
+                    expected.length != actual.length -> {
                         "length differs (expected ${expected.length}, got ${actual.length})"
-                    else -> null
+                    }
+
+                    else -> {
+                        null
+                    }
                 }
             }
             return null

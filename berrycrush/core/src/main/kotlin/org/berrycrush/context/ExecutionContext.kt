@@ -361,8 +361,10 @@ class ExecutionContext(
         return when (hookSegment.index) {
             // If just "server.hook" (no index), return the webhook URL
             null if segments.size == 1 -> server.getWebhookUrl(hookName)
+
             // If "server.hook.length", return the call count
             null if segments.size == 2 && segments[1].name == "length" -> server.getReceivedCount(hookName).toString()
+
             // Get the webhook calls
             else -> hookSegment.webhookCall(hookName)
         }
@@ -382,14 +384,20 @@ class ExecutionContext(
 
         // If first segment is "body", use remaining as JsonPath
         return when (segments[0].name) {
-            "body" if (segments.size == 1) -> body
+            "body" if (segments.size == 1) -> {
+                body
+            }
+
             "body" -> {
                 // Build JsonPath from remaining segments
                 val jsonPath = buildJsonPath(segments.drop(1))
                 val result: Any = JsonPath.read(body, jsonPath)
                 result.toString()
             }
-            else -> null
+
+            else -> {
+                null
+            }
         }
     }
 

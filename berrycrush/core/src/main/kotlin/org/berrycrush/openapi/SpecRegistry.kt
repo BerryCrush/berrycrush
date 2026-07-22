@@ -128,10 +128,12 @@ class SpecRegistry {
             matches.isEmpty() -> {
                 handleAlias(operationId, null, bindings) { specs.values.flatMap { it.allOperationIds() } }
             }
+
             matches.size == 1 -> {
                 val spec = matches.single()
                 spec to spec.resolver.resolve(operationId)
             }
+
             else -> {
                 throw AmbiguousOperationException(
                     operationId,
@@ -210,15 +212,20 @@ class SpecRegistry {
             }
 
         return when {
-            matches.isEmpty() ->
+            matches.isEmpty() -> {
                 throwOperationNotFoundException("$alias -> $target", specs.values.flatMap { it.allOperationIds() })
+            }
 
-            matches.size == 1 -> matches.single()
+            matches.size == 1 -> {
+                matches.single()
+            }
 
-            else -> throw AmbiguousOperationException(
-                "$alias -> $target",
-                matches.map { it.first.name },
-            )
+            else -> {
+                throw AmbiguousOperationException(
+                    "$alias -> $target",
+                    matches.map { it.first.name },
+                )
+            }
         }
     }
 

@@ -181,21 +181,51 @@ data class BerryCrushConfiguration(
         value: Any,
     ) {
         when (key) {
-            "baseUrl" -> applyBindingParam("baseUrl", value)
-            "timeout" -> timeout = parseTimeout(value, timeout)
-            "environment" -> environment = value.toString()
-            "strictSchemaValidation" -> strictSchemaValidation = value.toString().toBoolean()
-            "followRedirects" -> followRedirects = value.toString().toBoolean()
-            "logRequests" -> logRequests = value.toString().toBoolean()
-            "logResponses" -> logResponses = value.toString().toBoolean()
-            "shareVariablesAcrossScenarios" -> shareVariablesAcrossScenarios = value.toString().toBoolean()
-            "multiTestSequentialCount" ->
+            "baseUrl" -> {
+                applyBindingParam("baseUrl", value)
+            }
+
+            "timeout" -> {
+                timeout = parseTimeout(value, timeout)
+            }
+
+            "environment" -> {
+                environment = value.toString()
+            }
+
+            "strictSchemaValidation" -> {
+                strictSchemaValidation = value.toString().toBoolean()
+            }
+
+            "followRedirects" -> {
+                followRedirects = value.toString().toBoolean()
+            }
+
+            "logRequests" -> {
+                logRequests = value.toString().toBoolean()
+            }
+
+            "logResponses" -> {
+                logResponses = value.toString().toBoolean()
+            }
+
+            "shareVariablesAcrossScenarios" -> {
+                shareVariablesAcrossScenarios = value.toString().toBoolean()
+            }
+
+            "multiTestSequentialCount" -> {
                 multiTestConfig["sequential.count"] =
                     parseIntOrDefault(value, MULTI_TEST_DEFAULT_SEQUENTIAL_COUNT)
-            "multiTestConcurrentCount" ->
+            }
+
+            "multiTestConcurrentCount" -> {
                 multiTestConfig["concurrent.count"] =
                     parseIntOrDefault(value, MULTI_TEST_DEFAULT_CONCURRENT_COUNT)
-            else -> applyPrefixedParameter(key, value)
+            }
+
+            else -> {
+                applyPrefixedParameter(key, value)
+            }
         }
     }
 
@@ -230,12 +260,17 @@ data class BerryCrushConfiguration(
         value: Any,
     ) {
         when (key) {
-            "errorContext.includeRequestBody" ->
+            "errorContext.includeRequestBody" -> {
                 errorContextConfig = errorContextConfig.copy(includeRequestBody = value.toString().toBoolean())
-            "errorContext.includeResponseBody" ->
+            }
+
+            "errorContext.includeResponseBody" -> {
                 errorContextConfig = errorContextConfig.copy(includeResponseBody = value.toString().toBoolean())
-            "errorContext.maxBodySize" ->
+            }
+
+            "errorContext.maxBodySize" -> {
                 errorContextConfig = errorContextConfig.copy(maxBodySize = parseIntOrDefault(value, errorContextConfig.maxBodySize))
+            }
         }
     }
 
@@ -244,16 +279,25 @@ data class BerryCrushConfiguration(
         value: Any,
     ) {
         when (key) {
-            "retry.maxAttempts" ->
+            "retry.maxAttempts" -> {
                 retryConfig = retryConfig.copy(maxAttempts = parseIntOrDefault(value, retryConfig.maxAttempts))
-            "retry.delay" ->
+            }
+
+            "retry.delay" -> {
                 retryConfig = retryConfig.copy(delay = parseDuration(value, retryConfig.delay))
-            "retry.maxDelay" ->
+            }
+
+            "retry.maxDelay" -> {
                 retryConfig = retryConfig.copy(maxDelay = parseDuration(value, retryConfig.maxDelay))
-            "retry.backoff" ->
+            }
+
+            "retry.backoff" -> {
                 retryConfig = retryConfig.copy(backoff = parseBackoffStrategy(value))
-            "retry.jitter" ->
+            }
+
+            "retry.jitter" -> {
                 retryConfig = retryConfig.copy(jitter = value.toString().toBoolean())
+            }
         }
     }
 

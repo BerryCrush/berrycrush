@@ -128,10 +128,22 @@ class CallScope internal constructor() {
 
     private fun valueToJson(value: Any?): String =
         when (value) {
-            null -> "null"
-            is String -> "\"${escapeJson(value)}\""
-            is Number -> value.toString()
-            is Boolean -> value.toString()
+            null -> {
+                "null"
+            }
+
+            is String -> {
+                "\"${escapeJson(value)}\""
+            }
+
+            is Number -> {
+                value.toString()
+            }
+
+            is Boolean -> {
+                value.toString()
+            }
+
             is Map<*, *> -> {
                 @Suppress("UNCHECKED_CAST")
                 mapToJson(value as Map<String, Any?>)
@@ -141,7 +153,9 @@ class CallScope internal constructor() {
                 value.joinToString(",", "[", "]") { valueToJson(it) }
             }
 
-            else -> "\"${escapeJson(value.toString())}\""
+            else -> {
+                "\"${escapeJson(value.toString())}\""
+            }
         }
 
     private fun escapeJson(s: String): String =

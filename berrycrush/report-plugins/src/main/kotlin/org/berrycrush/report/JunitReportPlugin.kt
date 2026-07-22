@@ -95,12 +95,20 @@ class JunitReportPlugin(
         val time = formatSeconds(scenario.duration.toMillis())
 
         when (scenario.status) {
-            ResultStatus.PASSED ->
+            ResultStatus.PASSED -> {
                 appendLine(
                     """    <testcase name="$testName" classname="$className" time="$time"/>""",
                 )
-            ResultStatus.FAILED -> appendFailedTestcase(className, testName, time, scenario)
-            ResultStatus.ERROR -> appendErrorTestcase(className, testName, time, scenario)
+            }
+
+            ResultStatus.FAILED -> {
+                appendFailedTestcase(className, testName, time, scenario)
+            }
+
+            ResultStatus.ERROR -> {
+                appendErrorTestcase(className, testName, time, scenario)
+            }
+
             ResultStatus.SKIPPED -> {
                 appendLine("""    <testcase name="$testName" classname="$className" time="$time">""")
                 appendLine("      <skipped/>")

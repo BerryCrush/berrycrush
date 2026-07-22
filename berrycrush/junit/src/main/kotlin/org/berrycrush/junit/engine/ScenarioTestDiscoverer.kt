@@ -113,9 +113,10 @@ object ScenarioTestDiscoverer {
     ) {
         content.stories.forEach { entry: Story ->
             when (entry) {
-                is Scenario ->
+                is Scenario -> {
                     listOf(entry)
                         .addToDescriptor(filters, fileDescriptor.uniqueId, scenarioFile, fileDescriptor)
+                }
 
                 is Feature -> {
                     if (filters.matchesFeatureName(entry.name)) {

@@ -74,9 +74,7 @@ class BerryCrushTestEngine : TestEngine {
                 collectFromPackageSelectors(discoveryRequest)
 
         // Discover scenarios for each unique test class with @BerryCrushScenarios
-        val classes =
-            testClasses
-                .distinct()
+        val classes = testClasses.distinct()
 
         classes
             .filter { it.hasAnnotation<BerryCrushScenarios>() }

@@ -46,6 +46,7 @@ configure<com.github.spotbugs.snom.SpotBugsExtension> {
     effort.set(com.github.spotbugs.snom.Effort.DEFAULT)
     reportLevel.set(com.github.spotbugs.snom.Confidence.LOW)
     excludeFilter.set(file("${rootProject.projectDir}/config/spotbugs/exclusions.xml"))
+    toolVersion = "4.10.3"
 }
 
 tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
@@ -65,7 +66,11 @@ configure<de.aaschmid.gradle.plugins.cpd.CpdExtension> {
     isIgnoreAnnotations = true
     isIgnoreLiterals = true
     isIgnoreIdentifiers = true
-    toolVersion = "7.25.0"
+    toolVersion = "7.26.0"
+}
+
+configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+    version = "1.8.0"
 }
 
 tasks.withType<de.aaschmid.gradle.plugins.cpd.Cpd>().configureEach {
@@ -73,7 +78,7 @@ tasks.withType<de.aaschmid.gradle.plugins.cpd.Cpd>().configureEach {
 }
 
 // SAST aggregate task
-val sast by tasks.registering {
+val sast = tasks.register("sast") {
     group = "verification"
     description = "Runs all SAST checks (Detekt, SpotBugs)"
     dependsOn(tasks.named("detekt"))
@@ -81,7 +86,7 @@ val sast by tasks.registering {
 }
 
 // Full SAST task including CPD
-val sastFull by tasks.registering {
+val sastFull = tasks.register("sastFull") {
     group = "verification"
     description = "Runs all SAST checks including CPD"
     dependsOn(sast)

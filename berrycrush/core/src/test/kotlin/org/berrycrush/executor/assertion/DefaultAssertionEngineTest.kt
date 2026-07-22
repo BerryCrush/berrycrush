@@ -20,7 +20,6 @@ import kotlin.test.assertTrue
  * which work with just the context data.
  */
 class DefaultAssertionEngineTest {
-    private val configuration = BerryCrushConfiguration()
     private val engine = DefaultAssertionEngine()
 
     // --- JsonPath Condition Tests ---
@@ -312,7 +311,7 @@ class DefaultAssertionEngineTest {
         variables.forEach { (k, v) -> stepContext[k] = v }
         val response =
             mock<HttpResponse> {
-                on { statusCode } doReturn statusCode
+                on { this.statusCode } doReturn statusCode
                 on { body } doReturn responseBody
                 on { headers } doReturn responseHeaders
             }

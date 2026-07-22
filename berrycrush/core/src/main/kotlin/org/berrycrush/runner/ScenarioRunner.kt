@@ -321,10 +321,15 @@ class ScenarioRunner(
 
         val overallStatus =
             when {
-                results.isEmpty() -> ResultStatus.PASSED // No scenarios to run = success
+                results.isEmpty() -> ResultStatus.PASSED
+
+                // No scenarios to run = success
                 errors > 0 -> ResultStatus.ERROR
+
                 failed > 0 -> ResultStatus.FAILED
+
                 skipped == results.size -> ResultStatus.SKIPPED
+
                 else -> ResultStatus.PASSED
             }
 

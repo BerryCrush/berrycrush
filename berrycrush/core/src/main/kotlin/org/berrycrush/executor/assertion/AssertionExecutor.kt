@@ -26,8 +26,14 @@ class AssertionExecutor(
 
         for (assertion in assertions) {
             when (assertion) {
-                is Assertion.BuiltinAssertion -> allResults.add(runBuiltinAssertion(response, assertion, context))
-                is Assertion.CustomAssertion -> allResults.add(runCustomAssertion(assertion, context))
+                is Assertion.BuiltinAssertion -> {
+                    allResults.add(runBuiltinAssertion(response, assertion, context))
+                }
+
+                is Assertion.CustomAssertion -> {
+                    allResults.add(runCustomAssertion(assertion, context))
+                }
+
                 is Assertion.ConditionalAssertion -> {
                     val conditionalResult = runConditional(response, assertion, context)
                     allResults.addAll(conditionalResult.assertionResults)
@@ -178,9 +184,15 @@ class AssertionExecutor(
 
     private fun hasCustomAssertionInTree(assertion: Assertion): Boolean =
         when (assertion) {
-            is Assertion.CustomAssertion -> true
-            is Assertion.BuiltinAssertion -> assertion.condition is Condition.CustomAssertion
-            is Assertion.ConditionalAssertion ->
+            is Assertion.CustomAssertion -> {
+                true
+            }
+
+            is Assertion.BuiltinAssertion -> {
+                assertion.condition is Condition.CustomAssertion
+            }
+
+            is Assertion.ConditionalAssertion -> {
                 assertion.branches.any { branch ->
                     branch.actions.assertions.any { hasCustomAssertionInTree(it) }
                 } ||
@@ -189,6 +201,7 @@ class AssertionExecutor(
                         branch.actions.nestedConditionals.any { hasCustomAssertionInTree(it) }
                     } ||
                     (assertion.elseActions?.nestedConditionals?.any { hasCustomAssertionInTree(it) } == true)
+            }
         }
 
     private fun buildAssertionContext(

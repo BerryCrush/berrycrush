@@ -145,8 +145,10 @@ class TextReportFormatter(
             when {
                 // If there's a response, show status code and message
                 response != null -> "${response.statusCode} ${response.statusMessage}"
+
                 // If it's an assertion step (description starts with "assert" or "then")
                 failure != null -> statusLabel(status)
+
                 // For other steps, show status
                 else -> statusLabel(status)
             }

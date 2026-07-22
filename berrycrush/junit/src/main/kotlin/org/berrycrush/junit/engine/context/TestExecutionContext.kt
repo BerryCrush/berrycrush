@@ -1,6 +1,7 @@
 package org.berrycrush.junit.engine.context
 
 import org.berrycrush.assertion.AssertionRegistry
+import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.junit.BerryCrushBindings
@@ -30,7 +31,6 @@ import java.util.Collections
 import java.util.logging.Logger
 import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.jvmName
-import org.berrycrush.config.BerryCrushConfiguration
 
 private val logger = Logger.getLogger(TestExecutionContext::class.java.name)
 
@@ -210,7 +210,9 @@ private class ScenarioMethodLifecycleController(
     private val suite: BerryCrushSuite,
 ) {
     private val lifecycle =
-        classDescriptor.testClass.java.getAnnotation(TestInstance::class.java)?.value
+        classDescriptor.testClass.java
+            .getAnnotation(TestInstance::class.java)
+            ?.value
             ?: TestInstance.Lifecycle.PER_METHOD
 
     private val beforeAllMethods =
@@ -287,7 +289,9 @@ private class ScenarioMethodLifecycleController(
             .map { parameter ->
                 when {
                     BerryCrushSuite::class.java.isAssignableFrom(parameter.type) -> suite
+
                     BerryCrushConfiguration::class.java.isAssignableFrom(parameter.type) -> suite.configuration
+
                     else -> throw IllegalArgumentException(
                         "Unsupported lifecycle parameter type ${parameter.type.name} in ${method.declaringClass.simpleName}.${method.name}",
                     )

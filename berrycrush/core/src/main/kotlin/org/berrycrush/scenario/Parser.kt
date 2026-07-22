@@ -69,13 +69,34 @@ class Parser(
             val tags = state.parseTags()
 
             when (state.current().type) {
-                TokenType.PARAMETERS -> parameters = state.parseParameters()
-                TokenType.SCENARIO -> state.parseScenario(tags)?.let(stories::add)
-                TokenType.OUTLINE -> state.parseScenarioOutline(tags)?.let(stories::add)
-                TokenType.FEATURE -> state.parseFeature(tags)?.let(stories::add)
-                TokenType.FRAGMENT -> state.parseFragment()?.let(fragments::add)
-                TokenType.EOF -> break
-                TokenType.NEWLINE, TokenType.INDENT, TokenType.DEDENT -> state.advance()
+                TokenType.PARAMETERS -> {
+                    parameters = state.parseParameters()
+                }
+
+                TokenType.SCENARIO -> {
+                    state.parseScenario(tags)?.let(stories::add)
+                }
+
+                TokenType.OUTLINE -> {
+                    state.parseScenarioOutline(tags)?.let(stories::add)
+                }
+
+                TokenType.FEATURE -> {
+                    state.parseFeature(tags)?.let(stories::add)
+                }
+
+                TokenType.FRAGMENT -> {
+                    state.parseFragment()?.let(fragments::add)
+                }
+
+                TokenType.EOF -> {
+                    break
+                }
+
+                TokenType.NEWLINE, TokenType.INDENT, TokenType.DEDENT -> {
+                    state.advance()
+                }
+
                 else -> {
                     state.addError<Unit>(
                         "Unexpected token",

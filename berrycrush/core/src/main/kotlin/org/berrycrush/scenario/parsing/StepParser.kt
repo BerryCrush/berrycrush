@@ -18,12 +18,30 @@ internal fun ParserState.parseSteps(): List<StepNode> {
     while (!isAtEnd()) {
         val stepKeyword =
             when (current().type) {
-                TokenType.GIVEN -> StepKeyword.GIVEN
-                TokenType.WHEN -> StepKeyword.WHEN
-                TokenType.THEN -> StepKeyword.THEN
-                TokenType.AND -> StepKeyword.AND
-                TokenType.BUT -> StepKeyword.BUT
-                TokenType.DEDENT, TokenType.SCENARIO, TokenType.OUTLINE, TokenType.FRAGMENT, TokenType.EXAMPLES, TokenType.EOF -> break
+                TokenType.GIVEN -> {
+                    StepKeyword.GIVEN
+                }
+
+                TokenType.WHEN -> {
+                    StepKeyword.WHEN
+                }
+
+                TokenType.THEN -> {
+                    StepKeyword.THEN
+                }
+
+                TokenType.AND -> {
+                    StepKeyword.AND
+                }
+
+                TokenType.BUT -> {
+                    StepKeyword.BUT
+                }
+
+                TokenType.DEDENT, TokenType.SCENARIO, TokenType.OUTLINE, TokenType.FRAGMENT, TokenType.EXAMPLES, TokenType.EOF -> {
+                    break
+                }
+
                 else -> {
                     advance()
                     null

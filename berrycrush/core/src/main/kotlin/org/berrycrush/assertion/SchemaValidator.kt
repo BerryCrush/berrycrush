@@ -144,12 +144,19 @@ class SchemaValidator(
 
         // additionalProperties - can be boolean or schema
         when (val addProps = schema.additionalProperties) {
-            is Boolean -> result["additionalProperties"] = addProps
-            is OpenApiSchema<*> -> result["additionalProperties"] = buildJsonSchemaMap(addProps, strict)
-            else ->
+            is Boolean -> {
+                result["additionalProperties"] = addProps
+            }
+
+            is OpenApiSchema<*> -> {
+                result["additionalProperties"] = buildJsonSchemaMap(addProps, strict)
+            }
+
+            else -> {
                 if (strict && schema.type == "object") {
                     result["additionalProperties"] = false
                 }
+            }
         }
 
         // 3.1 dependent schemas

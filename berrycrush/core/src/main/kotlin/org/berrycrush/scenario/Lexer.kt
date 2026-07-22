@@ -105,30 +105,60 @@ class Lexer(
             val c = peek()
             // Handle newlines
             when {
-                c == '\n' || c == '\r' -> scanNewline()
+                c == '\n' || c == '\r' -> {
+                    scanNewline()
+                }
+
                 // Handle comments
                 c == '#' -> {
                     skipComment()
                     nextToken()
                 }
+
                 // Handle triple-quoted strings first (""")
-                c == '"' && peekAhead(1) == '"' && peekAhead(2) == '"' -> scanTripleQuote()
+                c == '"' && peekAhead(1) == '"' && peekAhead(2) == '"' -> {
+                    scanTripleQuote()
+                }
+
                 // Handle strings
-                c == '"' || c == '\'' -> scanString()
+                c == '"' || c == '\'' -> {
+                    scanString()
+                }
+
                 // Handle JSON path
-                c == '$' -> scanJsonPath()
+                c == '$' -> {
+                    scanJsonPath()
+                }
+
                 // Handle tags (@tagname)
-                c == '@' -> scanTag()
+                c == '@' -> {
+                    scanTag()
+                }
+
                 // Handle variable reference
-                c == '{' && peekAhead(1) == '{' -> scanVariable()
+                c == '{' && peekAhead(1) == '{' -> {
+                    scanVariable()
+                }
+
                 // Handle numbers
-                c.isDigit() || c == '-' && peekAhead(1)?.isDigit() == true -> scanNumber()
+                c.isDigit() || (c == '-' && peekAhead(1)?.isDigit() == true) -> {
+                    scanNumber()
+                }
+
                 // Handle operation ID prefix (^operationId)
-                c == '^' -> scanOperationId()
+                c == '^' -> {
+                    scanOperationId()
+                }
+
                 // Handle identifiers and keywords
-                c.isLetter() || c == '_' -> scanIdentifier()
+                c.isLetter() || c == '_' -> {
+                    scanIdentifier()
+                }
+
                 // Handle symbols
-                else -> scanSymbol()
+                else -> {
+                    scanSymbol()
+                }
             }
         }
     }
@@ -173,6 +203,7 @@ class Lexer(
                     indentStack.add(indent)
                     Token(TokenType.INDENT, " ".repeat(indent), currentLocation())
                 }
+
                 indent < currentIndent -> {
                     while (indentStack.size > 1 && indentStack.last() > indent) {
                         indentStack.removeLast()
@@ -184,7 +215,10 @@ class Lexer(
                         null
                     }
                 }
-                else -> null
+
+                else -> {
+                    null
+                }
             }
         }
     }
@@ -434,6 +468,7 @@ class Lexer(
                 column = 1
                 c
             }
+
             '\r' -> {
                 advance()
                 if (!isAtEnd() && peek() == '\n') {
@@ -443,13 +478,15 @@ class Lexer(
                 column = 1
                 '\n'
             }
-            else ->
+
+            else -> {
                 if (shouldAdvance) {
                     advance()
                     c
                 } else {
                     c
                 }
+            }
         }
 
     /**
@@ -537,8 +574,11 @@ class Lexer(
     private fun scanSymbol(): Token {
         val loc = currentLocation()
         return when (val c = advance()) {
-            ':' -> TokenType.COLON.toToken(c, loc)
-            '=', '-' ->
+            ':' -> {
+                TokenType.COLON.toToken(c, loc)
+            }
+
+            '=', '-' -> {
                 if (!isAtEnd() && peek() == '>') {
                     advance()
                     Token(TokenType.ARROW, "$c>", loc)
@@ -549,24 +589,56 @@ class Lexer(
                         TokenType.ERROR.toToken(c, loc)
                     }
                 }
-            '(' -> TokenType.OPEN_PAREN.toToken(c, loc)
-            ')' -> TokenType.CLOSE_PAREN.toToken(c, loc)
-            '{' -> TokenType.OPEN_BRACE.toToken(c, loc)
-            '}' -> TokenType.CLOSE_BRACE.toToken(c, loc)
-            '[' -> TokenType.OPEN_BRACKET.toToken(c, loc)
-            ']' -> TokenType.CLOSE_BRACKET.toToken(c, loc)
-            ',' -> TokenType.COMMA.toToken(c, loc)
-            '|' -> TokenType.PIPE.toToken(c, loc)
-            '.' -> TokenType.DOT.toToken(c, loc)
-            '>', '<' ->
+            }
+
+            '(' -> {
+                TokenType.OPEN_PAREN.toToken(c, loc)
+            }
+
+            ')' -> {
+                TokenType.CLOSE_PAREN.toToken(c, loc)
+            }
+
+            '{' -> {
+                TokenType.OPEN_BRACE.toToken(c, loc)
+            }
+
+            '}' -> {
+                TokenType.CLOSE_BRACE.toToken(c, loc)
+            }
+
+            '[' -> {
+                TokenType.OPEN_BRACKET.toToken(c, loc)
+            }
+
+            ']' -> {
+                TokenType.CLOSE_BRACKET.toToken(c, loc)
+            }
+
+            ',' -> {
+                TokenType.COMMA.toToken(c, loc)
+            }
+
+            '|' -> {
+                TokenType.PIPE.toToken(c, loc)
+            }
+
+            '.' -> {
+                TokenType.DOT.toToken(c, loc)
+            }
+
+            '>', '<' -> {
                 if (!isAtEnd() && peek() == '=') {
                     advance()
                     Token(TokenType.COMPARATOR, "$c=", loc)
                 } else {
                     TokenType.COMPARATOR.toToken(c, loc)
                 }
+            }
 
-            else -> TokenType.ERROR.toToken(c, loc)
+            else -> {
+                TokenType.ERROR.toToken(c, loc)
+            }
         }
     }
 

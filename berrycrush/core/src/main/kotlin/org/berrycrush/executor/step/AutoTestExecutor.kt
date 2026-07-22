@@ -89,8 +89,9 @@ class AutoTestExecutor(
                     )
                 combineAutoTestResults(step, stepStartTime, multiResult, autoResult)
             }
+
             // Only MULTI
-            hasMulti ->
+            hasMulti -> {
                 executeMultiTests(
                     step,
                     stepContext,
@@ -98,8 +99,12 @@ class AutoTestExecutor(
                     parameters,
                     listener,
                 )
+            }
+
             // Only INVALID/SECURITY
-            else -> executeAutoTests(step, stepContext, stepStartTime, listener)
+            else -> {
+                executeAutoTests(step, stepContext, stepStartTime, listener)
+            }
         }
     }
 
@@ -193,11 +198,15 @@ class AutoTestExecutor(
     ): Map<String, Any>? =
         when (val maybeStep = step.check()) {
             // Use default Schema values
-            null -> httpExecutor.resolveBody(emptyMap(), operation, context)
-            else ->
+            null -> {
+                httpExecutor.resolveBody(emptyMap(), operation, context)
+            }
+
+            else -> {
                 httpExecutor.resolveBody(maybeStep, operation, context)?.let { body ->
                     objectMapper.readValue(body, Map::class.java) as Map<String, Any>
                 }
+            }
         }
 
     /**

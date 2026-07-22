@@ -300,7 +300,9 @@ private fun SecurityTestRequest.toSecurityCases(
                 toSecurityCase(testType, displayName, payload, headers = headers)
             }
 
-            ParameterLocation.QUERY -> toSecurityCase(testType, displayName, payload)
+            ParameterLocation.QUERY -> {
+                toSecurityCase(testType, displayName, payload)
+            }
         }
     }
 
