@@ -17,11 +17,20 @@ import org.berrycrush.model.ScenarioResult
 import org.berrycrush.plugin.PluginRegistry
 import org.berrycrush.runner.ScenarioRunner
 import org.berrycrush.util.StepRegistry
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.TestInstance
 import org.junit.platform.engine.EngineExecutionListener
 import org.junit.platform.engine.TestExecutionResult
+import java.lang.reflect.Method
+import java.lang.reflect.Modifier
+import java.util.Collections
 import java.util.logging.Logger
 import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.jvmName
+import org.berrycrush.config.BerryCrushConfiguration
 
 private val logger = Logger.getLogger(TestExecutionContext::class.java.name)
 
@@ -37,9 +46,9 @@ internal data class TestExecutionContext(
     val assertionRegistry: AssertionRegistry?,
     val runner: ScenarioRunner,
 ) {
-    fun beginExecution() = runner.beginExecution()
+    fun beginExecution(): Unit = runner.beginExecution()
 
-    fun endExecution() = runner.endExecution()
+    fun endExecution(): Unit = runner.endExecution()
 
     /**
      * Execute @Scenario methods.
@@ -49,11 +58,35 @@ internal data class TestExecutionContext(
         listener: EngineExecutionListener,
         provider: BindingsProvider?,
     ) {
-        classDescriptor.children
-            .filterIsInstance<ScenarioMethodDescriptor>()
-            .forEach { scenarioDescriptor ->
-                executeScenarioMethod(scenarioDescriptor, classDescriptor, listener, provider)
+        val scenarioDescriptors = classDescriptor.children.filterIsInstance<ScenarioMethodDescriptor>()
+        if (scenarioDescriptors.isEmpty()) {
+            return
+        }
+
+        val lifecycle =
+            ScenarioMethodLifecycleController(
+                classDescriptor = classDescriptor,
+                provider = provider,
+                suite = suite,
+            )
+
+        val beforeAllError = runCatching { lifecycle.beforeAll() }.exceptionOrNull()
+        if (beforeAllError != null) {
+            scenarioDescriptors.forEach { scenarioDescriptor ->
+                listener.executionStarted(scenarioDescriptor)
+                listener.executionFinished(scenarioDescriptor, TestExecutionResult.failed(beforeAllError))
             }
+            return
+        }
+
+        try {
+            scenarioDescriptors.forEach { scenarioDescriptor ->
+                executeScenarioMethod(scenarioDescriptor, classDescriptor, listener, lifecycle)
+            }
+        } finally {
+            runCatching { lifecycle.afterAll() }
+                .onFailure { logger.warning { "Failed to execute @AfterAll for ${classDescriptor.testClass.jvmName}: ${it.message}" } }
+        }
     }
 
     fun executeFileDescriptors(
@@ -75,25 +108,26 @@ private fun TestExecutionContext.executeScenarioMethod(
     scenarioDescriptor: ScenarioMethodDescriptor,
     classDescriptor: ClassTestDescriptor,
     listener: EngineExecutionListener,
-    provider: BindingsProvider?,
+    lifecycle: ScenarioMethodLifecycleController,
 ) {
     listener.executionStarted(scenarioDescriptor)
     runCatching {
-        // Create test instance - use Spring-managed instance if available
-        val testInstance =
-            provider?.createTestInstance(classDescriptor.testClass.java)
-                ?: classDescriptor.testClass.primaryConstructor?.call()
-                ?: throw IllegalStateException("Test class ${classDescriptor.testClass.simpleName} not found")
+        val testInstance = lifecycle.createTestInstance()
 
-        // Invoke the @Scenario method to get the Scenario
-        val scenario = scenarioDescriptor.invokeMethod(testInstance, suite)
+        lifecycle.beforeEach(testInstance)
+        try {
+            // Invoke the @Scenario method to get the Scenario
+            val scenario = scenarioDescriptor.invokeMethod(testInstance, suite)
 
-        // Check if scenario should be skipped based on tags
-        if (!classDescriptor.shouldExecuteScenario(scenario.tags)) {
-            ScenarioResult(scenario, ResultStatus.SKIPPED)
-        } else {
-            // Execute the scenario
-            runner.executeScenario(scenario)
+            // Check if scenario should be skipped based on tags
+            if (!classDescriptor.shouldExecuteScenario(scenario.tags)) {
+                ScenarioResult(scenario, ResultStatus.SKIPPED)
+            } else {
+                // Execute the scenario
+                runner.executeScenario(scenario)
+            }
+        } finally {
+            lifecycle.afterEach(testInstance)
         }
     }.onSuccess { result ->
         val testResult =
@@ -168,4 +202,118 @@ private fun TestExecutionContext.buildFileContext(
         fileContext = executionContext,
         scenarioPath = fileDescriptor.scenarioPath,
     )
+}
+
+private class ScenarioMethodLifecycleController(
+    private val classDescriptor: ClassTestDescriptor,
+    private val provider: BindingsProvider?,
+    private val suite: BerryCrushSuite,
+) {
+    private val lifecycle =
+        classDescriptor.testClass.java.getAnnotation(TestInstance::class.java)?.value
+            ?: TestInstance.Lifecycle.PER_METHOD
+
+    private val beforeAllMethods =
+        findLifecycleMethods(BeforeAll::class.java, topDown = true)
+
+    private val beforeEachMethods =
+        findLifecycleMethods(BeforeEach::class.java, topDown = true)
+
+    private val afterEachMethods =
+        findLifecycleMethods(AfterEach::class.java, topDown = false)
+
+    private val afterAllMethods =
+        findLifecycleMethods(AfterAll::class.java, topDown = false)
+
+    private var beforeAllExecuted = false
+    private var perClassInstance: Any? = null
+
+    fun beforeAll() {
+        if (beforeAllExecuted) {
+            return
+        }
+        val instance = if (lifecycle == TestInstance.Lifecycle.PER_CLASS) getOrCreatePerClassInstance() else null
+        invokeLifecycleMethods(beforeAllMethods, instance)
+        beforeAllExecuted = true
+    }
+
+    fun afterAll() {
+        if (!beforeAllExecuted) {
+            return
+        }
+        val instance = if (lifecycle == TestInstance.Lifecycle.PER_CLASS) perClassInstance else null
+        invokeLifecycleMethods(afterAllMethods, instance)
+    }
+
+    fun createTestInstance(): Any =
+        if (lifecycle == TestInstance.Lifecycle.PER_CLASS) {
+            getOrCreatePerClassInstance()
+        } else {
+            createTestInstanceInternal()
+        }
+
+    fun beforeEach(testInstance: Any) {
+        invokeLifecycleMethods(beforeEachMethods, testInstance)
+    }
+
+    fun afterEach(testInstance: Any) {
+        invokeLifecycleMethods(afterEachMethods, testInstance)
+    }
+
+    private fun getOrCreatePerClassInstance(): Any =
+        perClassInstance ?: createTestInstanceInternal().also {
+            perClassInstance = it
+        }
+
+    private fun createTestInstanceInternal(): Any =
+        provider?.createTestInstance(classDescriptor.testClass.java)
+            ?: classDescriptor.testClass.primaryConstructor?.call()
+            ?: throw IllegalStateException("Test class ${classDescriptor.testClass.simpleName} not found")
+
+    private fun invokeLifecycleMethods(
+        methods: List<Method>,
+        testInstance: Any?,
+    ) {
+        methods.forEach { method ->
+            method.isAccessible = true
+            val target = if (Modifier.isStatic(method.modifiers)) null else testInstance
+            val args = resolveMethodArguments(method)
+            method.invoke(target, *args)
+        }
+    }
+
+    private fun resolveMethodArguments(method: Method): Array<Any> =
+        method.parameters
+            .map { parameter ->
+                when {
+                    BerryCrushSuite::class.java.isAssignableFrom(parameter.type) -> suite
+                    BerryCrushConfiguration::class.java.isAssignableFrom(parameter.type) -> suite.configuration
+                    else -> throw IllegalArgumentException(
+                        "Unsupported lifecycle parameter type ${parameter.type.name} in ${method.declaringClass.simpleName}.${method.name}",
+                    )
+                }
+            }.toTypedArray()
+
+    private fun findLifecycleMethods(
+        annotationClass: Class<out Annotation>,
+        topDown: Boolean,
+    ): List<Method> {
+        val classHierarchy = mutableListOf<Class<*>>()
+        var current: Class<*>? = classDescriptor.testClass.java
+        while (current != null && current != Any::class.java) {
+            classHierarchy += current
+            current = current.superclass
+        }
+
+        if (topDown) {
+            Collections.reverse(classHierarchy)
+        }
+
+        return classHierarchy
+            .flatMap { clazz ->
+                clazz.declaredMethods.filter { method ->
+                    method.isAnnotationPresent(annotationClass)
+                }
+            }.distinct()
+    }
 }

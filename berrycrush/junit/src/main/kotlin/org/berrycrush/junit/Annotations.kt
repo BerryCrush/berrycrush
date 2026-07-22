@@ -139,6 +139,14 @@ annotation class BerryCrushTags(
  * - Can accept `BerryCrushSuite` as parameter (injected by engine)
  * - Can be a member function of a class annotated with `@BerryCrushSpec`
  *
+ * ## Lifecycle Support
+ *
+ * Scenario methods run with JUnit lifecycle semantics:
+ *
+ * - `@BeforeAll` / `@AfterAll` are executed at class scope
+ * - `@BeforeEach` / `@AfterEach` are executed for each scenario method
+ * - `@TestInstance(PER_CLASS)` reuses the same test instance across scenario methods
+ *
  * @see BerryCrushSpec
  * @see org.berrycrush.junit.BerryCrushSuite
  * @see org.berrycrush.model.Scenario

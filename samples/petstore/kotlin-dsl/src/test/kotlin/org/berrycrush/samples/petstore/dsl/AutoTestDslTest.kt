@@ -54,8 +54,6 @@ class AutoTestDslTest {
     @ScenarioTest
     @DisplayName("Create pet with invalid input tests")
     fun invalidAutoTests(suite: BerryCrushSuite): Scenario {
-        suite.configuration.baseUrl = "http://localhost:$port/api/v1"
-        suite.configuration.autoAssertions.enabled = false
         return suite.scenario("Create pet - Invalid input tests") {
             whenever("I create a pet with invalid data") {
                 call("createPet") {
@@ -75,8 +73,6 @@ class AutoTestDslTest {
     @ScenarioTest
     @DisplayName("Create pet with security tests")
     fun securityAutoTests(suite: BerryCrushSuite): Scenario {
-        suite.configuration.baseUrl = "http://localhost:$port/api/v1"
-
         return suite.scenario("Create pet - Security tests") {
             whenever("I test security vulnerabilities") {
                 call("createPet") {
@@ -117,8 +113,6 @@ class AutoTestDslTest {
     @ScenarioTest
     @DisplayName("Create pet with all auto-tests")
     fun combinedAutoTests(suite: BerryCrushSuite): Scenario {
-        suite.configuration.baseUrl = "http://localhost:$port/api/v1"
-
         return suite.scenario("Create pet - All auto-tests") {
             whenever("I test the create pet endpoint comprehensively") {
                 call("createPet") {
@@ -139,8 +133,6 @@ class AutoTestDslTest {
     @ScenarioTest
     @DisplayName("Create pet with boolean auto-test config")
     fun booleanAutoTestConfig(suite: BerryCrushSuite): Scenario {
-        suite.configuration.baseUrl = "http://localhost:$port/api/v1"
-        suite.configuration.autoAssertions.enabled = false
         return suite.scenario("Create pet - Boolean config") {
             whenever("I test with boolean auto-test configuration") {
                 call("createPet") {
@@ -160,8 +152,6 @@ class AutoTestDslTest {
     @ScenarioTest
     @DisplayName("Create pet with excluded categories")
     fun excludeCategories(suite: BerryCrushSuite): Scenario {
-        suite.configuration.baseUrl = "http://localhost:$port/api/v1"
-
         return suite.scenario("Create pet - Exclude categories") {
             whenever("I test excluding certain categories") {
                 call("createPet") {
@@ -182,7 +172,6 @@ class AutoTestDslTest {
     @ScenarioTest
     @DisplayName("List pets with custom multi-test parameters")
     fun customMultiTestParams(suite: BerryCrushSuite): Scenario {
-        suite.configuration.baseUrl = "http://localhost:$port/api/v1"
         // Set custom multi-test parameters at configuration level
         suite.configuration.multiTestConfig["sequential.count"] = 5
         suite.configuration.multiTestConfig["concurrent.count"] = 10
