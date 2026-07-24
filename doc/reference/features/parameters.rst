@@ -135,8 +135,8 @@ Parameter values can include variable references using the ``${...}`` syntax:
 
    scenario: Use environment variables
      parameters:
-       apiKey: "${env.API_KEY}"
-       baseUrl: "https://${env.HOST}/api"
+       apiKey: "{{env.API_KEY}}"
+       baseUrl: "https://{{env.HOST}}/api"
      when I authenticate
        call ^authenticate
          header.X-Api-Key: {{apiKey}}
@@ -149,13 +149,11 @@ Supported variable reference patterns:
 
    * - Pattern
      - Description
-   * - ``${env.VAR_NAME}``
+   * - ``{{env.VAR_NAME}}``
      - Environment variable
-   * - ``${context.variableName}``
-     - Variable from execution context
-   * - ``${param.paramName}``
+   * - ``{{param.paramName}}``
      - Reference to another parameter
-   * - ``${variableName}``
+   * - ``{{variableName}}``
      - Shorthand for context variable
 
 Supported Parameters

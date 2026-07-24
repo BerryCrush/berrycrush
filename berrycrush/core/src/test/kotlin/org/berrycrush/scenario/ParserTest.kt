@@ -2508,11 +2508,11 @@ class ParserTest {
     @Test
     fun `should parse parameters with variable references`() {
         val source =
-            $$"""
+            """
             scenario: Use environment variable
               parameters:
-                apiKey: "${env.API_KEY}"
-                baseUrl: "https://${env.HOST}/api"
+                apiKey: "{{env.API_KEY}}"
+                baseUrl: "https://{{env.HOST}}/api"
               when I authenticate
                 call ^authenticate
             """.trimIndent()
@@ -2522,8 +2522,8 @@ class ParserTest {
         assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
         val scenario = result.ast!!.scenarios[0]
         assertNotNull(scenario.parameters)
-        assertEquals($$"${env.API_KEY}", scenario.parameters.values["apiKey"])
-        assertEquals($$"https://${env.HOST}/api", scenario.parameters.values["baseUrl"])
+        assertEquals("{{env.API_KEY}}", scenario.parameters.values["apiKey"])
+        assertEquals("https://{{env.HOST}}/api", scenario.parameters.values["baseUrl"])
     }
 
     @Test
