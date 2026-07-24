@@ -299,12 +299,14 @@ internal fun ParserState.parseConditionOperatorAndValue(): Pair<ConditionOperato
     val op =
         when (current().value.lowercase()) {
             "equals", "=" -> ConditionOperator.EQUALS
+            "!=" -> ConditionOperator.NOT_EQUALS
             "contains", "in" -> ConditionOperator.CONTAINS
             "matches" -> ConditionOperator.MATCHES
             "exists" -> ConditionOperator.EXISTS
             "greaterthan", ">" -> ConditionOperator.GREATER_THAN
             "lessthan", "<" -> ConditionOperator.LESS_THAN
             "hassize", "size", "arraysize" -> ConditionOperator.HAS_SIZE
+            "empty" -> ConditionOperator.EMPTY
             "notempty" -> ConditionOperator.NOT_EMPTY
             ">=" -> ConditionOperator.GREATER_THAN_OR_EQUALS
             "<=" -> ConditionOperator.LESS_THAN_OR_EQUALS
@@ -314,7 +316,7 @@ internal fun ParserState.parseConditionOperatorAndValue(): Pair<ConditionOperato
     advance()
 
     return when (op) {
-        ConditionOperator.EXISTS, ConditionOperator.NOT_EMPTY -> {
+        ConditionOperator.EXISTS, ConditionOperator.NOT_EMPTY, ConditionOperator.EMPTY -> {
             op to null
         }
 

@@ -173,7 +173,7 @@ class DefaultAssertionEngine(
 
             ConditionOperator.GREATER_THAN, ConditionOperator.LESS_THAN,
             ConditionOperator.GREATER_THAN_OR_EQUALS, ConditionOperator.LESS_THAN_OR_EQUALS,
-            ConditionOperator.HAS_SIZE, ConditionOperator.NOT_EMPTY,
+            ConditionOperator.HAS_SIZE, ConditionOperator.NOT_EMPTY, ConditionOperator.EMPTY
             -> false // Not applicable for headers
         }
     }
@@ -457,6 +457,15 @@ class DefaultAssertionEngine(
                         ?: expected?.toString()?.toIntOrNull()
                         ?: return false
                 actualSize == expectedSize
+            }
+
+            ConditionOperator.EMPTY -> {
+                when (actual) {
+                    is Collection<*> -> actual.isEmpty()
+                    is String -> actual.isEmpty()
+                    is Array<*> -> actual.isEmpty()
+                    else -> actual == null
+                }
             }
 
             ConditionOperator.NOT_EMPTY -> {

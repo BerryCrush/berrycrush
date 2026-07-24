@@ -594,6 +594,7 @@ object ScenarioLoader {
             ConditionOperator.GREATER_THAN_OR_EQUALS -> ModelConditionOperator.GREATER_THAN_OR_EQUALS
             ConditionOperator.LESS_THAN_OR_EQUALS -> ModelConditionOperator.LESS_THAN_OR_EQUALS
             ConditionOperator.HAS_SIZE -> ModelConditionOperator.HAS_SIZE
+            ConditionOperator.EMPTY -> ModelConditionOperator.EMPTY
             ConditionOperator.NOT_EMPTY -> ModelConditionOperator.NOT_EMPTY
         }
 

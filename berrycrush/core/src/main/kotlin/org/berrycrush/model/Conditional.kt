@@ -185,5 +185,6 @@ enum class ConditionOperator {
     HAS_SIZE,
 
     /** Array/string not empty check */
+    EMPTY,
     NOT_EMPTY,
 }

@@ -500,6 +500,7 @@ enum class ConditionOperator {
     HAS_SIZE,
 
     /** Array/string not empty check: notEmpty */
+    EMPTY,
     NOT_EMPTY,
 }
 
