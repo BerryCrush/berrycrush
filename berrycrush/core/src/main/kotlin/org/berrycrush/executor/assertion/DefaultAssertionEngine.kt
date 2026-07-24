@@ -173,7 +173,7 @@ class DefaultAssertionEngine(
 
             ConditionOperator.GREATER_THAN, ConditionOperator.LESS_THAN,
             ConditionOperator.GREATER_THAN_OR_EQUALS, ConditionOperator.LESS_THAN_OR_EQUALS,
-            ConditionOperator.HAS_SIZE, ConditionOperator.NOT_EMPTY, ConditionOperator.EMPTY
+            ConditionOperator.HAS_SIZE, ConditionOperator.NOT_EMPTY, ConditionOperator.EMPTY,
             -> false // Not applicable for headers
         }
     }
@@ -414,19 +414,11 @@ class DefaultAssertionEngine(
             }
 
             ConditionOperator.CONTAINS -> {
-                when (actual) {
-                    is String -> actual.contains(expected?.toString() ?: "")
-                    is Collection<*> -> actual.contains(expected)
-                    else -> false
-                }
+                evaluateContains(actual, expected)
             }
 
             ConditionOperator.NOT_CONTAINS -> {
-                when (actual) {
-                    is String -> !actual.contains(expected?.toString() ?: "")
-                    is Collection<*> -> !actual.contains(expected)
-                    else -> true
-                }
+                !evaluateContains(actual, expected)
             }
 
             ConditionOperator.MATCHES -> {
@@ -460,22 +452,30 @@ class DefaultAssertionEngine(
             }
 
             ConditionOperator.EMPTY -> {
-                when (actual) {
-                    is Collection<*> -> actual.isEmpty()
-                    is String -> actual.isEmpty()
-                    is Array<*> -> actual.isEmpty()
-                    else -> actual == null
-                }
+                evaluateEmpty(actual)
             }
 
             ConditionOperator.NOT_EMPTY -> {
-                when (actual) {
-                    is Collection<*> -> actual.isNotEmpty()
-                    is String -> actual.isNotEmpty()
-                    is Array<*> -> actual.isNotEmpty()
-                    else -> actual != null
-                }
+                !evaluateEmpty(actual)
             }
+        }
+
+    private fun evaluateEmpty(actual: Any?): Boolean =
+        when (actual) {
+            is Collection<*> -> actual.isEmpty()
+            is String -> actual.isEmpty()
+            is Array<*> -> actual.isEmpty()
+            else -> actual == null
+        }
+
+    private fun evaluateContains(
+        actual: Any?,
+        expected: Any?,
+    ): Boolean =
+        when (actual) {
+            is String -> actual.contains(expected?.toString() ?: "")
+            is Collection<*> -> actual.contains(expected)
+            else -> false
         }
 
     /**

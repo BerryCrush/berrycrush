@@ -51,6 +51,7 @@ class ExecutionContext(
     val shareVariablesAcrossScenarios: Boolean = false,
     val parameters: Map<String, Any> = emptyMap(),
     val parent: ExecutionContext? = null,
+    private val environmentProvider: (String) -> String? = System::getenv,
 ) {
     private val variables: MutableMap<String, Any> =
         ConcurrentHashMap<String, Any>().apply {
@@ -277,8 +278,17 @@ class ExecutionContext(
                 null
             }
         }
+
+        fun checkEnv(): String? =
+            if (name.startsWith("env.")) {
+                environmentProvider(name.removePrefix("env."))
+            } else {
+                null
+            }
         // First, try direct variable lookup
-        return variables[name]?.toString() ?: fallback()
+        return variables[name]?.toString()
+            ?: checkEnv()
+            ?: fallback()
     }
 
     /**
