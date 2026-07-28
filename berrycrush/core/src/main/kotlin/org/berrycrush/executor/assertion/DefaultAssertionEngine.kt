@@ -156,6 +156,14 @@ class DefaultAssertionEngine(
         val actualValue = headerValues.firstOrNull()
         val expectedValue = condition.expected?.let { resolveConditionValue(it, context) }
 
+        fun stringOp(
+            expectedValue: Any?,
+            actualValue: String?,
+            op: (String, String) -> Boolean,
+        ): Boolean {
+            val value = actualValue ?: return false
+            return expectedValue?.toString()?.let { op(value, it) } ?: false
+        }
         return when (condition.operator) {
             ConditionOperator.EXISTS -> headerValues.isNotEmpty()
 
@@ -165,11 +173,15 @@ class DefaultAssertionEngine(
 
             ConditionOperator.NOT_EQUALS -> actualValue != expectedValue?.toString()
 
-            ConditionOperator.CONTAINS -> actualValue?.contains(expectedValue?.toString() ?: "") ?: false
+            ConditionOperator.CONTAINS -> stringOp(expectedValue, actualValue, String::contains)
 
-            ConditionOperator.NOT_CONTAINS -> !(actualValue?.contains(expectedValue?.toString() ?: "") ?: false)
+            ConditionOperator.NOT_CONTAINS -> !stringOp(expectedValue, actualValue, String::contains)
 
-            ConditionOperator.MATCHES -> actualValue?.matches((expectedValue?.toString() ?: "").toRegex()) ?: false
+            ConditionOperator.MATCHES -> expectedValue?.toString()?.let { actualValue?.matches(it.toRegex()) } ?: false
+
+            ConditionOperator.STARTS_WITH -> stringOp(expectedValue, actualValue, String::startsWith)
+
+            ConditionOperator.ENDS_WITH -> stringOp(expectedValue, actualValue, String::endsWith)
 
             ConditionOperator.GREATER_THAN, ConditionOperator.LESS_THAN,
             ConditionOperator.GREATER_THAN_OR_EQUALS, ConditionOperator.LESS_THAN_OR_EQUALS,
@@ -426,6 +438,14 @@ class DefaultAssertionEngine(
                 actual?.toString()?.matches(pattern.toRegex()) ?: false
             }
 
+            ConditionOperator.STARTS_WITH -> {
+                evaluateWith(actual, expected) { a, e -> a.startsWith(e) }
+            }
+
+            ConditionOperator.ENDS_WITH -> {
+                evaluateWith(actual, expected) { a, e -> a.endsWith(e) }
+            }
+
             ConditionOperator.GREATER_THAN -> {
                 compareAsNumbers(actual, expected) { a, e -> a > e }
             }
@@ -477,6 +497,12 @@ class DefaultAssertionEngine(
             is Collection<*> -> actual.contains(expected)
             else -> false
         }
+
+    private fun evaluateWith(
+        actual: Any?,
+        expected: Any?,
+        operation: (String, String) -> Boolean,
+    ): Boolean = actual != null && expected != null && operation(actual.toString(), expected.toString())
 
     /**
      * Get the size of a collection, string, or array.

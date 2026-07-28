@@ -480,29 +480,7 @@ enum class LogicalOperator {
     OR,
 }
 
-/**
- * Operators for conditions.
- */
-enum class ConditionOperator {
-    EQUALS,
-    NOT_EQUALS,
-    CONTAINS,
-    NOT_CONTAINS,
-    MATCHES,
-    EXISTS,
-    NOT_EXISTS,
-    GREATER_THAN,
-    GREATER_THAN_OR_EQUALS,
-    LESS_THAN,
-    LESS_THAN_OR_EQUALS,
-
-    /** Array/string size check: hasSize */
-    HAS_SIZE,
-
-    /** Array/string not empty check: notEmpty */
-    EMPTY,
-    NOT_EMPTY,
-}
+typealias ConditionOperator = org.berrycrush.model.ConditionOperator
 
 /**
  * Fail action - fails the scenario with a custom message.
