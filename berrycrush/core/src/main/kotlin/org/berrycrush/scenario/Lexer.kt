@@ -54,6 +54,8 @@ class Lexer(
                 "equals" to TokenType.COMPARATOR,
                 "matches" to TokenType.COMPARATOR,
                 "exists" to TokenType.COMPARATOR,
+                "startswith" to TokenType.COMPARATOR,
+                "endswith" to TokenType.COMPARATOR,
                 "hassize" to TokenType.COMPARATOR,
                 "size" to TokenType.COMPARATOR,
                 "arraysize" to TokenType.COMPARATOR,

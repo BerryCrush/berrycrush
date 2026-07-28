@@ -39,6 +39,8 @@ scenario: And keyword - create and verify pet
       petId: {{petId}}
     assert status 200
     assert $.name equals "AndKeywordPet"
+    assert $.name startsWith "And"
+    assert $.name endsWith "Pet"
 
 # -----------------------------------------------------------------------------
 # But keyword for exceptions/negative cases

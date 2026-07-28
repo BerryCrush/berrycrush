@@ -20,7 +20,6 @@ import org.berrycrush.util.toNonNullMap
 import java.nio.file.Files
 import java.nio.file.Path
 import org.berrycrush.model.ConditionBranch as ModelConditionBranch
-import org.berrycrush.model.ConditionOperator as ModelConditionOperator
 import org.berrycrush.model.LogicalOperator as ModelLogicalOperator
 
 /**
@@ -514,7 +513,7 @@ object ScenarioLoader {
             is ConditionNode.JsonPathCondition -> {
                 Condition.JsonPath(
                     path = node.path,
-                    operator = transformConditionOperator(node.operator),
+                    operator = node.operator,
                     expected = node.expected?.let { extractValue(it) },
                 )
             }
@@ -522,7 +521,7 @@ object ScenarioLoader {
             is ConditionNode.HeaderCondition -> {
                 Condition.Header(
                     name = node.headerName,
-                    operator = node.operator?.let { transformConditionOperator(it) } ?: ModelConditionOperator.EXISTS,
+                    operator = node.operator ?: ConditionOperator.EXISTS,
                     expected = node.expected?.let { extractValue(it) },
                 )
             }
@@ -530,7 +529,7 @@ object ScenarioLoader {
             is ConditionNode.VariableCondition -> {
                 Condition.Variable(
                     name = node.variableName,
-                    operator = transformConditionOperator(node.operator),
+                    operator = node.operator,
                     expected = node.expected?.let { extractValue(it) },
                 )
             }
@@ -575,27 +574,6 @@ object ScenarioLoader {
         when (op) {
             LogicalOperator.AND -> ModelLogicalOperator.AND
             LogicalOperator.OR -> ModelLogicalOperator.OR
-        }
-
-    /**
-     * Transform AST ConditionOperator to model ConditionOperator.
-     */
-    private fun transformConditionOperator(op: ConditionOperator): ModelConditionOperator =
-        when (op) {
-            ConditionOperator.EQUALS -> ModelConditionOperator.EQUALS
-            ConditionOperator.NOT_EQUALS -> ModelConditionOperator.NOT_EQUALS
-            ConditionOperator.CONTAINS -> ModelConditionOperator.CONTAINS
-            ConditionOperator.NOT_CONTAINS -> ModelConditionOperator.NOT_CONTAINS
-            ConditionOperator.MATCHES -> ModelConditionOperator.MATCHES
-            ConditionOperator.EXISTS -> ModelConditionOperator.EXISTS
-            ConditionOperator.NOT_EXISTS -> ModelConditionOperator.NOT_EXISTS
-            ConditionOperator.GREATER_THAN -> ModelConditionOperator.GREATER_THAN
-            ConditionOperator.LESS_THAN -> ModelConditionOperator.LESS_THAN
-            ConditionOperator.GREATER_THAN_OR_EQUALS -> ModelConditionOperator.GREATER_THAN_OR_EQUALS
-            ConditionOperator.LESS_THAN_OR_EQUALS -> ModelConditionOperator.LESS_THAN_OR_EQUALS
-            ConditionOperator.HAS_SIZE -> ModelConditionOperator.HAS_SIZE
-            ConditionOperator.EMPTY -> ModelConditionOperator.EMPTY
-            ConditionOperator.NOT_EMPTY -> ModelConditionOperator.NOT_EMPTY
         }
 
     /**

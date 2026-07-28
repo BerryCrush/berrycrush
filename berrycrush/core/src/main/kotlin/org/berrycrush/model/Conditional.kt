@@ -181,6 +181,10 @@ enum class ConditionOperator {
     LESS_THAN,
     LESS_THAN_OR_EQUALS,
 
+    /** String check */
+    STARTS_WITH,
+    ENDS_WITH,
+
     /** Array/string size check */
     HAS_SIZE,
 

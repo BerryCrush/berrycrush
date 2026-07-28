@@ -312,6 +312,7 @@ internal fun ParserState.parseConditionOperatorAndValue(): Pair<ConditionOperato
     }
 }
 
+@Suppress("CyclomaticComplexMethod")
 private fun ParserState.toOperator(): ConditionOperator =
     when (current().value.lowercase()) {
         "equals", "=" -> ConditionOperator.EQUALS
@@ -322,6 +323,8 @@ private fun ParserState.toOperator(): ConditionOperator =
         "greaterthan", ">" -> ConditionOperator.GREATER_THAN
         "lessthan", "<" -> ConditionOperator.LESS_THAN
         "hassize", "size", "arraysize" -> ConditionOperator.HAS_SIZE
+        "startswith" -> ConditionOperator.STARTS_WITH
+        "endswith" -> ConditionOperator.ENDS_WITH
         "empty" -> ConditionOperator.EMPTY
         "notempty" -> ConditionOperator.NOT_EMPTY
         ">=" -> ConditionOperator.GREATER_THAN_OR_EQUALS
