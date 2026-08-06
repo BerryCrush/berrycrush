@@ -54,10 +54,10 @@ class BerryCrushScenarioExecutorTest {
             )
 
         val result = executor.execute(scenario)
-
-        assertEquals(ResultStatus.PASSED, result.status)
+        // the step fails as there's no custom step defined
+        assertEquals(ResultStatus.ERROR, result.status)
         assertEquals(2, result.stepResults.size)
-        assertTrue(result.stepResults.all { it.status == ResultStatus.PASSED })
+        assertTrue(result.stepResults.all { it.status != ResultStatus.PASSED })
     }
 
     @Test
@@ -160,6 +160,6 @@ class BerryCrushScenarioExecutorTest {
 
         val result = executor.execute(scenario)
 
-        assertEquals(ResultStatus.PASSED, result.status)
+        assertEquals(ResultStatus.ERROR, result.status)
     }
 }

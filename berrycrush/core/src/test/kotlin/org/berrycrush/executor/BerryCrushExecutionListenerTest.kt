@@ -117,19 +117,17 @@ class BerryCrushExecutionListenerTest {
 
         val result = executor.execute(scenario, executionListener = listener)
 
-        assertEquals(ResultStatus.PASSED, result.status)
+        assertEquals(ResultStatus.ERROR, result.status)
         assertEquals(
             listOf(
                 "scenario:start:listener execution",
                 "step:start:first step",
-                "step:end:first step:PASSED",
-                "step:start:second step",
-                "step:end:second step:PASSED",
-                "scenario:end:listener execution:PASSED",
+                "step:end:first step:ERROR",
+                "scenario:end:listener execution:ERROR",
             ),
             events,
         )
-        assertTrue(result.stepResults.all { it.status == ResultStatus.PASSED })
+        assertTrue(result.stepResults.all { it.status != ResultStatus.PASSED })
     }
 
     private fun petstoreSpecPath(): String =

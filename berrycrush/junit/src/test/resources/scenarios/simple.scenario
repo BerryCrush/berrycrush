@@ -1,9 +1,16 @@
+parameters:
+  autoAssertions:
+    enabled: false
+
 scenario: Simple passing scenario
   given a test condition
+    call ^getTest
   then the scenario passes
+    assert status -1
 
 outline: Simple outline scenario
   given test {{test}}
+    call ^getTest
   examples:
     | test  |
     | test1 |
@@ -12,10 +19,13 @@ outline: Simple outline scenario
 feature: Sample passing feature
   scenario: Simple passing scenario
     given a test condition
+      call ^getTest
     then the scenario passes
+      assert status -1
 
   outline: Nested outline scenario
     given test {{test}}
+      call ^getTest
     examples:
       | test  |
       | test1 |

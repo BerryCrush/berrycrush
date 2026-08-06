@@ -13,11 +13,11 @@ feature: Parameter override test
     given I will check the parameters
       call ^getTest
         auto: [invalid]
-    then I check the "{{parameter.name}}" parameter is {{parameter.value}}
+    then the param name "{{parameter.name}}" must be {{parameter.value}}
     examples:
-      | parameter.name | parameter.value |
-      | port           | 9090            |
-      | host           | 127.0.0.1       |
+      | parameter.name    | parameter.value |
+      | param.custom.port | 9090            |
+      | param.custom.host | 127.0.0.1       |
 
 outline: Top level parameters test
   given I will check the parameters

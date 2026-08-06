@@ -48,13 +48,13 @@ class BerryCrushScenarioExecutorBranchTest {
 
         val result = executor.execute(scenario)
 
-        assertEquals(ResultStatus.PASSED, result.status)
+        assertEquals(ResultStatus.ERROR, result.status)
         assertEquals(3, result.stepResults.size)
         assertEquals(
             listOf("token exists", "token is valid", "final check"),
             result.stepResults.map { it.step.description },
         )
-        assertTrue(result.stepResults.all { it.status == ResultStatus.PASSED })
+        assertTrue(result.stepResults.all { it.status != ResultStatus.PASSED })
     }
 
     @Test

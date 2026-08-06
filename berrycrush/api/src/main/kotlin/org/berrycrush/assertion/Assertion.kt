@@ -50,6 +50,7 @@ package org.berrycrush.assertion
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 @MustBeDocumented
+@Repeatable
 annotation class Assertion(
     val pattern: String,
     val description: String = "",

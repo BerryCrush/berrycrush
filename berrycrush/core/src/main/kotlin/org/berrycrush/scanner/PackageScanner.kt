@@ -1,9 +1,17 @@
 package org.berrycrush.scanner
 
 import java.io.File
+import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.net.JarURLConnection
 import java.util.jar.JarFile
+import kotlin.reflect.KClass
+import kotlin.reflect.KFunction
+import kotlin.reflect.KVisibility
+import kotlin.reflect.full.findAnnotations
+import kotlin.reflect.full.memberFunctions
+import kotlin.reflect.jvm.isAccessible
+import kotlin.reflect.jvm.javaMethod
 
 /**
  * Scans classes for methods annotated.
@@ -47,6 +55,29 @@ interface AnnotationScanner<T> {
      */
     fun scanInstances(vararg instances: Any): List<T>
 }
+
+internal fun <T : Annotation, R> Class<*>.scanMethodAnnotations(
+    clazz: KClass<T>,
+    block: (Method, T) -> R,
+): List<R> =
+    kotlin.memberFunctions
+        .filter { it.javaMethod != null }
+        .flatMap { method ->
+            if (method.visibility != KVisibility.PUBLIC) {
+                method.isAccessible = true
+            }
+            method.forAllAnnotation(clazz) {
+                block(method.javaMethod!!, it)
+            }
+        }
+
+internal fun <T : Annotation, R> KFunction<*>.forAllAnnotation(
+    clazz: KClass<T>,
+    proc: (T) -> R,
+): List<R> =
+    this.findAnnotations(clazz).mapNotNull { annotation ->
+        proc(annotation)
+    }
 
 /**
  * Scans packages for classes containing [annotationClass] annotated methods.

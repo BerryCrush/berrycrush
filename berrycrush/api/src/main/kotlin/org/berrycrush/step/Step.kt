@@ -37,6 +37,7 @@ package org.berrycrush.step
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
 @MustBeDocumented
+@Repeatable
 annotation class Step(
     val pattern: String,
     val description: String = "",

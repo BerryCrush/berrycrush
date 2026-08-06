@@ -1,4 +1,10 @@
+parameters:
+  autoAssertions.enabled: false
+
 scenario: Simple test
   given the API is available
+    call ^getTest
   when I make a request
+    assert status -1
   then I get a response
+    assert status -1

@@ -31,7 +31,7 @@ parameters:
 
 @retry @resilience
 scenario: API recovers after transient 503 errors
-  description: Demonstrates automatic retry when service returns 503
+  # description: Demonstrates automatic retry when service returns 503
   given: chaos mode is enabled to fail 2 requests
     call ^enableChaos
       query_failCount: 2

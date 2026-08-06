@@ -241,8 +241,8 @@ class CustomStepExecutionTest {
 
             val result = executor.execute(scenario)
 
-            // Should pass as a no-op step
-            assertEquals(ResultStatus.PASSED, result.status)
+            // Should not pass as a no-op step
+            assertEquals(ResultStatus.ERROR, result.status)
         }
     }
 

@@ -116,7 +116,6 @@ class PetstoreDslTest {
         ) {
             val scenario =
                 suite.scenario("List all pets") {
-                    given("a request is prepared") {}
                     whenever("I request the list of pets") {
                         call("listPets")
                     }

@@ -139,8 +139,9 @@ class StepExecutor(
             // No operation and no assertions - just pass
             StepResult(
                 step = step,
-                status = ResultStatus.PASSED,
+                status = ResultStatus.ERROR,
                 duration = Duration.between(stepStartTime, Instant.now()),
+                error = IllegalStateException("No custom step nor assertions on this step"),
             )
         } else {
             // Run assertions/extractions against last response

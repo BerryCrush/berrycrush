@@ -1,5 +1,6 @@
 package org.berrycrush.junit.engine
 
+import org.berrycrush.junit.BerryCrushConfiguration
 import org.berrycrush.junit.BerryCrushSpec
 import org.berrycrush.junit.BerryCrushSuite
 import org.berrycrush.junit.ScenarioTest
@@ -112,6 +113,9 @@ class ScenarioAnnotationTest {
  * Test class with @ScenarioTest methods for testing discovery.
  */
 @BerryCrushSpec
+@BerryCrushConfiguration(
+    stepClasses = [TestClassWithScenarios::class],
+)
 class TestClassWithScenarios {
     @ScenarioTest
     fun createPet(): Scenario =
@@ -142,4 +146,12 @@ class TestClassWithScenarios {
     @ScenarioTest
     @Suppress("FunctionOnlyReturningConstant") // Intentional for testing annotation discovery
     fun wrongReturnType(): String = "not a scenario"
+
+    @org.berrycrush.step.Step(pattern = "I create a pet")
+    @org.berrycrush.step.Step(pattern = "I should see the pet")
+    @org.berrycrush.step.Step(pattern = "I list pets")
+    @org.berrycrush.step.Step(pattern = "I should see all pets")
+    fun dummy() {
+        // do nothing
+    }
 }

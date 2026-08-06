@@ -207,8 +207,7 @@ scenario: Parameterized fragment - variable reference as parameter
     include verify_pet_by_id
       petId: {{sourcePetId}}
       expectedName: {{sourcePetName}}
-  then: verification passed
-    # verification is done inside the fragment
+  # verification is done inside the fragment
 
 # -----------------------------------------------------------------------------
 # Conditional assertions - basic if/else

@@ -98,4 +98,9 @@ public class PetCustomSteps {
         petData.clear();
         System.out.println("[Custom Step] Pet data reset");
     }
+
+    @Step(pattern = "custom step verifies local data")
+    public void checkLocalData() {
+        // do nothing
+    }
 }

@@ -121,4 +121,4 @@ scenario: Full integration - custom and built-in features
     assert the pet should have status "available"
   # Custom verification step
   and custom step verifies local data
-    then the pet data should contain "IntegrationPet"
+  then the pet data should contain "IntegrationPet"

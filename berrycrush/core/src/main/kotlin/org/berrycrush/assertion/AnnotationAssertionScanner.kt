@@ -2,6 +2,7 @@ package org.berrycrush.assertion
 
 import org.berrycrush.scanner.AnnotationScanner
 import org.berrycrush.scanner.createInstance
+import org.berrycrush.scanner.scanMethodAnnotations
 import java.lang.reflect.Modifier
 
 /**
@@ -23,20 +24,14 @@ class AnnotationAssertionScanner : AnnotationScanner<AssertionDefinition> {
     ): List<AssertionDefinition> {
         val actualInstance = instance ?: createInstance(clazz)
 
-        return clazz.declaredMethods
-            .mapNotNull { method ->
-                method.getAnnotation(Assertion::class.java)?.let { annotation ->
-                    if (!Modifier.isPublic(method.modifiers)) {
-                        method.isAccessible = true
-                    }
-                    AssertionDefinition(
-                        pattern = annotation.pattern,
-                        method = method,
-                        instance = if (Modifier.isStatic(method.modifiers)) null else actualInstance,
-                        description = annotation.description,
-                    )
-                }
-            }
+        return clazz.scanMethodAnnotations(Assertion::class) { method, annotation ->
+            AssertionDefinition(
+                pattern = annotation.pattern,
+                method = method,
+                instance = if (Modifier.isStatic(method.modifiers)) null else actualInstance,
+                description = annotation.description,
+            )
+        }
     }
 
     /**
