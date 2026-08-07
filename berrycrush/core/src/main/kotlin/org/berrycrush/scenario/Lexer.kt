@@ -580,16 +580,12 @@ class Lexer(
                 TokenType.COLON.toToken(c, loc)
             }
 
-            '=', '-' -> {
+            '=' -> {
                 if (!isAtEnd() && peek() == '>') {
                     advance()
-                    Token(TokenType.ARROW, "$c>", loc)
+                    Token(TokenType.ARROW, "=>", loc)
                 } else {
-                    if (c == '=') {
-                        TokenType.EQUALS.toToken(c, loc)
-                    } else {
-                        TokenType.ERROR.toToken(c, loc)
-                    }
+                    TokenType.EQUALS.toToken(c, loc)
                 }
             }
 
