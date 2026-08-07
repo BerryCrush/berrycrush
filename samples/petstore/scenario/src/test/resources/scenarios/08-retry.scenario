@@ -57,7 +57,6 @@ parameters:
 # If the server returns 503 or similar, BerryCrush will automatically retry.
 
 scenario: Create pet with retry protection
-  description: Creating a pet with automatic retry on transient failures
   when: I create a new pet
     call ^createPet
       body:
@@ -69,7 +68,6 @@ scenario: Create pet with retry protection
     extract $.id => petId
 
 scenario: Retrieve pet with retry protection
-  description: Retrieving a pet with automatic retry on transient failures
   given: I have a pet ID
     call ^createPet
       body:
@@ -84,7 +82,6 @@ scenario: Retrieve pet with retry protection
     assert $.name equals "FetchTestPet"
 
 scenario: List pets with retry protection
-  description: Listing pets with automatic retry on server errors
   when: I list all pets
     call ^listPets
   then: pets are returned
@@ -109,7 +106,6 @@ scenario: List pets with retry protection
 #   - Best for production to avoid overwhelming recovering servers
 
 scenario: Update pet with retry protection
-  description: Updating a pet demonstrates retry on potential conflicts
   given: I have an existing pet
     call ^createPet
       body:
@@ -134,7 +130,6 @@ scenario: Update pet with retry protection
 # These examples show common configurations for different use cases.
 
 scenario: Delete pet operation
-  description: Delete operation with retry on server errors
   given: I create a pet to delete
     call ^createPet
       body:

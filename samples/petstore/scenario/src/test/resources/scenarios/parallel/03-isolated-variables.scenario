@@ -8,8 +8,8 @@
 # - Variables set in one scenario don't affect others
 # - This allows safe parallel execution
 
+@parallel @isolation
 scenario: Create and Verify Pet 1 (Isolated Context)
-  tags: parallel, isolation
   when I create pet one
     call ^createPet
       body:
@@ -23,8 +23,8 @@ scenario: Create and Verify Pet 1 (Isolated Context)
       petId: {{petId}}
     assert $.name equals "Pet-One"
 
+@parallel @isolation
 scenario: Create and Verify Pet 2 (Isolated Context)
-  tags: parallel, isolation
   when I create pet two
     call ^createPet
       body:
@@ -38,8 +38,8 @@ scenario: Create and Verify Pet 2 (Isolated Context)
       petId: {{petId}}
     assert $.name equals "Pet-Two"
 
+@parallel @isolation
 scenario: Create and Verify Pet 3 (Isolated Context)
-  tags: parallel, isolation
   when I create pet three
     call ^createPet
       body:
@@ -53,8 +53,8 @@ scenario: Create and Verify Pet 3 (Isolated Context)
       petId: {{petId}}
     assert $.name equals "Pet-Three"
 
+@parallel @isolation
 scenario: Create and Verify Pet 4 (Isolated Context)
-  tags: parallel, isolation
   when I create pet four
     call ^createPet
       body:

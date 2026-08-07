@@ -9,13 +9,16 @@ import org.berrycrush.scenario.TokenType
 /**
  * Parse steps within a scenario or background block.
  */
+private val toplevelKeywords =
+    listOf(TokenType.DEDENT, TokenType.SCENARIO, TokenType.OUTLINE, TokenType.FRAGMENT, TokenType.EXAMPLES, TokenType.EOF)
+
 internal fun ParserState.parseSteps(): List<StepNode> {
     val steps = mutableListOf<StepNode>()
 
     // Expect indent
     advanceIf(TokenType.INDENT)
 
-    while (!isAtEnd()) {
+    while (!isAtEnd() && current().type !in toplevelKeywords) {
         val stepKeyword =
             when (current().type) {
                 TokenType.GIVEN -> {
@@ -38,18 +41,14 @@ internal fun ParserState.parseSteps(): List<StepNode> {
                     StepKeyword.BUT
                 }
 
-                TokenType.DEDENT, TokenType.SCENARIO, TokenType.OUTLINE, TokenType.FRAGMENT, TokenType.EXAMPLES, TokenType.EOF -> {
-                    break
-                }
-
                 else -> {
-                    advance()
-                    null
+                    val token = current().value
+                    addError<String>("Unexpected step token $token")
+                    advanceLine()
+                    continue
                 }
             }
-        if (stepKeyword != null) {
-            steps.add(parseStep(stepKeyword))
-        }
+        steps.add(parseStep(stepKeyword))
     }
 
     // Consume dedent if present

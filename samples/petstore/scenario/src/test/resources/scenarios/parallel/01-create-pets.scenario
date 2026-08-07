@@ -3,8 +3,8 @@
 # This scenario file demonstrates parallel execution capabilities.
 # Each scenario is independent and can run concurrently with others.
 
+@parallel @create
 scenario: Create Cat (Parallel)
-  tags: parallel, create
   when I create a cat
     call ^createPet
       body:
@@ -14,8 +14,8 @@ scenario: Create Cat (Parallel)
     assert status 201
     assert $.name equals "Whiskers"
 
+@parallel @create
 scenario: Create Dog (Parallel)
-  tags: parallel, create
   when I create a dog
     call ^createPet
       body:
@@ -25,8 +25,8 @@ scenario: Create Dog (Parallel)
     assert status 201
     assert $.name equals "Buddy"
 
+@parallel @create
 scenario: Create Bird (Parallel)
-  tags: parallel, create
   when I create a bird
     call ^createPet
       body:
@@ -36,8 +36,8 @@ scenario: Create Bird (Parallel)
     assert status 201
     assert $.name equals "Tweety"
 
+@parallel @create
 scenario: Create Fish (Parallel)
-  tags: parallel, create
   when I create a fish
     call ^createPet
       body:

@@ -135,3 +135,12 @@ class ContainerDescriptor(
 ) : AbstractTestDescriptor(uniqueId, displayName, testSource) {
     override fun getType(): TestDescriptor.Type = TestDescriptor.Type.CONTAINER
 }
+
+// Dummy descriptor to show runtime parsing error message
+class ErrorDescriptor(
+    uniqueId: UniqueId,
+    displayName: String,
+    testSource: TestSource? = null,
+) : AbstractTestDescriptor(uniqueId, displayName, testSource) {
+    override fun getType(): TestDescriptor.Type = TestDescriptor.Type.TEST
+}

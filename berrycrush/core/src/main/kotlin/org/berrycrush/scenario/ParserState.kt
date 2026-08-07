@@ -99,6 +99,16 @@ class ParserState(
     }
 
     /**
+     * advance line
+     */
+    fun advanceLine() {
+        while (!isAtEnd() && current().type != TokenType.NEWLINE) {
+            advance()
+        }
+        advanceIf(TokenType.NEWLINE)
+    }
+
+    /**
      * Add a parse error.
      */
     fun <T> addError(

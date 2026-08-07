@@ -53,9 +53,9 @@ internal fun ParserState.parseOptionalParameters(): ParametersNode? {
  * Pattern: KEYWORD COLON NAME NEWLINES
  */
 internal fun ParserState.parseScenarioHeader(expectedType: TokenType): String? {
-    if (!expect(expectedType)) return null
+    if (!expect(expectedType)) return addError("[Internal] sanity check failed")
     skipWhitespace()
-    if (!expect(TokenType.COLON)) return null
+    if (!expect(TokenType.COLON)) return addError("Missing colon for `${expectedType.name.lowercase()}`")
     skipWhitespace()
     return parseScenarioName()?.also { skipNewlines() }
 }
@@ -408,12 +408,7 @@ internal fun ParserState.parseParameterName(): String? {
                 advance()
             }
 
-            TokenType.IDENTIFIER -> {
-                parts.append(current().value)
-                advance()
-            }
-
-            TokenType.NUMBER -> {
+            TokenType.IDENTIFIER, TokenType.NUMBER -> {
                 parts.append(current().value)
                 advance()
             }

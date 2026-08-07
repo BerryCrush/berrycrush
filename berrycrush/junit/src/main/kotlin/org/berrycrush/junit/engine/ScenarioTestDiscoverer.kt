@@ -100,8 +100,12 @@ object ScenarioTestDiscoverer {
         // Build output files are mapped back to source files
         val scenarioFile = file.url.toFileOrNull()
 
-        val content = loadScenarioFromUrl(file.url)
-        populateFileDescriptor(fileDescriptor, content, filters, scenarioFile)
+        runCatching {
+            val content = loadScenarioFromUrl(file.url)
+            populateFileDescriptor(fileDescriptor, content, filters, scenarioFile)
+        }.onFailure { _ ->
+            fileDescriptor.addChild(ErrorDescriptor(fileDescriptor.uniqueId.append("error", file.name), "Parse error"))
+        }
         return fileDescriptor
     }
 

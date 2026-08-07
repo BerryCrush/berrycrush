@@ -51,7 +51,7 @@ class Lexer(
                 "else" to TokenType.ELSE,
                 "fail" to TokenType.FAIL,
                 "webhook" to TokenType.WEBHOOK,
-                "equals" to TokenType.COMPARATOR,
+                "equals" to TokenType.EQUALS,
                 "matches" to TokenType.COMPARATOR,
                 "exists" to TokenType.COMPARATOR,
                 "startswith" to TokenType.COMPARATOR,

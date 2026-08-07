@@ -31,7 +31,6 @@ parameters:
 
 @retry @resilience
 scenario: API recovers after transient 503 errors
-  # description: Demonstrates automatic retry when service returns 503
   given: chaos mode is enabled to fail 2 requests
     call ^enableChaos
       query_failCount: 2
@@ -49,7 +48,6 @@ scenario: API recovers after transient 503 errors
 
 @retry @resilience  
 scenario: Get specific item with retry on 503
-  description: Fetching a specific item recovers from transient failures
   given: chaos is configured for 1 failure
     call ^enableChaos
       query_failCount: 1
@@ -70,7 +68,6 @@ scenario: Get specific item with retry on 503
 
 @retry @resilience
 scenario: Availability check succeeds after transient failures
-  description: Checking availability with automatic retry
   given: chaos mode simulates intermittent failures
     call ^enableChaos
       query_failCount: 2
@@ -142,7 +139,6 @@ scenario: Reset chaos counter mid-test
 
 @retry @cross-service
 scenario: Order flow with resilient inventory check
-  description: Creating an order while inventory service has transient issues
   given: inventory service will initially fail
     call ^enableChaos
       query_failCount: 1
