@@ -4,6 +4,22 @@ import org.berrycrush.scenario.ActionNode
 import org.berrycrush.scenario.ParserState
 import org.berrycrush.scenario.TokenType
 
+private val blockEndKeywords =
+    listOf(
+        TokenType.DEDENT,
+        TokenType.ELSE,
+        TokenType.GIVEN,
+        TokenType.WHEN,
+        TokenType.THEN,
+        TokenType.AND,
+        TokenType.BUT,
+        TokenType.SCENARIO,
+        TokenType.OUTLINE,
+        TokenType.FRAGMENT,
+        TokenType.EXAMPLES,
+        TokenType.EOF,
+    )
+
 /**
  * Parse actions within an indented block.
  *
@@ -15,14 +31,14 @@ import org.berrycrush.scenario.TokenType
  *                                 If false, IF tokens will cause the loop to break.
  * @return List of parsed action nodes
  */
-@Suppress("CyclomaticComplexMethod", "NestedBlockDepth", "LoopWithTooManyJumpStatements")
+@Suppress("CyclomaticComplexMethod", "NestedBlockDepth")
 internal fun ParserState.parseBlockActions(allowNestedConditionals: Boolean): List<ActionNode> {
     val actions = mutableListOf<ActionNode>()
 
     if (current().type == TokenType.INDENT) {
         advance()
 
-        while (!isAtEnd()) {
+        while (!isAtEnd() && current().type !in blockEndKeywords) {
             when (current().type) {
                 TokenType.CALL -> {
                     parseCallAction()?.let { actions.add(it) }
@@ -60,23 +76,8 @@ internal fun ParserState.parseBlockActions(allowNestedConditionals: Boolean): Li
                     advance()
                 }
 
-                TokenType.DEDENT,
-                TokenType.ELSE,
-                TokenType.GIVEN,
-                TokenType.WHEN,
-                TokenType.THEN,
-                TokenType.AND,
-                TokenType.BUT,
-                TokenType.SCENARIO,
-                TokenType.OUTLINE,
-                TokenType.FRAGMENT,
-                TokenType.EXAMPLES,
-                TokenType.EOF,
-                -> {
-                    break
-                }
-
                 else -> {
+                    // In case of custom assertion, we can't set error here
                     advance()
                 }
             }

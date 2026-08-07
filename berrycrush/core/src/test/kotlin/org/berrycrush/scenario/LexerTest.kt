@@ -166,15 +166,18 @@ class LexerTest {
     }
 
     @Test
-    fun `should tokenize arrows`() {
+    fun `should tokenize only onw arrow`() {
         val lexer = Lexer("=> ->")
         val tokens = lexer.tokenize()
 
         assertEquals(TokenType.ARROW, tokens[0].type)
         assertEquals("=>", tokens[0].value)
 
-        assertEquals(TokenType.ARROW, tokens[1].type)
-        assertEquals("->", tokens[1].value)
+        assertEquals(TokenType.ERROR, tokens[1].type)
+        assertEquals("-", tokens[1].value)
+
+        assertEquals(TokenType.COMPARATOR, tokens[2].type)
+        assertEquals(">", tokens[2].value)
     }
 
     @Test

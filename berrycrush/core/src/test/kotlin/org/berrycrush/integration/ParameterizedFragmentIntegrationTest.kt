@@ -49,7 +49,7 @@ class ParameterizedFragmentIntegrationTest {
             """
             |scenario: Create user from context
             |  given I have user data
-            |    set testName => "Alice"
+            |    extract $.name => testName 
             |  when I create the user
             |    include create_user
             |      name: {{testName}}

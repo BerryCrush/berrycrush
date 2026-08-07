@@ -23,7 +23,7 @@ scenario: Default error context settings
     assert status 2xx
     extract $.id => defaultPetId
   # Clean up
-  finally: clean up
+  then: clean up
     call ^deletePet
       petId: {{defaultPetId}}
 
@@ -50,7 +50,7 @@ feature: Error Context Customization Examples
     then: pet is created successfully
       assert status 2xx
       extract $.id => verbosePetId
-    finally: clean up
+    then: clean up
       call ^deletePet
         petId: {{verbosePetId}}
 
@@ -82,7 +82,7 @@ feature: Secure Error Context
     then: pet is created
       assert status 2xx
       extract $.id => securePetId
-    finally: clean up
+    then: clean up
       call ^deletePet
         petId: {{securePetId}}
 
@@ -132,7 +132,7 @@ feature: Body Truncation Demo
     then: pet is created
       assert status 2xx
       extract $.id => truncPetId
-    finally: clean up
+    then: clean up
       call ^deletePet
         petId: {{truncPetId}}
 

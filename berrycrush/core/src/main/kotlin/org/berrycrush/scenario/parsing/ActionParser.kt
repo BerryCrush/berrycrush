@@ -365,14 +365,14 @@ internal fun ParserState.parseExtractAction(): ExtractNode? {
     skipWhitespace()
 
     if (current().type != TokenType.JSON_PATH && current().type != TokenType.STRING) {
-        return addError("Expected JSON path")
+        return addError("Unexpected token ${current().value}", expected = "JSON Path")
     }
     val jsonPath = current().value
     advance()
     skipWhitespace()
 
     if (current().type != TokenType.ARROW) {
-        return addError("Expected '=>' or '->'")
+        return addError("Unexpected token ${current().value}", expected = "=>")
     }
     advance()
     skipWhitespace()
@@ -389,7 +389,7 @@ internal fun ParserState.parseExtractAction(): ExtractNode? {
         }
 
         else -> {
-            addError("Expected variable name")
+            addError("Unexpected token type ${current().type}", expected = "variable or identifier")
         }
     }
 }

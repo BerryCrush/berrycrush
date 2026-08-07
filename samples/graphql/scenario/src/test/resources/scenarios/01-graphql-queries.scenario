@@ -9,7 +9,6 @@
 # -----------------------------------------------------------------------------
 
 scenario: Query all books
-  description: Retrieve all books using a GraphQL query
   when: I query for all books
     call ^graphqlQuery
       body: {"query": "{ books { id title isbn pageCount } }"}
@@ -23,7 +22,6 @@ scenario: Query all books
 # -----------------------------------------------------------------------------
 
 scenario: Query book by ID
-  description: Retrieve a specific book using its ID
   when: I query for a book by ID
     call ^graphqlQuery
       body: {"query": "query GetBook($id: ID!) { bookById(id: $id) { id title isbn pageCount author { firstName lastName } } }", "variables": {"id": "1"}}
