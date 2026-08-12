@@ -402,7 +402,7 @@ internal fun ParserState.parseIncludeAction(): IncludeNode? {
     advance() // consume 'include'
     skipWhitespace()
 
-    if (current().type != TokenType.IDENTIFIER && current().type != TokenType.OPERATION_ID) {
+    if (current().type != TokenType.IDENTIFIER) {
         return addError("Expected fragment name")
     }
 

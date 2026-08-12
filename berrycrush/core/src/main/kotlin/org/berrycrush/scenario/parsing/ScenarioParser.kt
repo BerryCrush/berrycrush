@@ -485,4 +485,11 @@ internal fun ParserState.parseScenarioName(): String? {
 /**
  * Parse a fragment name (alias for parseScenarioName).
  */
-internal fun ParserState.parseFragmentName(): String? = parseScenarioName()
+internal fun ParserState.parseFragmentName(): String? =
+    if (current().type == TokenType.IDENTIFIER) {
+        val name = current().value
+        advance()
+        name
+    } else {
+        addError("Expected a fragment name")
+    }
