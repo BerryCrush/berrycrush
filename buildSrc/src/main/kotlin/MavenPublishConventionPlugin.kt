@@ -48,34 +48,63 @@ class MavenPublishConventionPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         with(project) {
             afterEvaluate {
-                val sourceSets = project.extensions.getByType<SourceSetContainer>()
-                // Create source and javadoc jars
-                val sourcesJar = tasks.register<Jar>("sourcesJar") {
-                    description = "source jar generation"
-                    archiveClassifier.set("sources")
-                    from(sourceSets.named("main").get().allSource)
-                }
-
-                val javadocJar = tasks.register<Jar>("javadocJar") {
-                    description = "javadoc jar generation"
-                    archiveClassifier.set("javadoc")
-                    val dokkaGeneratePublicationJavadoc = tasks.named("dokkaGeneratePublicationJavadoc")
-                    dependsOn(dokkaGeneratePublicationJavadoc)
-                    from(dokkaGeneratePublicationJavadoc.flatMap { (it as DokkaGeneratePublicationTask).outputDirectory })
-                }
-
                 // Ensure maven-publish is applied
                 if (!pluginManager.hasPlugin("maven-publish")) {
                     logger.warn("berrycrush.maven-publish: maven-publish plugin not applied, skipping configuration")
                     return@afterEvaluate
                 }
-                val publishing = project.extensions.getByType(PublishingExtension::class.java)
-                publishing.publications.withType<MavenPublication>().all {
-                    if (name != "mavenJava") return@all
 
-                    from(components["java"])
-                    artifact(sourcesJar.get())
-                    artifact(javadocJar.get())
+                val hasJavaComponent = components.findByName("java") != null
+                val sourcesJar = if (hasJavaComponent) {
+                    val sourceSets = project.extensions.getByType<SourceSetContainer>()
+                    tasks.register<Jar>("sourcesJar") {
+                        description = "source jar generation"
+                        archiveClassifier.set("sources")
+                        from(sourceSets.named("main").get().allSource)
+                    }
+                } else {
+                    null
+                }
+
+                val javadocJar = if (hasJavaComponent && tasks.names.contains("dokkaGeneratePublicationJavadoc")) {
+                    tasks.register<Jar>("javadocJar") {
+                        description = "javadoc jar generation"
+                        archiveClassifier.set("javadoc")
+                        val dokkaGeneratePublicationJavadoc = tasks.named("dokkaGeneratePublicationJavadoc")
+                        dependsOn(dokkaGeneratePublicationJavadoc)
+                        from(dokkaGeneratePublicationJavadoc.flatMap { (it as DokkaGeneratePublicationTask).outputDirectory })
+                    }
+                } else {
+                    null
+                }
+
+                val publishing = project.extensions.getByType(PublishingExtension::class.java)
+                publishing.repositories {
+                    maven {
+                        name = "local"
+                        url = layout.buildDirectory.dir("repo").get().asFile.toURI()
+                    }
+                    maven {
+                        name = "central"
+                        val isSnapshot = version.toString().endsWith("-SNAPSHOT")
+                        url = uri(
+                            if (isSnapshot) "https://central.sonatype.com/repository/maven-snapshots/"
+                            else "https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/"
+                        )
+                        credentials {
+                            username = System.getenv("MAVEN_USERNAME")
+                            password = System.getenv("MAVEN_PASSWORD")
+                        }
+                    }
+                }
+
+                publishing.publications.withType<MavenPublication>().all {
+                    if (name == "mavenJava" && hasJavaComponent) {
+                        from(components["java"])
+                        sourcesJar?.let { artifact(it.get()) }
+                        javadocJar?.let { artifact(it.get()) }
+                    }
+
                     pom {
                         url.set("https://github.com/ktakashi/berrycrush")
 
@@ -97,25 +126,6 @@ class MavenPublishConventionPlugin : Plugin<Project> {
                             connection.set("scm:git:git://github.com/ktakashi/berrycrush.git")
                             developerConnection.set("scm:git:ssh://github.com:ktakashi/berrycrush.git")
                             url.set("https://github.com/ktakashi/berrycrush/tree/main")
-                        }
-                    }
-
-                    repositories {
-                        maven {
-                            name = "local"
-                            url = layout.buildDirectory.dir("repo").get().asFile.toURI()
-                        }
-                        maven {
-                            name = "central"
-                            val isSnapshot = version.toString().endsWith("-SNAPSHOT")
-                            url = uri(
-                                if (isSnapshot) "https://central.sonatype.com/repository/maven-snapshots/"
-                                else "https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/"
-                            )
-                            credentials {
-                                username = System.getenv("MAVEN_USERNAME")
-                                password = System.getenv("MAVEN_PASSWORD")
-                            }
                         }
                     }
                 }
