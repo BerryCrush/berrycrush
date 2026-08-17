@@ -2,15 +2,9 @@ package org.berrycrush.step
 
 import org.berrycrush.scanner.AnnotationScanner
 import org.berrycrush.scanner.createInstance
-import org.berrycrush.scanner.forAllAnnotation
 import org.berrycrush.scanner.scanMethodAnnotations
 import org.berrycrush.util.StepDefinition
 import java.lang.reflect.Modifier
-import kotlin.reflect.KVisibility
-import kotlin.reflect.full.memberFunctions
-import kotlin.reflect.full.memberProperties
-import kotlin.reflect.jvm.isAccessible
-import kotlin.reflect.jvm.javaMethod
 
 /**
  * Scans classes for methods annotated with [@Step].
@@ -34,7 +28,7 @@ class AnnotationStepScanner : AnnotationScanner<StepDefinition> {
         return clazz.scanMethodAnnotations(Step::class) { method, annotation ->
             val isStatic = Modifier.isStatic(method.modifiers)
             StepDefinition(
-                pattern = annotation.pattern,
+                pattern = annotation.pattern.ifEmpty { annotation.value },
                 method = method,
                 instance = if (isStatic) null else actualInstance,
                 description = annotation.description,

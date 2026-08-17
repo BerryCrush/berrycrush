@@ -5,6 +5,7 @@ import org.berrycrush.junit.BerryCrushSpec
 import org.berrycrush.junit.BerryCrushSpecs
 import org.berrycrush.junit.ScenarioTest
 import org.berrycrush.junit.spi.BindingsProvider
+import org.berrycrush.junit.spi.RegistryProvider
 import org.junit.platform.engine.EngineDiscoveryRequest
 import org.junit.platform.engine.EngineExecutionListener
 import org.junit.platform.engine.ExecutionRequest
@@ -49,8 +50,15 @@ class BerryCrushTestEngine : TestEngine {
             .sortedByDescending { it.priority() }
     }
 
+    private val registryProviders: List<RegistryProvider> by lazy {
+        ServiceLoader
+            .load(RegistryProvider::class.java)
+            .toList()
+            .sortedByDescending { it.priority() }
+    }
+
     private val executor: ScenarioTestExecutor by lazy {
-        ScenarioTestExecutor(bindingsProviders)
+        ScenarioTestExecutor(bindingsProviders, registryProviders)
     }
 
     /**

@@ -125,4 +125,4 @@ scenario: Search products by name
       search: "Laptop"
   then: I receive matching products
     assert status 200
-    # May be empty if no matching products exist
+  and check name "product" and price 10

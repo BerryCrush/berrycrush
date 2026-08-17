@@ -26,7 +26,7 @@ class AnnotationAssertionScanner : AnnotationScanner<AssertionDefinition> {
 
         return clazz.scanMethodAnnotations(Assertion::class) { method, annotation ->
             AssertionDefinition(
-                pattern = annotation.pattern,
+                pattern = annotation.pattern.ifEmpty { annotation.value },
                 method = method,
                 instance = if (Modifier.isStatic(method.modifiers)) null else actualInstance,
                 description = annotation.description,

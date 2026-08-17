@@ -12,6 +12,8 @@ import org.berrycrush.junit.binding.OpenApiSpecValue
 import org.berrycrush.junit.discovery.FragmentDiscovery
 import org.berrycrush.junit.engine.context.TestExecutionContext
 import org.berrycrush.junit.spi.BindingsProvider
+import org.berrycrush.junit.spi.Provider
+import org.berrycrush.junit.spi.RegistryProvider
 import org.berrycrush.model.FragmentRegistry
 import org.berrycrush.plugin.PluginRegistry
 import org.berrycrush.runner.ScenarioRunner
@@ -42,6 +44,7 @@ import kotlin.reflect.full.findAnnotation
  */
 class ScenarioTestExecutor(
     private val bindingsProviders: List<BindingsProvider>,
+    private val registryProviders: List<RegistryProvider>,
 ) {
     /**
      * Execute all tests for a class descriptor.
@@ -60,26 +63,27 @@ class ScenarioTestExecutor(
         listener: EngineExecutionListener,
         filters: ScenarioFilters = ScenarioFilters.EMPTY,
     ) {
-        val provider = findBindingsProvider(classDescriptor.testClass)
-
+        val provider = bindingsProviders.findProvider(classDescriptor.testClass)
+        val registryProvider = registryProviders.findProvider(classDescriptor.testClass)
         try {
             provider?.initialize(classDescriptor.testClass.java)
-            executeWithContext(classDescriptor, listener, provider)
+            registryProvider?.initialize(classDescriptor.testClass.java)
+            executeWithContext(classDescriptor, listener, provider, registryProvider)
         } finally {
             runCatching { provider?.cleanup(classDescriptor.testClass.java) }
                 .onFailure { logger.log(Level.WARNING, it) { "BindingsProvider cleanup failed: ${it.message}" } }
         }
     }
 
-    private fun findBindingsProvider(testClass: KClass<*>): BindingsProvider? =
-        bindingsProviders.firstOrNull { it.supports(testClass.java) }
+    private fun <T : Provider> List<T>.findProvider(testClass: KClass<*>): T? = this.firstOrNull { it.supports(testClass.java) }
 
     private fun executeWithContext(
         classDescriptor: ClassTestDescriptor,
         listener: EngineExecutionListener,
         provider: BindingsProvider?,
+        registryProvider: RegistryProvider?,
     ) {
-        val context = buildExecutionContext(classDescriptor, provider)
+        val context = buildExecutionContext(classDescriptor, provider, registryProvider)
 
         context.beginExecution()
         try {
@@ -95,6 +99,7 @@ class ScenarioTestExecutor(
     private fun buildExecutionContext(
         classDescriptor: ClassTestDescriptor,
         provider: BindingsProvider?,
+        registryProvider: RegistryProvider?,
     ): TestExecutionContext {
         val suite = BerryCrushSuite.create()
         val bindings = createBindings(classDescriptor, provider)
@@ -103,8 +108,8 @@ class ScenarioTestExecutor(
 
         val pluginRegistry = createPluginRegistry(classDescriptor)
         val fragmentRegistry = loadFragments(classDescriptor)
-        val stepRegistry = createStepRegistry(classDescriptor)
-        val assertionRegistry = createAssertionRegistry(classDescriptor)
+        val stepRegistry = createStepRegistry(classDescriptor, registryProvider)
+        val assertionRegistry = createAssertionRegistry(classDescriptor, registryProvider)
         val configuration = BerryCrushConfigurationProvider.from(suite.configuration)
         val runner =
             ScenarioRunner(
@@ -307,15 +312,23 @@ class ScenarioTestExecutor(
      * Creates a StepRegistry with step definitions from @BerryCrushConfiguration.stepClasses.
      * Returns null if no step classes are configured.
      */
-    private fun createStepRegistry(classDescriptor: ClassTestDescriptor): StepRegistry? =
-        RegistryFactory.createStepRegistry(classDescriptor.testClass.java)
+    private fun createStepRegistry(
+        classDescriptor: ClassTestDescriptor,
+        registryProvider: RegistryProvider?,
+    ): StepRegistry? =
+        registryProvider?.createStepRegistry(classDescriptor.testClass.java)
+            ?: RegistryFactory.createStepRegistry(classDescriptor.testClass.java)
 
     /**
      * Creates an AssertionRegistry with assertion definitions from @BerryCrushConfiguration.assertionClasses.
      * Returns null if no assertion classes are configured.
      */
-    private fun createAssertionRegistry(classDescriptor: ClassTestDescriptor): AssertionRegistry? =
-        RegistryFactory.createAssertionRegistry(classDescriptor.testClass.java)
+    private fun createAssertionRegistry(
+        classDescriptor: ClassTestDescriptor,
+        registryProvider: RegistryProvider?,
+    ): AssertionRegistry? =
+        registryProvider?.createAssertionRegistry(classDescriptor.testClass.java)
+            ?: RegistryFactory.createAssertionRegistry(classDescriptor.testClass.java)
 
     companion object {
         private const val CLASSPATH_PREFIX = "classpath:"

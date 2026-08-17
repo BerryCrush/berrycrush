@@ -1,8 +1,11 @@
 package org.berrycrush.spring
 
+import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.exception.ConfigurationException
 import org.berrycrush.junit.BerryCrushBindings
 import org.berrycrush.junit.spi.BindingsProvider
+import org.berrycrush.junit.spi.RegistryProvider
+import org.berrycrush.util.StepRegistry
 import org.springframework.boot.test.context.SpringBootTest
 import java.util.concurrent.ConcurrentHashMap
 
@@ -21,7 +24,9 @@ import java.util.concurrent.ConcurrentHashMap
  * The provider is automatically discovered via ServiceLoader when the
  * berrycrush-spring module is on the classpath.
  */
-class SpringBindingsProvider : BindingsProvider {
+class SpringBindingsProvider :
+    BindingsProvider,
+    RegistryProvider {
     /**
      * Cache of SpringContextAdapter instances per test class.
      * This enables context reuse within a single test class execution.
@@ -79,12 +84,7 @@ class SpringBindingsProvider : BindingsProvider {
         testClass: Class<*>,
         bindingsClass: Class<out BerryCrushBindings>,
     ): BerryCrushBindings {
-        val adapter =
-            contextAdapters[testClass]
-                ?: throw ConfigurationException(
-                    "Spring context not initialized for test class: ${testClass.name}. " +
-                        "Ensure initialize() was called before createBindings().",
-                )
+        val adapter = getAdapter(testClass, "createBindings")
 
         // Try to get from Spring context first, fall back to direct instantiation
         return adapter.getBeanOrNull(bindingsClass)
@@ -103,14 +103,18 @@ class SpringBindingsProvider : BindingsProvider {
      * @throws ConfigurationException if context not initialized
      */
     override fun createTestInstance(testClass: Class<*>): Any {
-        val adapter =
-            contextAdapters[testClass]
-                ?: throw ConfigurationException(
-                    "Spring context not initialized for test class: ${testClass.name}. " +
-                        "Ensure initialize() was called before createTestInstance().",
-                )
-
+        val adapter = getAdapter(testClass, "createTestInstance")
         return adapter.getTestInstance()
+    }
+
+    override fun createAssertionRegistry(testClass: Class<*>): AssertionRegistry? {
+        val adapter = getAdapter(testClass, "createAssertionRegistry")
+        return adapter.getBeanOrNull(AssertionRegistry::class.java)
+    }
+
+    override fun createStepRegistry(testClass: Class<*>): StepRegistry? {
+        val adapter = getAdapter(testClass, "createStepRegistry")
+        return adapter.getBeanOrNull(StepRegistry::class.java)
     }
 
     /**
@@ -123,4 +127,14 @@ class SpringBindingsProvider : BindingsProvider {
     override fun cleanup(testClass: Class<*>) {
         contextAdapters.remove(testClass)?.cleanup()
     }
+
+    private fun getAdapter(
+        testClass: Class<*>,
+        methodName: String,
+    ): SpringContextAdapter =
+        contextAdapters[testClass]
+            ?: throw ConfigurationException(
+                "Spring context not initialized for test class: ${testClass.name}. " +
+                    "Ensure initialize() was called before $methodName().",
+            )
 }

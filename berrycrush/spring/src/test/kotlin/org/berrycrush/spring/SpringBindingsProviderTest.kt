@@ -64,6 +64,11 @@ class SpringBindingsProviderTest {
         assertNotNull(bindingsMap["baseUrl"])
         assertTrue((bindingsMap["baseUrl"] as String).startsWith("http://localhost:"))
 
+        val stepRegistry = provider.createStepRegistry(ValidTestClass::class.java)
+        assertNotNull(stepRegistry)
+        val assertionRegistry = provider.createAssertionRegistry(ValidTestClass::class.java)
+        assertNotNull(assertionRegistry)
+
         // Cleanup
         provider.cleanup(ValidTestClass::class.java)
     }

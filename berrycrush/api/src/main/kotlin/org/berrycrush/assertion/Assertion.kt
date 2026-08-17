@@ -52,6 +52,7 @@ package org.berrycrush.assertion
 @MustBeDocumented
 @Repeatable
 annotation class Assertion(
-    val pattern: String,
+    val value: String = "",
+    val pattern: String = "",
     val description: String = "",
 )
