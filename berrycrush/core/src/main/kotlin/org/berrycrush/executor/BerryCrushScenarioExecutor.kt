@@ -126,7 +126,7 @@ class BerryCrushScenarioExecutor(
             // Store scenario parameters in context for variable resolution
             setupParameters(scenario.parameters, context)
 
-            val scenarioContext = ScenarioContextAdapter(scenario, ExecutionContextAdapter(context), startTime, sourceFile)
+            val scenarioContext = ScenarioContextAdapter(scenario, ExecutionContextAdapter(context), startTime, configuration, sourceFile)
 
             pluginRegistry?.dispatchScenarioStart(scenarioContext)
             val stepResults = stepExecutor.execute(scenario, scenarioContext, listener)

@@ -1,7 +1,7 @@
 package org.berrycrush.runner
 
 import org.berrycrush.assertion.AssertionRegistry
-import org.berrycrush.config.BerryCrushConfiguration
+import org.berrycrush.configuration.Configuration
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.BerryCrushExecutionListener
@@ -114,7 +114,7 @@ class ScenarioRunner(
 
     /**
      * Shared execution context for cross-scenario variable sharing.
-     * Only used when [BerryCrushConfiguration.shareVariablesAcrossScenarios] is true.
+     * Only used when [Configuration.shareVariablesAcrossScenarios] is true.
      */
     private var sharedContext: ExecutionContext? = null
 
@@ -171,7 +171,7 @@ class ScenarioRunner(
      * Note: This does NOT invoke lifecycle start/end hooks. Use [beginExecution]
      * before first scenario and [endExecution] after last scenario.
      *
-     * When cross-scenario variable sharing is enabled via [BerryCrushConfiguration.shareVariablesAcrossScenarios],
+     * When cross-scenario variable sharing is enabled via [Configuration.shareVariablesAcrossScenarios],
      * variables extracted in this scenario will be available to subsequent scenarios.
      *
      * @param scenario Scenario to execute

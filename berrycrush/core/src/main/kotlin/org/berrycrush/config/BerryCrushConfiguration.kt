@@ -4,6 +4,7 @@ import org.berrycrush.exception.ErrorContextConfig
 import org.berrycrush.logging.HttpLogFormatter
 import org.berrycrush.logging.HttpLogger
 import java.time.Duration
+import org.berrycrush.configuration.Configuration as ApiConfiguration
 
 private const val DEFAULT_TIMEOUT_SECONDS = 30L
 private const val DEFAULT_MAX_ERROR_BODY_SIZE = 4096
@@ -30,8 +31,8 @@ private const val ALIAS_MARKER = "alias."
  * @property errorContextConfig Configuration for error context in exception messages
  */
 data class BerryCrushConfiguration(
-    var timeout: Duration = Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS),
-    val defaultHeaders: MutableMap<String, String> = mutableMapOf(),
+    override var timeout: Duration = Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS),
+    override val defaultHeaders: MutableMap<String, String> = mutableMapOf(),
     var environment: String? = null,
     var autoAssertions: AutoAssertionConfig = AutoAssertionConfig(),
     var strictSchemaValidation: Boolean = false,
@@ -82,8 +83,8 @@ data class BerryCrushConfiguration(
      * @see RetryConfig
      */
     var retryConfig: RetryConfig = RetryConfig.DISABLED,
-    var bindings: MutableMap<String, BindingConfig> = mutableMapOf(),
-) {
+    override var bindings: MutableMap<String, BindingConfig> = mutableMapOf(),
+) : ApiConfiguration {
     var baseUrl: String?
         get() = bindings[BindingConfig.DEFAULT_BINDING_NAME]?.baseUrl
         set(value) {

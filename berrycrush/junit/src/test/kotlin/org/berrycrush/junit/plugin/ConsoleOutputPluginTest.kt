@@ -1,5 +1,6 @@
 package org.berrycrush.junit.plugin
 
+import org.berrycrush.configuration.Configuration
 import org.berrycrush.model.HttpResponse
 import org.berrycrush.plugin.AssertionFailure
 import org.berrycrush.plugin.ExecutionContext
@@ -211,6 +212,8 @@ class ConsoleOutputPluginTest {
                 get() = TODO("Not yet implemented")
             override val operations: List<StepOperation>
                 get() = listOf()
+            override val configuration: Configuration
+                get() = TODO("Not yet implemented")
         }
 
     private fun testStepContext(
@@ -238,6 +241,8 @@ class ConsoleOutputPluginTest {
             override val responseTime: Duration? = null
             override val operation: StepOperation?
                 get() = null
+            override val configuration: Configuration
+                get() = scenarioContext.configuration
         }
 
     private fun testStepContextWithoutResponse(
@@ -255,6 +260,8 @@ class ConsoleOutputPluginTest {
             override val responseTime: Duration? = null
             override val operation: StepOperation?
                 get() = null
+            override val configuration: Configuration
+                get() = scenarioContext.configuration
         }
 
     private fun testStepResult(
