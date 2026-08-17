@@ -2,6 +2,7 @@ package org.berrycrush.scenario.parsing
 
 import org.berrycrush.scenario.ExampleRowNode
 import org.berrycrush.scenario.ParserState
+import org.berrycrush.scenario.StringValueNode
 import org.berrycrush.scenario.TokenType
 import org.berrycrush.scenario.ValueNode
 
@@ -96,16 +97,17 @@ internal fun ParserState.parseExampleRow(headers: List<String>): ExampleRowNode?
     var columnIndex = 0
     while (!isAtEnd() && current().type != TokenType.NEWLINE) {
         when (current().type) {
-            TokenType.PIPE -> {
+            TokenType.PIPE, TokenType.DEDENT -> {
                 advance()
             }
 
             else -> {
-                val value = parseValue()
-                if (value != null && columnIndex < headers.size) {
+                val value = parseExampleValue()
+                if (columnIndex < headers.size) {
                     values[headers[columnIndex]] = value
                     columnIndex++
                 } else {
+                    addError<Unit>("Too many values in row")
                     advance()
                 }
             }
@@ -119,4 +121,15 @@ internal fun ParserState.parseExampleRow(headers: List<String>): ExampleRowNode?
     } else {
         null
     }
+}
+
+private fun ParserState.parseExampleValue(): ValueNode {
+    fun check(type: TokenType) = type != TokenType.PIPE && type != TokenType.NEWLINE
+    val builder = StringBuilder()
+    val loc = currentLocation()
+    while (!isAtEnd() && check(current().type)) {
+        builder.append(current().value)
+        advance()
+    }
+    return StringValueNode(builder.toString(), loc)
 }
