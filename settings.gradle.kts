@@ -1,21 +1,21 @@
 pluginManagement {
-	repositories {
-		gradlePluginPortal()
-		mavenCentral()
-	}
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
 }
 
 plugins {
-	id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
-	id("com.gradle.develocity") version "4.0.2"
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+    id("com.gradle.develocity") version "4.0.2"
 }
 
 develocity {
-	buildScan {
-		termsOfUseUrl = "https://gradle.com/help/legal-terms-of-use"
-		termsOfUseAgree = "yes"
-		publishing.onlyIf { System.getenv("CI") != null }
-	}
+    buildScan {
+        termsOfUseUrl = "https://gradle.com/help/legal-terms-of-use"
+        termsOfUseAgree = "yes"
+        publishing.onlyIf { System.getenv("CI") != null }
+    }
 }
 
 rootProject.name = "berrycrush"
@@ -33,6 +33,7 @@ include("samples:petstore:scenario")
 include("samples:petstore:kotlin-dsl")
 include("samples:tictactoe:app")
 include("samples:tictactoe:scenario")
+include("samples:tictactoe:test")
 
 // Additional sample projects
 include("samples:webflux:app")
@@ -44,3 +45,5 @@ include("samples:grpc-gateway:app")
 include("samples:grpc-gateway:scenario")
 include("samples:graphql:app")
 include("samples:graphql:scenario")
+
+include("samples:tictactoe:test")

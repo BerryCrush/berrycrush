@@ -1,0 +1,5 @@
+fragment: setup-webhook
+  given: Webhook server is listening for move status
+    webhook: gameEvents
+      port: 0
+      hook: statusCallback

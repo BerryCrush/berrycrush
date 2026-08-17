@@ -14,7 +14,9 @@ import org.junit.platform.engine.UniqueId
 import org.junit.platform.engine.support.descriptor.AbstractTestDescriptor
 import org.junit.platform.engine.support.descriptor.EngineDescriptor
 import java.io.File
+import java.net.URI
 import java.net.URL
+import java.nio.file.FileSystems
 import java.nio.file.Paths
 import kotlin.reflect.KClass
 import kotlin.reflect.full.findAnnotation
@@ -30,6 +32,7 @@ import kotlin.reflect.jvm.jvmName
  * - Building the test descriptor hierarchy (Class -> File -> Feature -> Scenario)
  * - Applying filters from system properties
  */
+@Suppress("TooManyFunctions")
 object ScenarioTestDiscoverer {
     /**
      * Discovers scenarios for a test class and adds them to the engine descriptor.
@@ -229,7 +232,21 @@ object ScenarioTestDiscoverer {
         return featureDescriptor
     }
 
-    fun loadScenarioFromUrl(url: URL): ScenarioFileContent = ScenarioLoader.loadFileContent(Paths.get(url.toURI()))
+    fun loadScenarioFromUrl(url: URL): ScenarioFileContent = loadScenarioFromUri(url.toURI())
+
+    fun loadScenarioFromUri(uri: URI): ScenarioFileContent =
+        when (uri.scheme) {
+            "jar" -> {
+                FileSystems.newFileSystem(uri, emptyMap<String, Any>()).use { fs ->
+                    // format jar:file:/.../foo.jar!/path/to/file.scenario
+                    ScenarioLoader.loadFileContent(fs.getPath(uri.schemeSpecificPart.takeLastWhile { c -> c != '!' }))
+                }
+            }
+
+            else -> {
+                ScenarioLoader.loadFileContent(Paths.get(uri))
+            }
+        }
 }
 
 /**
@@ -238,12 +255,16 @@ object ScenarioTestDiscoverer {
  * @return File if the URL is a file:// URL and the file exists, null otherwise
  */
 private fun URL.toFileOrNull(): File? =
-    if (protocol == "file") {
-        runCatching { File(toURI()) }
-            .getOrNull()
-            ?.takeIf { it.exists() }
-    } else {
-        null
+    when (protocol) {
+        "file", "jar" -> {
+            runCatching { File(toURI()) }
+                .getOrNull()
+                ?.takeIf { it.exists() }
+        }
+
+        else -> {
+            null
+        }
     }
 
 private fun EngineDescriptor.alreadyDiscovered(testClass: KClass<*>): Boolean =

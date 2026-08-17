@@ -23,10 +23,10 @@ class DefaultStepRegistry : StepRegistry {
     }
 
     override fun findMatch(stepText: String): StepMatch? {
-        for (registered in definitions) {
-            val parameters = matcher.match(stepText, registered.compiled)
+        for ((definition, compiled) in definitions) {
+            val parameters = matcher.match(stepText, compiled)
             if (parameters != null) {
-                return StepMatch(registered.definition, parameters)
+                return StepMatch(definition, parameters)
             }
         }
         return null
