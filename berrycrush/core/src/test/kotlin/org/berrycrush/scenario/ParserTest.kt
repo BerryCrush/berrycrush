@@ -2859,4 +2859,44 @@ class ParserTest {
 
         assertFalse(result.isSuccess, "Parse should not succeed: ${result.errors}")
     }
+
+    @Test
+    fun `should parse one example cells`() {
+        val source =
+            """
+            outline: foo
+              examples:
+              | name       |
+              | /api/name  |
+              | /api/name2 |
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess)
+        val name =
+            result.ast
+                ?.scenarios
+                ?.get(0)
+                ?.examples
+                ?.get(0)
+                ?.values
+                ?.get("name") as StringValueNode?
+        assertEquals("/api/name", name?.value)
+    }
+
+    @Test
+    fun `should report error on too many value row`() {
+        val source =
+            """
+            outline: foo
+              examples:
+              | name       |
+              | /api/name  | invalid |
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertFalse(result.isSuccess)
+    }
 }
