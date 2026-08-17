@@ -23,7 +23,10 @@ import org.springframework.boot.test.context.SpringBootTest
     classes = [TicTacToeApplication::class],
 )
 @BerryCrushContextConfiguration
-@BerryCrushScenarios(locations = ["scenarios/*.scenario"])
+@BerryCrushScenarios(
+    locations = ["scenarios/*.scenario"],
+    fragments = ["fragments/*.fragment"],
+)
 @BerryCrushConfiguration(
     bindings = TicTacToeBindings::class,
     plugins = ["report:console"],
