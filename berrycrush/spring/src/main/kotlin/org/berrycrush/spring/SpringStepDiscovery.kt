@@ -1,5 +1,11 @@
 package org.berrycrush.spring
 
+import org.berrycrush.assertion.AnnotationAssertionScanner
+import org.berrycrush.assertion.Assertion
+import org.berrycrush.assertion.AssertionDefinition
+import org.berrycrush.assertion.AssertionRegistry
+import org.berrycrush.assertion.DefaultAssertionRegistry
+import org.berrycrush.scanner.AnnotationScanner
 import org.berrycrush.step.AnnotationStepScanner
 import org.berrycrush.step.DefaultStepRegistry
 import org.berrycrush.step.Step
@@ -40,7 +46,8 @@ import org.springframework.context.annotation.Configuration
  */
 @Configuration
 class SpringStepDiscovery {
-    private val annotationScanner = AnnotationStepScanner()
+    private val annotationStepScanner = AnnotationStepScanner()
+    private val annotationAssertionScanner = AnnotationAssertionScanner()
 
     /**
      * Creates a StepRegistry bean populated with all step definitions
@@ -57,6 +64,14 @@ class SpringStepDiscovery {
         return registry
     }
 
+    @Bean
+    fun assertionRegistry(context: ApplicationContext): AssertionRegistry {
+        val registry = DefaultAssertionRegistry()
+        val definitions = discoverAssertions(context)
+        registry.registerAll(definitions)
+        return registry
+    }
+
     /**
      * Discovers all step definitions from Spring-managed beans.
      *
@@ -66,14 +81,24 @@ class SpringStepDiscovery {
      * @param context The Spring ApplicationContext
      * @return List of discovered StepDefinitions
      */
-    fun discoverSteps(context: ApplicationContext): List<StepDefinition> =
+    private fun discoverSteps(context: ApplicationContext): List<StepDefinition> =
+        discover(context, Step::class.java, annotationStepScanner)
+
+    private fun discoverAssertions(context: ApplicationContext): List<AssertionDefinition> =
+        discover(context, Assertion::class.java, annotationAssertionScanner)
+
+    private inline fun <reified T, A : Annotation> discover(
+        context: ApplicationContext,
+        annotationClass: Class<A>,
+        scanner: AnnotationScanner<T>,
+    ): List<T> =
         context.beanDefinitionNames
             .mapNotNull { beanName ->
                 runCatching {
                     val bean = context.getBean(beanName)
                     val beanClass = bean.javaClass
-                    val hasStepMethods = beanClass.declaredMethods.any { it.isAnnotationPresent(Step::class.java) }
-                    if (hasStepMethods) annotationScanner.scan(beanClass, bean) else null
+                    val hasAnnotatedMethods = beanClass.declaredMethods.any { it.isAnnotationPresent(annotationClass) }
+                    if (hasAnnotatedMethods) scanner.scan(beanClass, bean) else null
                 }.getOrNull()
             }.flatten()
 }

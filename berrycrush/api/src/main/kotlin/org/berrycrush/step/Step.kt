@@ -39,6 +39,7 @@ package org.berrycrush.step
 @MustBeDocumented
 @Repeatable
 annotation class Step(
-    val pattern: String,
+    val value: String = "",
+    val pattern: String = "",
     val description: String = "",
 )

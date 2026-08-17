@@ -77,6 +77,34 @@ class SpringBindingsProviderErrorTest {
         )
     }
 
+    @Test
+    fun `createAssertionRegistry throws error when context not initialized`() {
+        // Try to create bindings without initializing first
+        val exception =
+            assertThrows<ConfigurationException> {
+                provider.createAssertionRegistry(MissingSpringBootTestClass::class.java)
+            }
+
+        assertTrue(
+            exception.message!!.contains("not initialized"),
+            "Error should indicate context is not initialized",
+        )
+    }
+
+    @Test
+    fun `createStepRegistry throws error when context not initialized`() {
+        // Try to create bindings without initializing first
+        val exception =
+            assertThrows<ConfigurationException> {
+                provider.createStepRegistry(MissingSpringBootTestClass::class.java)
+            }
+
+        assertTrue(
+            exception.message!!.contains("not initialized"),
+            "Error should indicate context is not initialized",
+        )
+    }
+
     // Test fixtures
 
     @SpringBootApplication(exclude = [DataSourceAutoConfiguration::class])
