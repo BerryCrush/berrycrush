@@ -23,9 +23,6 @@ class ScenarioContextAdapter(
     private val sourceFile: File? = null,
     private val scenarioMetadata: Map<String, String> = emptyMap(),
 ) : ScenarioContext {
-    private val mutableAudits = mutableListOf<ScenarioContext.HttpAudit>()
-    private val mutableOperations = mutableListOf<StepOperation>()
-
     override val scenarioName: String
         get() = scenario.name
 
@@ -42,20 +39,20 @@ class ScenarioContextAdapter(
         get() = scenario.tags
 
     override val audits: List<ScenarioContext.HttpAudit>
-        get() = mutableAudits
+        field = mutableListOf<ScenarioContext.HttpAudit>()
 
     override val operations: List<StepOperation>
-        get() = mutableOperations
+        field = mutableListOf<StepOperation>()
 
     fun addAudit(
         request: HttpRequest,
         response: HttpResponse,
     ) {
-        mutableAudits.add(ScenarioContext.HttpAudit(request, response))
+        audits.add(ScenarioContext.HttpAudit(request, response))
     }
 
     fun addOperation(operation: ResolvedOperation) {
-        mutableOperations.add(StepOperationAdapter(operation))
+        operations.add(StepOperationAdapter(operation))
     }
 }
 
