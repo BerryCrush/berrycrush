@@ -1,5 +1,6 @@
 package org.berrycrush.util
 
+import org.berrycrush.configuration.Configuration
 import org.berrycrush.model.HttpRequest
 import org.berrycrush.model.HttpResponse
 import org.berrycrush.plugin.ExecutionContext
@@ -34,6 +35,8 @@ fun createStepContext(context: ExecutionContext = ExecutionContextAdapter(CoreEx
                     get() = context
                 override val operations: List<StepOperation>
                     get() = listOf()
+                override val configuration: Configuration
+                    get() = TODO("Not yet implemented")
             }
         override val stepDescription: String
             get() = TODO("Not yet implemented")
@@ -52,4 +55,6 @@ fun createStepContext(context: ExecutionContext = ExecutionContextAdapter(CoreEx
             get() = TODO("Not yet implemented")
         override val operation: StepOperation?
             get() = null
+        override val configuration: Configuration
+            get() = dummyScenarioContext.configuration
     }

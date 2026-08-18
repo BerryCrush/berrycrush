@@ -1,5 +1,6 @@
 package org.berrycrush.plugin.adapter
 
+import org.berrycrush.configuration.Configuration
 import org.berrycrush.model.HttpRequest
 import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.Scenario
@@ -20,6 +21,7 @@ class ScenarioContextAdapter(
     private val scenario: Scenario,
     override val executionContext: ExecutionContext,
     override val startTime: Instant,
+    override val configuration: Configuration,
     private val sourceFile: File? = null,
     private val scenarioMetadata: Map<String, String> = emptyMap(),
 ) : ScenarioContext {

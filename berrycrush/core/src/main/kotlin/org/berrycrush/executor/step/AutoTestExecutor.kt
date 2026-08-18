@@ -6,6 +6,7 @@ import org.berrycrush.autotest.MultiTestResult
 import org.berrycrush.autotest.RequestResult
 import org.berrycrush.autotest.provider.AutoTestProviderRegistry
 import org.berrycrush.autotest.provider.MultiTestProvider
+import org.berrycrush.config.BindingConfig
 import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.BerryCrushExecutionListener
 import org.berrycrush.executor.http.HttpExecutor

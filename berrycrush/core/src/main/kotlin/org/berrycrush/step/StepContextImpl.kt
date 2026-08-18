@@ -1,5 +1,6 @@
 package org.berrycrush.step
 
+import org.berrycrush.configuration.Configuration
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.model.HttpResponse
 
@@ -67,4 +68,7 @@ class StepContextImpl(
 
     override val lastResponse: HttpResponse?
         get() = stepContext.response
+
+    override val configuration: Configuration
+        get() = stepContext.configuration
 }

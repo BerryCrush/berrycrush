@@ -1,6 +1,5 @@
 package org.berrycrush.executor.assertion
 
-import org.berrycrush.config.BerryCrushConfiguration
 import org.berrycrush.model.Condition
 import org.berrycrush.model.ConditionOperator
 import org.berrycrush.model.HttpResponse

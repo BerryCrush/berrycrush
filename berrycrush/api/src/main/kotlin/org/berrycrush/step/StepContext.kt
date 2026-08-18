@@ -1,5 +1,6 @@
 package org.berrycrush.step
 
+import org.berrycrush.configuration.Configuration
 import org.berrycrush.model.HttpResponse
 
 /**
@@ -98,6 +99,11 @@ interface StepContext {
      * or if the step is executed before any API calls.
      */
     val lastResponse: HttpResponse?
+
+    /**
+     * The current BerryCrush configuration.
+     */
+    val configuration: Configuration
 }
 
 /**

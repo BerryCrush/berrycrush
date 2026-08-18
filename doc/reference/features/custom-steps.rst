@@ -224,7 +224,7 @@ The ``StepContext`` interface provides the following methods and properties:
 
 **Configuration**
 
-* ``configuration: BerryCrushConfiguration`` - The current execution configuration
+* ``configuration: Configuration`` - The current execution configuration
 
 Variable Scopes
 ^^^^^^^^^^^^^^^

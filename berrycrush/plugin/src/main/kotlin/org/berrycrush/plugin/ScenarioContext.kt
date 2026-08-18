@@ -1,5 +1,6 @@
 package org.berrycrush.plugin
 
+import org.berrycrush.configuration.Configuration
 import org.berrycrush.model.HttpRequest
 import org.berrycrush.model.HttpResponse
 import java.nio.file.Path
@@ -28,6 +29,7 @@ interface ScenarioContext {
     val audits: List<HttpAudit>
     val executionContext: ExecutionContext
     val operations: List<StepOperation>
+    val configuration: Configuration
 
     data class HttpAudit(
         val request: HttpRequest,

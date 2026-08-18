@@ -1,5 +1,6 @@
 package org.berrycrush.assertion
 
+import org.berrycrush.configuration.Configuration
 import org.berrycrush.model.HttpResponse
 import org.berrycrush.plugin.StepContext
 
@@ -20,4 +21,7 @@ class AssertionContextImpl(
 
     override val lastResponse: HttpResponse?
         get() = stepContext.response
+
+    override val configuration: Configuration
+        get() = stepContext.configuration
 }

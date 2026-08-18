@@ -1,5 +1,6 @@
 package org.berrycrush.executor.http
 
+import org.berrycrush.config.BindingConfig
 import org.berrycrush.exception.HttpExecutionException
 import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.HttpRequestBuilder
