@@ -203,8 +203,15 @@ class ScenarioTestExecutor(
         resolvedPath: String,
         value: String?,
     ) {
+        val baseURL = value.takeIf { it?.isNotBlank() ?: false }
+        baseURL?.let {
+            configuration.binding(name) {
+                baseUrl(baseURL)
+                location(resolvedPath)
+            }
+        }
         specRegistry.register(name, resolvedPath) {
-            value.takeIf { it?.isNotBlank() ?: false }?.let { baseUrl = it }
+            baseURL?.let { baseUrl = it }
         }
     }
 

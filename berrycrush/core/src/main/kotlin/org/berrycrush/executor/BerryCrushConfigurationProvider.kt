@@ -45,6 +45,10 @@ interface BerryCrushConfigurationProvider : ApiConfiguration {
         block: () -> R,
     ): R
 
+    fun toParameterMap(): Map<String, Any>
+
+    fun resolveReference(resolver: (Any) -> Any)
+
     companion object {
         fun from(configuration: BerryCrushConfiguration): BerryCrushConfigurationProvider = BerryCrushConfigurationWrapper(configuration)
     }
@@ -98,4 +102,8 @@ private class BerryCrushConfigurationWrapper(
             configuration = savedConfiguration
         }
     }
+
+    override fun toParameterMap(): Map<String, Any> = configuration.toParameterMap()
+
+    override fun resolveReference(resolver: (Any) -> Any) = configuration.resolveReference(resolver)
 }

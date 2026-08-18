@@ -14,6 +14,20 @@ parameters:
   autoAssertions.enabled: false
 #   spec: "petstore-31.yaml"
 
+outline: Parameterized OpenAPI 3.1 test with different specs
+  parameters:
+    binding.openApi:
+      baseUrl: "{{param.binding.default.baseUrl}}"
+      location: "classpath:{{location}}"
+      alias:
+        listPets: "{{endpoint}}"
+  when: I list all pets
+    call using openApi ^listPets
+    assert status 200
+  examples:
+    | prefix  | location          | endpoint    |
+    | /api/v2 | /petstore-31.yaml | "GET /pets" |
+    | /api/v1 | /petstore.yaml    | "GET /pets" |
 # -----------------------------------------------------------------------------
 # Nullable Fields with Array Type Syntax
 # -----------------------------------------------------------------------------

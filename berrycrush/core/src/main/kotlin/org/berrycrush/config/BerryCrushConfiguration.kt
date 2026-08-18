@@ -133,6 +133,14 @@ data class BerryCrushConfiguration(
         retryConfig = RetryConfigBuilder(retryConfig).apply(block).build()
     }
 
+    fun binding(
+        name: String,
+        block: BindingConfig.Builder.() -> Unit,
+    ) {
+        val current = bindings[name]?.toBuilder() ?: BindingConfig.builder(name)
+        bindings[name] = current.apply(block).build()
+    }
+
     /**
      * Create a copy of this configuration with parameters applied.
      *
@@ -175,6 +183,46 @@ data class BerryCrushConfiguration(
         }
 
         return copy
+    }
+
+    fun resolveReference(resolver: (Any) -> Any) {
+        toParameterMap().forEach { (name, value) ->
+            applyParameter(name, resolver(value))
+        }
+    }
+
+    fun toParameterMap(): Map<String, Any> {
+        val map = mutableMapOf<String, Any>()
+        baseUrl?.let { map["baseUrl"] = it }
+        map["timeout"] = timeout
+        environment?.let { map["environment"] = it }
+        map["strictSchemaValidation"] = strictSchemaValidation
+        map["followRedirects"] = followRedirects
+        map["logRequests"] = logRequests
+        map["logResponses"] = logResponses
+        map["shareVariablesAcrossScenarios"] = shareVariablesAcrossScenarios
+        map["multiTestSequentialCount"] = multiTestConfig["sequential.count"] ?: MULTI_TEST_DEFAULT_SEQUENTIAL_COUNT
+        map["multiTestConcurrentCount"] = multiTestConfig["concurrent.count"] ?: MULTI_TEST_DEFAULT_CONCURRENT_COUNT
+        map["errorContext.includeRequestBody"] = errorContextConfig.includeRequestBody
+        map["errorContext.includeResponseBody"] = errorContextConfig.includeResponseBody
+        map["errorContext.maxBodySize"] = errorContextConfig.maxBodySize
+        map["retry.maxAttempts"] = retryConfig.maxAttempts
+        map["retry.delay"] = retryConfig.delay
+        map["retry.maxDelay"] = retryConfig.maxDelay
+        map["retry.backoff"] = retryConfig.backoff
+        map["retry.jitter"] = retryConfig.jitter
+
+        defaultHeaders.forEach { (name, value) ->
+            map["header.$name"] = value
+        }
+        bindings.forEach { (name, binding) ->
+            binding.baseUrl?.let { map["binding.$name.baseUrl"] = it }
+            binding.location?.let { map["binding.$name.location"] = it }
+            binding.operationAliases.forEach { (alias, operationId) ->
+                map["binding.$name.alias.$alias"] = operationId
+            }
+        }
+        return map
     }
 
     private fun applyParameter(
@@ -229,120 +277,6 @@ data class BerryCrushConfiguration(
             }
         }
     }
-
-    private fun applyPrefixedParameter(
-        key: String,
-        value: Any,
-    ) {
-        when {
-            key.startsWith("header.") -> defaultHeaders[key.removePrefix("header.")] = value.toString()
-            key.startsWith("autoAssertions.") -> applyAutoAssertionParam(key, value)
-            key.startsWith("errorContext.") -> applyErrorContextParam(key, value)
-            key.startsWith("retry.") -> applyRetryParam(key, value)
-            key.startsWith("binding.") -> applyBindingParam(key.removePrefix("binding."), value)
-            key.startsWith("multiTest.") -> multiTestConfig[key.removePrefix("multiTest.")] = value
-        }
-    }
-
-    private fun applyAutoAssertionParam(
-        key: String,
-        value: Any,
-    ) {
-        when (key) {
-            "autoAssertions.enabled" -> autoAssertions.enabled = value.toString().toBoolean()
-            "autoAssertions.statusCode" -> autoAssertions.statusCode = value.toString().toBoolean()
-            "autoAssertions.contentType" -> autoAssertions.contentType = value.toString().toBoolean()
-            "autoAssertions.schema" -> autoAssertions.schema = value.toString().toBoolean()
-        }
-    }
-
-    private fun applyErrorContextParam(
-        key: String,
-        value: Any,
-    ) {
-        when (key) {
-            "errorContext.includeRequestBody" -> {
-                errorContextConfig = errorContextConfig.copy(includeRequestBody = value.toString().toBoolean())
-            }
-
-            "errorContext.includeResponseBody" -> {
-                errorContextConfig = errorContextConfig.copy(includeResponseBody = value.toString().toBoolean())
-            }
-
-            "errorContext.maxBodySize" -> {
-                errorContextConfig = errorContextConfig.copy(maxBodySize = parseIntOrDefault(value, errorContextConfig.maxBodySize))
-            }
-        }
-    }
-
-    private fun applyRetryParam(
-        key: String,
-        value: Any,
-    ) {
-        when (key) {
-            "retry.maxAttempts" -> {
-                retryConfig = retryConfig.copy(maxAttempts = parseIntOrDefault(value, retryConfig.maxAttempts))
-            }
-
-            "retry.delay" -> {
-                retryConfig = retryConfig.copy(delay = parseDuration(value, retryConfig.delay))
-            }
-
-            "retry.maxDelay" -> {
-                retryConfig = retryConfig.copy(maxDelay = parseDuration(value, retryConfig.maxDelay))
-            }
-
-            "retry.backoff" -> {
-                retryConfig = retryConfig.copy(backoff = parseBackoffStrategy(value))
-            }
-
-            "retry.jitter" -> {
-                retryConfig = retryConfig.copy(jitter = value.toString().toBoolean())
-            }
-        }
-    }
-
-    private fun applyBindingParam(
-        key: String,
-        value: Any,
-    ) {
-        val (name, param) = parseBindingParam(key)
-        bindings.compute(name) { _, binding ->
-            when {
-                param == "baseUrl" -> binding?.copy(baseUrl = value.toString()) ?: BindingConfig(name, baseUrl = value.toString())
-                param == "location" -> binding?.copy(location = value.toString()) ?: BindingConfig(name, location = value.toString())
-                param.startsWith(ALIAS_MARKER) -> applyBindingAlias(binding, name, param, value)
-                else -> binding
-            }
-        }
-    }
-
-    private fun applyBindingAlias(
-        binding: BindingConfig?,
-        name: String,
-        param: String,
-        value: Any,
-    ): BindingConfig? {
-        if (!param.startsWith(ALIAS_MARKER)) {
-            return binding
-        }
-
-        val alias = param.removePrefix(ALIAS_MARKER).trim()
-        if (alias.isBlank()) {
-            return binding
-        }
-
-        val current = binding ?: BindingConfig(name)
-        return current.copy(operationAliases = current.operationAliases + (alias to value.toString()))
-    }
-
-    private fun parseBackoffStrategy(value: Any): BackoffStrategy =
-        when (value.toString().lowercase()) {
-            "fixed" -> BackoffStrategy.FIXED
-            "linear" -> BackoffStrategy.LINEAR
-            "exponential" -> BackoffStrategy.EXPONENTIAL
-            else -> retryConfig.backoff
-        }
 }
 
 /**
@@ -384,6 +318,120 @@ data class SpecConfiguration(
         defaultHeaders[name] = value
     }
 }
+
+private fun BerryCrushConfiguration.applyPrefixedParameter(
+    key: String,
+    value: Any,
+) {
+    when {
+        key.startsWith("header.") -> defaultHeaders[key.removePrefix("header.")] = value.toString()
+        key.startsWith("autoAssertions.") -> applyAutoAssertionParam(key, value)
+        key.startsWith("errorContext.") -> applyErrorContextParam(key, value)
+        key.startsWith("retry.") -> applyRetryParam(key, value)
+        key.startsWith("binding.") -> applyBindingParam(key.removePrefix("binding."), value)
+        key.startsWith("multiTest.") -> multiTestConfig[key.removePrefix("multiTest.")] = value
+    }
+}
+
+private fun BerryCrushConfiguration.applyAutoAssertionParam(
+    key: String,
+    value: Any,
+) {
+    when (key) {
+        "autoAssertions.enabled" -> autoAssertions.enabled = value.toString().toBoolean()
+        "autoAssertions.statusCode" -> autoAssertions.statusCode = value.toString().toBoolean()
+        "autoAssertions.contentType" -> autoAssertions.contentType = value.toString().toBoolean()
+        "autoAssertions.schema" -> autoAssertions.schema = value.toString().toBoolean()
+    }
+}
+
+private fun BerryCrushConfiguration.applyErrorContextParam(
+    key: String,
+    value: Any,
+) {
+    when (key) {
+        "errorContext.includeRequestBody" -> {
+            errorContextConfig = errorContextConfig.copy(includeRequestBody = value.toString().toBoolean())
+        }
+
+        "errorContext.includeResponseBody" -> {
+            errorContextConfig = errorContextConfig.copy(includeResponseBody = value.toString().toBoolean())
+        }
+
+        "errorContext.maxBodySize" -> {
+            errorContextConfig = errorContextConfig.copy(maxBodySize = parseIntOrDefault(value, errorContextConfig.maxBodySize))
+        }
+    }
+}
+
+private fun BerryCrushConfiguration.applyRetryParam(
+    key: String,
+    value: Any,
+) {
+    when (key) {
+        "retry.maxAttempts" -> {
+            retryConfig = retryConfig.copy(maxAttempts = parseIntOrDefault(value, retryConfig.maxAttempts))
+        }
+
+        "retry.delay" -> {
+            retryConfig = retryConfig.copy(delay = parseDuration(value, retryConfig.delay))
+        }
+
+        "retry.maxDelay" -> {
+            retryConfig = retryConfig.copy(maxDelay = parseDuration(value, retryConfig.maxDelay))
+        }
+
+        "retry.backoff" -> {
+            retryConfig = retryConfig.copy(backoff = parseBackoffStrategy(value))
+        }
+
+        "retry.jitter" -> {
+            retryConfig = retryConfig.copy(jitter = value.toString().toBoolean())
+        }
+    }
+}
+
+private fun BerryCrushConfiguration.applyBindingParam(
+    key: String,
+    value: Any,
+) {
+    val (name, param) = parseBindingParam(key)
+    bindings.compute(name) { _, binding ->
+        when {
+            param == "baseUrl" -> binding?.copy(baseUrl = value.toString()) ?: BindingConfig(name, baseUrl = value.toString())
+            param == "location" -> binding?.copy(location = value.toString()) ?: BindingConfig(name, location = value.toString())
+            param.startsWith(ALIAS_MARKER) -> applyBindingAlias(binding, name, param, value)
+            else -> binding
+        }
+    }
+}
+
+private fun applyBindingAlias(
+    binding: BindingConfig?,
+    name: String,
+    param: String,
+    value: Any,
+): BindingConfig? {
+    if (!param.startsWith(ALIAS_MARKER)) {
+        return binding
+    }
+
+    val alias = param.removePrefix(ALIAS_MARKER).trim()
+    if (alias.isBlank()) {
+        return binding
+    }
+
+    val current = binding ?: BindingConfig(name)
+    return current.copy(operationAliases = current.operationAliases + (alias to value.toString()))
+}
+
+private fun BerryCrushConfiguration.parseBackoffStrategy(value: Any): BackoffStrategy =
+    when (value.toString().lowercase()) {
+        "fixed" -> BackoffStrategy.FIXED
+        "linear" -> BackoffStrategy.LINEAR
+        "exponential" -> BackoffStrategy.EXPONENTIAL
+        else -> retryConfig.backoff
+    }
 
 private fun parseDuration(
     value: Any,

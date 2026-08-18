@@ -10,14 +10,16 @@ feature: Parameter override test
       custom:
         port: 9090
         host: 127.0.0.1
+        value: "{{custom.value}}"
     given I will check the parameters
       call ^getTest
         auto: [invalid]
     then the param name "{{parameter.name}}" must be {{parameter.value}}
+    then the param name "param.custom.value" must be {{custom.value}}
     examples:
-      | parameter.name    | parameter.value |
-      | param.custom.port | 9090            |
-      | param.custom.host | 127.0.0.1       |
+      | parameter.name    | parameter.value | custom.value |
+      | param.custom.port | 9090            | ok           |
+      | param.custom.host | 127.0.0.1       | ok           |
 
 outline: Top level parameters test
   given I will check the parameters

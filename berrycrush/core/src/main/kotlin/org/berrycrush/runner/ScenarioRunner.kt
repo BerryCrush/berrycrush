@@ -114,7 +114,7 @@ class ScenarioRunner(
 
     /**
      * Shared execution context for cross-scenario variable sharing.
-     * Only used when [Configuration.shareVariablesAcrossScenarios] is true.
+     * Only used when [BerryCrushConfiguration.shareVariablesAcrossScenarios] is true.
      */
     private var sharedContext: ExecutionContext? = null
 
