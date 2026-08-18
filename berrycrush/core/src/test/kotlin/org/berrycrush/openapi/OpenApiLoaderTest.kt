@@ -6,7 +6,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class OpenApiLoaderTest {
-    private val loader = OpenApiLoader()
+    private val loader = OpenApiLoader
 
     @Test
     fun `should load petstore spec from resources`() {

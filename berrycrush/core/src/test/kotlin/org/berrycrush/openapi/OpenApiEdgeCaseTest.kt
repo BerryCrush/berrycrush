@@ -8,7 +8,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class OpenApiEdgeCaseTest {
-    private val loader = OpenApiLoader()
+    private val loader = OpenApiLoader
 
     @Test
     fun `load from Path should parse spec`() {

@@ -28,6 +28,7 @@ outline: Parameterized OpenAPI 3.1 test with different specs
     | prefix  | location          | endpoint    |
     | /api/v2 | /petstore-31.yaml | "GET /pets" |
     | /api/v1 | /petstore.yaml    | "GET /pets" |
+    | /api/v0 | /petstore-2.yaml  | "GET /pets" |
 # -----------------------------------------------------------------------------
 # Nullable Fields with Array Type Syntax
 # -----------------------------------------------------------------------------

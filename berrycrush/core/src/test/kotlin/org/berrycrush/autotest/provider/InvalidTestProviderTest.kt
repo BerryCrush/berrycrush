@@ -11,7 +11,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class InvalidTestProviderTest {
-    private val loader = OpenApiLoader()
+    private val loader = OpenApiLoader
 
     private val schema30Path: String =
         javaClass.getResource("/schema-test-30.yaml")?.path
