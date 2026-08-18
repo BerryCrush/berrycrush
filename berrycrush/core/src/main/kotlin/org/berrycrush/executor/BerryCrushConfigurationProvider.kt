@@ -9,14 +9,13 @@ import org.berrycrush.logging.HttpLogFormatter
 import org.berrycrush.logging.HttpLogger
 import org.berrycrush.logging.HttpLoggerFactory
 import java.time.Duration
+import org.berrycrush.configuration.Configuration as ApiConfiguration
 
 /**
  * Configuration provider
  */
-interface BerryCrushConfigurationProvider {
+interface BerryCrushConfigurationProvider : ApiConfiguration {
     val baseUrl: String?
-    val timeout: Duration
-    val defaultHeaders: Map<String, String>
     val environment: String?
     val autoAssertions: AutoAssertionConfig
     val strictSchemaValidation: Boolean
@@ -29,7 +28,8 @@ interface BerryCrushConfigurationProvider {
     val multiTestConfig: Map<String, Any>
     val errorContextConfig: ErrorContextConfig
     val retryConfig: RetryConfig
-    val bindings: Map<String, BindingConfig>
+
+    override val bindings: Map<String, BindingConfig>
 
     /**
      * Get the effective HTTP logger.

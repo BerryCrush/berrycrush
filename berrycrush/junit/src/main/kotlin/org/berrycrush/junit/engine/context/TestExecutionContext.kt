@@ -1,7 +1,7 @@
 package org.berrycrush.junit.engine.context
 
 import org.berrycrush.assertion.AssertionRegistry
-import org.berrycrush.config.BerryCrushConfiguration
+import org.berrycrush.configuration.Configuration
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.junit.BerryCrushBindings
@@ -290,7 +290,7 @@ private class ScenarioMethodLifecycleController(
                 when {
                     BerryCrushSuite::class.java.isAssignableFrom(parameter.type) -> suite
 
-                    BerryCrushConfiguration::class.java.isAssignableFrom(parameter.type) -> suite.configuration
+                    Configuration::class.java.isAssignableFrom(parameter.type) -> suite.configuration
 
                     else -> throw IllegalArgumentException(
                         "Unsupported lifecycle parameter type ${parameter.type.name} in ${method.declaringClass.simpleName}.${method.name}",

@@ -1,5 +1,6 @@
 package org.berrycrush.plugin
 
+import org.berrycrush.configuration.Configuration
 import org.berrycrush.model.HttpMethod
 import org.berrycrush.model.HttpRequest
 import org.berrycrush.model.HttpResponse
@@ -29,6 +30,8 @@ interface StepContext {
     val operationId: String?
     val responseTime: Duration?
     val operation: StepOperation?
+    val configuration: Configuration
+        get() = scenarioContext.configuration
 
     fun <T : Any> resolveParam(param: T?) = scenarioContext.executionContext.resolveParam(param)
 

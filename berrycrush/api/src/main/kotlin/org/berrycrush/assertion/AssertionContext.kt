@@ -1,5 +1,6 @@
 package org.berrycrush.assertion
 
+import org.berrycrush.configuration.Configuration
 import org.berrycrush.model.HttpResponse
 
 /**
@@ -68,4 +69,9 @@ interface AssertionContext {
      * or if the assertion is evaluated before any API calls.
      */
     val lastResponse: HttpResponse?
+
+    /**
+     * The current BerryCrush configuration.
+     */
+    val configuration: Configuration
 }
