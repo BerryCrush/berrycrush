@@ -1,5 +1,6 @@
 package org.berrycrush.report
 
+import org.berrycrush.configuration.Configuration
 import org.berrycrush.formatter.AnsiColors
 import org.berrycrush.model.HttpResponse
 import org.berrycrush.plugin.AssertionFailure
@@ -239,6 +240,8 @@ class ConsoleReportPluginTest {
                 get() = TODO()
             override val operations: List<StepOperation>
                 get() = TODO()
+            override val configuration: Configuration
+                get() = TODO("Not yet implemented")
         }
 
     private fun createMockScenarioResult(
