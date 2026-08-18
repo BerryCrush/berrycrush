@@ -3,6 +3,7 @@ package org.berrycrush.executor
 import org.berrycrush.assertion.AssertionRegistry
 import org.berrycrush.context.ExecutionContext
 import org.berrycrush.context.propagate
+import org.berrycrush.context.resolveParam
 import org.berrycrush.context.resolveParams
 import org.berrycrush.executor.assertion.AssertionExecutor
 import org.berrycrush.executor.assertion.DefaultAssertionEngine
@@ -28,7 +29,6 @@ import org.berrycrush.util.forEachNonNull
 import java.io.File
 import java.time.Duration
 import java.time.Instant
-import kotlin.collections.forEach
 
 /**
  * Executes BDD scenarios against API endpoints.
@@ -38,6 +38,7 @@ import kotlin.collections.forEach
  */
 class BerryCrushScenarioExecutor(
     private val configuration: BerryCrushConfigurationProvider,
+    private val specRegistry: SpecRegistry,
     private val stepExecutor: StepExecutor,
     private val pluginRegistry: PluginRegistry? = null,
 ) {
@@ -81,6 +82,7 @@ class BerryCrushScenarioExecutor(
     ) :
         this(
             configuration,
+            specRegistry,
             createStepExecutor(specRegistry, configuration, pluginRegistry, fragmentRegistry, stepRegistry, assertionRegistry),
             pluginRegistry,
         )
@@ -101,69 +103,87 @@ class BerryCrushScenarioExecutor(
         sourceFile: File? = null,
         executionListener: BerryCrushExecutionListener? = null,
     ): ScenarioResult =
-        configuration.withParameters((sharedContext?.mergedParameters ?: emptyMap()) + scenario.parameters) {
-            val listener = executionListener ?: BerryCrushExecutionListener.NOOP
+        specRegistry.checkpoint {
+            configuration.withParameters((sharedContext?.mergedParameters ?: emptyMap()) + scenario.parameters) {
+                val listener = executionListener ?: BerryCrushExecutionListener.NOOP
 
-            // Notify listener that scenario is starting
-            listener.onScenarioStarting(scenario)
+                // Notify listener that scenario is starting
+                listener.onScenarioStarting(scenario)
 
-            val startTime = Instant.now()
-            var context = sharedContext?.createChild() ?: ExecutionContext(true, scenario.parameters)
+                val startTime = Instant.now()
+                var context = sharedContext?.createChild() ?: ExecutionContext(true, scenario.parameters)
 
-            // Create execution context - use shared context if available,
-            // or create one for outline scenarios with examples
-            if (scenario.examples?.isNotEmpty() == true) {
-                if (!context.shareVariablesAcrossScenarios) context = ExecutionContext(true, scenario.parameters)
-                val row = scenario.examples.first()
-                context
-                    .resolveParams(row.values)
-                    .forEachNonNull { key, value -> context[key] = value }
+                // Create execution context - use shared context if available,
+                // or create one for outline scenarios with examples
+                if (scenario.examples?.isNotEmpty() == true) {
+                    if (!context.shareVariablesAcrossScenarios) context = ExecutionContext(true, scenario.parameters)
+                    val row = scenario.examples.first()
+                    context
+                        .resolveParams(row.values)
+                        .forEachNonNull { key, value -> context[key] = value }
+                }
+                // put entire configuration into parameter variables
+                setupParameters(configuration.toParameterMap(), context)
+
+                if (sharedContext?.mergedParameters != null) {
+                    setupParameters(sharedContext.mergedParameters, context)
+                }
+                // Store scenario parameters in context for variable resolution
+                setupParameters(scenario.parameters, context)
+
+                // resolve reference in configuration
+                // the references, mostly in parameters block, are use `{{param.**}` format
+                // so this needs to be *after* the parameters are set up in context
+                configuration.resolveReference { value -> context.resolveParam(value) ?: value }
+                configuration.bindings.forEach { (name, config) ->
+                    config.location?.let {
+                        specRegistry.register(name, it) {
+                            this.baseUrl = config.baseUrl
+                        }
+                    }
+                }
+
+                val scenarioContext =
+                    ScenarioContextAdapter(scenario, ExecutionContextAdapter(context), startTime, configuration, sourceFile)
+
+                pluginRegistry?.dispatchScenarioStart(scenarioContext)
+                val stepResults = stepExecutor.execute(scenario, scenarioContext, listener)
+                val overallStatus = determineOverallStatus(stepResults)
+                val duration = Duration.between(startTime, Instant.now())
+
+                val scenarioResult =
+                    ScenarioResult(
+                        scenario = scenario,
+                        status = overallStatus,
+                        stepResults = stepResults,
+                        startTime = startTime,
+                        duration = duration,
+                    )
+
+                pluginRegistry?.dispatchScenarioEnd(scenarioContext, ScenarioResultAdapter(scenarioResult))
+
+                // Cleanup scenario-scoped webhook servers
+                context.cleanupWebhookServers()
+
+                // Copy extracted variables back to shared context for cross-scenario sharing
+                if (scenarioResult.status == ResultStatus.PASSED) {
+                    sharedContext.propagate(context)
+                }
+
+                // Notify listener that scenario completed
+                listener.onScenarioCompleted(scenario, scenarioResult)
+
+                scenarioResult
             }
-
-            if (sharedContext?.mergedParameters != null) {
-                setupParameters(sharedContext.mergedParameters, context)
-            }
-            // Store scenario parameters in context for variable resolution
-            setupParameters(scenario.parameters, context)
-
-            val scenarioContext = ScenarioContextAdapter(scenario, ExecutionContextAdapter(context), startTime, configuration, sourceFile)
-
-            pluginRegistry?.dispatchScenarioStart(scenarioContext)
-            val stepResults = stepExecutor.execute(scenario, scenarioContext, listener)
-            val overallStatus = determineOverallStatus(stepResults)
-            val duration = Duration.between(startTime, Instant.now())
-
-            val scenarioResult =
-                ScenarioResult(
-                    scenario = scenario,
-                    status = overallStatus,
-                    stepResults = stepResults,
-                    startTime = startTime,
-                    duration = duration,
-                )
-
-            pluginRegistry?.dispatchScenarioEnd(scenarioContext, ScenarioResultAdapter(scenarioResult))
-
-            // Cleanup scenario-scoped webhook servers
-            context.cleanupWebhookServers()
-
-            // Copy extracted variables back to shared context for cross-scenario sharing
-            if (scenarioResult.status == ResultStatus.PASSED) {
-                sharedContext.propagate(context)
-            }
-
-            // Notify listener that scenario completed
-            listener.onScenarioCompleted(scenario, scenarioResult)
-
-            scenarioResult
         }
 
+    // parameter resolve is *after* example row resolution, so the outline parameters can be dynamic.
     private fun setupParameters(
         parameters: Map<String, Any>,
         context: ExecutionContext,
     ) {
-        for ((key, value) in parameters) {
-            context["param.$key"] = value
+        parameters.forEach { (key, value) ->
+            context["param.$key"] = context.resolveParam(value) ?: value
         }
     }
 
@@ -220,5 +240,14 @@ internal inline fun ExecutionContext.withIncludeParameters(
                 this[key] = value
             }
         }
+    }
+}
+
+private fun <T> SpecRegistry.checkpoint(block: () -> T): T {
+    val snapshot = snapshot()
+    return try {
+        block()
+    } finally {
+        restore(snapshot)
     }
 }

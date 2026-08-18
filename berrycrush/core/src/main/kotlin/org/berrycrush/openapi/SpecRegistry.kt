@@ -236,30 +236,16 @@ class SpecRegistry {
             return null
         }
 
-        return parseMethod(split[0])?.let { method ->
+        return HttpMethod.fromName(split[0])?.let { method ->
             MethodPathTarget(method, split[1].trim())
         }
     }
 
-    private fun parseMethod(method: String): HttpMethod? = HttpMethod.fromName(method)
+    fun snapshot(): Map<String, LoadedSpec> = specs.toMap()
 
-    /**
-     * Update the base URL for a registered spec.
-     *
-     * This allows overriding the base URL after spec registration,
-     * useful for file-level parameters or runtime configuration.
-     *
-     * @param name The spec name to update
-     * @param newBaseUrl The new base URL
-     * @throws IllegalArgumentException if spec is not found
-     */
-    fun updateBaseUrl(
-        name: String,
-        newBaseUrl: String,
-    ) {
-        val existing = specs[name] ?: throw IllegalArgumentException("Spec '$name' not found. Available: ${specs.keys}")
-        specs[name] =
-            existing.copy(baseUrl = newBaseUrl)
+    fun restore(snapshot: Map<String, LoadedSpec>) {
+        specs.clear()
+        specs.putAll(snapshot)
     }
 }
 

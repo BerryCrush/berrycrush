@@ -96,28 +96,6 @@ class SpecRegistryTest {
     }
 
     @Test
-    fun `updateBaseUrl should replace existing spec base url`() {
-        val registry = SpecRegistry()
-        registry.register("petstore", petstoreSpecPath())
-
-        registry.updateBaseUrl("petstore", "https://override.example")
-
-        assertEquals("https://override.example", registry.get("petstore").baseUrl)
-    }
-
-    @Test
-    fun `updateBaseUrl should throw when spec is missing`() {
-        val registry = SpecRegistry()
-
-        val error =
-            assertFailsWith<IllegalArgumentException> {
-                registry.updateBaseUrl("missing", "https://example.test")
-            }
-
-        assertContains(error.message ?: "", "Spec 'missing' not found")
-    }
-
-    @Test
     fun `resolveStep should resolve alias to operation id`() {
         val registry = SpecRegistry()
         registry.registerDefault(petstoreSpecPath())
