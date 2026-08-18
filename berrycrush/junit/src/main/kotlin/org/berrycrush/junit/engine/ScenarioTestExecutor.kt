@@ -10,6 +10,7 @@ import org.berrycrush.junit.DefaultBindings
 import org.berrycrush.junit.ParallelExecutionMode
 import org.berrycrush.junit.binding.OpenApiSpecValue
 import org.berrycrush.junit.discovery.FragmentDiscovery
+import org.berrycrush.junit.discovery.SchemaDiscovery
 import org.berrycrush.junit.engine.context.TestExecutionContext
 import org.berrycrush.junit.spi.BindingsProvider
 import org.berrycrush.junit.spi.Provider
@@ -219,17 +220,19 @@ class ScenarioTestExecutor(
         if (!path.startsWith(CLASSPATH_PREFIX)) {
             return path
         }
-
         val resourcePath = path.removePrefix(CLASSPATH_PREFIX)
-        val resource =
-            testClass.java.getResource(resourcePath)
-                ?: testClass.java.classLoader.getResource(resourcePath.removePrefix("/"))
-                ?: throw IllegalArgumentException(
-                    "Classpath resource not found: $resourcePath. " +
-                        "Make sure the file exists in src/test/resources or src/main/resources.",
-                )
+        val discovered = SchemaDiscovery.discover(testClass.java.classLoader, arrayOf(resourcePath, resourcePath.removePrefix("/")))
+        if (discovered.isEmpty()) {
+            throw IllegalArgumentException(
+                "Classpath resource not found: $resourcePath. " +
+                    "Make sure the file exists in src/test/resources or src/main/resources.",
+            )
+        }
+        if (discovered.size > 1) {
+            logger.warning { "Multiple resources found for $resourcePath. Using the first one: ${discovered.first().path}" }
+        }
 
-        return resource.path
+        return discovered.first().url.toString()
     }
 
     private fun createBindings(

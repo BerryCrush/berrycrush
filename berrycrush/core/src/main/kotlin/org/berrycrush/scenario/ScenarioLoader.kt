@@ -16,7 +16,9 @@ import org.berrycrush.model.Step
 import org.berrycrush.model.StepType
 import org.berrycrush.model.Story
 import org.berrycrush.model.WebhookConfig
+import org.berrycrush.util.FileLoader
 import org.berrycrush.util.toNonNullMap
+import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
 import org.berrycrush.model.ConditionBranch as ModelConditionBranch
@@ -70,8 +72,20 @@ object ScenarioLoader {
      * @param path Path to the .scenario file
      * @return ScenarioFileContent containing scenarios and parameters
      */
+    fun loadFileContent(path: URI): ScenarioFileContent {
+        val content = FileLoader.load(path)
+        val fileName = path.schemeSpecificPart.substringAfterLast('/')
+        return loadFileContentFromString(content, fileName)
+    }
+
+    /**
+     * Load scenarios and parameters from a single file.
+     *
+     * @param path Path to the .scenario file
+     * @return ScenarioFileContent containing scenarios and parameters
+     */
     fun loadFileContent(path: Path): ScenarioFileContent {
-        val content = Files.readString(path)
+        val content = FileLoader.load(path)
         val fileName = path.fileName.toString()
         return loadFileContentFromString(content, fileName)
     }

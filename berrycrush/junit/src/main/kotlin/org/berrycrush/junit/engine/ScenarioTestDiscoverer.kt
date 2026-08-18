@@ -232,21 +232,7 @@ object ScenarioTestDiscoverer {
         return featureDescriptor
     }
 
-    fun loadScenarioFromUrl(url: URL): ScenarioFileContent = loadScenarioFromUri(url.toURI())
-
-    fun loadScenarioFromUri(uri: URI): ScenarioFileContent =
-        when (uri.scheme) {
-            "jar" -> {
-                FileSystems.newFileSystem(uri, emptyMap<String, Any>()).use { fs ->
-                    // format jar:file:/.../foo.jar!/path/to/file.scenario
-                    ScenarioLoader.loadFileContent(fs.getPath(uri.schemeSpecificPart.takeLastWhile { c -> c != '!' }))
-                }
-            }
-
-            else -> {
-                ScenarioLoader.loadFileContent(Paths.get(uri))
-            }
-        }
+    fun loadScenarioFromUrl(url: URL): ScenarioFileContent = ScenarioLoader.loadFileContent(url.toURI())
 }
 
 /**

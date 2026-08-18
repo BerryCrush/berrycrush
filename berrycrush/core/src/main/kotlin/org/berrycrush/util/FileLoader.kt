@@ -1,6 +1,8 @@
 package org.berrycrush.util
 
 import org.berrycrush.exception.ConfigurationException
+import java.net.URI
+import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -21,8 +23,28 @@ import java.nio.file.Paths
  * - `./relative/path.json` - Load from file system (relative path, shorthand)
  */
 object FileLoader {
-    private const val CLASSPATH_PREFIX = "classpath:"
-    private const val FILE_PREFIX = "file:"
+    /**
+     * Load content from the specified URI.
+     */
+    fun load(path: URI): String =
+        when (path.scheme) {
+            "jar" -> {
+                FileSystems.newFileSystem(path, emptyMap<String, Any>()).use { fs ->
+                    // format jar:file:/.../foo.jar!/path/to/file.scenario
+                    val jarPath = fs.getPath(path.schemeSpecificPart.takeLastWhile { c -> c != '!' })
+                    load(jarPath)
+                }
+            }
+
+            else -> {
+                load(Paths.get(path))
+            }
+        }
+
+    /**
+     * Load content from the specified Path.
+     */
+    fun load(path: Path): String = Files.readString(path)
 
     /**
      * Load content from the specified path.
@@ -37,17 +59,40 @@ object FileLoader {
         baseDirectory: Path? = null,
     ): String =
         runCatching {
-            when {
-                path.startsWith(CLASSPATH_PREFIX) -> loadFromClasspath(path.removePrefix(CLASSPATH_PREFIX))
-                path.startsWith(FILE_PREFIX) -> loadFromFileSystem(path.removePrefix(FILE_PREFIX), baseDirectory)
-                path.startsWith("/") -> loadFromFileSystem(path, baseDirectory)
-                path.startsWith("./") || path.startsWith("../") -> loadFromFileSystem(path, baseDirectory)
-                else -> loadFromClasspath(path) // Default to classpath
+            val uri = URI.create(path)
+            when (uri.scheme) {
+                "classpath" -> {
+                    loadFromClasspath(uri.schemeSpecificPart)
+                }
+
+                "file" -> {
+                    load(resolveBaseDir(Paths.get(uri), baseDirectory))
+                }
+
+                "jar" -> {
+                    load(uri)
+                }
+
+                else -> {
+                    if (path.startsWith("/") || path.startsWith("./") || path.startsWith("../")) {
+                        load(resolveBaseDir(Paths.get(path), baseDirectory))
+                    } else {
+                        loadFromClasspath(path) // Default to classpath
+                    }
+                }
             }
         }.getOrElse { e ->
-            throw ConfigurationException(
-                "Failed to load file '$path': ${e.message}",
-            )
+            throw ConfigurationException("Failed to load file '$path': ${e.message}", e)
+        }
+
+    private fun resolveBaseDir(
+        basePath: Path,
+        baseDirectory: Path?,
+    ): Path =
+        when {
+            basePath.isAbsolute -> basePath
+            baseDirectory != null -> baseDirectory.resolve(basePath).normalize()
+            else -> basePath.toAbsolutePath().normalize()
         }
 
     /**
@@ -62,38 +107,4 @@ object FileLoader {
 
         return inputStream.bufferedReader().use { it.readText() }
     }
-
-    /**
-     * Load content from file system.
-     */
-    private fun loadFromFileSystem(
-        path: String,
-        baseDirectory: Path?,
-    ): String {
-        val filePath =
-            when {
-                path.startsWith("/") -> Paths.get(path)
-                baseDirectory != null -> baseDirectory.resolve(path).normalize()
-                else -> Paths.get(path).toAbsolutePath().normalize()
-            }
-
-        if (!Files.exists(filePath)) {
-            throw ConfigurationException("File not found: $filePath")
-        }
-
-        return Files.readString(filePath)
-    }
-
-    /**
-     * Check if the path references a file that needs loading.
-     */
-    fun isValidPath(path: String?): Boolean =
-        path?.let {
-            it.startsWith(CLASSPATH_PREFIX) ||
-                it.startsWith(FILE_PREFIX) ||
-                it.startsWith("/") ||
-                it.startsWith("./") ||
-                it.startsWith("../") ||
-                it.contains("/") // Any path with slashes
-        } ?: false
 }

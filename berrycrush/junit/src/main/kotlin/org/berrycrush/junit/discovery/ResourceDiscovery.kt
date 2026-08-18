@@ -71,7 +71,7 @@ abstract class ResourceDiscovery<T : Discovered>(
             } else {
                 classLoader
                     .getResource(pattern)
-                    ?.takeIf { pattern.endsWith(fileExtension) }
+                    ?.takeIf { resourceFilter(pattern) }
                     ?.let { url ->
                         val name = pattern.substringAfterLast("/")
                         listOf(resourceFactory(pattern, name, url))
@@ -82,7 +82,9 @@ abstract class ResourceDiscovery<T : Discovered>(
         return discoveredFromResources + directResource
     }
 
-    private fun buildGlobPattern(pattern: String): String {
+    protected open fun resourceFilter(pattern: String): Boolean = pattern.endsWith(fileExtension)
+
+    protected open fun buildGlobPattern(pattern: String): String {
         if (pattern.contains("*")) {
             return pattern
         }

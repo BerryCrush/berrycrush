@@ -31,5 +31,5 @@ import org.springframework.boot.test.context.SpringBootTest
     bindings = TicTacToeBindings::class,
     plugins = ["report:console"],
 )
-@BerryCrushSpec(paths = ["openapi/tictactoe.yaml"])
+@BerryCrushSpec(paths = ["classpath:/openapi/tictactoe.yaml"])
 class TicTacToeTest
