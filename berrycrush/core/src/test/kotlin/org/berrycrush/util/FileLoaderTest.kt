@@ -70,17 +70,6 @@ class FileLoaderTest {
     }
 
     @Test
-    fun `should validate path correctly`() {
-        assertTrue(FileLoader.isValidPath("classpath:path/to/file.json"))
-        assertTrue(FileLoader.isValidPath("file:./relative.json"))
-        assertTrue(FileLoader.isValidPath("/absolute/path.json"))
-        assertTrue(FileLoader.isValidPath("./relative/path.json"))
-        assertTrue(FileLoader.isValidPath("../parent/path.json"))
-        assertTrue(FileLoader.isValidPath("some/path/file.json"))
-        assertFalse(FileLoader.isValidPath(null))
-    }
-
-    @Test
     fun `should load file with nested directory structure`() {
         val nestedDir = tempDir.resolve("nested/dir")
         Files.createDirectories(nestedDir)

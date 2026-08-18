@@ -24,10 +24,11 @@ class TicTacToeBindings : BerryCrushBindings {
 
     override fun getBindings(): Map<String, Any> =
         mapOf(
-            BerryCrushBindings.DEFAULT_BINDING_NAME to OpenApiSpecValue.of("openapi/tictactoe.yaml", "http://localhost:$port"),
+            BerryCrushBindings.DEFAULT_BINDING_NAME to OpenApiSpecValue.of("classpath:/openapi/tictactoe.yaml", "http://localhost:$port"),
         )
 
     override fun configure(config: BerryCrushConfiguration) {
         config.autoAssertions.enabled = false
+        config.baseUrl = "http://localhost:$port"
     }
 }
