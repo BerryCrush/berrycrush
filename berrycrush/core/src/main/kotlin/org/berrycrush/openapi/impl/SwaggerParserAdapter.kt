@@ -55,7 +55,7 @@ import io.swagger.v3.oas.models.Components as SwaggerComponents
  * Supports OpenAPI 2.0 (Swagger), 3.0.x, and 3.1.x specifications.
  */
 class SwaggerParserAdapter : OpenApiParser {
-    private val loader = OpenApiLoader()
+    private val loader = OpenApiLoader
 
     override fun parse(path: Path): OpenApiSpec = parse(path.toString())
 

@@ -2,6 +2,7 @@ package org.berrycrush.openapi
 
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.parser.OpenAPIV3Parser
+import io.swagger.v3.parser.converter.SwaggerConverter
 import io.swagger.v3.parser.core.models.ParseOptions
 import io.swagger.v3.parser.core.models.SwaggerParseResult
 import java.nio.file.Path
@@ -9,8 +10,8 @@ import java.nio.file.Path
 /**
  * Loads and parses OpenAPI specifications.
  */
-class OpenApiLoader {
-    private val parser = OpenAPIV3Parser()
+object OpenApiLoader {
+    private val parser = sequenceOf(::OpenAPIV3Parser, ::SwaggerConverter)
 
     /**
      * Load an OpenAPI spec from a file path.
@@ -21,7 +22,7 @@ class OpenApiLoader {
      */
     fun load(path: String): OpenAPI =
         load { parseOptions ->
-            parser.readLocation(path, null, parseOptions)
+            parser.map { it().readLocation(path, null, parseOptions) }
         }
 
     /**
@@ -37,20 +38,21 @@ class OpenApiLoader {
      */
     fun loadFromString(content: String): OpenAPI =
         load { parseOptions ->
-            parser.readContents(content, null, parseOptions)
+            parser.map { it().readContents(content, null, parseOptions) }
         }
 
-    private fun load(loader: (ParseOptions) -> SwaggerParseResult): OpenAPI {
+    private fun load(loader: (ParseOptions) -> Sequence<SwaggerParseResult>): OpenAPI {
         val parseOptions =
             ParseOptions().apply {
                 isResolve = true
                 isResolveFully = true
             }
 
-        val result = loader(parseOptions)
+        val results = loader(parseOptions)
+        val result = results.firstOrNull { it.openAPI != null }
 
-        if (result.openAPI == null) {
-            val errors = result.messages?.joinToString("\n") ?: "Unknown error"
+        if (result == null) {
+            val errors = results.flatMap { it.messages ?: emptyList() }.joinToString("\n").ifEmpty { "Unknown error" }
             throw OpenApiParseException("Failed to parse OpenAPI spec: $errors")
         }
 

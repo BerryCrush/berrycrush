@@ -12,7 +12,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class AutoTestProviderRegistryTest {
-    private val loader = OpenApiLoader()
+    private val loader = OpenApiLoader
     private val specPath =
         javaClass.getResource("/petstore.yaml")?.path
             ?: error("petstore.yaml not found in test resources")
