@@ -84,6 +84,36 @@ jobs:
             echo "Removing old version ${{ inputs.version }} (will be replaced)"
             rm -rf "_existing/${{ inputs.version }}"
           fi
+
+          # For stable semver releases, keep only the latest patch in the same major.minor line.
+          TARGET_VERSION="${{ inputs.version }}"
+          if echo "$TARGET_VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            TARGET_LINE="${TARGET_VERSION%.*}"
+            TARGET_LINE_REGEX="^${TARGET_LINE//./\\.}\.[0-9]+$"
+            echo "Applying patch pruning for ${TARGET_LINE}.x (target: $TARGET_VERSION)"
+
+            PRUNED_COUNT=0
+            for dir in _existing/*/; do
+              if [ ! -d "$dir" ]; then
+                continue
+              fi
+
+              name=$(basename "$dir")
+              if echo "$name" | grep -Eq "$TARGET_LINE_REGEX" && [ "$name" != "$TARGET_VERSION" ]; then
+                echo "Removing older patch version $name (superseded by $TARGET_VERSION)"
+                rm -rf "$dir"
+                PRUNED_COUNT=$((PRUNED_COUNT + 1))
+              fi
+            done
+
+            if [ "$PRUNED_COUNT" -eq 0 ]; then
+              echo "No prior patch versions found for ${TARGET_LINE}.x"
+            else
+              echo "Pruned $PRUNED_COUNT version(s) from ${TARGET_LINE}.x"
+            fi
+          else
+            echo "Skipping patch pruning for non-stable version: $TARGET_VERSION"
+          fi
           
           echo ""
           echo "Versions to preserve:"
