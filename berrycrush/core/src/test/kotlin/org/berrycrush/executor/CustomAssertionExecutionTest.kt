@@ -7,6 +7,8 @@ import org.berrycrush.assertion.AssertionDefinition
 import org.berrycrush.assertion.AssertionMatch
 import org.berrycrush.assertion.AssertionResult
 import org.berrycrush.assertion.DefaultAssertionRegistry
+import org.berrycrush.model.Condition
+import org.berrycrush.scenario.ScenarioLoader
 import org.berrycrush.util.createStepContext
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -16,6 +18,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import org.berrycrush.model.Assertion as ModelAssertion
 
 /**
  * Unit tests for custom assertions in the AssertionRegistry.
@@ -160,6 +163,56 @@ class CustomAssertionExecutionTest {
             assertEquals(2, match.parameters.size)
             assertEquals("items", match.parameters[0])
             assertEquals(10, match.parameters[1])
+        }
+
+        @Test
+        @DisplayName("should match custom assertion parsed from scenario when pattern contains colons")
+        fun matchParsedCustomAssertionWithColons() {
+            val assertionInstance =
+                object {
+                    @Assertion("the variable: {string} must be equal to the value: {string}")
+                    @Suppress("UnusedParameter")
+                    fun variableMustEqualValue(
+                        variableName: String,
+                        value: String,
+                        context: AssertionContext,
+                    ): AssertionResult = AssertionResult.passed()
+                }
+
+            assertionRegistry.register(
+                AssertionDefinition(
+                    pattern = "the variable: {string} must be equal to the value: {string}",
+                    method =
+                        assertionInstance.javaClass.getMethod(
+                            "variableMustEqualValue",
+                            String::class.java,
+                            String::class.java,
+                            AssertionContext::class.java,
+                        ),
+                    instance = assertionInstance,
+                ),
+            )
+
+            val source =
+                """
+                scenario: Custom assertion with colons
+                  then validate assertion match
+                    assert the variable: "name" must be equal to the value: "Berry"
+                """.trimIndent()
+
+            val scenario = ScenarioLoader.loadFileContentFromString(source).scenarios.single()
+            val assertion =
+                scenario
+                    .steps
+                    .single()
+                    .assertions
+                    .single() as ModelAssertion.BuiltinAssertion
+            val condition = assertion.condition as Condition.CustomAssertion
+            val match = assertionRegistry.findMatch(condition.pattern)
+
+            assertNotNull(match, "Parsed custom assertion pattern with colons should match registry")
+            assertEquals("name", match.parameters[0])
+            assertEquals("Berry", match.parameters[1])
         }
     }
 
