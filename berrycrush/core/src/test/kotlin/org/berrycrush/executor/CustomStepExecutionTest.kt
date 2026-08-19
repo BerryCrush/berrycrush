@@ -6,6 +6,7 @@ import org.berrycrush.model.Scenario
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepType
 import org.berrycrush.openapi.SpecRegistry
+import org.berrycrush.scenario.ScenarioLoader
 import org.berrycrush.step.DefaultStepRegistry
 import org.berrycrush.step.StepContext
 import org.berrycrush.util.StepDefinition
@@ -243,6 +244,40 @@ class CustomStepExecutionTest {
 
             // Should not pass as a no-op step
             assertEquals(ResultStatus.ERROR, result.status)
+        }
+
+        @Test
+        @DisplayName("should invoke custom step parsed from scenario when description contains colons")
+        fun invokeCustomStepParsedDescriptionWithColons() {
+            val stepInstance =
+                object {
+                    var invoked = false
+
+                    @StepAnnotation("the name: {{name}} and the value: {{value}}")
+                    fun verifyNamedValues() {
+                        invoked = true
+                    }
+                }
+
+            stepRegistry.register(
+                StepDefinition(
+                    pattern = "the name: {{name}} and the value: {{value}}",
+                    method = stepInstance.javaClass.getMethod("verifyNamedValues"),
+                    instance = stepInstance,
+                ),
+            )
+
+            val source =
+                """
+                scenario: Colon custom step
+                  when the name: {{name}} and the value: {{value}}
+                """.trimIndent()
+            val parsedScenario = ScenarioLoader.loadFileContentFromString(source).scenarios.single()
+
+            val result = createExecutor().execute(parsedScenario)
+
+            assertEquals(ResultStatus.PASSED, result.status)
+            assertTrue(stepInstance.invoked, "Custom step with colons should have been invoked")
         }
     }
 

@@ -82,23 +82,7 @@ internal fun ParserState.parseStep(keyword: StepKeyword): StepNode {
  * Parse step description text.
  * Preserves quotes for STRING tokens so custom step matchers can extract parameters.
  */
-internal fun ParserState.parseStepDescription(): String {
-    val parts = mutableListOf<String>()
-
-    while (!isAtEnd() && current().type != TokenType.NEWLINE && current().type != TokenType.EOF) {
-        // Preserve quotes for STRING tokens so custom step matchers can extract parameters
-        val tokenValue =
-            when (current().type) {
-                TokenType.STRING -> "\"${current().value}\""
-                TokenType.VARIABLE -> "{{${current().value}}}"
-                else -> current().value
-            }
-        parts.add(tokenValue)
-        advance()
-    }
-
-    return parts.joinToString(" ").trim()
-}
+internal fun ParserState.parseStepDescription(): String = parseInlineTextUntilLineEnd()
 
 /**
  * Parse actions within a step.

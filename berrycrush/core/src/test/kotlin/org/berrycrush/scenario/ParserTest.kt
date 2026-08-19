@@ -1,6 +1,8 @@
 package org.berrycrush.scenario
 
 import org.berrycrush.model.SourceLocation
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -2311,8 +2313,7 @@ class ParserTest {
         assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
         val assertions = extractAssertions(result.ast!!.scenarios[0])
         assertTrue(assertions[0].isCustomAssertion(), "Should be a custom assertion")
-        // Variable tokens capture just the name without {{}}
-        assertEquals("userId owns the resource", assertions[0].getCustomPattern())
+        assertEquals("{{userId}} owns the resource", assertions[0].getCustomPattern())
     }
 
     @Test
@@ -2898,5 +2899,44 @@ class ParserTest {
         val result = Parser.parse(source)
 
         assertFalse(result.isSuccess)
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "I do something",
+        "the name: {{name}} and the value: {{value}}",
+    )
+    fun `step description should be the same as scenario file`(expected: String) {
+        val source =
+            """
+            scenario: foo
+              when $expected
+                call ^testOp
+            """.trimIndent()
+        val result = Parser.parse(source)
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val step = result.ast!!.scenarios[0].steps[0]
+        assertEquals(expected, step.description)
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "validate something",
+        "the variable: {{name}} must be equal to the value: {{value}}",
+    )
+    fun `custom assertion pattern should be the same as scenario file`(expected: String) {
+        val source =
+            """
+            scenario: foo
+              when I do something
+                call ^testOp
+                assert $expected
+            """.trimIndent()
+        val result = Parser.parse(source)
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val step = result.ast!!.scenarios[0].steps[0]
+        val assertNode = step.actions[1] as AssertNode
+        assertTrue(assertNode.isCustomAssertion())
+        assertEquals(expected, assertNode.getCustomPattern())
     }
 }

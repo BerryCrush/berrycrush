@@ -236,23 +236,9 @@ internal fun ParserState.parseBuiltinOrCustomAssertCondition(
     }
 
     // No built-in condition matched - treat as custom assertion pattern
-    val patternBuilder = StringBuilder()
-    while (!isAtEnd() && current().type != TokenType.NEWLINE && current().type != TokenType.EOF) {
-        if (patternBuilder.isNotEmpty()) {
-            patternBuilder.append(" ")
-        }
-        // Preserve quotes for STRING tokens so custom assertion matchers can extract parameters
-        val tokenValue =
-            if (current().type == TokenType.STRING) {
-                "\"${current().value}\""
-            } else {
-                current().value
-            }
-        patternBuilder.append(tokenValue)
-        advance()
-    }
+    val pattern = parseInlineTextUntilLineEnd()
 
-    return when (val pattern = patternBuilder.toString().trim()) {
+    return when (pattern) {
         "" -> {
             addError("Empty assertion pattern")
         }
