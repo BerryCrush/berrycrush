@@ -32,6 +32,7 @@ import org.springframework.boot.test.web.server.LocalServerPort
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ExtendWith(BerryCrushExtension::class)
 @BerryCrushSpec("classpath:/petstore.yaml")
+@BerryCrushSpec(name = "auth", paths = ["classpath:/auth.yaml"])
 class EnhancedDslTest {
     @LocalServerPort
     private var port: Int = 0

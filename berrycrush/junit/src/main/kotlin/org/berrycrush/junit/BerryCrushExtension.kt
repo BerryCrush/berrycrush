@@ -17,6 +17,9 @@ import org.junit.jupiter.api.extension.ParameterResolver
 import org.junit.jupiter.api.extension.TestTemplateInvocationContext
 import org.junit.jupiter.api.extension.TestTemplateInvocationContextProvider
 import java.util.stream.Stream
+import kotlin.reflect.KClass
+import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.findAnnotations
 
 /**
  * JUnit 5 extension for BerryCrush scenarios.
@@ -111,7 +114,7 @@ class BerryCrushExtension :
         }
 
         val testClass = context.requiredTestClass
-        val specs = collectSpecs(testClass)
+        val specs = collectSpecs(testClass.kotlin)
 
         val suite = BerryCrushSuite.create()
 
@@ -135,16 +138,16 @@ class BerryCrushExtension :
      * Collects all @BerryCrushSpec annotations from the test class.
      * Supports both single and repeatable annotations via @BerryCrushSpecs container.
      */
-    private fun collectSpecs(testClass: Class<*>): List<BerryCrushSpec> {
+    internal fun collectSpecs(testClass: KClass<*>): List<BerryCrushSpec> {
         val result = mutableListOf<BerryCrushSpec>()
 
         // Check for container annotation (@BerryCrushSpecs)
-        testClass.getAnnotation(BerryCrushSpecs::class.java)?.value?.let { specs ->
+        testClass.findAnnotation<BerryCrushSpecs>()?.value?.let { specs ->
             result.addAll(specs)
         }
 
         // Check for single @BerryCrushSpec (if not already in container)
-        testClass.getAnnotation(BerryCrushSpec::class.java)?.let { spec ->
+        testClass.findAnnotations<BerryCrushSpec>().forEach { spec ->
             if (result.none { it.name == spec.name }) {
                 result.add(spec)
             }

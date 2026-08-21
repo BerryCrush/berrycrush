@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ParameterContext
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
 import java.util.Optional
+import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
@@ -18,13 +19,7 @@ class BerryCrushExtensionInternalTest {
     @Test
     fun `collectSpecs should read repeatable and single annotations without duplicates`() {
         val extension = BerryCrushExtension()
-        val collectSpecs =
-            BerryCrushExtension::class.java
-                .getDeclaredMethod("collectSpecs", Class::class.java)
-                .apply { isAccessible = true }
-
-        @Suppress("UNCHECKED_CAST")
-        val specs = collectSpecs.invoke(extension, MultiSpecClass::class.java) as List<BerryCrushSpec>
+        val specs = extension.collectSpecs(MultiSpecClass::class)
 
         assertEquals(2, specs.size)
         assertTrue(specs.any { it.name == "default" && "test-api.yaml" in it.paths })
