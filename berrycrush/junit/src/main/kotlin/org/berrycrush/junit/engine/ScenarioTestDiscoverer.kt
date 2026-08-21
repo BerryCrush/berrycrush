@@ -14,10 +14,7 @@ import org.junit.platform.engine.UniqueId
 import org.junit.platform.engine.support.descriptor.AbstractTestDescriptor
 import org.junit.platform.engine.support.descriptor.EngineDescriptor
 import java.io.File
-import java.net.URI
 import java.net.URL
-import java.nio.file.FileSystems
-import java.nio.file.Paths
 import kotlin.reflect.KClass
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.hasAnnotation

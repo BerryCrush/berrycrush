@@ -149,6 +149,13 @@ Create a bindings class to provide configuration:
                 "default" to OpenApiSpecValue("petstore.yaml", "http://localhost:8080")
             )
         }
+
+      override fun getRuntimeParameters(): Map<String, Any> {
+        return mapOf(
+          "tenantId" to "acme",
+          "authToken" to "test-token"
+        )
+      }
     }
 
 4. Create a test class

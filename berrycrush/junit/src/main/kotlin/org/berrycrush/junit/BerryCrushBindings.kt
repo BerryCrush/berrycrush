@@ -57,6 +57,19 @@ interface BerryCrushBindings {
     fun getBindings(): Map<String, Any>
 
     /**
+     * Returns runtime parameters to be applied during scenario execution.
+     *
+     * These parameters are merged into execution-time configuration using
+     * [org.berrycrush.executor.BerryCrushConfigurationProvider.withParameters].
+     *
+     * Unlike [getBindings], this method is intended for dynamic execution
+     * parameters that should be available as `param.*` values in step context.
+     *
+     * @return Map of runtime parameter names to values
+     */
+    fun getRuntimeParameters(): Map<String, Any> = emptyMap()
+
+    /**
      * Optional: Configure the execution context.
      *
      * Called before scenario execution begins. Use this to perform

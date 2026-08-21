@@ -3,6 +3,7 @@ package org.berrycrush.junit.engine
 import org.berrycrush.junit.BerryCrushBindings
 import org.berrycrush.junit.BerryCrushConfiguration
 import org.berrycrush.junit.BerryCrushSpec
+import org.berrycrush.junit.DefaultBindings
 import org.berrycrush.junit.ParallelExecutionMode
 import org.junit.jupiter.api.Test
 import org.junit.platform.engine.UniqueId
@@ -60,6 +61,20 @@ class BerryCrushConfigurationTest {
         assertEquals("http://localhost:8080", values["baseUrl"])
         assertEquals("test-token", values["authToken"])
     }
+
+    @Test
+    fun `default runtime parameters should be empty`() {
+        val bindings = DefaultBindings()
+
+        assertEquals(emptyMap(), bindings.getRuntimeParameters())
+    }
+
+    @Test
+    fun `TestBindings provides custom runtime parameters`() {
+        val bindings = TestBindings()
+
+        assertEquals("tenant-a", bindings.getRuntimeParameters()["tenantId"])
+    }
 }
 
 /**
@@ -75,6 +90,11 @@ class TestBindings : BerryCrushBindings {
     override fun configure(config: Configuration) {
         config.baseUrl = "http://localhost:8080"
     }
+
+    override fun getRuntimeParameters(): Map<String, Any> =
+        mapOf(
+            "tenantId" to "tenant-a",
+        )
 }
 
 /**

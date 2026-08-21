@@ -105,13 +105,16 @@ class ScenarioTestExecutor(
         val suite = BerryCrushSuite.create()
         val bindings = createBindings(classDescriptor, provider)
 
+        suite.runtimeParameters.clear()
+        suite.runtimeParameters.putAll(bindings.getRuntimeParameters())
+
         configureSpec(suite, bindings, classDescriptor)
 
         val pluginRegistry = createPluginRegistry(classDescriptor)
         val fragmentRegistry = loadFragments(classDescriptor)
         val stepRegistry = createStepRegistry(classDescriptor, registryProvider)
         val assertionRegistry = createAssertionRegistry(classDescriptor, registryProvider)
-        val configuration = BerryCrushConfigurationProvider.from(suite.configuration)
+        val configuration = BerryCrushConfigurationProvider.from(suite.configuration, suite.runtimeParameters)
         val runner =
             ScenarioRunner(
                 suite.specRegistry,

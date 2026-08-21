@@ -277,6 +277,25 @@ class BerryCrushDslTest {
     }
 
     @Test
+    fun `should set runtime parameter on suite`() {
+        val suite = berrycrush { }
+
+        suite.runtimeParameter("tenantId", "acme")
+
+        assertEquals("acme", suite.runtimeParameters["tenantId"])
+    }
+
+    @Test
+    fun `should merge runtime parameters on suite`() {
+        val suite = berrycrush { }
+
+        suite.runtimeParameters(mapOf("tenantId" to "acme", "region" to "us-east"))
+
+        assertEquals("acme", suite.runtimeParameters["tenantId"])
+        assertEquals("us-east", suite.runtimeParameters["region"])
+    }
+
+    @Test
     fun `should show all use case here`() {
         val suite =
             berrycrush {
