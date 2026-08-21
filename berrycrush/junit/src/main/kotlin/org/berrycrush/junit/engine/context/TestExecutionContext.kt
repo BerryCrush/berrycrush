@@ -185,7 +185,7 @@ private fun TestExecutionContext.buildFileContext(
             suite.configuration
         }
     val executionContext = ExecutionContext(fileConfig.shareVariablesAcrossScenarios, fileContent.parameters)
-    val newRunner = runner.from(BerryCrushConfigurationProvider.from(fileConfig))
+    val newRunner = runner.from(BerryCrushConfigurationProvider.from(fileConfig, suite.runtimeParameters))
 
     // Warn if sharing variables across scenarios with concurrent execution mode
     if (classDescriptor.parallelExecution == ParallelExecutionMode.CONCURRENT) {

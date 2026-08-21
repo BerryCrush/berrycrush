@@ -50,12 +50,16 @@ interface BerryCrushConfigurationProvider : ApiConfiguration {
     fun resolveReference(resolver: (Any) -> Any)
 
     companion object {
-        fun from(configuration: BerryCrushConfiguration): BerryCrushConfigurationProvider = BerryCrushConfigurationWrapper(configuration)
+        fun from(
+            configuration: BerryCrushConfiguration,
+            runtimeParameters: Map<String, Any> = emptyMap(),
+        ): BerryCrushConfigurationProvider = BerryCrushConfigurationWrapper(configuration, runtimeParameters)
     }
 }
 
 private class BerryCrushConfigurationWrapper(
     private var configuration: BerryCrushConfiguration,
+    private val runtimeParameters: Map<String, Any>,
 ) : BerryCrushConfigurationProvider {
     override val baseUrl: String?
         get() = configuration.baseUrl
@@ -95,15 +99,16 @@ private class BerryCrushConfigurationWrapper(
         block: () -> R,
     ): R {
         val savedConfiguration = configuration
+        val effectiveParameters = runtimeParameters + parameters
         return try {
-            configuration = configuration.withParameters(parameters)
+            configuration = configuration.withParameters(effectiveParameters)
             block()
         } finally {
             configuration = savedConfiguration
         }
     }
 
-    override fun toParameterMap(): Map<String, Any> = configuration.toParameterMap()
+    override fun toParameterMap(): Map<String, Any> = configuration.toParameterMap() + runtimeParameters
 
     override fun resolveReference(resolver: (Any) -> Any) = configuration.resolveReference(resolver)
 }

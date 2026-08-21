@@ -336,6 +336,7 @@ For detailed documentation, see [OpenAPI Version Support](openapi-versioning.md)
 Variables are stored in `ExecutionContext` and can be:
 
 1. **Predefined bindings** - From `BerryCrushBindings.getBindings()`
+2. **Runtime parameters** - From `BerryCrushBindings.getRuntimeParameters()` and `BerryCrushSuite.runtimeParameters`
 2. **Extracted values** - From response via JSONPath (`extract $.id => petId`)
 3. **Cross-scenario** - When `shareVariablesAcrossScenarios = true`
 
