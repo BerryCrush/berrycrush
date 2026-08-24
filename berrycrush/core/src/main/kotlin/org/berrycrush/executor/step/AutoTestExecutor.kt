@@ -6,10 +6,10 @@ import org.berrycrush.autotest.MultiTestResult
 import org.berrycrush.autotest.RequestResult
 import org.berrycrush.autotest.provider.AutoTestProviderRegistry
 import org.berrycrush.autotest.provider.MultiTestProvider
-import org.berrycrush.config.BindingConfig
 import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.BerryCrushExecutionListener
 import org.berrycrush.executor.http.HttpExecutor
+import org.berrycrush.executor.resolvers.resolveCall
 import org.berrycrush.model.Assertion
 import org.berrycrush.model.AssertionResults
 import org.berrycrush.model.AutoTestResult
@@ -127,8 +127,8 @@ class AutoTestExecutor(
         stepStartTime: Instant,
         listener: BerryCrushExecutionListener = BerryCrushExecutionListener.NOOP,
     ): StepResult {
-        val resolvedStep = resolveCallTargets(step, context)
-        val autoTestConfig = step.autoTestConfig!!
+        val resolvedStep = context.resolveCall(step)
+        val autoTestConfig = resolvedStep.autoTestConfig!!
         val operationId = resolvedStep.operationId!!
         // Resolve the operation to get the OpenAPI spec
         val (spec, operation) = specRegistry.resolve(operationId, resolvedStep.specName, configuration.bindings)
@@ -154,7 +154,7 @@ class AutoTestExecutor(
         if (testCases.isEmpty()) {
             // No test cases generated - just pass
             return StepResult(
-                step = step,
+                step = resolvedStep,
                 status = ResultStatus.PASSED,
                 duration = Duration.between(stepStartTime, Instant.now()),
                 message = "No auto-test cases generated (operation may not have parameters or constraints)",
@@ -177,7 +177,7 @@ class AutoTestExecutor(
         val totalCount = allResults.size
 
         return StepResult(
-            step = step,
+            step = resolvedStep,
             status = if (failedCount == 0) ResultStatus.PASSED else ResultStatus.FAILED,
             duration = Duration.between(stepStartTime, Instant.now()),
             message = "Auto-tests: $totalCount executed, $failedCount failed",
@@ -309,46 +309,6 @@ class AutoTestExecutor(
             assertionResults = allResults,
             duration = Duration.between(testStartTime, Instant.now()),
         )
-    }
-
-    private fun resolveCallTargets(
-        step: Step,
-        stepContext: StepContext,
-    ): Step {
-        val resolvedOperationId = stepContext.resolveCallValue(step.operationId, "operation ID")
-        val resolvedSpecName = stepContext.resolveCallValue(step.specName, "spec name", required = false)
-
-        return if (resolvedOperationId == step.operationId && resolvedSpecName == step.specName) {
-            step
-        } else {
-            step.copy(operationId = resolvedOperationId, specName = resolvedSpecName)
-        }
-    }
-
-    private fun StepContext.resolveCallValue(
-        raw: String?,
-        label: String,
-        required: Boolean = true,
-    ): String? {
-        if (raw == null) {
-            require(!required) { "Missing $label in step '$stepDescription'" }
-            return null
-        }
-
-        val resolved = interpolate(raw).trim()
-        require(resolved.isNotEmpty()) {
-            "Resolved $label is empty from '$raw' in step '$stepDescription'"
-        }
-
-        val unresolvedTemplate =
-            resolved.contains("{{") ||
-                resolved.contains("}}") ||
-                resolved.contains("\${")
-        require(!unresolvedTemplate) {
-            "Unable to resolve $label from '$raw' in step '$stepDescription'"
-        }
-
-        return resolved
     }
 
     /**

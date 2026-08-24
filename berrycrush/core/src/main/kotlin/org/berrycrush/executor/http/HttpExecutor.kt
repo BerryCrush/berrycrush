@@ -1,6 +1,7 @@
 package org.berrycrush.executor.http
 
 import org.berrycrush.executor.resolvers.RequestResolver
+import org.berrycrush.executor.resolvers.resolveCall
 import org.berrycrush.model.HttpRequest
 import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.Step
@@ -22,7 +23,7 @@ interface HttpExecutor : RequestResolver {
         specRegistry: SpecRegistry,
         stepContext: StepContext,
     ): HttpResponse {
-        val resolvedStep = step.resolveCallTargets(stepContext)
+        val resolvedStep = stepContext.resolveCall(step)
         // Resolve the operation
         val (spec, resolvedOp) = resolve(resolvedStep, specRegistry)
         // Execute the HTTP request using the HttpExecutor
@@ -63,41 +64,4 @@ interface HttpExecutor : RequestResolver {
         step: Step,
         specRegistry: SpecRegistry,
     ) = specRegistry.resolve(step.operationId!!, step.specName)
-
-    private fun Step.resolveCallTargets(stepContext: StepContext): Step {
-        val resolvedOperationId = stepContext.resolveCallValue(operationId, "operation ID")
-        val resolvedSpecName = stepContext.resolveCallValue(specName, "spec name", required = false)
-
-        return if (resolvedOperationId == operationId && resolvedSpecName == specName) {
-            this
-        } else {
-            copy(operationId = resolvedOperationId, specName = resolvedSpecName)
-        }
-    }
-
-    private fun StepContext.resolveCallValue(
-        raw: String?,
-        label: String,
-        required: Boolean = true,
-    ): String? {
-        if (raw == null) {
-            require(!required) { "Missing $label in step '$stepDescription'" }
-            return null
-        }
-
-        val resolved = interpolate(raw).trim()
-        require(resolved.isNotEmpty()) {
-            "Resolved $label is empty from '$raw' in step '$stepDescription'"
-        }
-
-        val unresolvedTemplate =
-            resolved.contains("{{") ||
-                resolved.contains("}}") ||
-                resolved.contains("\${")
-        require(!unresolvedTemplate) {
-            "Unable to resolve $label from '$raw' in step '$stepDescription'"
-        }
-
-        return resolved
-    }
 }
