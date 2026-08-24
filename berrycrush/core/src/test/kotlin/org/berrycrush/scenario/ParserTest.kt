@@ -394,6 +394,51 @@ class ParserTest {
     }
 
     @Test
+    fun `should parse call with variable operation id`() {
+        val source =
+            """
+            scenario: dynamic operation call
+              when I call
+                call {{operationId}}
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val call =
+            result.ast!!
+                .scenarios[0]
+                .steps[0]
+                .actions
+                .filterIsInstance<CallNode>()
+                .single()
+        assertEquals("{{operationId}}", call.operationId)
+    }
+
+    @Test
+    fun `should parse call using variable spec and operation`() {
+        val source =
+            """
+            scenario: dynamic using call
+              when I call
+                call using {{specName}} {{operationId}}
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val call =
+            result.ast!!
+                .scenarios[0]
+                .steps[0]
+                .actions
+                .filterIsInstance<CallNode>()
+                .single()
+        assertEquals("{{specName}}", call.specName)
+        assertEquals("{{operationId}}", call.operationId)
+    }
+
+    @Test
     fun `should handle and keyword`() {
         val source =
             """

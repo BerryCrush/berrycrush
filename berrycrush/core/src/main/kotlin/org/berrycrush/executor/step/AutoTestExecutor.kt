@@ -127,18 +127,19 @@ class AutoTestExecutor(
         stepStartTime: Instant,
         listener: BerryCrushExecutionListener = BerryCrushExecutionListener.NOOP,
     ): StepResult {
+        val resolvedStep = resolveCallTargets(step, context)
         val autoTestConfig = step.autoTestConfig!!
-        val operationId = step.operationId!!
+        val operationId = resolvedStep.operationId!!
         // Resolve the operation to get the OpenAPI spec
-        val (spec, operation) = specRegistry.resolve(operationId, step.specName, configuration.bindings)
+        val (spec, operation) = specRegistry.resolve(operationId, resolvedStep.specName, configuration.bindings)
         // Create the auto-test generator
         val generator = AutoTestGenerator.fromSpec(spec)
         // Extract base body from step if present
-        val baseBody = extractBaseBody(step, operation, context)
+        val baseBody = extractBaseBody(resolvedStep, operation, context)
         // Extract base path params from step
-        val basePathParams = context.resolveParams(step.pathParams)
+        val basePathParams = context.resolveParams(resolvedStep.pathParams)
         // Extract base headers from step
-        val baseHeaders = context.resolveParams(step.headers)
+        val baseHeaders = context.resolveParams(resolvedStep.headers)
         // Generate test cases
         val testCases =
             generator
@@ -164,7 +165,7 @@ class AutoTestExecutor(
         val allResults =
             testCases.map { testCase ->
                 listener.onAutoTestStarting(testCase)
-                executeAutoTestCase(step, testCase, context).also { testResult ->
+                executeAutoTestCase(resolvedStep, testCase, context).also { testResult ->
                     // Notify listener that test finished
                     listener.onAutoTestCompleted(testResult)
                     // Log the test case execution
@@ -308,6 +309,46 @@ class AutoTestExecutor(
             assertionResults = allResults,
             duration = Duration.between(testStartTime, Instant.now()),
         )
+    }
+
+    private fun resolveCallTargets(
+        step: Step,
+        stepContext: StepContext,
+    ): Step {
+        val resolvedOperationId = stepContext.resolveCallValue(step.operationId, "operation ID")
+        val resolvedSpecName = stepContext.resolveCallValue(step.specName, "spec name", required = false)
+
+        return if (resolvedOperationId == step.operationId && resolvedSpecName == step.specName) {
+            step
+        } else {
+            step.copy(operationId = resolvedOperationId, specName = resolvedSpecName)
+        }
+    }
+
+    private fun StepContext.resolveCallValue(
+        raw: String?,
+        label: String,
+        required: Boolean = true,
+    ): String? {
+        if (raw == null) {
+            require(!required) { "Missing $label in step '$stepDescription'" }
+            return null
+        }
+
+        val resolved = interpolate(raw).trim()
+        require(resolved.isNotEmpty()) {
+            "Resolved $label is empty from '$raw' in step '$stepDescription'"
+        }
+
+        val unresolvedTemplate =
+            resolved.contains("{{") ||
+                resolved.contains("}}") ||
+                resolved.contains("\${")
+        require(!unresolvedTemplate) {
+            "Unable to resolve $label from '$raw' in step '$stepDescription'"
+        }
+
+        return resolved
     }
 
     /**

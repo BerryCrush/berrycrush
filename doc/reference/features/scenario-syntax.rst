@@ -70,6 +70,17 @@ For multi-spec projects, specify the spec name:
 
     call using auth ^login
 
+  Call targets also support variable interpolation. This allows selecting the spec
+  and operation dynamically at runtime:
+
+  .. code-block:: berrycrush
+
+    call {{operationId}}
+    call using {{specName}} {{operationId}}
+
+  Variables must resolve to non-empty values before execution. If a variable is
+  missing or unresolved, BerryCrush fails the step with a clear error.
+
 Call Parameters
 ^^^^^^^^^^^^^^^
 

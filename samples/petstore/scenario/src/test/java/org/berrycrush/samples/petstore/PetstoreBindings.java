@@ -3,6 +3,7 @@ package org.berrycrush.samples.petstore;
 import org.berrycrush.config.BerryCrushConfiguration;
 import org.berrycrush.junit.binding.OpenApiSpecValue;
 import org.berrycrush.junit.BerryCrushBindings;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
@@ -61,5 +62,11 @@ public class PetstoreBindings implements BerryCrushBindings {
         config.setLogRequests(true);
         config.setLogResponses(true);
         config.getAutoAssertions().setEnabled(true);
+    }
+
+    @Override
+    @NotNull
+    public Map<String, Object> getRuntimeParameters() {
+        return Map.of("serverPort", port);
     }
 }
