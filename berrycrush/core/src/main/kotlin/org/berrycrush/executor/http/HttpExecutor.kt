@@ -63,5 +63,5 @@ interface HttpExecutor : RequestResolver {
     fun resolve(
         step: Step,
         specRegistry: SpecRegistry,
-    ) = specRegistry.resolve(step.operationId!!, step.specName)
+    ) = specRegistry.resolve(requireNotNull(step.operationId), step.specName)
 }

@@ -122,4 +122,4 @@ data class ServerVariable(
     val description: String?,
 )
 
-typealias HttpMethod = HttpMethod
+typealias HttpMethod = org.berrycrush.model.HttpMethod

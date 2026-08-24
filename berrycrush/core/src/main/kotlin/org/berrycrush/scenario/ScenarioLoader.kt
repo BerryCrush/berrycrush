@@ -330,6 +330,8 @@ object ScenarioLoader {
                 type = stepType,
                 description = description,
                 operationId = call.operationId,
+                rawMethod = call.rawMethod,
+                rawPath = call.rawPath,
                 specName = call.specName,
                 pathParams = pathParams.toNonNullMap(),
                 queryParams = queryParams.toNonNullMap(),

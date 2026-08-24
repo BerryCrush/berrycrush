@@ -42,6 +42,7 @@ class Lexer(
                 "and" to TokenType.AND,
                 "but" to TokenType.BUT,
                 "call" to TokenType.CALL,
+                "raw" to TokenType.RAW,
                 "extract" to TokenType.EXTRACT,
                 "assert" to TokenType.ASSERT,
                 "examples" to TokenType.EXAMPLES,
@@ -140,6 +141,11 @@ class Lexer(
                 // Handle variable reference
                 c == '{' && peekAhead(1) == '{' -> {
                     scanVariable()
+                }
+
+                // Handle HTTP path for raw calls (e.g., /pets/{id})
+                c == '/' -> {
+                    scanHttpPath()
                 }
 
                 // Handle numbers
@@ -573,6 +579,18 @@ class Lexer(
         }
     }
 
+    private fun scanHttpPath(): Token {
+        val loc = currentLocation()
+        val sb = StringBuilder()
+        sb.append(advance())
+
+        while (!isAtEnd() && isHttpPathChar(peek())) {
+            sb.append(advance())
+        }
+
+        return Token(TokenType.HTTP_PATH, sb.toString(), loc)
+    }
+
     private fun scanSymbol(): Token {
         val loc = currentLocation()
         return when (val c = advance()) {
@@ -686,3 +704,12 @@ private fun Char.isNewLine() = this == '\n' || this == '\r'
 private fun Char.isDelimiter() = !isIdentifierChar()
 
 private fun Char.isIdentifierChar() = this.isLetterOrDigit() || IDENTIFIER_SYMBOLS.contains(this)
+
+private fun isHttpPathChar(c: Char): Boolean =
+    !c.isWhitespace() &&
+        c != ',' &&
+        c != ')' &&
+        c != '(' &&
+        c != ']' &&
+        c != '[' &&
+        c != '\u0000'

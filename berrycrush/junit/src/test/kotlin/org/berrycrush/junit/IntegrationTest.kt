@@ -10,4 +10,4 @@ import org.junit.platform.suite.api.Suite
     stepPackages = ["org.berrycrush.junit.glue"],
 )
 @BerryCrushSpec("test-api.yaml")
-class ParametersTest
+class IntegrationTest

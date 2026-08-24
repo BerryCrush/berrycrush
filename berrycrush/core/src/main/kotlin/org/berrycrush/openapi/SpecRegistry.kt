@@ -88,6 +88,8 @@ class SpecRegistry {
             ?: specs[name]
             ?: throw ConfigurationException("Spec '$name' not found. Available: ${specs.keys}")
 
+    fun contains(name: String): Boolean = specs.containsKey(name)
+
     /**
      * Get the default spec.
      */

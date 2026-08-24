@@ -101,10 +101,13 @@ class StepExecutor(
         pluginRegistry?.dispatchStepStart(stepContext)
 
         // Execute the actual step with scenario context for error enrichment
-        val result = // If no operation to call, check for custom step or assertions
-            step.operationId?.let {
+        val hasCallTarget = step.operationId != null || (step.rawMethod != null && step.rawPath != null)
+        val result =
+            if (hasCallTarget) {
                 operationStepExecutor.execute(step, stepContext, stepIndex, listener)
-            } ?: executeNonOperationStep(step, stepContext)
+            } else {
+                executeNonOperationStep(step, stepContext)
+            }
 
         // Dispatch plugin: onStepEnd
         pluginRegistry?.dispatchStepEnd(stepContext, StepResultAdapter(result))

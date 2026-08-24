@@ -49,6 +49,8 @@ data class Step(
     val type: StepType,
     val description: String,
     val operationId: String? = null,
+    val rawMethod: String? = null,
+    val rawPath: String? = null,
     val specName: String? = null,
     val pathParams: Map<String, Any> = emptyMap(),
     val queryParams: Map<String, Any> = emptyMap(),

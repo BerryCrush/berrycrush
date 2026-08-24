@@ -194,7 +194,9 @@ sealed interface ActionNode : AstNode
  * API call action.
  */
 data class CallNode(
-    val operationId: String,
+    val operationId: String? = null,
+    val rawMethod: String? = null,
+    val rawPath: String? = null,
     val specName: String? = null,
     val parameters: Map<String, ValueNode> = emptyMap(),
     val headers: Map<String, ValueNode> = emptyMap(),

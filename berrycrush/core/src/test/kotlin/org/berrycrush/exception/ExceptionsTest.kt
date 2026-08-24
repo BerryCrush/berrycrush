@@ -1,8 +1,8 @@
 package org.berrycrush.exception
 
+import org.berrycrush.model.HttpMethod
 import org.berrycrush.model.HttpRequest
 import org.berrycrush.model.HttpResponse
-import org.berrycrush.openapi.HttpMethod
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
