@@ -115,4 +115,38 @@ class BerryCrushScenarioExecutorBranchTest {
             true,
         )
     }
+
+    @Test
+    fun `should return clear error when dynamic call operation id cannot be resolved`() {
+        val executor =
+            BerryCrushScenarioExecutor(
+                specRegistry = SpecRegistry(),
+                configuration = BerryCrushConfigurationProvider.from(BerryCrushConfiguration()),
+            )
+        val scenario =
+            Scenario(
+                name = "unresolved dynamic call",
+                steps =
+                    listOf(
+                        Step(
+                            type = StepType.WHEN,
+                            description = "call unresolved operation",
+                            operationId = "{{operationId}}",
+                        ),
+                    ),
+            )
+
+        val result = executor.execute(scenario)
+
+        assertEquals(ResultStatus.ERROR, result.status)
+        assertEquals(ResultStatus.ERROR, result.stepResults.single().status)
+        assertEquals(
+            true,
+            result.stepResults
+                .single()
+                .error
+                ?.message
+                ?.contains("Unable to resolve operation ID"),
+        )
+    }
 }

@@ -1,6 +1,7 @@
 package org.berrycrush.executor.http
 
 import org.berrycrush.executor.resolvers.RequestResolver
+import org.berrycrush.executor.resolvers.resolveCall
 import org.berrycrush.model.HttpRequest
 import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.Step
@@ -22,10 +23,11 @@ interface HttpExecutor : RequestResolver {
         specRegistry: SpecRegistry,
         stepContext: StepContext,
     ): HttpResponse {
+        val resolvedStep = stepContext.resolveCall(step)
         // Resolve the operation
-        val (spec, resolvedOp) = resolve(step, specRegistry)
+        val (spec, resolvedOp) = resolve(resolvedStep, specRegistry)
         // Execute the HTTP request using the HttpExecutor
-        val response = execute(step, spec, resolvedOp, stepContext)
+        val response = execute(resolvedStep, spec, resolvedOp, stepContext)
         // Update context with response
         return response
     }

@@ -102,6 +102,18 @@ class ScenarioLoaderTest {
     }
 
     @Test
+    fun `should load scenario file preserving dynamic using call operands`() {
+        val path = getResourcePath("valid/dynamic-call-using-variables.scenario")
+        val scenarios = ScenarioLoader.loadFileContent(path).scenarios
+
+        assertEquals(1, scenarios.size)
+        val step = scenarios[0].steps.first { it.operationId != null }
+
+        assertEquals("{{operationId}}", step.operationId)
+        assertEquals("{{specName}}", step.specName)
+    }
+
+    @Test
     fun `should transform step types correctly`() {
         val source =
             """

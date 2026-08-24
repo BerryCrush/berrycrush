@@ -57,12 +57,16 @@ internal fun ParserState.parseCallAction(): CallNode? {
 
     val specName = parseUsingClause()
 
-    // Get operation ID
-    if (current().type != TokenType.OPERATION_ID && current().type != TokenType.IDENTIFIER) {
+    // Get operation ID (static or variable reference)
+    if (
+        current().type != TokenType.OPERATION_ID &&
+        current().type != TokenType.IDENTIFIER &&
+        current().type != TokenType.VARIABLE
+    ) {
         return addError("Expected operation ID")
     }
 
-    val operationId = current().value
+    val operationId = parseCallTargetOperand() ?: return addError("Expected operation ID")
     advance()
 
     val state = CallParseState()
@@ -81,6 +85,13 @@ internal fun ParserState.parseCallAction(): CallNode? {
     )
 }
 
+private fun ParserState.parseCallTargetOperand(): String? =
+    when (current().type) {
+        TokenType.OPERATION_ID, TokenType.IDENTIFIER, TokenType.STRING -> current().value
+        TokenType.VARIABLE -> "{{${current().value}}}"
+        else -> null
+    }
+
 /**
  * Parse optional "using spec_name" clause.
  */
@@ -88,11 +99,16 @@ private fun ParserState.parseUsingClause(): String? {
     if (current().type != TokenType.USING) return null
     advance()
     skipWhitespace()
-    return if (current().type == TokenType.IDENTIFIER || current().type == TokenType.STRING) {
+    return if (
+        current().type == TokenType.IDENTIFIER ||
+        current().type == TokenType.STRING ||
+        current().type == TokenType.VARIABLE
+    ) {
         val specName = current().value
+        val normalizedSpecName = if (current().type == TokenType.VARIABLE) "{{$specName}}" else specName
         advance()
         skipWhitespace()
-        specName
+        normalizedSpecName
     } else {
         null
     }

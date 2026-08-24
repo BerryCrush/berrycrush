@@ -6,10 +6,10 @@ import org.berrycrush.autotest.MultiTestResult
 import org.berrycrush.autotest.RequestResult
 import org.berrycrush.autotest.provider.AutoTestProviderRegistry
 import org.berrycrush.autotest.provider.MultiTestProvider
-import org.berrycrush.config.BindingConfig
 import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.BerryCrushExecutionListener
 import org.berrycrush.executor.http.HttpExecutor
+import org.berrycrush.executor.resolvers.resolveCall
 import org.berrycrush.model.Assertion
 import org.berrycrush.model.AssertionResults
 import org.berrycrush.model.AutoTestResult
@@ -127,18 +127,19 @@ class AutoTestExecutor(
         stepStartTime: Instant,
         listener: BerryCrushExecutionListener = BerryCrushExecutionListener.NOOP,
     ): StepResult {
-        val autoTestConfig = step.autoTestConfig!!
-        val operationId = step.operationId!!
+        val resolvedStep = context.resolveCall(step)
+        val autoTestConfig = resolvedStep.autoTestConfig!!
+        val operationId = resolvedStep.operationId!!
         // Resolve the operation to get the OpenAPI spec
-        val (spec, operation) = specRegistry.resolve(operationId, step.specName, configuration.bindings)
+        val (spec, operation) = specRegistry.resolve(operationId, resolvedStep.specName, configuration.bindings)
         // Create the auto-test generator
         val generator = AutoTestGenerator.fromSpec(spec)
         // Extract base body from step if present
-        val baseBody = extractBaseBody(step, operation, context)
+        val baseBody = extractBaseBody(resolvedStep, operation, context)
         // Extract base path params from step
-        val basePathParams = context.resolveParams(step.pathParams)
+        val basePathParams = context.resolveParams(resolvedStep.pathParams)
         // Extract base headers from step
-        val baseHeaders = context.resolveParams(step.headers)
+        val baseHeaders = context.resolveParams(resolvedStep.headers)
         // Generate test cases
         val testCases =
             generator
@@ -153,7 +154,7 @@ class AutoTestExecutor(
         if (testCases.isEmpty()) {
             // No test cases generated - just pass
             return StepResult(
-                step = step,
+                step = resolvedStep,
                 status = ResultStatus.PASSED,
                 duration = Duration.between(stepStartTime, Instant.now()),
                 message = "No auto-test cases generated (operation may not have parameters or constraints)",
@@ -164,7 +165,7 @@ class AutoTestExecutor(
         val allResults =
             testCases.map { testCase ->
                 listener.onAutoTestStarting(testCase)
-                executeAutoTestCase(step, testCase, context).also { testResult ->
+                executeAutoTestCase(resolvedStep, testCase, context).also { testResult ->
                     // Notify listener that test finished
                     listener.onAutoTestCompleted(testResult)
                     // Log the test case execution
@@ -176,7 +177,7 @@ class AutoTestExecutor(
         val totalCount = allResults.size
 
         return StepResult(
-            step = step,
+            step = resolvedStep,
             status = if (failedCount == 0) ResultStatus.PASSED else ResultStatus.FAILED,
             duration = Duration.between(stepStartTime, Instant.now()),
             message = "Auto-tests: $totalCount executed, $failedCount failed",
