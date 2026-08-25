@@ -1,20 +1,21 @@
 package org.berrycrush.executor.resolvers
 
 import org.berrycrush.model.HttpMethod
+import org.berrycrush.model.RawRequest
 import org.berrycrush.model.Step
 import org.berrycrush.plugin.StepContext
 
 @Suppress("ThrowsCount")
 internal fun StepContext.resolveCall(step: Step): Step {
     val resolvedSpecName = resolveCallValue(step.specName, "spec name", required = false)
-    val isRawTarget = step.rawMethod != null || step.rawPath != null
+    val isRawTarget = step.rawRequest != null
 
     if (isRawTarget) {
         val resolvedMethod =
-            resolveCallValue(step.rawMethod, "raw HTTP method")
+            resolveCallValue(step.rawRequest.method, "raw HTTP method")
                 ?: throw IllegalArgumentException("Missing raw HTTP method in step '$stepDescription'")
         val resolvedPath =
-            resolveCallValue(step.rawPath, "raw HTTP path")
+            resolveCallValue(step.rawRequest.path, "raw HTTP path")
                 ?: throw IllegalArgumentException("Missing raw HTTP path in step '$stepDescription'")
 
         require(HttpMethod.fromName(resolvedMethod) != null) {
@@ -26,13 +27,13 @@ internal fun StepContext.resolveCall(step: Step): Step {
         }
 
         return if (
-            resolvedMethod == step.rawMethod &&
-            resolvedPath == step.rawPath &&
+            resolvedMethod == step.rawRequest.method &&
+            resolvedPath == step.rawRequest.path &&
             resolvedSpecName == step.specName
         ) {
             step
         } else {
-            step.copy(rawMethod = resolvedMethod, rawPath = resolvedPath, specName = resolvedSpecName)
+            step.copy(rawRequest = RawRequest(resolvedMethod, resolvedPath), specName = resolvedSpecName)
         }
     }
 

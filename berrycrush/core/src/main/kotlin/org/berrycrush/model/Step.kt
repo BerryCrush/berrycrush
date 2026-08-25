@@ -49,8 +49,7 @@ data class Step(
     val type: StepType,
     val description: String,
     val operationId: String? = null,
-    val rawMethod: String? = null,
-    val rawPath: String? = null,
+    val rawRequest: RawRequest? = null,
     val specName: String? = null,
     val pathParams: Map<String, Any> = emptyMap(),
     val queryParams: Map<String, Any> = emptyMap(),
@@ -67,6 +66,11 @@ data class Step(
     val includeParameters: Map<String, Any?> = emptyMap(),
     val sourceLocation: SourceLocation? = null,
     val webhookConfig: WebhookConfig? = null,
+)
+
+data class RawRequest(
+    val method: String,
+    val path: String,
 )
 
 /**

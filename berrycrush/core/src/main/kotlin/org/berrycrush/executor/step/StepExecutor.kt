@@ -101,7 +101,7 @@ class StepExecutor(
         pluginRegistry?.dispatchStepStart(stepContext)
 
         // Execute the actual step with scenario context for error enrichment
-        val hasCallTarget = step.operationId != null || (step.rawMethod != null && step.rawPath != null)
+        val hasCallTarget = step.operationId != null || step.rawRequest != null
         val result =
             if (hasCallTarget) {
                 operationStepExecutor.execute(step, stepContext, stepIndex, listener)

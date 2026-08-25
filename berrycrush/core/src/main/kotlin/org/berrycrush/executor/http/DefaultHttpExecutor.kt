@@ -6,11 +6,9 @@ import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.HttpRequestBuilder
 import org.berrycrush.executor.resolvers.DefaultRequestResolver
 import org.berrycrush.executor.resolvers.RequestResolver
-import org.berrycrush.executor.resolvers.resolveCall
 import org.berrycrush.model.HttpRequest
 import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.Step
-import org.berrycrush.openapi.AmbiguousOperationException
 import org.berrycrush.openapi.HttpMethod
 import org.berrycrush.openapi.LoadedSpec
 import org.berrycrush.openapi.ResolvedOperation
@@ -42,32 +40,9 @@ class DefaultHttpExecutor(
     objectMapper: ObjectMapper = ObjectMapper(),
     private val requestResolver: RequestResolver = DefaultRequestResolver(configuration, httpBuilder, objectMapper),
 ) : HttpExecutor,
+    DirectHttpExecutor,
     RequestResolver by requestResolver {
-    override fun execute(
-        step: Step,
-        specRegistry: SpecRegistry,
-        stepContext: StepContext,
-    ): HttpResponse {
-        val resolvedStep = stepContext.resolveCall(step)
-        val operationId = resolvedStep.operationId
-        val rawMethod = resolvedStep.rawMethod
-        val rawPath = resolvedStep.rawPath
-
-        return when {
-            operationId != null -> {
-                val (spec, resolvedOp) = resolve(resolvedStep, specRegistry)
-                execute(resolvedStep, spec, resolvedOp, stepContext)
-            }
-
-            rawMethod != null && rawPath != null -> {
-                executeRaw(resolvedStep, specRegistry, stepContext)
-            }
-
-            else -> {
-                throw IllegalArgumentException("Step does not contain operationId or raw call target")
-            }
-        }
-    }
+    override val directExecutor: DirectHttpExecutor = this
 
     override fun execute(
         request: HttpRequest,
@@ -138,40 +113,22 @@ class DefaultHttpExecutor(
         specRegistry: SpecRegistry,
     ): Pair<LoadedSpec, ResolvedOperation> = specRegistry.resolve(requireNotNull(step.operationId), step.specName, configuration.bindings)
 
-    private fun executeRaw(
+    override fun execute(
         step: Step,
-        specRegistry: SpecRegistry,
         context: StepContext,
-    ): HttpResponse {
-        val rawMethod = requireNotNull(step.rawMethod)
-        val rawPath = requireNotNull(step.rawPath)
-        val methodForResolution =
-            HttpMethod.fromName(rawMethod)
-                ?: throw IllegalArgumentException("Unsupported HTTP method '$rawMethod' in 'call raw'.")
-
-        val resolvedOperation = resolveRawOperation(specRegistry, step.specName, methodForResolution, rawPath)
-
-        return if (resolvedOperation != null) {
-            val (spec, operation) = resolvedOperation
-            val remappedStep = remapRawPathParams(step, rawPath, operation.path)
-            execute(remappedStep.copy(operationId = operation.operationId), spec, operation, context)
-        } else {
-            execute(buildDirectRawRequest(step, specRegistry, context), context)
-        }
-    }
+    ): HttpResponse = execute(buildDirectRawRequest(step, context), context)
 
     private fun buildDirectRawRequest(
         step: Step,
-        specRegistry: SpecRegistry,
         context: StepContext,
     ): HttpRequest {
-        val rawMethod = requireNotNull(step.rawMethod)
+        requireNotNull(step.rawRequest)
+        val rawMethod = step.rawRequest.method
         val resolvedMethod =
             HttpMethod.fromName(rawMethod)
                 ?: throw IllegalArgumentException("Unsupported HTTP method '$rawMethod' in 'call raw'.")
-        val rawPath = requireNotNull(step.rawPath)
-        val selectedSpec = resolvePreferredSpec(specRegistry, step.specName)
-        val baseUrl = resolveRawBaseUrl(step.specName, selectedSpec, specRegistry)
+        val rawPath = step.rawRequest.path
+        val baseUrl = resolveRawBaseUrl(step.specName ?: BindingConfig.DEFAULT_BINDING_NAME)
 
         val url =
             httpBuilder.buildUrl(
@@ -181,7 +138,7 @@ class DefaultHttpExecutor(
                 queryParams = context.resolveParams(step.queryParams).toNonNullMap(),
             )
         val headers =
-            (configuration.defaultHeaders + (selectedSpec?.defaultHeaders ?: emptyMap()) + step.headers)
+            (configuration.defaultHeaders + step.headers)
                 .mapValues { (_, value) -> context.interpolate(value) }
         val body = resolveBody(step, null, context)
 
@@ -193,89 +150,9 @@ class DefaultHttpExecutor(
         )
     }
 
-    private fun resolveRawBaseUrl(
-        specName: String?,
-        selectedSpec: LoadedSpec?,
-        specRegistry: SpecRegistry,
-    ): String {
-        val defaultBinding = configuration.bindings[BindingConfig.DEFAULT_BINDING_NAME]
-
-        if (specName != null) {
-            val bindingUrl = configuration.bindings[specName]?.baseUrl
-            return bindingUrl
-                ?: selectedSpec?.baseUrl
-                ?: throw IllegalArgumentException("Spec '$specName' not found for raw call")
-        }
-
-        return defaultBinding?.baseUrl
-            ?: configuration.baseUrl
-            ?: selectedSpec?.baseUrl
-            ?: if (specRegistry.hasSpecs()) specRegistry.getDefault().baseUrl else "http://localhost"
-    }
-
-    private fun resolvePreferredSpec(
-        specRegistry: SpecRegistry,
-        specName: String?,
-    ): LoadedSpec? = specRegistry.resolveByName(specName) ?: if (specRegistry.hasSpecs()) specRegistry.getDefault() else null
-
-    private fun resolveRawOperation(
-        specRegistry: SpecRegistry,
-        specName: String?,
-        method: HttpMethod,
-        path: String,
-    ): Pair<LoadedSpec, ResolvedOperation>? {
-        val resolvedOperation =
-            specRegistry.resolveByName(specName)?.let { spec ->
-                spec.resolver.resolve(method, path)?.let {
-                    spec to it
-                }
-            }
-        return resolvedOperation ?: run {
-            val matches =
-                specRegistry.specNames().mapNotNull { name ->
-                    val spec = specRegistry.get(name)
-                    spec.resolver.resolve(method, path)?.let { spec to it }
-                }
-
-            when {
-                matches.isEmpty() -> null
-                matches.size == 1 -> matches.single()
-                else -> throw AmbiguousOperationException("$method $path", matches.map { it.first.name })
-            }
-        }
-    }
-
-    private fun SpecRegistry.resolveByName(specName: String?): LoadedSpec? =
-        specName?.let {
-            if (this.contains(it)) this.get(it) else null
-        }
-
-    private fun remapRawPathParams(
-        step: Step,
-        rawPath: String,
-        resolvedPath: String,
-    ): Step {
-        val sourceVars = extractPathVariables(rawPath)
-        val targetVars = extractPathVariables(resolvedPath)
-        if (sourceVars.isEmpty() || targetVars.isEmpty() || sourceVars.size != targetVars.size) {
-            return step
-        }
-
-        val remapped = step.pathParams.toMutableMap()
-        sourceVars.zip(targetVars).forEach { (sourceVar, targetVar) ->
-            if (sourceVar == targetVar) return@forEach
-            val value = remapped[sourceVar] ?: return@forEach
-            remapped.putIfAbsent(targetVar, value)
-        }
-
-        return step.copy(pathParams = remapped)
-    }
-
-    private fun extractPathVariables(path: String): List<String> =
-        Regex("\\{([^}]+)}")
-            .findAll(path)
-            .map { it.groupValues[1] }
-            .toList()
+    private fun resolveRawBaseUrl(specName: String): String =
+        configuration.bindings[specName]?.baseUrl
+            ?: throw IllegalArgumentException("Spec '$specName' not found for raw call")
 
     // ========== Logging ==========
 

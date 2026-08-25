@@ -124,10 +124,10 @@ class ScenarioLoaderTest {
             """.trimMargin()
 
         val scenarios = ScenarioLoader.loadFileContentFromString(source).scenarios
-        val step = scenarios[0].steps.first { it.rawMethod != null }
+        val step = scenarios[0].steps.first { it.rawRequest != null }
 
-        assertEquals("GET", step.rawMethod)
-        assertEquals("/pets/{id}", step.rawPath)
+        assertEquals("GET", step.rawRequest?.method)
+        assertEquals("/pets/{id}", step.rawRequest?.path)
         assertEquals(null, step.operationId)
         assertEquals(123L, step.pathParams["id"])
     }
