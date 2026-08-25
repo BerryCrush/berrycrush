@@ -70,16 +70,39 @@ For multi-spec projects, specify the spec name:
 
     call using auth ^login
 
-  Call targets also support variable interpolation. This allows selecting the spec
-  and operation dynamically at runtime:
+Call targets also support variable interpolation. This allows selecting the spec
+and operation dynamically at runtime:
 
-  .. code-block:: berrycrush
+.. code-block:: berrycrush
 
     call {{operationId}}
     call using {{specName}} {{operationId}}
 
-  Variables must resolve to non-empty values before execution. If a variable is
-  missing or unresolved, BerryCrush fails the step with a clear error.
+Variables must resolve to non-empty values before execution. If a variable is
+missing or unresolved, BerryCrush fails the step with a clear error.
+
+Direct API Call
+^^^^^^^^^^^^^^^
+
+`call` can also be used with a direct HTTP method and path, bypassing OpenAPI
+operation resolution:
+
+.. code-block:: berrycrush
+
+    call GET /pets
+    call using auth POST /auth
+
+The `using` keyword still applies for multi-spec project, allowing you to specify
+which URL to use for the direct call.
+
+.. code-block:: berrycrush
+
+    call {{method}} {{path}}
+    call using auth {{method}} {{path}}
+
+Variables must resolve to appropriate values before execution, i.e. `{{method}}`
+must be a valid HTTP method and `{{path}}` must be a valid URL path.
+If a variable is missing or unresolved, BerryCrush fails the step.
 
 Call Parameters
 ^^^^^^^^^^^^^^^

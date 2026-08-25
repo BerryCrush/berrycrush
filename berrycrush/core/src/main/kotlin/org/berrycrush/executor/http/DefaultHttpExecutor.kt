@@ -123,11 +123,11 @@ class DefaultHttpExecutor(
         context: StepContext,
     ): HttpRequest {
         requireNotNull(step.rawRequest)
-        val rawMethod = step.rawRequest.method
+        val rawMethod = context.interpolate(step.rawRequest.method)
         val resolvedMethod =
             HttpMethod.fromName(rawMethod)
                 ?: throw IllegalArgumentException("Unsupported HTTP method '$rawMethod' in 'call raw'.")
-        val rawPath = step.rawRequest.path
+        val rawPath = context.interpolate(step.rawRequest.path)
         val baseUrl = resolveRawBaseUrl(step.specName ?: BindingConfig.DEFAULT_BINDING_NAME)
 
         val url =

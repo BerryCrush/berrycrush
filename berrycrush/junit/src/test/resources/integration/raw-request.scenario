@@ -1,13 +1,22 @@
 # raw HTTP request test
 
+parameters:
+  logRequests: true
+  logResponses: true
+  binding.google:
+    baseUrl: "https://google.com"
 feature: Raw HTTP request test
-  parameters:
-    logRequests: true
-    logResponses: true
-    binding.google:
-      baseUrl: "https://google.com"
   scenario: Request Google homepage
     when I request the Google homepage
       call using google raw GET /
     then I receive a successful response
       assert status 200
+
+outline: variable raw method and path
+  when I request Gooogle
+    call using google raw {{method}} {{path}}
+  then I receive a successful response
+    assert status 200
+  examples:
+    | method | path |
+    | GET    | /    |

@@ -90,53 +90,84 @@ internal fun ParserState.parseCallAction(): CallNode? {
     )
 }
 
-@Suppress("ReturnCount")
-private fun ParserState.parseCallTarget(): CallTargetParseResult? {
-    if (current().type == TokenType.RAW) {
-        advance()
-        skipWhitespace()
-
-        val methodToken = current()
-        if (methodToken.type != TokenType.IDENTIFIER) {
-            return addError("Expected uppercase HTTP method after 'raw'")
+private fun ParserState.parseCallTarget(): CallTargetParseResult? =
+    when (current().type) {
+        TokenType.RAW -> {
+            advance()
+            skipWhitespace()
+            parseRawMethod()?.let { method ->
+                parseRawPath()?.let { path ->
+                    CallTargetParseResult.Raw(method = method, path = path)
+                }
+            }
         }
 
-        val method = methodToken.value
-        if (HttpMethod.fromName(method) == null) {
-            return addError("Expected uppercase HTTP method after 'raw', but found '$method'")
+        TokenType.IDENTIFIER,
+        TokenType.OPERATION_ID,
+        TokenType.VARIABLE,
+        -> {
+            parseCallTargetOperand()?.let { operationId ->
+                advance()
+                CallTargetParseResult.OperationId(operationId)
+            } ?: addError("Expected operation ID")
         }
-        advance()
-        skipWhitespace()
 
-        return if (current().type == TokenType.HTTP_PATH) {
+        else -> {
+            addError("Expected operation ID")
+        }
+    }
+
+fun ParserState.parseRawMethod(): String? =
+    when (current().type) {
+        TokenType.IDENTIFIER -> {
+            val method = current().value
+            if (HttpMethod.fromName(method) == null) {
+                addError("Expected uppercase HTTP method after 'raw', but found '$method'")
+            } else {
+                advance()
+                skipWhitespace()
+                method
+            }
+        }
+
+        TokenType.VARIABLE -> {
+            val method = current().value
+            advance()
+            skipWhitespace()
+            "{{$method}}"
+        }
+
+        else -> {
+            addError("Expected HTTP method or variable reference after 'raw'")
+        }
+    }
+
+fun ParserState.parseRawPath(): String? =
+    when (current().type) {
+        TokenType.HTTP_PATH -> {
             val path = current().value
             if (!path.startsWith('/')) {
                 addError("Expected HTTP path starting with '/' after method")
             } else {
                 advance()
-                CallTargetParseResult.Raw(method = method, path = path)
+                path
             }
-        } else {
-            addError("Expected HTTP path after method in 'call raw <METHOD> <PATH>'")
+        }
+
+        TokenType.VARIABLE -> {
+            val path = "{{${current().value}}}"
+            advance()
+            path
+        }
+
+        else -> {
+            addError("Expected HTTP path or variable reference after method")
         }
     }
 
-    if (
-        current().type != TokenType.OPERATION_ID &&
-        current().type != TokenType.IDENTIFIER &&
-        current().type != TokenType.VARIABLE
-    ) {
-        return addError("Expected operation ID")
-    }
-
-    val operationId = parseCallTargetOperand() ?: return addError("Expected operation ID")
-    advance()
-    return CallTargetParseResult.OperationId(operationId)
-}
-
 private fun ParserState.parseCallTargetOperand(): String? =
     when (current().type) {
-        TokenType.OPERATION_ID, TokenType.IDENTIFIER, TokenType.STRING -> current().value
+        TokenType.OPERATION_ID, TokenType.IDENTIFIER -> current().value
         TokenType.VARIABLE -> "{{${current().value}}}"
         else -> null
     }
