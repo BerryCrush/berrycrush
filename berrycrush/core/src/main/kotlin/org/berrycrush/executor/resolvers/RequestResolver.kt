@@ -164,7 +164,7 @@ private class DefaultBodyResolver(
             return objectMapper.writeValueAsString(resolveBody(props, operation, context))
         }
         return step.bodyFile?.let { file ->
-            context.interpolate(FileLoader.load(file))
+            context.interpolate(FileLoader.load(context.interpolate(file)))
         }
     }
 

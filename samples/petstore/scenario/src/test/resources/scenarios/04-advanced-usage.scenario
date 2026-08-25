@@ -115,11 +115,13 @@ scenario: Multi-host API call
 # Note: Requires external body file at classpath:templates/pet-template.json
 
 scenario: External body file - create pet from template
+  parameters:
+    bodyFile: "templates/pet-template.json"
   when: I create a pet from template file
     call ^createPet
       # Load body from external file
       # Supports: classpath:, file:, or absolute path
-      bodyFile: "classpath:templates/pet-template.json"
+      bodyFile: "classpath:{{param.bodyFile}}"
   then: pet is created
     assert status 2xx
 
