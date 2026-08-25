@@ -18,7 +18,7 @@ jobs:
       
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         
       - name: Extract version from tag
         id: version
@@ -47,7 +47,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         
       - name: Setup build environment
         uses: ./.github/actions/setup-gradle
