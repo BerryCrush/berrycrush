@@ -24,7 +24,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
           
@@ -32,7 +32,7 @@ jobs:
         uses: ./.github/actions/setup-gradle
           
       - name: Checkout .github repo for assets
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: BerryCrush/.github
           path: .github-assets
