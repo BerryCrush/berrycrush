@@ -10,6 +10,7 @@ import org.berrycrush.model.ExampleRow
 import org.berrycrush.model.Extraction
 import org.berrycrush.model.Feature
 import org.berrycrush.model.Fragment
+import org.berrycrush.model.RawRequest
 import org.berrycrush.model.Scenario
 import org.berrycrush.model.SourceLocation
 import org.berrycrush.model.Step
@@ -330,6 +331,7 @@ object ScenarioLoader {
                 type = stepType,
                 description = description,
                 operationId = call.operationId,
+                rawRequest = call.rawMethod?.let { method -> call.rawPath?.let { path -> RawRequest(method, path) } },
                 specName = call.specName,
                 pathParams = pathParams.toNonNullMap(),
                 queryParams = queryParams.toNonNullMap(),

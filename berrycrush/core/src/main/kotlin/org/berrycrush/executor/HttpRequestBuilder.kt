@@ -1,6 +1,6 @@
 package org.berrycrush.executor
 
-import org.berrycrush.model.HttpMethod
+import org.berrycrush.openapi.HttpMethod
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest

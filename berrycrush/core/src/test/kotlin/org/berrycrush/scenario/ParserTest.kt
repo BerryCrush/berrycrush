@@ -439,6 +439,75 @@ class ParserTest {
     }
 
     @Test
+    fun `should parse raw call with uppercase method and path`() {
+        val source =
+            """
+            |scenario: raw call
+            |  when I call
+            |    call raw PUT /pets/{id}
+            """.trimMargin()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val call =
+            result.ast!!
+                .scenarios[0]
+                .steps[0]
+                .actions
+                .filterIsInstance<CallNode>()
+                .single()
+        assertEquals("PUT", call.rawMethod)
+        assertEquals("/pets/{id}", call.rawPath)
+        assertEquals(null, call.operationId)
+    }
+
+    @Test
+    fun `should reject raw call with unsupported method`() {
+        val source =
+            """
+        |scenario: unsupported raw method
+            |  when I call
+            |    call raw GREEDY_GET /get/{id}
+            """.trimMargin()
+
+        val result = Parser.parse(source)
+
+        assertFalse(result.isSuccess)
+        assertTrue(result.errors.any { it.message.contains("Expected uppercase HTTP method") })
+    }
+
+    @Test
+    fun `should reject raw call with non-uppercase method`() {
+        val source =
+            """
+            |scenario: invalid raw call method
+            |  when I call
+            |    call raw Put /pets/{id}
+            """.trimMargin()
+
+        val result = Parser.parse(source)
+
+        assertFalse(result.isSuccess)
+        assertTrue(result.errors.any { it.message.contains("uppercase HTTP method") })
+    }
+
+    @Test
+    fun `should reject raw call without path`() {
+        val source =
+            """
+            |scenario: invalid raw call path
+            |  when I call
+            |    call raw PUT
+            """.trimMargin()
+
+        val result = Parser.parse(source)
+
+        assertFalse(result.isSuccess)
+        assertTrue(result.errors.any { it.message.contains("Expected HTTP path") })
+    }
+
+    @Test
     fun `should handle and keyword`() {
         val source =
             """

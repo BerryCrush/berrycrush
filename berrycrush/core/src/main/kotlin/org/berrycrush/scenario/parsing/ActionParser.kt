@@ -2,6 +2,7 @@
 
 package org.berrycrush.scenario.parsing
 
+import org.berrycrush.model.HttpMethod
 import org.berrycrush.scenario.AutoTestConfig
 import org.berrycrush.scenario.AutoTestType
 import org.berrycrush.scenario.BodyPropertyValue
@@ -47,6 +48,17 @@ private class CallParseState {
         }
 }
 
+private sealed class CallTargetParseResult {
+    data class OperationId(
+        val value: String,
+    ) : CallTargetParseResult()
+
+    data class Raw(
+        val method: String,
+        val path: String,
+    ) : CallTargetParseResult()
+}
+
 /**
  * Parse a call action.
  */
@@ -55,9 +67,60 @@ internal fun ParserState.parseCallAction(): CallNode? {
     advance() // consume 'call'
     skipWhitespace()
 
-    val specName = parseUsingClause()
+    val preSpecName = parseUsingClause()
+    val target = parseCallTarget() ?: return null
+    val postSpecName = if (preSpecName == null) parseUsingClause() else null
+    val specName = preSpecName ?: postSpecName
 
-    // Get operation ID (static or variable reference)
+    val state = CallParseState()
+    parseCallParametersBlock(state)
+
+    return CallNode(
+        operationId = (target as? CallTargetParseResult.OperationId)?.value,
+        rawMethod = (target as? CallTargetParseResult.Raw)?.method,
+        rawPath = (target as? CallTargetParseResult.Raw)?.path,
+        specName = specName,
+        parameters = state.parameters,
+        headers = state.headers,
+        body = state.body,
+        bodyProperties = state.bodyProperties,
+        bodyFile = state.bodyFile,
+        autoTestConfig = state.finalAutoTestConfig(),
+        location = loc,
+    )
+}
+
+@Suppress("ReturnCount")
+private fun ParserState.parseCallTarget(): CallTargetParseResult? {
+    if (current().type == TokenType.RAW) {
+        advance()
+        skipWhitespace()
+
+        val methodToken = current()
+        if (methodToken.type != TokenType.IDENTIFIER) {
+            return addError("Expected uppercase HTTP method after 'raw'")
+        }
+
+        val method = methodToken.value
+        if (HttpMethod.fromName(method) == null) {
+            return addError("Expected uppercase HTTP method after 'raw', but found '$method'")
+        }
+        advance()
+        skipWhitespace()
+
+        return if (current().type == TokenType.HTTP_PATH) {
+            val path = current().value
+            if (!path.startsWith('/')) {
+                addError("Expected HTTP path starting with '/' after method")
+            } else {
+                advance()
+                CallTargetParseResult.Raw(method = method, path = path)
+            }
+        } else {
+            addError("Expected HTTP path after method in 'call raw <METHOD> <PATH>'")
+        }
+    }
+
     if (
         current().type != TokenType.OPERATION_ID &&
         current().type != TokenType.IDENTIFIER &&
@@ -68,21 +131,7 @@ internal fun ParserState.parseCallAction(): CallNode? {
 
     val operationId = parseCallTargetOperand() ?: return addError("Expected operation ID")
     advance()
-
-    val state = CallParseState()
-    parseCallParametersBlock(state)
-
-    return CallNode(
-        operationId = operationId,
-        specName = specName,
-        parameters = state.parameters,
-        headers = state.headers,
-        body = state.body,
-        bodyProperties = state.bodyProperties,
-        bodyFile = state.bodyFile,
-        autoTestConfig = state.finalAutoTestConfig(),
-        location = loc,
-    )
+    return CallTargetParseResult.OperationId(operationId)
 }
 
 private fun ParserState.parseCallTargetOperand(): String? =

@@ -9,10 +9,14 @@ import org.berrycrush.executor.resolvers.RequestResolver
 import org.berrycrush.model.HttpRequest
 import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.Step
+import org.berrycrush.openapi.HttpMethod
+import org.berrycrush.openapi.LoadedSpec
+import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.plugin.StepContext
 import org.berrycrush.plugin.adapter.ScenarioContextAdapter
 import org.berrycrush.plugin.adapter.StepContextAdapter
+import org.berrycrush.util.toNonNullMap
 import tools.jackson.databind.ObjectMapper
 import java.time.Duration
 import java.time.Instant
@@ -36,7 +40,10 @@ class DefaultHttpExecutor(
     objectMapper: ObjectMapper = ObjectMapper(),
     private val requestResolver: RequestResolver = DefaultRequestResolver(configuration, httpBuilder, objectMapper),
 ) : HttpExecutor,
+    DirectHttpExecutor,
     RequestResolver by requestResolver {
+    override val directExecutor: DirectHttpExecutor = this
+
     override fun execute(
         request: HttpRequest,
         context: StepContext,
@@ -104,7 +111,48 @@ class DefaultHttpExecutor(
     override fun resolve(
         step: Step,
         specRegistry: SpecRegistry,
-    ) = specRegistry.resolve(step.operationId!!, step.specName, configuration.bindings)
+    ): Pair<LoadedSpec, ResolvedOperation> = specRegistry.resolve(requireNotNull(step.operationId), step.specName, configuration.bindings)
+
+    override fun execute(
+        step: Step,
+        context: StepContext,
+    ): HttpResponse = execute(buildDirectRawRequest(step, context), context)
+
+    private fun buildDirectRawRequest(
+        step: Step,
+        context: StepContext,
+    ): HttpRequest {
+        requireNotNull(step.rawRequest)
+        val rawMethod = step.rawRequest.method
+        val resolvedMethod =
+            HttpMethod.fromName(rawMethod)
+                ?: throw IllegalArgumentException("Unsupported HTTP method '$rawMethod' in 'call raw'.")
+        val rawPath = step.rawRequest.path
+        val baseUrl = resolveRawBaseUrl(step.specName ?: BindingConfig.DEFAULT_BINDING_NAME)
+
+        val url =
+            httpBuilder.buildUrl(
+                baseUrl = baseUrl,
+                path = rawPath,
+                pathParams = context.resolveParams(step.pathParams).toNonNullMap(),
+                queryParams = context.resolveParams(step.queryParams).toNonNullMap(),
+            )
+        val headers =
+            (configuration.defaultHeaders + step.headers)
+                .mapValues { (_, value) -> context.interpolate(value) }
+        val body = resolveBody(step, null, context)
+
+        return HttpRequest(
+            method = resolvedMethod,
+            url = url,
+            headers = headers,
+            body = body,
+        )
+    }
+
+    private fun resolveRawBaseUrl(specName: String): String =
+        configuration.bindings[specName]?.baseUrl
+            ?: throw IllegalArgumentException("Spec '$specName' not found for raw call")
 
     // ========== Logging ==========
 

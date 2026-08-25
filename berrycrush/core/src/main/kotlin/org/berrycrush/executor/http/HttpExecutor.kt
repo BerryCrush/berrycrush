@@ -18,18 +18,33 @@ import org.berrycrush.plugin.adapter.ScenarioContextAdapter
  * the main scenario executor.
  */
 interface HttpExecutor : RequestResolver {
+    val directExecutor: DirectHttpExecutor?
+        get() = null
+
     fun execute(
         step: Step,
         specRegistry: SpecRegistry,
         stepContext: StepContext,
     ): HttpResponse {
         val resolvedStep = stepContext.resolveCall(step)
-        // Resolve the operation
-        val (spec, resolvedOp) = resolve(resolvedStep, specRegistry)
-        // Execute the HTTP request using the HttpExecutor
-        val response = execute(resolvedStep, spec, resolvedOp, stepContext)
-        // Update context with response
-        return response
+        val executor = directExecutor
+        return when {
+            resolvedStep.rawRequest != null && executor != null -> {
+                executor.execute(step, stepContext)
+            }
+
+            resolvedStep.operationId != null -> {
+                val (spec, resolvedOp) = resolve(resolvedStep, specRegistry)
+                // Execute the HTTP request using the HttpExecutor
+                val response = execute(resolvedStep, spec, resolvedOp, stepContext)
+                // Update context with response
+                response
+            }
+
+            else -> {
+                throw IllegalArgumentException("Step must have either a raw request or an operation ID.")
+            }
+        }
     }
 
     /**
@@ -63,5 +78,12 @@ interface HttpExecutor : RequestResolver {
     fun resolve(
         step: Step,
         specRegistry: SpecRegistry,
-    ) = specRegistry.resolve(step.operationId!!, step.specName)
+    ) = specRegistry.resolve(requireNotNull(step.operationId), step.specName)
+}
+
+fun interface DirectHttpExecutor {
+    fun execute(
+        step: Step,
+        context: StepContext,
+    ): HttpResponse
 }
