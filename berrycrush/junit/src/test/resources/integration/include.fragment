@@ -1,0 +1,4 @@
+fragment: httpbin
+  when I call the API
+    call using httpbin {{endpoint}}
+      {{pathVariable}}: {{value}}

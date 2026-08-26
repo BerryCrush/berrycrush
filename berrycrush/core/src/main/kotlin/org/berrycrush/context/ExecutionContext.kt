@@ -432,7 +432,7 @@ fun <T : Any> ExecutionContext.resolveParam(value: T?): T? =
     }
 
 fun <T : Any> ExecutionContext.resolveParams(params: Map<String, T?>): Map<String, T?> =
-    params.mapValues { (_, value) -> resolveParam(value) }
+    params.entries.associate { (key, value) -> resolveParam(key) as String to resolveParam(value) }
 
 fun ExecutionContext?.propagate(other: ExecutionContext) {
     if (this != null && this.shareVariablesAcrossScenarios) {

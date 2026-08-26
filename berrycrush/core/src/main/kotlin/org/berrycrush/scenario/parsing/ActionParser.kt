@@ -198,39 +198,21 @@ private fun ParserState.parseUsingClause(): String? {
  * Parse optional parameters block for a call.
  */
 private fun ParserState.parseCallParametersBlock(state: CallParseState) {
-    skipNewlines()
-    if (current().type != TokenType.INDENT) return
-
-    advance()
-    while (!isAtEnd() && current().type != TokenType.DEDENT) {
-        when (current().type) {
-            TokenType.IDENTIFIER, TokenType.OPERATION_ID -> parseCallParameter(state)
-            TokenType.NEWLINE -> advance()
-            else -> advance()
-        }
-    }
-
-    if (current().type == TokenType.DEDENT) {
-        advance()
+    parseParameterLike { paramName ->
+        parseCallParameter(paramName, state)
     }
 }
 
 /**
  * Parse a single call parameter and update state.
  */
-private fun ParserState.parseCallParameter(state: CallParseState) {
-    val paramName = current().value
-    advance()
-    skipWhitespace()
-
-    if (current().type == TokenType.COLON || current().type == TokenType.EQUALS) {
-        advance()
-        skipWhitespace()
-    }
-
+private fun ParserState.parseCallParameter(
+    paramName: String,
+    state: CallParseState,
+) {
     when {
-        paramName.startsWith("header_") || paramName.startsWith("Header_") -> {
-            val headerName = paramName.removePrefix("header_").removePrefix("Header_")
+        paramName.startsWith("header_") -> {
+            val headerName = paramName.removePrefix("header_")
             parseValue()?.let { state.headers[headerName] = it }
         }
 
@@ -525,16 +507,27 @@ internal fun ParserState.parseIncludeAction(): IncludeNode? {
  * ```
  */
 private fun ParserState.parseIncludeParameters(): Map<String, ValueNode> {
-    skipNewlines()
-    if (current().type != TokenType.INDENT) return emptyMap()
-
     val parameters = mutableMapOf<String, ValueNode>()
-    advance() // consume INDENT
+    parseParameterLike { variableName ->
+        parseValue()?.let { parameters[variableName] = it }
+    }
+    return parameters
+}
 
+private fun ParserState.parseParameterLike(valueParser: ParserState.(String) -> Unit) {
+    skipNewlines()
+    if (current().type != TokenType.INDENT) return
+
+    advance()
     while (!isAtEnd() && current().type != TokenType.DEDENT) {
         when (current().type) {
-            TokenType.IDENTIFIER, TokenType.OPERATION_ID -> {
+            TokenType.IDENTIFIER,
+            TokenType.OPERATION_ID,
+            TokenType.VARIABLE,
+            -> {
                 val paramName = current().value
+                val paramType = current().type
+                val variableName = if (paramType == TokenType.VARIABLE) "{{$paramName}}" else paramName
                 advance()
                 skipWhitespace()
 
@@ -543,11 +536,7 @@ private fun ParserState.parseIncludeParameters(): Map<String, ValueNode> {
                     skipWhitespace()
                 }
 
-                parseValue()?.let { parameters[paramName] = it }
-            }
-
-            TokenType.NEWLINE -> {
-                advance()
+                valueParser(variableName)
             }
 
             else -> {
@@ -559,8 +548,6 @@ private fun ParserState.parseIncludeParameters(): Map<String, ValueNode> {
     if (current().type == TokenType.DEDENT) {
         advance()
     }
-
-    return parameters
 }
 
 /**

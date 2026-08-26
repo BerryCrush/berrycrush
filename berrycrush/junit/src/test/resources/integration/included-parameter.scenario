@@ -1,0 +1,36 @@
+parameters:
+  logRequests: true
+  logResponses: true
+  binding.httpbin:
+    baseUrl: "https://httpbin.org"
+    location: "classpath:/httpbin.json"
+    alias:
+      status: "GET /status/{codes}"
+      base64: "GET /base64/{value}"
+
+outline: call parameter key ref
+  when I call the endpoint
+    call using httpbin {{endpoint}}
+      {{pathVariable}}: {{value}}
+  then I receive a successful response
+    assert status 200
+  examples:
+    | endpoint | pathVariable | value    |
+    | status   | codes        | 200      |
+    | base64   | value        | aGVsbG8= |
+
+outline: include parameter key ref
+  parameters:
+    path: "pathVariable"
+
+  when I call the endpoint
+    include httpbin
+      value: {{value0}}
+      {{param.path}}: {{name}}
+      endpoint: {{endpoint0}}
+  then I receive a successful response
+    assert status 200
+  examples:
+    | endpoint0 | name  | value0   |
+    | status    | codes | 200      |
+    | base64    | value | aGVsbG8= |
