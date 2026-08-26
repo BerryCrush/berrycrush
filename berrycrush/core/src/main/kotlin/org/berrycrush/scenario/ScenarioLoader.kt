@@ -454,7 +454,7 @@ object ScenarioLoader {
             is BooleanValueNode -> node.value
             is StringValueNode -> node.value
             is NumberValueNode -> node.value
-            is VariableValueNode -> $$"${$${node.name}}"
+            is VariableValueNode -> "{{${node.name}}}"
             is JsonValueNode -> node.json
             is StatusRangeNode -> node.toRange()
         }
@@ -465,7 +465,7 @@ object ScenarioLoader {
             is BooleanValueNode -> node.value.toString()
             is StringValueNode -> node.value
             is NumberValueNode -> node.value.toString()
-            is VariableValueNode -> $$"{{$${node.name}}}"
+            is VariableValueNode -> "{{${node.name}}}"
             is JsonValueNode -> node.json
             is StatusRangeNode -> "${node.base}xx"
         }
