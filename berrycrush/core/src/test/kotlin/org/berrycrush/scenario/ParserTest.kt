@@ -254,6 +254,22 @@ class ParserTest {
     }
 
     @Test
+    fun `should parse scenario with variable fragment include`() {
+        val source =
+            """
+            scenario: Protected endpoint
+              given I am authenticated
+                include {{authenticate}}
+              when I access protected resource
+                call ^getProtectedData
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+    }
+
+    @Test
     fun `should parse scenario with parameterized fragment include`() {
         val source =
             """

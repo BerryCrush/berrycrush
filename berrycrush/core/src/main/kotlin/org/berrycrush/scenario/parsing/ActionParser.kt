@@ -480,11 +480,12 @@ internal fun ParserState.parseIncludeAction(): IncludeNode? {
     advance() // consume 'include'
     skipWhitespace()
 
-    if (current().type != TokenType.IDENTIFIER) {
-        return addError("Expected fragment name")
-    }
-
-    val fragmentName = current().value
+    val fragmentName =
+        when (current().type) {
+            TokenType.IDENTIFIER -> current().value
+            TokenType.VARIABLE -> "{{${current().value}}}"
+            else -> addError("Expected fragment name")
+        } ?: return null
     advance()
 
     val parameters = parseIncludeParameters()

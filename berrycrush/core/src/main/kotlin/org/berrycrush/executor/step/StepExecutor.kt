@@ -65,7 +65,7 @@ class StepExecutor(
 
             // Inject include parameters into context before expanding
             scenarioContext.withIncludeParameters(step) {
-                val expandedSteps = fragmentExecutor.expand(step)
+                val expandedSteps = fragmentExecutor.expand(step, scenarioContext)
                 for (expandedStep in expandedSteps) {
                     if (!continueExecution) {
                         results.add(StepResult(step = expandedStep, status = ResultStatus.SKIPPED))

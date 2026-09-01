@@ -1,6 +1,7 @@
 package org.berrycrush.executor.fragment
 
 import org.berrycrush.model.Step
+import org.berrycrush.plugin.ScenarioContext
 
 /**
  * Executor for fragment expansion during scenario execution.
@@ -19,5 +20,21 @@ fun interface FragmentExecutor {
      * @param step The step to potentially expand
      * @return A list of steps after expansion (single item if no fragment)
      */
-    fun expand(step: Step): List<Step>
+    fun expand(step: Step) = expand(step, null)
+
+    /**
+     * Expand a step that may include a fragment reference.
+     *
+     * If the step contains a `fragmentName` reference, this method resolves
+     * the fragment and returns its expanded steps.
+     * Otherwise, returns the original step unchanged.
+     *
+     * @param step The step to potentially expand
+     * @param context Scenario context to resolve fragment name
+     * @return A list of steps after expansion (single item if no fragment)
+     */
+    fun expand(
+        step: Step,
+        context: ScenarioContext?,
+    ): List<Step>
 }

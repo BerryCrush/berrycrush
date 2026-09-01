@@ -4,7 +4,7 @@ import com.jayway.jsonpath.JsonPath
 import org.berrycrush.webhook.MockWebhookServer
 import java.util.concurrent.ConcurrentHashMap
 
-private val mustachePattern = Regex("""\{\{([\w.\[\]0-9]+)}}""")
+private val mustachePattern = Regex("""\{\{([-\w._\[\]0-9]+)}}""")
 private val bracketPattern = Regex("""\$\{([^}]+)}""")
 private val simplePattern = Regex("""\$(\w+)""")
 private val segmentPattern = Regex("""(\w+)((?:\[\d+])*)""")
