@@ -1,0 +1,20 @@
+parameters:
+  logRequests: true
+  logResponses: true
+  binding.httpbin:
+    baseUrl: "https://httpbin.org"
+    location: "classpath:/httpbin.json"
+    alias:
+      status: "GET /status/{codes}"
+      base64: "GET /base64/{value}"
+
+scenario: fragment include via variable
+  parameters:
+    fragment-name: httpbin
+  when I call the endpoint
+    include {{param.fragment-name}}
+      value: 200
+      pathVariable: codes
+      endpoint: status
+  then I receive a successful response
+    assert status 200

@@ -3,6 +3,7 @@ package org.berrycrush.executor.fragment
 import org.berrycrush.exception.ConfigurationException
 import org.berrycrush.model.FragmentRegistry
 import org.berrycrush.model.Step
+import org.berrycrush.plugin.ScenarioContext
 
 /**
  * Default implementation of [FragmentExecutor] for expanding fragment references.
@@ -26,8 +27,11 @@ class DefaultFragmentExecutor(
      * @param step The step to expand
      * @return List of steps to execute (fragment steps or original step)
      */
-    override fun expand(step: Step): List<Step> {
-        val fragmentName = step.fragmentName ?: return listOf(step)
+    override fun expand(
+        step: Step,
+        context: ScenarioContext?,
+    ): List<Step> {
+        val fragmentName = step.fragmentName?.let { context.interpolate(it) } ?: return listOf(step)
 
         // Look up the fragment in the registry
         val fragment =
@@ -39,4 +43,6 @@ class DefaultFragmentExecutor(
 
         return fragment.steps
     }
+
+    private fun ScenarioContext?.interpolate(value: String): String = this?.executionContext?.interpolate(value) ?: value
 }
