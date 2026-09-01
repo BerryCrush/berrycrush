@@ -1,15 +1,11 @@
 package org.berrycrush.junit.engine
 
 import org.berrycrush.model.Scenario
-import org.berrycrush.model.SourceLocation
 import org.junit.platform.engine.TestDescriptor
 import org.junit.platform.engine.TestSource
 import org.junit.platform.engine.UniqueId
 import org.junit.platform.engine.support.descriptor.AbstractTestDescriptor
-import org.junit.platform.engine.support.descriptor.FilePosition
-import org.junit.platform.engine.support.descriptor.FileSource
 import org.junit.platform.engine.support.descriptor.UriSource
-import java.io.File
 import java.net.URL
 
 /**
@@ -57,27 +53,6 @@ class FeatureDescriptor(
      * Container type allows this descriptor to have child scenario descriptors.
      */
     override fun getType(): TestDescriptor.Type = TestDescriptor.Type.CONTAINER
-
-    companion object {
-        /**
-         * Create a FileSource with position for IDE navigation.
-         *
-         * @param scenarioFile The scenario file containing this feature
-         * @param sourceLocation The source location (line, column) of the feature
-         * @return TestSource for JUnit Platform navigation, or null if not available
-         */
-        fun createTestSource(
-            scenarioFile: File?,
-            sourceLocation: SourceLocation?,
-        ): TestSource? {
-            scenarioFile ?: return null
-            if (!scenarioFile.exists()) return null
-
-            return sourceLocation?.let { loc ->
-                FileSource.from(scenarioFile, FilePosition.from(loc.line, loc.column))
-            } ?: FileSource.from(scenarioFile)
-        }
-    }
 }
 
 /**
@@ -103,29 +78,6 @@ class IndividualScenarioDescriptor(
      * For regular scenarios, use TEST for simpler IDE handling.
      */
     override fun getType(): TestDescriptor.Type = TestDescriptor.Type.TEST
-
-    companion object {
-        /**
-         * Create a FileSource with position for IDE navigation.
-         *
-         * @param scenarioFile The scenario file containing this scenario
-         * @param sourceLocation The source location (line, column) of the scenario
-         * @return TestSource for JUnit Platform navigation, or null if not available
-         */
-        fun createTestSource(
-            scenarioFile: File?,
-            sourceLocation: SourceLocation?,
-        ): TestSource? {
-            scenarioFile ?: return null
-            if (!scenarioFile.exists()) {
-                return null
-            }
-
-            return sourceLocation?.let { loc ->
-                FileSource.from(scenarioFile, FilePosition.from(loc.line, loc.column))
-            } ?: FileSource.from(scenarioFile)
-        }
-    }
 }
 
 class ContainerDescriptor(

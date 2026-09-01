@@ -5,19 +5,20 @@ import org.berrycrush.junit.discovery.DiscoveredScenario
 import org.berrycrush.junit.discovery.ScenarioDiscovery
 import org.berrycrush.model.Feature
 import org.berrycrush.model.Scenario
+import org.berrycrush.model.SourceLocation
 import org.berrycrush.model.Story
 import org.berrycrush.scenario.ScenarioFileContent
 import org.berrycrush.scenario.ScenarioLoader
 import org.junit.jupiter.api.Disabled
 import org.junit.platform.engine.TestDescriptor
+import org.junit.platform.engine.TestSource
 import org.junit.platform.engine.UniqueId
 import org.junit.platform.engine.support.descriptor.AbstractTestDescriptor
+import org.junit.platform.engine.support.descriptor.ClasspathResourceSource
 import org.junit.platform.engine.support.descriptor.EngineDescriptor
-import java.io.File
+import org.junit.platform.engine.support.descriptor.FilePosition
 import java.net.URI
 import java.net.URL
-import java.nio.file.FileSystems
-import java.nio.file.Paths
 import kotlin.reflect.KClass
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.hasAnnotation
@@ -101,7 +102,7 @@ object ScenarioTestDiscoverer {
 
         // Try to get the source file for IDE navigation
         // Build output files are mapped back to source files
-        val scenarioFile = file.url.toFileOrNull()
+        val scenarioFile = URI.create("classpath:/${file.path}")
 
         runCatching {
             val content = loadScenarioFromUrl(file.url)
@@ -116,7 +117,7 @@ object ScenarioTestDiscoverer {
         fileDescriptor: ScenarioFileDescriptor,
         content: ScenarioFileContent,
         filters: ScenarioFilters,
-        scenarioFile: File?,
+        scenarioFile: URI?,
     ) {
         content.stories.forEach { entry: Story ->
             when (entry) {
@@ -139,7 +140,7 @@ object ScenarioTestDiscoverer {
     private fun List<Scenario>.addToDescriptor(
         filters: ScenarioFilters,
         featureId: UniqueId,
-        scenarioFile: File?,
+        scenarioFile: URI?,
         descriptor: AbstractTestDescriptor,
         featureName: String? = null,
     ) = this
@@ -169,10 +170,10 @@ object ScenarioTestDiscoverer {
     private fun createScenarioDescriptor(
         parentId: UniqueId,
         scenario: Scenario,
-        scenarioFile: File? = null,
+        scenarioFile: URI? = null,
         example: Boolean = false,
     ): TestDescriptor {
-        val testSource = IndividualScenarioDescriptor.createTestSource(scenarioFile, scenario.sourceLocation)
+        val testSource = scenarioFile?.toTestSource(scenario.sourceLocation)
 
         return if (!example && !scenario.examples.isNullOrEmpty()) {
             val containerId = parentId.append("container", scenario.name)
@@ -215,10 +216,10 @@ object ScenarioTestDiscoverer {
         parentId: UniqueId,
         feature: Feature,
         filters: ScenarioFilters,
-        scenarioFile: File? = null,
+        scenarioFile: URI? = null,
     ): FeatureDescriptor {
         val featureId = parentId.append("feature", feature.name)
-        val testSource = FeatureDescriptor.createTestSource(scenarioFile, feature.sourceLocation)
+        val testSource = scenarioFile?.toTestSource(feature.sourceLocation)
         val featureDescriptor =
             FeatureDescriptor(
                 uniqueId = featureId,
@@ -235,22 +236,11 @@ object ScenarioTestDiscoverer {
     fun loadScenarioFromUrl(url: URL): ScenarioFileContent = ScenarioLoader.loadFileContent(url.toURI())
 }
 
-/**
- * Convert a URL to a File if the URL represents a file system resource.
- *
- * @return File if the URL is a file:// URL and the file exists, null otherwise
- */
-private fun URL.toFileOrNull(): File? =
-    when (protocol) {
-        "file", "jar" -> {
-            runCatching { File(toURI()) }
-                .getOrNull()
-                ?.takeIf { it.exists() }
-        }
-
-        else -> {
-            null
-        }
+internal fun URI?.toTestSource(sourceLocation: SourceLocation?): TestSource? =
+    this?.let {
+        sourceLocation?.let { loc ->
+            ClasspathResourceSource.from(this.schemeSpecificPart, FilePosition.from(loc.line, loc.column))
+        } ?: ClasspathResourceSource.from(this)
     }
 
 private fun EngineDescriptor.alreadyDiscovered(testClass: KClass<*>): Boolean =
