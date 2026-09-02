@@ -268,9 +268,20 @@ internal fun ParserState.parseParameters(): ParametersNode? {
     skipWhitespace()
 
     if (!expect(TokenType.COLON)) return null
+    skipWhitespace()
+
+    val blockName =
+        if (current().type == TokenType.IDENTIFIER && tokens.getOrNull(pos + 1)?.type == TokenType.NEWLINE) {
+            val name = current().value
+            advance()
+            name
+        } else {
+            null
+        }
     skipNewlines()
 
     val values = mutableMapOf<String, Any>()
+    val includes = mutableListOf<String>()
 
     // Expect indent
     if (current().type == TokenType.INDENT) {
@@ -278,14 +289,19 @@ internal fun ParserState.parseParameters(): ParametersNode? {
     }
 
     // Parse parameter entries (supports nested blocks)
-    parseParameterEntries(values, prefix = "")
+    parseParameterEntries(values, includes, prefix = "")
 
     // Handle dedent
     if (current().type == TokenType.DEDENT) {
         advance()
     }
 
-    return ParametersNode(values, loc)
+    return ParametersNode(
+        values = values,
+        location = loc,
+        name = blockName,
+        includes = includes,
+    )
 }
 
 /**
@@ -321,70 +337,115 @@ private fun isKeywordToken(type: TokenType): Boolean =
 @Suppress("CyclomaticComplexMethod")
 private fun ParserState.parseParameterEntries(
     result: MutableMap<String, Any>,
+    includes: MutableList<String>,
     prefix: String,
 ) {
-    while (!isAtEnd() &&
-        current().type != TokenType.DEDENT &&
-        current().type !in PARAMETER_BLOCK_TERMINATORS
-    ) {
+    while (isInParameterBlock()) {
+        if (consumeParameterNewline()) continue
+        if (consumeParameterInclude(includes, prefix)) continue
+
+        val paramName = parseParameterEntryName() ?: break
+        if (!consumeParameterSeparator()) break
+
         if (current().type == TokenType.NEWLINE) {
-            advance()
-            continue
-        }
-
-        // Parse parameter name (supports keywords like 'include' as names)
-        val paramName =
-            when {
-                current().type == TokenType.IDENTIFIER -> {
-                    parseParameterName()
-                }
-
-                isKeywordToken(current().type) -> {
-                    val name = current().value
-                    advance()
-                    name
-                }
-
-                else -> {
-                    null
-                }
-            }
-
-        if (paramName == null) break
-        skipWhitespace()
-
-        if (!expect(TokenType.COLON)) {
-            addError<Unit>("Expected ':' after parameter name")
-            break
-        }
-        skipWhitespace()
-
-        // Check if this is a nested block (no value on same line, followed by indent)
-        if (current().type == TokenType.NEWLINE) {
-            advance() // consume newline
-            if (current().type == TokenType.INDENT) {
-                // Nested block - recurse with updated prefix
-                advance() // consume indent
-                parseParameterEntries(result, "$prefix$paramName.")
-                // Handle dedent from nested block
-                if (current().type == TokenType.DEDENT) {
-                    advance()
-                }
-            }
-            // else: empty value, continue to next parameter
+            parseNestedParameterEntry(result, includes, prefix, paramName)
         } else {
-            // Value on same line - parse it
-            val value = parseParameterValue()
-            if (value != null) {
-                val fullKey = prefix + paramName
-                if (result.containsKey(fullKey) && fullKey.isAliasParameterKey()) {
-                    addError<Unit>("Duplicate alias declaration in the same parameters block", found = fullKey)
-                }
-                result[fullKey] = value
-            }
-            skipNewlines()
+            parseInlineParameterEntry(result, prefix, paramName)
         }
     }
+}
+
+private fun ParserState.isInParameterBlock(): Boolean =
+    !isAtEnd() &&
+        current().type != TokenType.DEDENT &&
+        current().type !in PARAMETER_BLOCK_TERMINATORS
+
+private fun ParserState.consumeParameterNewline(): Boolean =
+    if (current().type == TokenType.NEWLINE) {
+        advance()
+        true
+    } else {
+        false
+    }
+
+private fun ParserState.consumeParameterInclude(
+    includes: MutableList<String>,
+    prefix: String,
+): Boolean {
+    var consumed = false
+
+    if (current().type == TokenType.PARAM_INCLUDE) {
+        consumed = true
+
+        if (prefix.isNotEmpty()) {
+            addError<Unit>("Parameter include directive is only allowed at the top level of a parameters block")
+            advanceLine()
+        } else {
+            advance() // consume <<
+            skipWhitespace()
+
+            val includeName = parseParameterName()
+            if (includeName == null) {
+                addError<Unit>("Expected parameter block name after '<<'")
+                advanceLine()
+            } else {
+                includes.add(includeName)
+                skipNewlines()
+            }
+        }
+    }
+
+    return consumed
+}
+
+private fun ParserState.parseParameterEntryName(): String? =
+    when {
+        current().type == TokenType.IDENTIFIER -> parseParameterName()
+        isKeywordToken(current().type) -> current().value.also { advance() }
+        else -> null
+    }
+
+private fun ParserState.consumeParameterSeparator(): Boolean {
+    skipWhitespace()
+    if (!expect(TokenType.COLON)) {
+        addError<Unit>("Expected ':' after parameter name")
+        return false
+    }
+    skipWhitespace()
+    return true
+}
+
+private fun ParserState.parseNestedParameterEntry(
+    result: MutableMap<String, Any>,
+    includes: MutableList<String>,
+    prefix: String,
+    paramName: String,
+) {
+    advance() // consume newline
+    if (current().type != TokenType.INDENT) {
+        return
+    }
+
+    advance() // consume indent
+    parseParameterEntries(result, includes, "$prefix$paramName.")
+    if (current().type == TokenType.DEDENT) {
+        advance()
+    }
+}
+
+private fun ParserState.parseInlineParameterEntry(
+    result: MutableMap<String, Any>,
+    prefix: String,
+    paramName: String,
+) {
+    val value = parseParameterValue() ?: return
+    val fullKey = prefix + paramName
+
+    if (result.containsKey(fullKey) && fullKey.isAliasParameterKey()) {
+        addError<Unit>("Duplicate alias declaration in the same parameters block", found = fullKey)
+    }
+    result[fullKey] = value
+    skipNewlines()
 }
 
 private fun String.isAliasParameterKey(): Boolean =

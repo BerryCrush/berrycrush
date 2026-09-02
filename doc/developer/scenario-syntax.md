@@ -17,10 +17,14 @@ All files must be UTF-8 encoded.
 
 ```ebnf
 (* Top-level structure *)
-scenario_file     = [ parameters_block ] , { feature | scenario | fragment } ;
+scenario_file     = { parameters_block } , { feature | scenario | fragment } ;
 
 (* Parameters block - file-level or feature-level configuration *)
-parameters_block  = "parameters:" , NEWLINE , { parameter_entry | nested_param_block } ;
+parameters_block  = "parameters:" , [ parameter_block_name ] , NEWLINE ,
+                    { parameter_include | parameter_entry | nested_param_block } ;
+parameter_block_name = identifier ;
+parameter_include = INDENT , "<<" , include_name , NEWLINE ;
+include_name      = parameter_name ;
 parameter_entry   = INDENT , parameter_name , ":" , parameter_value , NEWLINE ;
 nested_param_block = INDENT , identifier , ":" , NEWLINE , { INDENT , INDENT , parameter_entry } ;
 
@@ -37,13 +41,16 @@ feature_scenario  = INDENT , tags , ( "scenario:" | "outline:" ) ,
                     scenario_name , NEWLINE , { step } , [ examples ] ;
 
 (* Scenario definition *)
-scenario          = tags , "scenario:" , scenario_name , NEWLINE , { step } , [ examples ] ;
+scenario          = tags , "scenario:" , scenario_name , NEWLINE ,
+                    [ INDENT , parameters_block ] , { step } , [ examples ] ;
 
 (* Scenario outline with examples *)
-outline           = tags , "outline:" , scenario_name , NEWLINE , { step } , examples ;
+outline           = tags , "outline:" , scenario_name , NEWLINE ,
+                    [ INDENT , parameters_block ] , { step } , examples ;
 
 (* Fragment definition *)  
-fragment          = "fragment:" , fragment_name , NEWLINE , { step } ;
+fragment          = "fragment:" , fragment_name , NEWLINE ,
+                    [ INDENT , parameters_block ] , { step } ;
 
 (* Step definition *)
 step              = INDENT , step_keyword , step_description , NEWLINE , { step_directive } ;

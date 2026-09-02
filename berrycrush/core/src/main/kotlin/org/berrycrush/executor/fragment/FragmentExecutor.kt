@@ -37,4 +37,15 @@ fun interface FragmentExecutor {
         step: Step,
         context: ScenarioContext?,
     ): List<Step>
+
+    /**
+     * Resolve effective include parameters for a step.
+     *
+     * Implementations may combine fragment-level defaults with include-level
+     * overrides, where include-level values should take precedence.
+     */
+    fun includeParameters(
+        step: Step,
+        context: ScenarioContext?,
+    ): Map<String, Any?> = step.includeParameters
 }

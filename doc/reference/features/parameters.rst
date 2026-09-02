@@ -22,6 +22,43 @@ scenarios or fragments:
      when I call the API
        call ^listPets
 
+Named Parameter Blocks and Includes
+===================================
+
+You can name a parameters block and include it from another parameters block.
+This helps reuse common values while allowing local overrides.
+
+Syntax
+------
+
+Define a named block using ``parameters: <name>``:
+
+.. code-block:: berrycrush
+
+   parameters: commonAuth
+     header.Authorization: "Bearer default-token"
+     timeout: 60
+
+Include it using ``<< <name>``:
+
+.. code-block:: berrycrush
+
+   scenario: Override one value
+     parameters:
+       << commonAuth
+       timeout: 120
+     when I call the API
+       call ^listPets
+
+Merge rules:
+
+1. Included block values are applied first.
+2. Values declared in the current block are applied after includes.
+3. If keys collide, the current block value wins.
+
+If an included name does not exist, BerryCrush raises a runtime error when
+parameters are resolved.
+
 Scenario-Level Parameters
 =========================
 

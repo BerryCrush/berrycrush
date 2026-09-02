@@ -1,12 +1,5 @@
 parameters:
-  logRequests: true
-  logResponses: true
-  binding.httpbin:
-    baseUrl: "https://httpbin.org"
-    location: "classpath:/httpbin.json"
-    alias:
-      status: "GET /status/{codes}"
-      base64: "GET /base64/{value}"
+  << httpbin-param
 
 outline: call parameter key ref
   when I call the endpoint

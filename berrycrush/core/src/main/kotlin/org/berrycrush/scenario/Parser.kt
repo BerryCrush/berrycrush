@@ -41,16 +41,88 @@ class Parser(
             val tokens = lexer.tokenize()
             return Parser(tokens, fileName).parse()
         }
+
+        fun parseFragment(
+            source: String,
+            fileName: String? = null,
+        ): FragmentParserResult {
+            val lexer = Lexer(source, fileName)
+            val tokens = lexer.tokenize()
+            return Parser(tokens, fileName).parseFragment()
+        }
+    }
+
+    sealed interface ParsingResult<T : FileNode> {
+        val ast: T?
+        val errors: List<ParseError>
+        val isSuccess: Boolean
+            get() = errors.isEmpty() && ast != null
     }
 
     /**
      * Result of parsing.
      */
     data class ParserResult(
-        val ast: ScenarioFileNode?,
-        val errors: List<ParseError>,
-    ) {
-        val isSuccess: Boolean get() = errors.isEmpty() && ast != null
+        override val ast: ScenarioFileNode?,
+        override val errors: List<ParseError>,
+    ) : ParsingResult<ScenarioFileNode>
+
+    data class FragmentParserResult(
+        override val ast: FragmentFileNode?,
+        override val errors: List<ParseError>,
+    ) : ParsingResult<FragmentFileNode>
+
+    fun parseFragment(): FragmentParserResult {
+        val fragments = mutableListOf<FragmentNode>()
+        val parameters = mutableListOf<ParametersNode>()
+        val startLocation = state.currentLocation()
+
+        state.skipNewlines()
+
+        while (!state.isAtEnd()) {
+            when (state.current().type) {
+                TokenType.PARAMETERS -> {
+                    state.parseParameters()?.let {
+                        it.name?.let { _ -> parameters.add(it) }
+                            ?: state.addError(
+                                "Unnamed parameters block in fragment," +
+                                    "parameters: <name>",
+                            )
+                    }
+                }
+
+                TokenType.FRAGMENT -> {
+                    state.parseFragment()?.let(fragments::add)
+                }
+
+                TokenType.EOF -> {
+                    break
+                }
+
+                TokenType.NEWLINE, TokenType.INDENT, TokenType.DEDENT -> {
+                    state.advance()
+                }
+
+                else -> {
+                    state.addError<Unit>(
+                        "Unexpected token",
+                        expected = "parameters or fragment",
+                        found = state.current().value,
+                    )
+                    state.advance()
+                }
+            }
+            state.skipNewlines()
+        }
+
+        val ast =
+            if (state.errors.isEmpty()) {
+                FragmentFileNode(fragments, parameters, startLocation)
+            } else {
+                null
+            }
+
+        return FragmentParserResult(ast, state.errors)
     }
 
     /**

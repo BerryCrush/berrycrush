@@ -717,6 +717,50 @@ class ParserTest {
     }
 
     @Test
+    fun `should parse named parameters block`() {
+        val source =
+            """
+            parameters: common
+              baseUrl: "http://localhost:8080"
+
+            scenario: Test with named parameters
+              when I get pets
+                call ^listPets
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        assertNotNull(result.ast!!.parameters)
+        assertEquals("common", result.ast.parameters.name)
+        assertEquals("http://localhost:8080", result.ast.parameters.values["baseUrl"])
+    }
+
+    @Test
+    fun `should parse parameters include directive`() {
+        val source =
+            """
+            parameters: defaults
+              timeout: 60
+
+            scenario: Test with include
+              parameters:
+                << defaults
+                timeout: 120
+              when I get pets
+                call ^listPets
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val scenario = result.ast!!.scenarios[0]
+        assertNotNull(scenario.parameters)
+        assertEquals(listOf("defaults"), scenario.parameters.includes)
+        assertEquals(120L, scenario.parameters.values["timeout"])
+    }
+
+    @Test
     fun `should parse parameters with header override`() {
         val source =
             """

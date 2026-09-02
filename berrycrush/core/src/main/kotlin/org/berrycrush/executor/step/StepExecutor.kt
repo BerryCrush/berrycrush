@@ -64,7 +64,8 @@ class StepExecutor(
             }
 
             // Inject include parameters into context before expanding
-            scenarioContext.withIncludeParameters(step) {
+            val includeParameters = fragmentExecutor.includeParameters(step, scenarioContext)
+            scenarioContext.withIncludeParameters(includeParameters) {
                 val expandedSteps = fragmentExecutor.expand(step, scenarioContext)
                 for (expandedStep in expandedSteps) {
                     if (!continueExecution) {
@@ -278,19 +279,19 @@ class StepExecutor(
 }
 
 internal inline fun ScenarioContext.withIncludeParameters(
-    step: Step,
+    includeParameters: Map<String, Any?>,
     block: () -> Unit,
 ) {
-    if (step.includeParameters.isEmpty()) {
+    if (includeParameters.isEmpty()) {
         block()
     } else {
         val context = this.executionContext
         val saved =
-            step.includeParameters.keys
+            includeParameters.keys
                 .filter { context.contains(it) }
                 .associateWith { context[it] as Any? }
         try {
-            context.resolveParams(step.includeParameters).forEachNonNull { key, value -> context[key] = value }
+            context.resolveParams(includeParameters).forEachNonNull { key, value -> context[key] = value }
             block()
         } finally {
             // Restore original values
@@ -298,3 +299,8 @@ internal inline fun ScenarioContext.withIncludeParameters(
         }
     }
 }
+
+internal inline fun ScenarioContext.withIncludeParameters(
+    step: Step,
+    block: () -> Unit,
+) = withIncludeParameters(step.includeParameters, block)
