@@ -717,32 +717,46 @@ class ParserTest {
     }
 
     @Test
-    fun `should parse named parameters block`() {
+    fun `should parse named parameters block in fragment`() {
         val source =
             """
             parameters: common
               baseUrl: "http://localhost:8080"
 
-            scenario: Test with named parameters
+            fragment: name
+              when I get pets
+                call ^listPets
+            """.trimIndent()
+
+        val result = Parser.parseFragment(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        assertTrue(result.ast!!.parameters.isNotEmpty())
+        assertEquals("common", result.ast.parameters[0].name)
+        assertEquals("http://localhost:8080", result.ast.parameters[0].values["baseUrl"])
+    }
+
+    @Test
+    fun `should not parse named parameters block in scenario`() {
+        val source =
+            """
+            parameters: common
+              baseUrl: "http://localhost:8080"
+
+            scenario: Parser error
               when I get pets
                 call ^listPets
             """.trimIndent()
 
         val result = Parser.parse(source)
 
-        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
-        assertNotNull(result.ast!!.parameters)
-        assertEquals("common", result.ast.parameters.name)
-        assertEquals("http://localhost:8080", result.ast.parameters.values["baseUrl"])
+        assertFalse(result.isSuccess, "Parse should not succeed: ${result.errors}")
     }
 
     @Test
     fun `should parse parameters include directive`() {
         val source =
             """
-            parameters: defaults
-              timeout: 60
-
             scenario: Test with include
               parameters:
                 << defaults

@@ -8,6 +8,7 @@ import org.berrycrush.scenario.FragmentNode
 import org.berrycrush.scenario.ParametersNode
 import org.berrycrush.scenario.ParserState
 import org.berrycrush.scenario.ScenarioNode
+import org.berrycrush.scenario.ScenarioParserState
 import org.berrycrush.scenario.TokenType
 
 /**
@@ -270,6 +271,7 @@ internal fun ParserState.parseParameters(): ParametersNode? {
     if (!expect(TokenType.COLON)) return null
     skipWhitespace()
 
+    val nameLoc = currentLocation()
     val blockName =
         if (current().type == TokenType.IDENTIFIER && tokens.getOrNull(pos + 1)?.type == TokenType.NEWLINE) {
             val name = current().value
@@ -280,28 +282,37 @@ internal fun ParserState.parseParameters(): ParametersNode? {
         }
     skipNewlines()
 
-    val values = mutableMapOf<String, Any>()
-    val includes = mutableListOf<String>()
+    return if (this is ScenarioParserState && blockName != null) {
+        addError(
+            "Scenario parameters block should not have a name",
+            location = nameLoc,
+            expected = "parameters:",
+            found = "parameters: $blockName",
+        )
+    } else {
+        val values = mutableMapOf<String, Any>()
+        val includes = mutableListOf<String>()
 
-    // Expect indent
-    if (current().type == TokenType.INDENT) {
-        advance()
+        // Expect indent
+        if (current().type == TokenType.INDENT) {
+            advance()
+        }
+
+        // Parse parameter entries (supports nested blocks)
+        parseParameterEntries(values, includes, prefix = "")
+
+        // Handle dedent
+        if (current().type == TokenType.DEDENT) {
+            advance()
+        }
+
+        ParametersNode(
+            values = values,
+            location = loc,
+            name = blockName,
+            includes = includes,
+        )
     }
-
-    // Parse parameter entries (supports nested blocks)
-    parseParameterEntries(values, includes, prefix = "")
-
-    // Handle dedent
-    if (current().type == TokenType.DEDENT) {
-        advance()
-    }
-
-    return ParametersNode(
-        values = values,
-        location = loc,
-        name = blockName,
-        includes = includes,
-    )
 }
 
 /**

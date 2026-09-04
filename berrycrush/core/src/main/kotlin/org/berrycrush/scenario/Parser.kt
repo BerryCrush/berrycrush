@@ -23,12 +23,9 @@ import org.berrycrush.scenario.parsing.parseTags
  * The parser delegates to extension functions in the `parsing` package
  * for specific parsing tasks, keeping this class focused on coordination.
  */
-class Parser(
-    tokens: List<Token>,
-    fileName: String? = null,
+class Parser private constructor(
+    private val state: ParserState,
 ) {
-    private val state = ParserState(tokens, fileName)
-
     companion object {
         /**
          * Parse source code directly.
@@ -39,7 +36,7 @@ class Parser(
         ): ParserResult {
             val lexer = Lexer(source, fileName)
             val tokens = lexer.tokenize()
-            return Parser(tokens, fileName).parse()
+            return Parser(ParserState.forScenario(tokens, fileName)).parse()
         }
 
         fun parseFragment(
@@ -48,7 +45,7 @@ class Parser(
         ): FragmentParserResult {
             val lexer = Lexer(source, fileName)
             val tokens = lexer.tokenize()
-            return Parser(tokens, fileName).parseFragment()
+            return Parser(ParserState.forFragment(tokens, fileName)).parseFragment()
         }
     }
 

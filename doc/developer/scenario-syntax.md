@@ -19,10 +19,16 @@ All files must be UTF-8 encoded.
 (* Top-level structure *)
 scenario_file     = { parameters_block } , { feature | scenario | fragment } ;
 
+fragment_file     = { named_parameters_block | fragment }
+
 (* Parameters block - file-level or feature-level configuration *)
-parameters_block  = "parameters:" , [ parameter_block_name ] , NEWLINE ,
-                    { parameter_include | parameter_entry | nested_param_block } ;
+named_parameters_block  = "parameters:" , [ parameter_block_name ] , NEWLINE , parameters_block_content
+
+parameters_block  = "parameters:" , NEWLINE , parameters_block_content
+
 parameter_block_name = identifier ;
+parameters_block_content = parameter_include | parameter_entry | nested_param_block ;
+
 parameter_include = INDENT , "<<" , include_name , NEWLINE ;
 include_name      = parameter_name ;
 parameter_entry   = INDENT , parameter_name , ":" , parameter_value , NEWLINE ;
