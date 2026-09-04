@@ -9,6 +9,7 @@ import org.berrycrush.executor.assertion.AssertionExecutor
 import org.berrycrush.executor.assertion.DefaultAssertionEngine
 import org.berrycrush.executor.enricher.ErrorEnricher
 import org.berrycrush.executor.fragment.DefaultFragmentExecutor
+import org.berrycrush.executor.fragment.FragmentExecutor
 import org.berrycrush.executor.response.ResponseProcessor
 import org.berrycrush.executor.step.OperationStepExecutor
 import org.berrycrush.executor.step.StepExecutor
@@ -40,6 +41,7 @@ class BerryCrushScenarioExecutor(
     private val configuration: BerryCrushConfigurationProvider,
     private val specRegistry: SpecRegistry,
     private val stepExecutor: StepExecutor,
+    private val fragmentRegistry: FragmentRegistry? = null,
     private val pluginRegistry: PluginRegistry? = null,
 ) {
     companion object {
@@ -84,6 +86,7 @@ class BerryCrushScenarioExecutor(
             configuration,
             specRegistry,
             createStepExecutor(specRegistry, configuration, pluginRegistry, fragmentRegistry, stepRegistry, assertionRegistry),
+            fragmentRegistry,
             pluginRegistry,
         )
 
@@ -104,7 +107,8 @@ class BerryCrushScenarioExecutor(
         executionListener: BerryCrushExecutionListener? = null,
     ): ScenarioResult =
         specRegistry.checkpoint {
-            configuration.withParameters((sharedContext?.mergedParameters ?: emptyMap()) + scenario.parameters) {
+            val parameters = (sharedContext?.mergedParameters ?: emptyMap()) + scenario.parameters
+            configuration.withParameters(fragmentRegistry?.resolveParameters(parameters) ?: parameters) {
                 val listener = executionListener ?: BerryCrushExecutionListener.NOOP
 
                 // Notify listener that scenario is starting

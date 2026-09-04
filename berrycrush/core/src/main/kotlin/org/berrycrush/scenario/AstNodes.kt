@@ -30,6 +30,14 @@ interface Parameterized {
     val parameters: ParametersNode?
 }
 
+sealed interface FileNode : AstNode
+
+data class FragmentFileNode(
+    val fragments: List<FragmentNode>,
+    val parameters: List<ParametersNode>,
+    override val location: SourceLocation,
+) : FileNode
+
 /**
  * Root node representing a scenario file.
  */
@@ -38,7 +46,7 @@ data class ScenarioFileNode(
     val fragments: List<FragmentNode>,
     override val parameters: ParametersNode? = null,
     override val location: SourceLocation,
-) : AstNode,
+) : FileNode,
     Parameterized {
     /**
      * Read-only compatibility accessor for standalone scenarios.
@@ -67,7 +75,13 @@ data class ScenarioFileNode(
 data class ParametersNode(
     val values: Map<String, Any>,
     override val location: SourceLocation,
-) : AstNode
+    val name: String? = null,
+    val includes: List<String> = emptyList(),
+) : AstNode {
+    val parameters: Map<String, Any> by lazy {
+        if (includes.isNotEmpty()) values + mapOf("<<" to includes) else values
+    }
+}
 
 /**
  * Represents a feature block that groups related scenarios.

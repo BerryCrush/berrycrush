@@ -644,7 +644,10 @@ class Lexer(
             }
 
             '>', '<' -> {
-                if (!isAtEnd() && peek() == '=') {
+                if (c == '<' && !isAtEnd() && peek() == '<') {
+                    advance()
+                    Token(TokenType.PARAM_INCLUDE, "<<", loc)
+                } else if (!isAtEnd() && peek() == '=') {
                     advance()
                     Token(TokenType.COMPARATOR, "$c=", loc)
                 } else {

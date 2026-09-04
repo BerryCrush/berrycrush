@@ -773,6 +773,33 @@ You can also mix flat and nested syntax in the same parameters block:
         delay: "500ms"
       header.Authorization: "Bearer token"
 
+Include Parameters
+^^^^^^^^^^^^^^^^^^
+
+``parameters`` block in fragment file can have name like this:
+
+.. code-block:: berrycrush
+
+    parameters: name
+      including_parameter: "value"
+
+This named parameter block can be included in the scenario
+file's ``parameters`` block like this:
+
+.. code-block:: berrycrush
+
+    parameters:
+      << name
+      other_parameter: "other value"
+
+The ``including_parameter`` will be merged into the scenario's
+parameters block at runtime.
+
+.. note::
+
+  If the including name doesn't exist in the fragment file,
+  then BerryCrush will throw an error during scenario execution.
+
 Auto-Generated Tests
 --------------------
 

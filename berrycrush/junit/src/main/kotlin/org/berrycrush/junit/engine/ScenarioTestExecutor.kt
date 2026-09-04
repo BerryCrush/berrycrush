@@ -15,7 +15,9 @@ import org.berrycrush.junit.engine.context.TestExecutionContext
 import org.berrycrush.junit.spi.BindingsProvider
 import org.berrycrush.junit.spi.Provider
 import org.berrycrush.junit.spi.RegistryProvider
+import org.berrycrush.model.Fragment
 import org.berrycrush.model.FragmentRegistry
+import org.berrycrush.model.ParameterFragment
 import org.berrycrush.plugin.PluginRegistry
 import org.berrycrush.runner.ScenarioRunner
 import org.berrycrush.scenario.ScenarioLoader
@@ -300,7 +302,9 @@ class ScenarioTestExecutor(
         val registry = FragmentRegistry()
         val fragmentLocations = classDescriptor.fragmentLocations
 
-        if (fragmentLocations.isEmpty()) return registry
+        if (fragmentLocations.isEmpty()) {
+            return registry
+        }
 
         FragmentDiscovery
             .discoverFragments(classDescriptor.testClass.java.classLoader, fragmentLocations)
@@ -308,8 +312,10 @@ class ScenarioTestExecutor(
                 runCatching {
                     fragment.url.openStream().use { input ->
                         val content = input.bufferedReader().readText()
-                        val fragments = ScenarioLoader.loadFragmentsFromString(content, fragment.name)
-                        registry.registerAll(fragments)
+                        val entries = ScenarioLoader.loadFragmentEntries(content, fragment.name)
+                        val (fragments, parameters) = entries.entries.partition { (_, value) -> value is Fragment }
+                        registry.registerAll(fragments.associate { (name, value) -> name to value as Fragment })
+                        registry.registerAllFragmentParameters(parameters.associate { (name, value) -> name to value as ParameterFragment })
                     }
                 }.onFailure {
                     logger.log(Level.WARNING, it) {

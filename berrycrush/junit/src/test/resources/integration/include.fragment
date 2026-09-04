@@ -2,3 +2,13 @@ fragment: httpbin
   when I call the API
     call using httpbin {{endpoint}}
       {{pathVariable}}: {{value}}
+
+parameters: httpbin-param
+  logRequests: true
+  logResponses: true
+  binding.httpbin:
+    baseUrl: "https://httpbin.org"
+    location: "classpath:/httpbin.json"
+    alias:
+      status: "GET /status/{codes}"
+      base64: "GET /base64/{value}"

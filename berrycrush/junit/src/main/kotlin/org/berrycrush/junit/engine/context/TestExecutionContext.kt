@@ -10,13 +10,13 @@ import org.berrycrush.junit.ParallelExecutionMode
 import org.berrycrush.junit.engine.ClassTestDescriptor
 import org.berrycrush.junit.engine.ScenarioFileDescriptor
 import org.berrycrush.junit.engine.ScenarioMethodDescriptor
-import org.berrycrush.junit.engine.ScenarioTestDiscoverer
 import org.berrycrush.junit.spi.BindingsProvider
 import org.berrycrush.model.FragmentRegistry
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.ScenarioResult
 import org.berrycrush.plugin.PluginRegistry
 import org.berrycrush.runner.ScenarioRunner
+import org.berrycrush.scenario.ScenarioLoader
 import org.berrycrush.util.StepRegistry
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
@@ -176,7 +176,10 @@ private fun TestExecutionContext.buildFileContext(
     fileDescriptor: ScenarioFileDescriptor,
     classDescriptor: ClassTestDescriptor,
 ): FileExecutionContext {
-    val fileContent = ScenarioTestDiscoverer.loadScenarioFromUrl(fileDescriptor.scenarioSource)
+    val fileContent =
+        ScenarioLoader.loadFileContent(
+            path = fileDescriptor.scenarioSource.toURI(),
+        )
 
     val fileConfig =
         if (fileContent.parameters.isNotEmpty()) {

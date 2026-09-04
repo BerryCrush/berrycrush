@@ -10,6 +10,8 @@ import org.berrycrush.model.ExampleRow
 import org.berrycrush.model.Extraction
 import org.berrycrush.model.Feature
 import org.berrycrush.model.Fragment
+import org.berrycrush.model.FragmentEntry
+import org.berrycrush.model.ParameterFragment
 import org.berrycrush.model.RawRequest
 import org.berrycrush.model.Scenario
 import org.berrycrush.model.SourceLocation
@@ -22,6 +24,7 @@ import org.berrycrush.util.toNonNullMap
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.collections.mapValues
 import org.berrycrush.model.ConditionBranch as ModelConditionBranch
 import org.berrycrush.model.LogicalOperator as ModelLogicalOperator
 
@@ -103,16 +106,16 @@ object ScenarioLoader {
         fileName: String? = null,
     ): ScenarioFileContent {
         val result = parseOrThrow(source, fileName)
-
+        val ast = result.ast ?: error("Parser returned success without AST")
         val stories =
-            result.ast!!.stories.map { node ->
+            ast.stories.map { node ->
                 when (node) {
                     is ScenarioNode -> transformScenario(node)
                     is FeatureNode -> transformFeatureGroup(node)
                 }
             }
 
-        val parameters = result.ast.parameters?.values ?: emptyMap()
+        val parameters = result.ast.parameters?.parameters ?: emptyMap()
 
         return ScenarioFileContent(
             stories = stories,
@@ -155,15 +158,34 @@ object ScenarioLoader {
     fun loadFragmentsFromString(
         source: String,
         fileName: String? = null,
-    ): Map<String, Fragment> {
-        val result = Parser.parse(source, fileName)
+    ): Map<String, Fragment> =
+        loadFragmentEntries(source, fileName)
+            .entries
+            .filter { (_, value) -> value is Fragment }
+            .associate { (name, value) -> name to (value as Fragment) }
+
+    /**
+     * Load fragments with resolved fragment-level default parameters.
+     */
+    fun loadFragmentEntries(
+        source: String,
+        fileName: String? = null,
+    ): Map<String, FragmentEntry> {
+        val result = Parser.parseFragment(source, fileName)
 
         if (!result.isSuccess) {
             val errorMessages = result.errors.joinToString("\n") { it.toString() }
             throw ScenarioParseException("Failed to parse fragment file:\n$errorMessages")
         }
 
-        return result.ast!!.fragments.associate { it.name to transformFragment(it) }
+        val ast = result.ast ?: error("Parser returned success without AST")
+        val fragments = ast.fragments
+        val parameters = ast.parameters
+        // parser will raise error if a fragment parameter doesn't have name
+        return (
+            fragments.map { transformFragment(it) } +
+                parameters.map { ParameterFragment(it.name!!, it.values) }
+        ).associateBy { e -> e.name }
     }
 
     private fun transformScenario(
@@ -172,7 +194,7 @@ object ScenarioLoader {
     ): Scenario {
         val steps = node.steps.flatMap { transformStep(it) }
         val examples = node.examples?.map { transformExampleRow(it) }
-        val parameters = node.parameters?.values ?: emptyMap()
+        val parameters = node.parameters?.parameters ?: emptyMap()
 
         return Scenario(
             name = node.name,
@@ -197,7 +219,7 @@ object ScenarioLoader {
             name = node.name,
             scenarios = transformFeatureScenarios(node),
             tags = node.tags,
-            parameters = node.parameters?.values ?: emptyMap(),
+            parameters = node.parameters?.parameters ?: emptyMap(),
             sourceLocation = node.location,
         )
 
@@ -218,12 +240,19 @@ object ScenarioLoader {
             val scenarioParams = scenarioNode.parameters?.values ?: emptyMap()
             val mergedParams = featureParams + scenarioParams
 
+            val include = node.parameters?.includes ?: emptyList()
             // Create merged parameters node
             val mergedParametersNode =
                 if (scenarioNode.parameters != null) {
-                    scenarioNode.parameters.copy(values = mergedParams)
+                    val scenarioInclude = scenarioNode.parameters.includes
+                    scenarioNode.parameters.copy(
+                        values = mergedParams,
+                        name = scenarioNode.parameters.name,
+                        includes =
+                            include + scenarioInclude,
+                    )
                 } else if (mergedParams.isNotEmpty()) {
-                    ParametersNode(mergedParams, node.parameters?.location ?: scenarioNode.location)
+                    ParametersNode(mergedParams, node.parameters?.location ?: scenarioNode.location, includes = include)
                 } else {
                     null
                 }
