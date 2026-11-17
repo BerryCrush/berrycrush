@@ -8,16 +8,28 @@ import org.berrycrush.model.SourceLocation
  * This class is used by extension functions in the `parsing` package
  * to access tokens, track position, and accumulate errors.
  */
-class ParserState(
-    val tokens: List<Token>,
-    val fileName: String? = null,
-) {
+@Suppress("TooManyFunctions")
+sealed interface ParserState {
+    val tokens: List<Token>
+    val fileName: String?
+
     /** Current position in the token stream */
-    var pos = 0
-        internal set
+    var pos: Int
 
     /** Accumulated parse errors */
-    val errors = mutableListOf<ParseError>()
+    val errors: MutableList<ParseError>
+
+    companion object {
+        fun forScenario(
+            tokens: List<Token>,
+            fileName: String? = null,
+        ): ParserState = ScenarioParserState(tokens, fileName)
+
+        fun forFragment(
+            tokens: List<Token>,
+            fileName: String? = null,
+        ): ParserState = FragmentParserState(tokens, fileName)
+    }
 
     /**
      * Get the current token, or the last token if at end.
@@ -121,3 +133,17 @@ class ParserState(
         return null
     }
 }
+
+internal data class ScenarioParserState(
+    override val tokens: List<Token>,
+    override val fileName: String?,
+    override var pos: Int = 0,
+    override val errors: MutableList<ParseError> = mutableListOf(),
+) : ParserState
+
+internal data class FragmentParserState(
+    override val tokens: List<Token>,
+    override val fileName: String?,
+    override var pos: Int = 0,
+    override val errors: MutableList<ParseError> = mutableListOf(),
+) : ParserState

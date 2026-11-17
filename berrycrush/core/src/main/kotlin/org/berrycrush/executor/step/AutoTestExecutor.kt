@@ -6,10 +6,10 @@ import org.berrycrush.autotest.MultiTestResult
 import org.berrycrush.autotest.RequestResult
 import org.berrycrush.autotest.provider.AutoTestProviderRegistry
 import org.berrycrush.autotest.provider.MultiTestProvider
-import org.berrycrush.config.BindingConfig
 import org.berrycrush.executor.BerryCrushConfigurationProvider
 import org.berrycrush.executor.BerryCrushExecutionListener
 import org.berrycrush.executor.http.HttpExecutor
+import org.berrycrush.executor.resolvers.resolveCall
 import org.berrycrush.model.Assertion
 import org.berrycrush.model.AssertionResults
 import org.berrycrush.model.AutoTestResult
@@ -18,6 +18,8 @@ import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepResult
+import org.berrycrush.model.callDirective
+import org.berrycrush.model.directiveAssertions
 import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.plugin.StepContext
@@ -60,7 +62,7 @@ class AutoTestExecutor(
         parameters: Map<String, Any?>,
         listener: BerryCrushExecutionListener = BerryCrushExecutionListener.NOOP,
     ): StepResult {
-        val autoTestConfig = step.autoTestConfig
+        val autoTestConfig = step.callDirective?.autoTestConfig
         require(autoTestConfig != null) {
             "Step $step is not a auto test step"
         }
@@ -127,18 +129,20 @@ class AutoTestExecutor(
         stepStartTime: Instant,
         listener: BerryCrushExecutionListener = BerryCrushExecutionListener.NOOP,
     ): StepResult {
-        val autoTestConfig = step.autoTestConfig!!
-        val operationId = step.operationId!!
+        val resolvedStep = context.resolveCall(step)
+        val call = resolvedStep.callDirective ?: error("Resolved step has no call directive")
+        val autoTestConfig = call.autoTestConfig!!
+        val operationId = call.operationId!!
         // Resolve the operation to get the OpenAPI spec
-        val (spec, operation) = specRegistry.resolve(operationId, step.specName, configuration.bindings)
+        val (spec, operation) = specRegistry.resolve(operationId, call.specName, configuration.bindings)
         // Create the auto-test generator
         val generator = AutoTestGenerator.fromSpec(spec)
         // Extract base body from step if present
-        val baseBody = extractBaseBody(step, operation, context)
+        val baseBody = extractBaseBody(resolvedStep, operation, context)
         // Extract base path params from step
-        val basePathParams = context.resolveParams(step.pathParams)
+        val basePathParams = context.resolveParams(call.pathParams)
         // Extract base headers from step
-        val baseHeaders = context.resolveParams(step.headers)
+        val baseHeaders = context.resolveParams(call.headers)
         // Generate test cases
         val testCases =
             generator
@@ -153,7 +157,7 @@ class AutoTestExecutor(
         if (testCases.isEmpty()) {
             // No test cases generated - just pass
             return StepResult(
-                step = step,
+                step = resolvedStep,
                 status = ResultStatus.PASSED,
                 duration = Duration.between(stepStartTime, Instant.now()),
                 message = "No auto-test cases generated (operation may not have parameters or constraints)",
@@ -164,7 +168,7 @@ class AutoTestExecutor(
         val allResults =
             testCases.map { testCase ->
                 listener.onAutoTestStarting(testCase)
-                executeAutoTestCase(step, testCase, context).also { testResult ->
+                executeAutoTestCase(resolvedStep, testCase, context).also { testResult ->
                     // Notify listener that test finished
                     listener.onAutoTestCompleted(testResult)
                     // Log the test case execution
@@ -176,7 +180,7 @@ class AutoTestExecutor(
         val totalCount = allResults.size
 
         return StepResult(
-            step = step,
+            step = resolvedStep,
             status = if (failedCount == 0) ResultStatus.PASSED else ResultStatus.FAILED,
             duration = Duration.between(stepStartTime, Instant.now()),
             message = "Auto-tests: $totalCount executed, $failedCount failed",
@@ -223,19 +227,20 @@ class AutoTestExecutor(
         step: Step,
         testCase: AutoTestCase,
     ): TestCaseParams {
+        val call = step.callDirective
         val testBody =
             if (testCase.body.isNotEmpty()) {
                 objectMapper.writeValueAsString(testCase.body)
             } else {
-                step.body
+                call?.body
             }
 
         val testPathParams = mutableMapOf<String, Any>()
-        testPathParams.putAll(step.pathParams)
+        testPathParams.putAll(call?.pathParams ?: emptyMap())
         testCase.pathParams.forEach { (k, v) -> testPathParams[k] = v ?: "" }
 
         val testHeaders =
-            step.headers
+            (call?.headers ?: emptyMap())
                 .toMutableMap()
                 .apply {
                     putAll(testCase.headers)
@@ -294,11 +299,12 @@ class AutoTestExecutor(
         testStartTime: Instant,
     ): AutoTestResult {
         val (body, pathParams, headers) = buildTestCaseParams(step, testCase)
-        val (spec, operation) = specRegistry.resolve(step.operationId!!, step.specName, configuration.bindings)
+        val call = step.callDirective ?: error("Step has no call directive")
+        val (spec, operation) = specRegistry.resolve(call.operationId!!, call.specName, configuration.bindings)
         val url = httpExecutor.resolveUrl(step, spec, operation, context, pathParams)
         val request = HttpRequest(operation.method, url, headers, body)
         val response = httpExecutor.execute(request, context)
-        val assertionResults = assertionRunner(response, step.assertions, context)
+        val assertionResults = assertionRunner(response, step.directiveAssertions, context)
         val allResults = assertionResults.assertionResults
 
         return AutoTestResult(
@@ -353,7 +359,7 @@ class AutoTestExecutor(
         parameters: Map<String, Any?>,
         listener: BerryCrushExecutionListener = BerryCrushExecutionListener.NOOP,
     ): StepResult {
-        val autoTestConfig = step.autoTestConfig!!
+        val autoTestConfig = step.callDirective?.autoTestConfig!!
 
         // Get the provider registry
         val registry = AutoTestProviderRegistry.default
@@ -450,7 +456,7 @@ class AutoTestExecutor(
 
         return runCatching {
             val response = httpExecutor.execute(step, specRegistry, context)
-            val assertionResults = assertionRunner(response, step.assertions, context)
+            val assertionResults = assertionRunner(response, step.directiveAssertions, context)
             val allResults = assertionResults.assertionResults
             RequestResult.create(
                 requestIndex = requestIndex,
@@ -533,7 +539,7 @@ private fun AutoTestType.toTestType() =
     }
 
 private fun Step.check(): Step? =
-    if (body != null || bodyProperties != null || bodyFile != null) {
+    if (callDirective?.body != null || callDirective?.bodyProperties != null || callDirective?.bodyFile != null) {
         this
     } else {
         null

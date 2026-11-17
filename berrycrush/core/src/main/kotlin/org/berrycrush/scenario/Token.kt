@@ -19,6 +19,7 @@ enum class TokenType {
     AND,
     BUT,
     CALL,
+    RAW,
     EXTRACT,
     ASSERT,
     EXAMPLES,
@@ -35,6 +36,7 @@ enum class TokenType {
     STATUS_RANGE, // e.g., 1xx, 2xx, 3xx, 4xx, 5xx
     IDENTIFIER,
     OPERATION_ID,
+    HTTP_PATH,
     JSON_PATH,
     VARIABLE,
     TAG,
@@ -53,6 +55,7 @@ enum class TokenType {
     COMMA,
     PIPE,
     DOT,
+    PARAM_INCLUDE, // <<
     TRIPLE_QUOTE,
 
     // Special

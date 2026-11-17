@@ -8,6 +8,10 @@ import org.berrycrush.model.Scenario
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepResult
 import org.berrycrush.model.WebhookConfig
+import org.berrycrush.model.callDirective
+import org.berrycrush.model.directiveAssertions
+import org.berrycrush.model.directiveExtractions
+import org.berrycrush.model.webhookDirective
 import org.berrycrush.plugin.PluginRegistry
 import org.berrycrush.plugin.ScenarioContext
 import org.berrycrush.plugin.StepContext
@@ -64,8 +68,9 @@ class StepExecutor(
             }
 
             // Inject include parameters into context before expanding
-            scenarioContext.withIncludeParameters(step) {
-                val expandedSteps = fragmentExecutor.expand(step)
+            val includeParameters = fragmentExecutor.includeParameters(step, scenarioContext)
+            scenarioContext.withIncludeParameters(includeParameters) {
+                val expandedSteps = fragmentExecutor.expand(step, scenarioContext)
                 for (expandedStep in expandedSteps) {
                     if (!continueExecution) {
                         results.add(StepResult(step = expandedStep, status = ResultStatus.SKIPPED))
@@ -101,10 +106,14 @@ class StepExecutor(
         pluginRegistry?.dispatchStepStart(stepContext)
 
         // Execute the actual step with scenario context for error enrichment
-        val result = // If no operation to call, check for custom step or assertions
-            step.operationId?.let {
+        val call = step.callDirective
+        val hasCallTarget = call?.operationId != null || call?.rawRequest != null
+        val result =
+            if (hasCallTarget) {
                 operationStepExecutor.execute(step, stepContext, stepIndex, listener)
-            } ?: executeNonOperationStep(step, stepContext)
+            } else {
+                executeNonOperationStep(step, stepContext)
+            }
 
         // Dispatch plugin: onStepEnd
         pluginRegistry?.dispatchStepEnd(stepContext, StepResultAdapter(result))
@@ -121,7 +130,7 @@ class StepExecutor(
     ): StepResult {
         val stepStartTime = Instant.now()
         // First, check if this is a webhook step
-        step.webhookConfig?.let { config ->
+        step.webhookDirective?.config?.let { config ->
             return executeWebhookStep(step, config, stepContext, stepStartTime)
         }
 
@@ -135,7 +144,7 @@ class StepExecutor(
         }
 
         // Not a custom step - check for assertions/extractions
-        return if (step.assertions.isEmpty() && step.extractions.isEmpty()) {
+        return if (step.directiveAssertions.isEmpty() && step.directiveExtractions.isEmpty()) {
             // No operation and no assertions - just pass
             StepResult(
                 step = step,
@@ -274,24 +283,23 @@ class StepExecutor(
         }
 }
 
-internal inline fun ScenarioContext.withIncludeParameters(
-    step: Step,
-    block: () -> Unit,
-) {
-    if (step.includeParameters.isEmpty()) {
+internal inline fun <T> ScenarioContext.withIncludeParameters(
+    includeParameters: Map<String, Any?>,
+    block: () -> T,
+): T =
+    if (includeParameters.isEmpty()) {
         block()
     } else {
         val context = this.executionContext
         val saved =
-            step.includeParameters.keys
+            includeParameters.keys
                 .filter { context.contains(it) }
                 .associateWith { context[it] as Any? }
         try {
-            context.resolveParams(step.includeParameters).forEachNonNull { key, value -> context[key] = value }
+            context.resolveParams(includeParameters).forEachNonNull { key, value -> context[key] = value }
             block()
         } finally {
             // Restore original values
             saved.forEachNonNull { key, value -> context[key] = value }
         }
     }
-}

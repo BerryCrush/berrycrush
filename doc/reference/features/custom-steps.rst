@@ -251,6 +251,24 @@ Variables can be set with two different scopes:
 
 Variable lookup prioritizes scenario-scoped variables over shared variables when both exist.
 
+Binding-provided runtime parameters are also available as ``param.*`` variables
+during execution. Provide them via ``BerryCrushBindings.getRuntimeParameters()``
+or set them directly in Kotlin DSL through ``suite.runtimeParameters``.
+
+.. code-block:: kotlin
+
+    class RuntimeBindings : BerryCrushBindings {
+        override fun getBindings(): Map<String, Any> = emptyMap()
+
+        override fun getRuntimeParameters(): Map<String, Any> = mapOf(
+            "tenantId" to "acme"
+        )
+    }
+
+    // Inside DSL setup
+    val suite = berrycrush { }
+    suite.runtimeParameter("tenantId", "acme")
+
 Best Practices
 --------------
 

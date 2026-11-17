@@ -4,7 +4,7 @@ import com.jayway.jsonpath.JsonPath
 import org.berrycrush.webhook.MockWebhookServer
 import java.util.concurrent.ConcurrentHashMap
 
-private val mustachePattern = Regex("""\{\{([\w.\[\]0-9]+)}}""")
+private val mustachePattern = Regex("""\{\{([-\w._\[\]0-9]+)}}""")
 private val bracketPattern = Regex("""\$\{([^}]+)}""")
 private val simplePattern = Regex("""\$(\w+)""")
 private val segmentPattern = Regex("""(\w+)((?:\[\d+])*)""")
@@ -70,7 +70,20 @@ class ExecutionContext(
         val mutableMap = parameters.toMutableMap()
         var context: ExecutionContext? = this.parent
         while (context != null) {
-            context.parameters.forEach { (k, v) -> mutableMap.putIfAbsent(k, v) }
+            context.parameters.forEach { (k, v) ->
+                if (k == "<<") {
+                    mutableMap.compute(k) { _, value ->
+                        if (value != null && value is List<*>) {
+                            (value + v).distinct()
+                        } else {
+                            // this shouldn't happen but just in case
+                            v
+                        }
+                    }
+                } else {
+                    mutableMap.putIfAbsent(k, v)
+                }
+            }
             context = context.parent
         }
         mutableMap.toMap()
@@ -416,9 +429,9 @@ class ExecutionContext(
      */
     private fun buildJsonPath(segments: List<PathSegment>): String {
         val builder = StringBuilder("$")
-        for (segment in segments) {
-            builder.append(".${segment.name}")
-            segment.indices.forEach { idx -> builder.append("[$idx]") }
+        for ((name, indices) in segments) {
+            builder.append(".$name")
+            indices.forEach { idx -> builder.append("[$idx]") }
         }
         return builder.toString()
     }
@@ -432,7 +445,7 @@ fun <T : Any> ExecutionContext.resolveParam(value: T?): T? =
     }
 
 fun <T : Any> ExecutionContext.resolveParams(params: Map<String, T?>): Map<String, T?> =
-    params.mapValues { (_, value) -> resolveParam(value) }
+    params.entries.associate { (key, value) -> resolveParam(key) as String to resolveParam(value) }
 
 fun ExecutionContext?.propagate(other: ExecutionContext) {
     if (this != null && this.shareVariablesAcrossScenarios) {

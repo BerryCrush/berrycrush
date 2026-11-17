@@ -79,7 +79,7 @@ class BerryCrushScenarioExecutorBranchTest {
                 executor.execute(scenario)
             }
 
-        assertEquals(error.message?.contains("Fragment 'does-not-exist' not found"), true)
+        assertEquals(true, error.message?.contains("Fragment 'does-not-exist' not found"))
     }
 
     @Test
@@ -107,12 +107,46 @@ class BerryCrushScenarioExecutorBranchTest {
         assertEquals(ResultStatus.ERROR, result.status)
         assertEquals(ResultStatus.ERROR, result.stepResults.single().status)
         assertEquals(
+            true,
             result.stepResults
                 .single()
                 .error
                 ?.message
                 ?.contains("No previous response"),
+        )
+    }
+
+    @Test
+    fun `should return clear error when dynamic call operation id cannot be resolved`() {
+        val executor =
+            BerryCrushScenarioExecutor(
+                specRegistry = SpecRegistry(),
+                configuration = BerryCrushConfigurationProvider.from(BerryCrushConfiguration()),
+            )
+        val scenario =
+            Scenario(
+                name = "unresolved dynamic call",
+                steps =
+                    listOf(
+                        Step(
+                            type = StepType.WHEN,
+                            description = "call unresolved operation",
+                            operationId = "{{operationId}}",
+                        ),
+                    ),
+            )
+
+        val result = executor.execute(scenario)
+
+        assertEquals(ResultStatus.ERROR, result.status)
+        assertEquals(ResultStatus.ERROR, result.stepResults.single().status)
+        assertEquals(
             true,
+            result.stepResults
+                .single()
+                .error
+                ?.message
+                ?.contains("Unable to resolve operation ID"),
         )
     }
 }

@@ -254,6 +254,22 @@ class ParserTest {
     }
 
     @Test
+    fun `should parse scenario with variable fragment include`() {
+        val source =
+            """
+            scenario: Protected endpoint
+              given I am authenticated
+                include {{authenticate}}
+              when I access protected resource
+                call ^getProtectedData
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+    }
+
+    @Test
     fun `should parse scenario with parameterized fragment include`() {
         val source =
             """
@@ -391,6 +407,120 @@ class ParserTest {
                 .filterIsInstance<CallNode>()
                 .single()
         assertEquals("petLookup", call.operationId)
+    }
+
+    @Test
+    fun `should parse call with variable operation id`() {
+        val source =
+            """
+            scenario: dynamic operation call
+              when I call
+                call {{operationId}}
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val call =
+            result.ast!!
+                .scenarios[0]
+                .steps[0]
+                .actions
+                .filterIsInstance<CallNode>()
+                .single()
+        assertEquals("{{operationId}}", call.operationId)
+    }
+
+    @Test
+    fun `should parse call using variable spec and operation`() {
+        val source =
+            """
+            scenario: dynamic using call
+              when I call
+                call using {{specName}} {{operationId}}
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val call =
+            result.ast!!
+                .scenarios[0]
+                .steps[0]
+                .actions
+                .filterIsInstance<CallNode>()
+                .single()
+        assertEquals("{{specName}}", call.specName)
+        assertEquals("{{operationId}}", call.operationId)
+    }
+
+    @Test
+    fun `should parse raw call with uppercase method and path`() {
+        val source =
+            """
+            |scenario: raw call
+            |  when I call
+            |    call raw PUT /pets/{id}
+            """.trimMargin()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val call =
+            result.ast!!
+                .scenarios[0]
+                .steps[0]
+                .actions
+                .filterIsInstance<CallNode>()
+                .single()
+        assertEquals("PUT", call.rawMethod)
+        assertEquals("/pets/{id}", call.rawPath)
+        assertEquals(null, call.operationId)
+    }
+
+    @Test
+    fun `should reject raw call with unsupported method`() {
+        val source =
+            """
+        |scenario: unsupported raw method
+            |  when I call
+            |    call raw GREEDY_GET /get/{id}
+            """.trimMargin()
+
+        val result = Parser.parse(source)
+
+        assertFalse(result.isSuccess)
+        assertTrue(result.errors.any { it.message.contains("Expected uppercase HTTP method") })
+    }
+
+    @Test
+    fun `should reject raw call with non-uppercase method`() {
+        val source =
+            """
+            |scenario: invalid raw call method
+            |  when I call
+            |    call raw Put /pets/{id}
+            """.trimMargin()
+
+        val result = Parser.parse(source)
+
+        assertFalse(result.isSuccess)
+        assertTrue(result.errors.any { it.message.contains("uppercase HTTP method") })
+    }
+
+    @Test
+    fun `should reject raw call without path`() {
+        val source =
+            """
+            |scenario: invalid raw call path
+            |  when I call
+            |    call raw PUT
+            """.trimMargin()
+
+        val result = Parser.parse(source)
+
+        assertFalse(result.isSuccess)
+        assertTrue(result.errors.any { it.message.contains("Expected HTTP path") })
     }
 
     @Test
@@ -584,6 +714,64 @@ class ParserTest {
         assertEquals("http://localhost:8080", result.ast.parameters.values["baseUrl"])
         assertEquals(60L, result.ast.parameters.values["timeout"])
         assertEquals(true, result.ast.parameters.values["shareVariablesAcrossScenarios"])
+    }
+
+    @Test
+    fun `should parse named parameters block in fragment`() {
+        val source =
+            """
+            parameters: common
+              baseUrl: "http://localhost:8080"
+
+            fragment: name
+              when I get pets
+                call ^listPets
+            """.trimIndent()
+
+        val result = Parser.parseFragment(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        assertTrue(result.ast!!.parameters.isNotEmpty())
+        assertEquals("common", result.ast.parameters[0].name)
+        assertEquals("http://localhost:8080", result.ast.parameters[0].values["baseUrl"])
+    }
+
+    @Test
+    fun `should not parse named parameters block in scenario`() {
+        val source =
+            """
+            parameters: common
+              baseUrl: "http://localhost:8080"
+
+            scenario: Parser error
+              when I get pets
+                call ^listPets
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertFalse(result.isSuccess, "Parse should not succeed: ${result.errors}")
+    }
+
+    @Test
+    fun `should parse parameters include directive`() {
+        val source =
+            """
+            scenario: Test with include
+              parameters:
+                << defaults
+                timeout: 120
+              when I get pets
+                call ^listPets
+            """.trimIndent()
+
+        val result = Parser.parse(source)
+
+        assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
+        val scenario = result.ast!!.scenarios[0]
+        assertNotNull(scenario.parameters)
+        assertEquals(listOf("defaults"), scenario.parameters.includes)
+        assertEquals(120L, scenario.parameters.values["timeout"])
     }
 
     @Test
@@ -2503,7 +2691,7 @@ class ParserTest {
 
         assertTrue(result.isSuccess, "Parse should succeed: ${result.errors}")
         val scenario = result.ast!!.scenarios[0]
-        assertEquals(scenario.parameters, null, "Scenario should not have parameters")
+        assertEquals(null, scenario.parameters, "Scenario should not have parameters")
     }
 
     @Test

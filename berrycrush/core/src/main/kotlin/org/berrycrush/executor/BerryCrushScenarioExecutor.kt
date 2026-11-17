@@ -18,6 +18,8 @@ import org.berrycrush.model.Scenario
 import org.berrycrush.model.ScenarioResult
 import org.berrycrush.model.Step
 import org.berrycrush.model.StepResult
+import org.berrycrush.model.includeDirective
+import org.berrycrush.model.webhookDirective
 import org.berrycrush.openapi.SpecRegistry
 import org.berrycrush.plugin.PluginRegistry
 import org.berrycrush.plugin.StepContext
@@ -40,6 +42,7 @@ class BerryCrushScenarioExecutor(
     private val configuration: BerryCrushConfigurationProvider,
     private val specRegistry: SpecRegistry,
     private val stepExecutor: StepExecutor,
+    private val fragmentRegistry: FragmentRegistry? = null,
     private val pluginRegistry: PluginRegistry? = null,
 ) {
     companion object {
@@ -84,6 +87,7 @@ class BerryCrushScenarioExecutor(
             configuration,
             specRegistry,
             createStepExecutor(specRegistry, configuration, pluginRegistry, fragmentRegistry, stepRegistry, assertionRegistry),
+            fragmentRegistry,
             pluginRegistry,
         )
 
@@ -104,7 +108,8 @@ class BerryCrushScenarioExecutor(
         executionListener: BerryCrushExecutionListener? = null,
     ): ScenarioResult =
         specRegistry.checkpoint {
-            configuration.withParameters((sharedContext?.mergedParameters ?: emptyMap()) + scenario.parameters) {
+            val parameters = (sharedContext?.mergedParameters ?: emptyMap()) + scenario.parameters
+            configuration.withParameters(fragmentRegistry?.resolveParameters(parameters) ?: parameters) {
                 val listener = executionListener ?: BerryCrushExecutionListener.NOOP
 
                 // Notify listener that scenario is starting
@@ -213,27 +218,28 @@ class BerryCrushScenarioExecutor(
         context: StepContext,
         startTime: Instant,
     ): StepResult? =
-        step.webhookConfig?.let { config ->
+        step.webhookDirective?.config?.let { config ->
             stepExecutor.executeWebhookStep(step, config, context, startTime)
         }
 }
 
-internal inline fun ExecutionContext.withIncludeParameters(
+internal inline fun <T> ExecutionContext.withIncludeParameters(
     step: Step,
-    block: () -> Unit,
-) {
-    if (step.includeParameters.isEmpty()) {
-        block()
+    block: () -> T,
+): T {
+    val includeParameters = step.includeDirective?.parameters ?: emptyMap()
+    if (includeParameters.isEmpty()) {
+        return block()
     } else {
         val saved =
-            step.includeParameters.keys
+            includeParameters.keys
                 .filter { this.contains(it) }
                 .associateWith { this.get<Any>(it) as Any }
         try {
             this
-                .resolveParams(step.includeParameters)
+                .resolveParams(includeParameters)
                 .forEach { (key, value) -> value?.let { this[key] = it } }
-            block()
+            return block()
         } finally {
             // Restore original values
             for ((key, value) in saved) {

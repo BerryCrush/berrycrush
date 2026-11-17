@@ -6,10 +6,14 @@ import org.berrycrush.model.BodyProperty
 import org.berrycrush.model.Condition
 import org.berrycrush.model.ConditionalActions
 import org.berrycrush.model.ConditionalAssertion
+import org.berrycrush.model.Directive
 import org.berrycrush.model.ExampleRow
 import org.berrycrush.model.Extraction
 import org.berrycrush.model.Feature
 import org.berrycrush.model.Fragment
+import org.berrycrush.model.FragmentEntry
+import org.berrycrush.model.ParameterFragment
+import org.berrycrush.model.RawRequest
 import org.berrycrush.model.Scenario
 import org.berrycrush.model.SourceLocation
 import org.berrycrush.model.Step
@@ -21,6 +25,7 @@ import org.berrycrush.util.toNonNullMap
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.collections.mapValues
 import org.berrycrush.model.ConditionBranch as ModelConditionBranch
 import org.berrycrush.model.LogicalOperator as ModelLogicalOperator
 
@@ -102,16 +107,16 @@ object ScenarioLoader {
         fileName: String? = null,
     ): ScenarioFileContent {
         val result = parseOrThrow(source, fileName)
-
+        val ast = result.ast ?: error("Parser returned success without AST")
         val stories =
-            result.ast!!.stories.map { node ->
+            ast.stories.map { node ->
                 when (node) {
                     is ScenarioNode -> transformScenario(node)
                     is FeatureNode -> transformFeatureGroup(node)
                 }
             }
 
-        val parameters = result.ast.parameters?.values ?: emptyMap()
+        val parameters = result.ast.parameters?.parameters ?: emptyMap()
 
         return ScenarioFileContent(
             stories = stories,
@@ -154,15 +159,34 @@ object ScenarioLoader {
     fun loadFragmentsFromString(
         source: String,
         fileName: String? = null,
-    ): Map<String, Fragment> {
-        val result = Parser.parse(source, fileName)
+    ): Map<String, Fragment> =
+        loadFragmentEntries(source, fileName)
+            .entries
+            .filter { (_, value) -> value is Fragment }
+            .associate { (name, value) -> name to (value as Fragment) }
+
+    /**
+     * Load fragments with resolved fragment-level default parameters.
+     */
+    fun loadFragmentEntries(
+        source: String,
+        fileName: String? = null,
+    ): Map<String, FragmentEntry> {
+        val result = Parser.parseFragment(source, fileName)
 
         if (!result.isSuccess) {
             val errorMessages = result.errors.joinToString("\n") { it.toString() }
             throw ScenarioParseException("Failed to parse fragment file:\n$errorMessages")
         }
 
-        return result.ast!!.fragments.associate { it.name to transformFragment(it) }
+        val ast = result.ast ?: error("Parser returned success without AST")
+        val fragments = ast.fragments
+        val parameters = ast.parameters
+        // parser will raise error if a fragment parameter doesn't have name
+        return (
+            fragments.map { transformFragment(it) } +
+                parameters.map { ParameterFragment(it.name!!, it.values) }
+        ).associateBy { e -> e.name }
     }
 
     private fun transformScenario(
@@ -171,7 +195,7 @@ object ScenarioLoader {
     ): Scenario {
         val steps = node.steps.flatMap { transformStep(it) }
         val examples = node.examples?.map { transformExampleRow(it) }
-        val parameters = node.parameters?.values ?: emptyMap()
+        val parameters = node.parameters?.parameters ?: emptyMap()
 
         return Scenario(
             name = node.name,
@@ -196,7 +220,7 @@ object ScenarioLoader {
             name = node.name,
             scenarios = transformFeatureScenarios(node),
             tags = node.tags,
-            parameters = node.parameters?.values ?: emptyMap(),
+            parameters = node.parameters?.parameters ?: emptyMap(),
             sourceLocation = node.location,
         )
 
@@ -217,12 +241,19 @@ object ScenarioLoader {
             val scenarioParams = scenarioNode.parameters?.values ?: emptyMap()
             val mergedParams = featureParams + scenarioParams
 
+            val include = node.parameters?.includes ?: emptyList()
             // Create merged parameters node
             val mergedParametersNode =
                 if (scenarioNode.parameters != null) {
-                    scenarioNode.parameters.copy(values = mergedParams)
+                    val scenarioInclude = scenarioNode.parameters.includes
+                    scenarioNode.parameters.copy(
+                        values = mergedParams,
+                        name = scenarioNode.parameters.name,
+                        includes =
+                            include + scenarioInclude,
+                    )
                 } else if (mergedParams.isNotEmpty()) {
-                    ParametersNode(mergedParams, node.parameters?.location ?: scenarioNode.location)
+                    ParametersNode(mergedParams, node.parameters?.location ?: scenarioNode.location, includes = include)
                 } else {
                     null
                 }
@@ -277,14 +308,20 @@ object ScenarioLoader {
                 Step(
                     type = stepType,
                     description = description,
-                    sourceLocation = webhook.location,
-                    webhookConfig =
-                        WebhookConfig(
-                            name = webhook.name,
-                            port = webhook.port,
-                            hooks = webhook.hooks,
-                            scope = webhook.scope,
+                    directives =
+                        listOf(
+                            Directive.WebhookDirective(
+                                config =
+                                    WebhookConfig(
+                                        name = webhook.name,
+                                        port = webhook.port,
+                                        hooks = webhook.hooks,
+                                        scope = webhook.scope,
+                                    ),
+                                sourceLocation = webhook.location,
+                            ),
                         ),
+                    sourceLocation = webhook.location,
                 ),
             )
         }
@@ -302,8 +339,14 @@ object ScenarioLoader {
                 Step(
                     type = stepType,
                     description = "include ${include.fragmentName}",
-                    fragmentName = include.fragmentName,
-                    includeParameters = parameters,
+                    directives =
+                        listOf(
+                            Directive.IncludeDirective(
+                                fragmentName = include.fragmentName,
+                                parameters = parameters,
+                                sourceLocation = include.location,
+                            ),
+                        ),
                     sourceLocation = include.location,
                 ),
             )
@@ -326,21 +369,47 @@ object ScenarioLoader {
                     .mapKeys { it.key.removePrefix("query_") }
                     .mapValues { extractValue(it.value) }
 
+            val directives = mutableListOf<Directive>()
+            directives +=
+                Directive.CallDirective(
+                    operationId = call.operationId,
+                    rawRequest = call.rawMethod?.let { method -> call.rawPath?.let { path -> RawRequest(method, path) } },
+                    specName = call.specName,
+                    pathParams = pathParams.toNonNullMap(),
+                    queryParams = queryParams.toNonNullMap(),
+                    headers = call.headers.mapValues { extractValue(it.value).toString() },
+                    body = call.body?.let { extractStringValue(it) },
+                    bodyProperties = call.bodyProperties?.let { transformBodyProperties(it) },
+                    bodyFile = call.bodyFile,
+                    autoTestConfig = call.autoTestConfig?.let { transformAutoTestConfig(it) },
+                    sourceLocation = call.location,
+                )
+            extractions.forEach { extraction ->
+                directives += Directive.ExtractionDirective(extraction = extraction, sourceLocation = call.location)
+            }
+            assertions.forEach { assertion ->
+                directives +=
+                    when (assertion) {
+                        is Assertion.ConditionalAssertion -> {
+                            Directive.ConditionalDirective(
+                                assertion = assertion,
+                                sourceLocation = assertion.sourceLocation ?: call.location,
+                            )
+                        }
+
+                        else -> {
+                            Directive.AssertionDirective(assertion = assertion, sourceLocation = assertion.sourceLocation ?: call.location)
+                        }
+                    }
+            }
+            failMessage?.let { message ->
+                directives += Directive.FailDirective(message = message, sourceLocation = call.location)
+            }
+
             return Step(
                 type = stepType,
                 description = description,
-                operationId = call.operationId,
-                specName = call.specName,
-                pathParams = pathParams.toNonNullMap(),
-                queryParams = queryParams.toNonNullMap(),
-                headers = call.headers.mapValues { extractValue(it.value).toString() },
-                body = call.body?.let { extractStringValue(it) },
-                bodyProperties = call.bodyProperties?.let { transformBodyProperties(it) },
-                bodyFile = call.bodyFile,
-                extractions = extractions.toList(),
-                assertions = assertions.toList(),
-                failMessage = failMessage,
-                autoTestConfig = call.autoTestConfig?.let { transformAutoTestConfig(it) },
+                directives = directives,
                 sourceLocation = call.location,
             )
         }
@@ -367,9 +436,36 @@ object ScenarioLoader {
                     Step(
                         type = stepType,
                         description = description,
-                        extractions = extractions.toList(),
-                        assertions = assertions.toList(),
-                        failMessage = failMessage,
+                        directives =
+                            buildList {
+                                extractions.forEach { extraction ->
+                                    add(Directive.ExtractionDirective(extraction = extraction, sourceLocation = defaultLocation))
+                                }
+                                assertions.forEach { assertion ->
+                                    add(
+                                        when (assertion) {
+                                            is Assertion.ConditionalAssertion -> {
+                                                Directive.ConditionalDirective(
+                                                    assertion = assertion,
+                                                    sourceLocation =
+                                                        assertion.sourceLocation ?: defaultLocation,
+                                                )
+                                            }
+
+                                            else -> {
+                                                Directive.AssertionDirective(
+                                                    assertion = assertion,
+                                                    sourceLocation =
+                                                        assertion.sourceLocation ?: defaultLocation,
+                                                )
+                                            }
+                                        },
+                                    )
+                                }
+                                failMessage?.let { message ->
+                                    add(Directive.FailDirective(message = message, sourceLocation = defaultLocation))
+                                }
+                            },
                         sourceLocation = defaultLocation,
                     ),
                 )
@@ -452,7 +548,7 @@ object ScenarioLoader {
             is BooleanValueNode -> node.value
             is StringValueNode -> node.value
             is NumberValueNode -> node.value
-            is VariableValueNode -> $$"${$${node.name}}"
+            is VariableValueNode -> "{{${node.name}}}"
             is JsonValueNode -> node.json
             is StatusRangeNode -> node.toRange()
         }
@@ -463,7 +559,7 @@ object ScenarioLoader {
             is BooleanValueNode -> node.value.toString()
             is StringValueNode -> node.value
             is NumberValueNode -> node.value.toString()
-            is VariableValueNode -> $$"{{$${node.name}}}"
+            is VariableValueNode -> "{{${node.name}}}"
             is JsonValueNode -> node.json
             is StatusRangeNode -> "${node.base}xx"
         }

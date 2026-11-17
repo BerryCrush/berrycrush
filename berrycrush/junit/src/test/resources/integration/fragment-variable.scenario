@@ -1,0 +1,13 @@
+parameters:
+  << httpbin-param
+
+scenario: fragment include via variable
+  parameters:
+    fragment-name: httpbin
+  when I call the endpoint
+    include {{param.fragment-name}}
+      value: 200
+      pathVariable: codes
+      endpoint: status
+  then I receive a successful response
+    assert status 200

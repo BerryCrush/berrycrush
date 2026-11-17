@@ -2,6 +2,7 @@
 
 package org.berrycrush.scenario.parsing
 
+import org.berrycrush.model.HttpMethod
 import org.berrycrush.scenario.AutoTestConfig
 import org.berrycrush.scenario.AutoTestType
 import org.berrycrush.scenario.BodyPropertyValue
@@ -47,6 +48,17 @@ private class CallParseState {
         }
 }
 
+private sealed class CallTargetParseResult {
+    data class OperationId(
+        val value: String,
+    ) : CallTargetParseResult()
+
+    data class Raw(
+        val method: String,
+        val path: String,
+    ) : CallTargetParseResult()
+}
+
 /**
  * Parse a call action.
  */
@@ -55,21 +67,18 @@ internal fun ParserState.parseCallAction(): CallNode? {
     advance() // consume 'call'
     skipWhitespace()
 
-    val specName = parseUsingClause()
-
-    // Get operation ID
-    if (current().type != TokenType.OPERATION_ID && current().type != TokenType.IDENTIFIER) {
-        return addError("Expected operation ID")
-    }
-
-    val operationId = current().value
-    advance()
+    val preSpecName = parseUsingClause()
+    val target = parseCallTarget() ?: return null
+    val postSpecName = if (preSpecName == null) parseUsingClause() else null
+    val specName = preSpecName ?: postSpecName
 
     val state = CallParseState()
     parseCallParametersBlock(state)
 
     return CallNode(
-        operationId = operationId,
+        operationId = (target as? CallTargetParseResult.OperationId)?.value,
+        rawMethod = (target as? CallTargetParseResult.Raw)?.method,
+        rawPath = (target as? CallTargetParseResult.Raw)?.path,
         specName = specName,
         parameters = state.parameters,
         headers = state.headers,
@@ -81,6 +90,88 @@ internal fun ParserState.parseCallAction(): CallNode? {
     )
 }
 
+private fun ParserState.parseCallTarget(): CallTargetParseResult? =
+    when (current().type) {
+        TokenType.RAW -> {
+            advance()
+            skipWhitespace()
+            parseRawMethod()?.let { method ->
+                parseRawPath()?.let { path ->
+                    CallTargetParseResult.Raw(method = method, path = path)
+                }
+            }
+        }
+
+        TokenType.IDENTIFIER,
+        TokenType.OPERATION_ID,
+        TokenType.VARIABLE,
+        -> {
+            parseCallTargetOperand()?.let { operationId ->
+                advance()
+                CallTargetParseResult.OperationId(operationId)
+            } ?: addError("Expected operation ID")
+        }
+
+        else -> {
+            addError("Expected operation ID")
+        }
+    }
+
+fun ParserState.parseRawMethod(): String? =
+    when (current().type) {
+        TokenType.IDENTIFIER -> {
+            val method = current().value
+            if (HttpMethod.fromName(method) == null) {
+                addError("Expected uppercase HTTP method after 'raw', but found '$method'")
+            } else {
+                advance()
+                skipWhitespace()
+                method
+            }
+        }
+
+        TokenType.VARIABLE -> {
+            val method = current().value
+            advance()
+            skipWhitespace()
+            "{{$method}}"
+        }
+
+        else -> {
+            addError("Expected HTTP method or variable reference after 'raw'")
+        }
+    }
+
+fun ParserState.parseRawPath(): String? =
+    when (current().type) {
+        TokenType.HTTP_PATH -> {
+            val path = current().value
+            if (!path.startsWith('/')) {
+                addError("Expected HTTP path starting with '/' after method")
+            } else {
+                advance()
+                path
+            }
+        }
+
+        TokenType.VARIABLE -> {
+            val path = "{{${current().value}}}"
+            advance()
+            path
+        }
+
+        else -> {
+            addError("Expected HTTP path or variable reference after method")
+        }
+    }
+
+private fun ParserState.parseCallTargetOperand(): String? =
+    when (current().type) {
+        TokenType.OPERATION_ID, TokenType.IDENTIFIER -> current().value
+        TokenType.VARIABLE -> "{{${current().value}}}"
+        else -> null
+    }
+
 /**
  * Parse optional "using spec_name" clause.
  */
@@ -88,11 +179,16 @@ private fun ParserState.parseUsingClause(): String? {
     if (current().type != TokenType.USING) return null
     advance()
     skipWhitespace()
-    return if (current().type == TokenType.IDENTIFIER || current().type == TokenType.STRING) {
+    return if (
+        current().type == TokenType.IDENTIFIER ||
+        current().type == TokenType.STRING ||
+        current().type == TokenType.VARIABLE
+    ) {
         val specName = current().value
+        val normalizedSpecName = if (current().type == TokenType.VARIABLE) "{{$specName}}" else specName
         advance()
         skipWhitespace()
-        specName
+        normalizedSpecName
     } else {
         null
     }
@@ -102,39 +198,21 @@ private fun ParserState.parseUsingClause(): String? {
  * Parse optional parameters block for a call.
  */
 private fun ParserState.parseCallParametersBlock(state: CallParseState) {
-    skipNewlines()
-    if (current().type != TokenType.INDENT) return
-
-    advance()
-    while (!isAtEnd() && current().type != TokenType.DEDENT) {
-        when (current().type) {
-            TokenType.IDENTIFIER, TokenType.OPERATION_ID -> parseCallParameter(state)
-            TokenType.NEWLINE -> advance()
-            else -> advance()
-        }
-    }
-
-    if (current().type == TokenType.DEDENT) {
-        advance()
+    parseParameterLike { paramName ->
+        parseCallParameter(paramName, state)
     }
 }
 
 /**
  * Parse a single call parameter and update state.
  */
-private fun ParserState.parseCallParameter(state: CallParseState) {
-    val paramName = current().value
-    advance()
-    skipWhitespace()
-
-    if (current().type == TokenType.COLON || current().type == TokenType.EQUALS) {
-        advance()
-        skipWhitespace()
-    }
-
+private fun ParserState.parseCallParameter(
+    paramName: String,
+    state: CallParseState,
+) {
     when {
-        paramName.startsWith("header_") || paramName.startsWith("Header_") -> {
-            val headerName = paramName.removePrefix("header_").removePrefix("Header_")
+        paramName.startsWith("header_") -> {
+            val headerName = paramName.removePrefix("header_")
             parseValue()?.let { state.headers[headerName] = it }
         }
 
@@ -402,11 +480,12 @@ internal fun ParserState.parseIncludeAction(): IncludeNode? {
     advance() // consume 'include'
     skipWhitespace()
 
-    if (current().type != TokenType.IDENTIFIER) {
-        return addError("Expected fragment name")
-    }
-
-    val fragmentName = current().value
+    val fragmentName =
+        when (current().type) {
+            TokenType.IDENTIFIER -> current().value
+            TokenType.VARIABLE -> "{{${current().value}}}"
+            else -> addError("Expected fragment name")
+        } ?: return null
     advance()
 
     val parameters = parseIncludeParameters()
@@ -429,16 +508,27 @@ internal fun ParserState.parseIncludeAction(): IncludeNode? {
  * ```
  */
 private fun ParserState.parseIncludeParameters(): Map<String, ValueNode> {
-    skipNewlines()
-    if (current().type != TokenType.INDENT) return emptyMap()
-
     val parameters = mutableMapOf<String, ValueNode>()
-    advance() // consume INDENT
+    parseParameterLike { variableName ->
+        parseValue()?.let { parameters[variableName] = it }
+    }
+    return parameters
+}
 
+private fun ParserState.parseParameterLike(valueParser: ParserState.(String) -> Unit) {
+    skipNewlines()
+    if (current().type != TokenType.INDENT) return
+
+    advance()
     while (!isAtEnd() && current().type != TokenType.DEDENT) {
         when (current().type) {
-            TokenType.IDENTIFIER, TokenType.OPERATION_ID -> {
+            TokenType.IDENTIFIER,
+            TokenType.OPERATION_ID,
+            TokenType.VARIABLE,
+            -> {
                 val paramName = current().value
+                val paramType = current().type
+                val variableName = if (paramType == TokenType.VARIABLE) "{{$paramName}}" else paramName
                 advance()
                 skipWhitespace()
 
@@ -447,11 +537,7 @@ private fun ParserState.parseIncludeParameters(): Map<String, ValueNode> {
                     skipWhitespace()
                 }
 
-                parseValue()?.let { parameters[paramName] = it }
-            }
-
-            TokenType.NEWLINE -> {
-                advance()
+                valueParser(variableName)
             }
 
             else -> {
@@ -463,8 +549,6 @@ private fun ParserState.parseIncludeParameters(): Map<String, ValueNode> {
     if (current().type == TokenType.DEDENT) {
         advance()
     }
-
-    return parameters
 }
 
 /**

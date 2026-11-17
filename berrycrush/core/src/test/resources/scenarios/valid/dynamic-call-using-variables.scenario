@@ -1,0 +1,3 @@
+scenario: dynamic using from variables
+  when I call with dynamic spec and operation
+    call using {{specName}} {{operationId}}

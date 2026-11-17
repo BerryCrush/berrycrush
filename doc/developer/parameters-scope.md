@@ -119,6 +119,32 @@ feature: Quick Tests
   parameters:
     timeout: 10         # Feature overrides to 10
     # shareVariables inherits false from file
+
+## Named Parameter Blocks and Runtime Includes
+
+BerryCrush supports optional names on parameters blocks:
+
+```scenario
+parameters: defaults
+  timeout: 60
+  retries: 2
+```
+
+A parameters block can include a named block using `<<`:
+
+```scenario
+scenario: override timeout
+  parameters:
+    << defaults
+    timeout: 120
+```
+
+Resolution behavior:
+
+1. Include resolution is performed at runtime during loading/transformation.
+2. Included values are merged first, then local values are applied.
+3. Local values override included values for duplicate keys.
+4. Missing include names raise a runtime error with the missing name.
 ```
 
 ## Variable Sharing Behavior

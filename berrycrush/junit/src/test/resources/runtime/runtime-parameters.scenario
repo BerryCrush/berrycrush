@@ -1,0 +1,2 @@
+scenario: Runtime parameters from bindings
+  then the param name "param.tenantId" must be tenantA

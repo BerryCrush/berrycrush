@@ -70,6 +70,40 @@ For multi-spec projects, specify the spec name:
 
     call using auth ^login
 
+Call targets also support variable interpolation. This allows selecting the spec
+and operation dynamically at runtime:
+
+.. code-block:: berrycrush
+
+    call {{operationId}}
+    call using {{specName}} {{operationId}}
+
+Variables must resolve to non-empty values before execution. If a variable is
+missing or unresolved, BerryCrush fails the step with a clear error.
+
+Direct API Call
+^^^^^^^^^^^^^^^
+
+`call` can also be used with a direct HTTP method and path, bypassing OpenAPI
+operation resolution:
+
+.. code-block:: berrycrush
+
+    call GET /pets
+    call using auth POST /auth
+
+The `using` keyword still applies for multi-spec project, allowing you to specify
+which URL to use for the direct call.
+
+.. code-block:: berrycrush
+
+    call {{method}} {{path}}
+    call using auth {{method}} {{path}}
+
+Variables must resolve to appropriate values before execution, i.e. `{{method}}`
+must be a valid HTTP method and `{{path}}` must be a valid URL path.
+If a variable is missing or unresolved, BerryCrush fails the step.
+
 Call Parameters
 ^^^^^^^^^^^^^^^
 
@@ -738,6 +772,33 @@ You can also mix flat and nested syntax in the same parameters block:
         maxAttempts: 3
         delay: "500ms"
       header.Authorization: "Bearer token"
+
+Include Parameters
+^^^^^^^^^^^^^^^^^^
+
+``parameters`` block in fragment file can have name like this:
+
+.. code-block:: berrycrush
+
+    parameters: name
+      including_parameter: "value"
+
+This named parameter block can be included in the scenario
+file's ``parameters`` block like this:
+
+.. code-block:: berrycrush
+
+    parameters:
+      << name
+      other_parameter: "other value"
+
+The ``including_parameter`` will be merged into the scenario's
+parameters block at runtime.
+
+.. note::
+
+  If the including name doesn't exist in the fragment file,
+  then BerryCrush will throw an error during scenario execution.
 
 Auto-Generated Tests
 --------------------

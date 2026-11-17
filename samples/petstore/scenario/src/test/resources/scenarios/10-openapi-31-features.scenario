@@ -14,10 +14,10 @@ parameters:
   autoAssertions.enabled: false
 #   spec: "petstore-31.yaml"
 
-outline: Parameterized OpenAPI 3.1 test with different specs
+outline: Parameterized OpenAPI test with different specs
   parameters:
     binding.openApi:
-      baseUrl: "{{param.binding.default.baseUrl}}"
+      baseUrl: "http://localhost:{{param.serverPort}}{{prefix}}"
       location: "classpath:{{location}}"
       alias:
         listPets: "{{endpoint}}"
@@ -29,6 +29,32 @@ outline: Parameterized OpenAPI 3.1 test with different specs
     | /api/v2 | /petstore-31.yaml | "GET /pets" |
     | /api/v1 | /petstore.yaml    | "GET /pets" |
     | /api/v0 | /petstore-2.yaml  | "GET /pets" |
+
+feature: Parameterized OpenAPI test with different specs without alias
+  parameters:
+    binding:
+      openApi31:
+        baseUrl: "http://localhost:{{param.serverPort}}/api/v2"
+        location: "classpath:/petstore-31.yaml"
+      openApi30:
+        baseUrl: "http://localhost:{{param.serverPort}}/api/v1"
+        location: "classpath:/petstore.yaml"
+      openApi20:
+        baseUrl: "http://localhost:{{param.serverPort}}/api/v0"
+        location: "classpath:/petstore-2.yaml"
+  outline: List all pets using different OpenAPI versions
+    when: I list all pets
+      call using {{openApi}} {{operationId}}
+      assert status 200
+      assert schema
+      if openApi equals "openApi31"
+        assert $.apiVersion equals "v2"
+    examples:
+      | openApi   | operationId |
+      | openApi31 | listPets31  |
+      | openApi30 | listPets    |
+      | openApi20 | listPets    |
+
 # -----------------------------------------------------------------------------
 # Nullable Fields with Array Type Syntax
 # -----------------------------------------------------------------------------

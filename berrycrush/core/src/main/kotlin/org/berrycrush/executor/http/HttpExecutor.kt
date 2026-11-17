@@ -1,9 +1,11 @@
 package org.berrycrush.executor.http
 
 import org.berrycrush.executor.resolvers.RequestResolver
+import org.berrycrush.executor.resolvers.resolveCall
 import org.berrycrush.model.HttpRequest
 import org.berrycrush.model.HttpResponse
 import org.berrycrush.model.Step
+import org.berrycrush.model.callDirective
 import org.berrycrush.openapi.LoadedSpec
 import org.berrycrush.openapi.ResolvedOperation
 import org.berrycrush.openapi.SpecRegistry
@@ -17,17 +19,34 @@ import org.berrycrush.plugin.adapter.ScenarioContextAdapter
  * the main scenario executor.
  */
 interface HttpExecutor : RequestResolver {
+    val directExecutor: DirectHttpExecutor?
+        get() = null
+
     fun execute(
         step: Step,
         specRegistry: SpecRegistry,
         stepContext: StepContext,
     ): HttpResponse {
-        // Resolve the operation
-        val (spec, resolvedOp) = resolve(step, specRegistry)
-        // Execute the HTTP request using the HttpExecutor
-        val response = execute(step, spec, resolvedOp, stepContext)
-        // Update context with response
-        return response
+        val resolvedStep = stepContext.resolveCall(step)
+        val executor = directExecutor
+        val call = resolvedStep.callDirective
+        return when {
+            call?.rawRequest != null && executor != null -> {
+                executor.execute(step, stepContext)
+            }
+
+            call?.operationId != null -> {
+                val (spec, resolvedOp) = resolve(resolvedStep, specRegistry)
+                // Execute the HTTP request using the HttpExecutor
+                val response = execute(resolvedStep, spec, resolvedOp, stepContext)
+                // Update context with response
+                response
+            }
+
+            else -> {
+                throw IllegalArgumentException("Step must have either a raw request or an operation ID.")
+            }
+        }
     }
 
     /**
@@ -61,5 +80,14 @@ interface HttpExecutor : RequestResolver {
     fun resolve(
         step: Step,
         specRegistry: SpecRegistry,
-    ) = specRegistry.resolve(step.operationId!!, step.specName)
+    ) = step.callDirective?.let { call ->
+        specRegistry.resolve(requireNotNull(call.operationId), call.specName)
+    } ?: throw IllegalArgumentException("Step must have a call directive")
+}
+
+fun interface DirectHttpExecutor {
+    fun execute(
+        step: Step,
+        context: StepContext,
+    ): HttpResponse
 }

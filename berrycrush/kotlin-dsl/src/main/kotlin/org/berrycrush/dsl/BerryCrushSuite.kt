@@ -81,6 +81,23 @@ fun BerryCrushSuite.fragment(
 fun BerryCrushSuite.getFragment(name: String): Fragment? = fragments[name]
 
 /**
+ * Set a runtime parameter on the suite.
+ */
+fun BerryCrushSuite.runtimeParameter(
+    name: String,
+    value: Any,
+) {
+    runtimeParameters[name] = value
+}
+
+/**
+ * Set multiple runtime parameters on the suite.
+ */
+fun BerryCrushSuite.runtimeParameters(values: Map<String, Any>) {
+    runtimeParameters.putAll(values)
+}
+
+/**
  * Create a BerryCrush test suite with a single OpenAPI spec.
  */
 fun berrycrush(

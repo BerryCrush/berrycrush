@@ -10,13 +10,13 @@ import org.berrycrush.junit.ParallelExecutionMode
 import org.berrycrush.junit.engine.ClassTestDescriptor
 import org.berrycrush.junit.engine.ScenarioFileDescriptor
 import org.berrycrush.junit.engine.ScenarioMethodDescriptor
-import org.berrycrush.junit.engine.ScenarioTestDiscoverer
 import org.berrycrush.junit.spi.BindingsProvider
 import org.berrycrush.model.FragmentRegistry
 import org.berrycrush.model.ResultStatus
 import org.berrycrush.model.ScenarioResult
 import org.berrycrush.plugin.PluginRegistry
 import org.berrycrush.runner.ScenarioRunner
+import org.berrycrush.scenario.ScenarioLoader
 import org.berrycrush.util.StepRegistry
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
@@ -27,7 +27,6 @@ import org.junit.platform.engine.EngineExecutionListener
 import org.junit.platform.engine.TestExecutionResult
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
-import java.util.Collections
 import java.util.logging.Logger
 import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.jvmName
@@ -176,7 +175,10 @@ private fun TestExecutionContext.buildFileContext(
     fileDescriptor: ScenarioFileDescriptor,
     classDescriptor: ClassTestDescriptor,
 ): FileExecutionContext {
-    val fileContent = ScenarioTestDiscoverer.loadScenarioFromUrl(fileDescriptor.scenarioSource)
+    val fileContent =
+        ScenarioLoader.loadFileContent(
+            path = fileDescriptor.scenarioSource.toURI(),
+        )
 
     val fileConfig =
         if (fileContent.parameters.isNotEmpty()) {
@@ -185,7 +187,7 @@ private fun TestExecutionContext.buildFileContext(
             suite.configuration
         }
     val executionContext = ExecutionContext(fileConfig.shareVariablesAcrossScenarios, fileContent.parameters)
-    val newRunner = runner.from(BerryCrushConfigurationProvider.from(fileConfig))
+    val newRunner = runner.from(BerryCrushConfigurationProvider.from(fileConfig, suite.runtimeParameters))
 
     // Warn if sharing variables across scenarios with concurrent execution mode
     if (classDescriptor.parallelExecution == ParallelExecutionMode.CONCURRENT) {
@@ -310,7 +312,7 @@ private class ScenarioMethodLifecycleController(
         }
 
         if (topDown) {
-            Collections.reverse(classHierarchy)
+            classHierarchy.reverse()
         }
 
         return classHierarchy

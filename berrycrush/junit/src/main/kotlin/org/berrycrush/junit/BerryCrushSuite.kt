@@ -16,6 +16,7 @@ interface BerryCrushSuite {
     val scenarios: List<Scenario>
     val specRegistry: SpecRegistry
     val fragments: Map<String, Fragment>
+    val runtimeParameters: MutableMap<String, Any>
 
     fun add(scenario: Scenario)
 
@@ -33,7 +34,11 @@ interface BerryCrushSuite {
         path: String,
     ) = specRegistry.register(name, path)
 
-    fun toScenarioExecutor() = BerryCrushScenarioExecutor(specRegistry, BerryCrushConfigurationProvider.from(configuration))
+    fun toScenarioExecutor() =
+        BerryCrushScenarioExecutor(
+            specRegistry,
+            BerryCrushConfigurationProvider.from(configuration, runtimeParameters),
+        )
 }
 
 private data class DefaultBerryCrushSuite(
@@ -41,6 +46,7 @@ private data class DefaultBerryCrushSuite(
     override val scenarios: MutableList<Scenario> = mutableListOf(),
     override val specRegistry: SpecRegistry = SpecRegistry(),
     override val fragments: MutableMap<String, Fragment> = mutableMapOf(),
+    override val runtimeParameters: MutableMap<String, Any> = mutableMapOf(),
 ) : BerryCrushSuite {
     override fun add(scenario: Scenario) {
         scenarios.add(scenario)

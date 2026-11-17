@@ -1,7 +1,7 @@
 package org.berrycrush.logging
 
-import org.berrycrush.model.HttpMethod
 import org.berrycrush.model.HttpResponse
+import org.berrycrush.openapi.HttpMethod
 
 /**
  * Simple console-based HttpLogger that prints to stdout.
